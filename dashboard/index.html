@@ -279,6 +279,10 @@
       box-shadow: var(--shadow-sm);
     }
 
+    .session-bar > div {
+      min-width: 0;
+    }
+
     .status-strip {
       display: flex;
       flex-wrap: wrap;
@@ -317,6 +321,7 @@
     .session-title {
       font-weight: 950;
       font-size: 18px;
+      overflow-wrap: anywhere;
     }
 
     .session-subtitle {
@@ -435,6 +440,139 @@
         var(--panel);
     }
 
+    .command-panel.hero {
+      min-height: 272px;
+      display: grid;
+      align-content: space-between;
+    }
+
+    .executive-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr);
+      gap: 12px;
+    }
+
+    .summary-stack {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .summary-line {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.78);
+      padding: 10px;
+    }
+
+    .summary-index {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--soft-green);
+      border: 1px solid #b9e3da;
+      color: var(--green-deep);
+      font-weight: 950;
+    }
+
+    .summary-line strong {
+      display: block;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .summary-line small {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.3;
+      margin-top: 2px;
+    }
+
+    .priority-lanes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .lane-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.84);
+      padding: 14px;
+      min-height: 132px;
+    }
+
+    .lane-card.risk { border-color: #e9b4b4; background: var(--soft-red); }
+    .lane-card.warn { border-color: #ebd1ac; background: var(--soft-amber); }
+    .lane-card.good { border-color: #b9e3da; background: var(--soft-green); }
+    .lane-card.blue { border-color: #b7cdf1; background: var(--soft-blue); }
+
+    .lane-card b {
+      display: block;
+      font-size: 26px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .lane-card strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .lane-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 760;
+    }
+
+    .decision-feed {
+      display: grid;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .decision-item {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      padding: 11px 12px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .decision-item > div {
+      min-width: 0;
+    }
+
+    .decision-item b {
+      display: block;
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .decision-item small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
     .readiness-card {
       border: 1px solid var(--line);
       border-radius: 20px;
@@ -533,8 +671,8 @@
 
     .command-title {
       display: block;
-      font-size: clamp(24px, 2.6vw, 34px);
-      line-height: 1.05;
+      font-size: clamp(22px, 2.2vw, 30px);
+      line-height: 1.08;
       letter-spacing: 0;
       margin-bottom: 10px;
     }
@@ -1627,7 +1765,7 @@
         border-radius: 0 0 24px 24px;
       }
       .side-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .command-grid, .metric-strip, .steps, .queue-head, .queue-tools, .grid, .panel-body, .panel-intel, .readiness-grid, .settings-grid { grid-template-columns: 1fr; }
+      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .command-grid, .executive-grid, .priority-lanes, .metric-strip, .steps, .queue-head, .queue-tools, .grid, .panel-body, .panel-intel, .readiness-grid, .settings-grid { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
       .grid.list .case-card { grid-template-columns: 1fr; }
       .detail-tile.wide { grid-column: auto; }
@@ -1635,13 +1773,57 @@
     }
 
     @media (max-width: 720px) {
+      body { overflow-x: hidden; }
+      .app-shell, .sidebar, .workspace {
+        width: 100% !important;
+        max-width: 100vw !important;
+        min-width: 0;
+      }
+      .sidebar > *,
+      .workspace > *,
+      .topbar,
+      .setup,
+      .session-bar,
+      .stats,
+      .workspace-view,
+      .command-panel,
+      .readiness-card,
+      .ops-card,
+      .case-card {
+        max-width: calc(100vw - 32px) !important;
+      }
       .workspace { padding: 16px; }
-      .side-nav { grid-template-columns: 1fr 1fr; }
+      .sidebar { padding: 20px 16px; }
+      .side-nav { grid-template-columns: 1fr; }
+      .setup input,
+      .setup button,
+      .setup select,
+      .session-bar,
+      .session-actions,
+      .session-actions .btn,
+      .command-panel,
+      .readiness-card,
+      .ops-card,
+      .stat,
+      .case-card {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+      }
+      .session-bar {
+        grid-template-columns: 1fr;
+      }
+      .session-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
       .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
       .view-toggle { align-self: flex-start; }
       .panel-body { padding: 14px; }
       .member-row { grid-template-columns: 38px minmax(0, 1fr); }
       .member-row .ops-mini { grid-column: 1 / -1; justify-content: center; }
+      .summary-line, .decision-item { grid-template-columns: 1fr; }
+      .summary-index { display: none; }
     }
   </style>
 </head>
@@ -1658,17 +1840,17 @@
 
       <nav class="side-nav" aria-label="主导航">
         <button class="active" data-workspace-view="overview">中控台</button>
-        <button data-workspace-view="cases">Case 队列</button>
+        <button data-workspace-view="cases">顾客队列</button>
         <button data-workspace-view="operations">运营设置</button>
         <button data-workspace-view="learning">AI 复盘</button>
       </nav>
 
       <div class="side-card">
-        <strong id="sideRole">Owner 管理者</strong>
-        <span id="sideHint">公开 Demo。连接 Worker 后会读取真实 ChatDaddy Case。</span>
+        <strong id="sideRole">管理者</strong>
+        <span id="sideHint">公开演示。连接 Worker 后会读取真实顾客讯息。</span>
         <div class="side-meter">
           <div class="side-meter-row"><span>工作区</span><strong id="sideWorkspace">DEMO</strong></div>
-          <div class="side-meter-row"><span>连接</span><strong id="sideConnection">Demo</strong></div>
+          <div class="side-meter-row"><span>连接</span><strong id="sideConnection">演示</strong></div>
         </div>
       </div>
     </aside>
@@ -1678,7 +1860,7 @@
         <div>
           <span class="mode-tag" id="modeTag">公开演示</span>
           <h1 id="workspaceTitle">AI 客服工作台</h1>
-          <div class="subtitle" id="dashboardSubtitle">集中查看顾客状态、AI 判断、建议回复、人工介入和订单进度。团队只处理该处理的 Case。</div>
+          <div class="subtitle" id="dashboardSubtitle">集中查看顾客状态、AI 判断、建议回复、人工介入和订单进度。</div>
         </div>
         <div class="setup" id="setupPanel">
           <input id="apiUrl" placeholder="Worker API URL" />
@@ -1691,7 +1873,7 @@
       <div class="session-bar" id="sessionBar">
         <div>
           <div class="session-title" id="sessionTitle">公开演示工作台</div>
-          <div class="session-subtitle" id="sessionSubtitle">Owner / Admin 看全局；Staff 只看待处理顾客。</div>
+          <div class="session-subtitle" id="sessionSubtitle">管理者看全局；客服只看待处理顾客。</div>
         </div>
         <div class="session-actions">
           <a class="btn" href="../login.html">切换账号</a>
@@ -1715,11 +1897,11 @@
           <option value="realestate">房地产 Lead 跟进</option>
           <option value="aftersales">售后服务客服</option>
         </select>
-        <button class="btn" id="loadDemo">载入演示</button>
+        <button class="btn" id="loadDemo">载入演示数据</button>
       </div>
 
       <div class="stats" id="statsPanel">
-        <div class="stat"><b id="statAll">0</b><span>全部 Case</span></div>
+        <div class="stat"><b id="statAll">0</b><span>全部顾客</span></div>
         <div class="stat"><b id="statApproval">0</b><span>待批准</span></div>
         <div class="stat"><b id="statHuman">0</b><span>需人工</span></div>
         <div class="stat"><b id="statOrder">0</b><span>订单</span></div>
@@ -1735,7 +1917,7 @@
       <section class="workbench-card" id="caseWorkbench">
         <div class="queue-head">
           <div>
-            <div class="queue-title">Case 队列</div>
+            <div class="queue-title">顾客队列</div>
             <div class="queue-subtitle" id="queueSummary">按 AI 判断排序，先处理最重要的顾客。</div>
           </div>
           <div class="queue-tools">
@@ -1762,7 +1944,7 @@
           </div>
         </div>
         <div class="bulk-bar hidden" id="bulkBar" aria-label="批量处理">
-          <div class="bulk-summary"><b id="bulkCount">0</b><span>个 Case 已选择</span></div>
+          <div class="bulk-summary"><b id="bulkCount">0</b><span>位顾客已选择</span></div>
           <div class="bulk-actions">
             <button class="btn" id="bulkMarkSeen" type="button">标记已看</button>
             <button class="btn danger" id="bulkHandoff" type="button">批量转人工</button>
@@ -1781,7 +1963,7 @@
       <div class="panel-top">
         <div>
           <h1 id="panelName">顾客</h1>
-          <div class="subtitle" id="panelMeta">Case 详情</div>
+          <div class="subtitle" id="panelMeta">顾客详情</div>
         </div>
         <button class="btn ghost" id="closePanel">关闭</button>
       </div>
@@ -1807,7 +1989,7 @@
             <p id="actionReason">确认回复后发送。</p>
             <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
           </div>
-          <button class="btn" id="learnBtn">以后类似 Case 自动通过</button>
+          <button class="btn" id="learnBtn">以后类似顾客自动通过</button>
           <button class="btn danger" id="handoffBtn">转人工</button>
           <div class="box">
             <h3>重点词</h3>
@@ -2225,7 +2407,7 @@
       state.settings = collectProjectSettingsFromForm();
       localStorage.setItem(settingsKey(project), JSON.stringify(state.settings));
       addAuditEvent("project_settings_saved", "更新品牌大脑、Flow ID 和安全规则。");
-      showToast("项目设置已保存。Demo 会保存在这台浏览器。");
+      showToast("项目设置已保存。演示设置会保存在这台浏览器。");
       render();
     }
 
@@ -2254,14 +2436,14 @@
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
       $("sideRole").textContent = roleLabel;
       $("sideWorkspace").textContent = workspace.toUpperCase();
-      $("sideConnection").textContent = state.demoMode ? "Demo" : "Live";
+      $("sideConnection").textContent = state.demoMode ? "演示" : "真实";
       $("sideHint").textContent = state.role === "staff"
-        ? "客服模式：只显示需要处理的顾客。"
-        : "管理模式：可查看连接、权限和 AI 复盘。";
+        ? "客服模式：只显示待处理顾客。"
+        : "管理模式：总览、连接、权限和 AI 复盘。";
 
       $("dashboardSubtitle").textContent = state.role === "staff"
         ? "客服工作台：只显示待批准、需人工和订单。"
-        : "集中查看顾客状态、AI 判断、建议回复、人工介入和订单进度。";
+        : "集中查看顾客优先级、AI 判断、人工介入和订单进度。";
 
       $("setupPanel").classList.toggle("hidden", state.role === "staff");
       $("autoFilterBtn").classList.toggle("hidden", state.role === "staff");
@@ -2305,7 +2487,7 @@
         item.classList.toggle("active", item.dataset.workspaceView === view);
       });
 
-      $("sideConnection").textContent = state.demoMode ? "Demo" : "Live";
+      $("sideConnection").textContent = state.demoMode ? "演示" : "真实";
       $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
       $("statusStrip").innerHTML = statusStripHtml();
@@ -2323,11 +2505,11 @@
     function workspaceMeta(view) {
       const meta = {
         overview: {
-          title: "AI 客服中控台",
-          subtitle: "先看整体风险、待处理数量和今天该做什么。",
+          title: "运营总览",
+          subtitle: "优先级、风险、订单和 AI 判断集中监控。",
         },
         cases: {
-          title: "Case 队列",
+          title: "顾客队列",
           subtitle: "客服只需要打开顾客、确认 AI 建议、批准发送或转人工。",
         },
         operations: {
@@ -2344,8 +2526,8 @@
 
     function statusStripHtml() {
       const connectionTone = state.demoMode ? "warn" : "";
-      const connectionText = state.demoMode ? "Demo 数据" : "真实连接";
-      const roleText = state.role === "staff" ? "客服权限" : state.role === "admin" ? "运营权限" : "Owner 权限";
+      const connectionText = state.demoMode ? "演示数据" : "真实连接";
+      const roleText = state.role === "staff" ? "客服权限" : state.role === "admin" ? "运营权限" : "管理者权限";
       const ready = readinessScore();
       return `
         <span class="status-chip ${connectionTone}">${connectionText}</span>
@@ -2361,12 +2543,12 @@
       const flowMap = settings.flowMap || {};
       const rules = settings.rules || {};
       return [
-        { title: "ChatDaddy", note: state.demoMode ? "Demo 模式" : "已连接", ready: !state.demoMode || Boolean(apiUrlEl.value.trim()) },
+        { title: "ChatDaddy", note: state.demoMode ? "演示模式" : "已连接", ready: !state.demoMode || Boolean(apiUrlEl.value.trim()) },
         { title: "Webhook", note: apiUrlEl.value.trim() ? "已填 URL" : "待填 URL", ready: Boolean(apiUrlEl.value.trim()) },
         { title: "品牌大脑", note: settings.brandVoice ? "已设置语气" : "待设置", ready: Boolean(settings.brandVoice && settings.brandKb) },
         { title: "Flow ID", note: readyFlowCount(flowMap) >= 3 ? "核心 Flow 已填" : "待补 Flow", ready: readyFlowCount(flowMap) >= 3 },
         { title: "安全规则", note: Object.values(rules).filter(Boolean).length >= 3 ? "保护已开" : "待确认", ready: Object.values(rules).filter(Boolean).length >= 3 },
-        { title: "团队权限", note: "Owner/Admin/Staff", ready: true },
+        { title: "团队权限", note: "管理者/运营/客服", ready: true },
       ];
     }
 
@@ -2456,13 +2638,13 @@
     }
 
     function roleName(role) {
-      const map = { owner: "Owner 管理者", admin: "Admin 运营", staff: "Staff 客服" };
-      return map[role] || "Owner 管理者";
+      const map = { owner: "管理者", admin: "运营主管", staff: "客服人员" };
+      return map[role] || "管理者";
     }
 
     function roleSubtitle(role) {
-      if (role === "staff") return "只显示客服该处理的顾客，不显示 Token、API、系统设置和自动 Case。";
-      if (role === "admin") return "可以处理 Case、复盘 AI 判断、检查学习规则。";
+      if (role === "staff") return "只显示客服该处理的顾客，不显示 Token、API、系统设置和自动处理中的顾客。";
+      if (role === "admin") return "可以处理顾客、复盘 AI 判断、检查学习规则。";
       return "可以看全部项目、系统状态、真实连接和团队入口。";
     }
 
@@ -2595,7 +2777,7 @@
           record.history.push({
             type: "operator_seen_demo",
             at: now,
-            note: "Demo: 已标记为看过。",
+            note: "演示：已标记为看过。",
           });
         }
 
@@ -2608,14 +2790,14 @@
           record.history.push({
             type: "bulk_handoff_demo",
             at: now,
-            note: "Demo: 批量转人工。",
+            note: "演示：批量转人工。",
           });
         }
 
         record.updated_at = now;
       });
 
-      const message = action === "handoff" ? `Demo：已把 ${ids.length} 个 Case 转人工。` : `Demo：已标记 ${ids.length} 个 Case。`;
+      const message = action === "handoff" ? `演示：已把 ${ids.length} 位顾客转人工。` : `演示：已标记 ${ids.length} 位顾客。`;
       addAuditEvent(action === "handoff" ? "bulk_handoff_demo" : "bulk_seen_demo", message);
       state.selected.clear();
       render();
@@ -2681,43 +2863,67 @@
     function renderQueueSummary(visibleCount, filteredCount, totalCount) {
       const queryText = state.query ? ` · 搜索「${state.query}」` : "";
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新更新" : "顾客名字";
-      $("queueSummary").textContent = `显示 ${visibleCount}/${filteredCount} 个 Case${queryText} · ${sortText}排序 · 全部 ${totalCount}`;
+      $("queueSummary").textContent = `显示 ${visibleCount}/${filteredCount} 位顾客${queryText} · ${sortText}排序 · 全部 ${totalCount}`;
     }
 
     function renderWorkspaceViews(cases, counts, learned) {
       const next = viewCopy("needs_attention", counts);
       const recent = recentEvents(cases);
+      const topCase = topPriorityCase(cases);
+      const decisions = recentDecisions(cases);
 
       $("overviewView").innerHTML = `
         ${readinessCardHtml()}
-        <div class="command-grid">
-          <section class="command-panel accent">
-            <div class="command-kicker">今日工作重点</div>
-            <strong class="command-title">${escapeHtml(next.title)}</strong>
-            <p class="command-copy">${escapeHtml(next.body)} 系统会把高风险、订单和待批准排在前面。</p>
-            <div class="metric-strip">
-              ${metricHtml(counts.approval, "待批准")}
-              ${metricHtml(counts.human, "需人工")}
-              ${metricHtml(counts.orders, "订单")}
-              ${metricHtml(counts.auto, "自动中")}
+        <div class="executive-grid">
+          <section class="command-panel accent hero">
+            <div>
+              <div class="command-kicker">今日运营</div>
+              <strong class="command-title">${escapeHtml(next.title)}</strong>
+              <p class="command-copy">${escapeHtml(next.body)} 队列已按风险、订单和成交机会排序。</p>
+              <div class="priority-lanes">
+                ${laneCard("risk", counts.human, "需人工", "投诉、敏感或低信心优先处理。")}
+                ${laneCard("warn", counts.approval, "待批准", "AI 已写好回复，确认后发送。")}
+                ${laneCard("blue", counts.orders, "订单", "资料完整后提交，Receipt 先审核。")}
+              </div>
             </div>
             <div class="quick-actions">
-              <button class="quick-action primary" data-dashboard-action="cases">处理待办</button>
+              <button class="quick-action primary" data-dashboard-action="cases">进入队列</button>
               <button class="quick-action" data-dashboard-action="approval">待批准</button>
               <button class="quick-action" data-dashboard-action="orders">订单</button>
             </div>
           </section>
           <section class="command-panel">
-            <div class="command-kicker">处理顺序</div>
-            <strong class="command-title">先风险，再成交，再自动</strong>
-            <div class="compact-list">
-              ${compactRow("高风险", "投诉、敏感、低信心先转人工", statusLabel("human_required"))}
-              ${compactRow("成交机会", "看价后异议先审核成交回复", statusLabel("approval_required"))}
-              ${compactRow("低风险", "FAQ 与 Follow-up 让 AI 自动跑", statusLabel("auto"))}
+            <div class="command-kicker">当前优先顾客</div>
+            <strong class="command-title">${escapeHtml(topCase?.contact?.name || "暂无待处理顾客")}</strong>
+            <p class="command-copy">${escapeHtml(topCase ? caseOneLine(topCase) : "目前没有高优先级顾客。低风险顾客可继续自动处理。")}</p>
+            <div class="summary-stack">
+              ${summaryLine("1", "风险", topCase ? statusLabel(topCase.status, topCase.latest_decision?.risk) : "队列稳定", topCase ? riskTone(topCase) : "good")}
+              ${summaryLine("2", "动作", topCase ? actionLabel(topCase.latest_decision?.action) : "继续监控", "blue")}
+              ${summaryLine("3", "记录", "审批、转人工、订单都会留痕", "good")}
             </div>
             <div class="quick-actions">
-              <button class="quick-action" data-dashboard-action="human">看高风险</button>
-              <button class="quick-action" data-dashboard-action="learning">看 AI 复盘</button>
+              <button class="quick-action" data-dashboard-action="human">高风险</button>
+              <button class="quick-action" data-dashboard-action="learning">AI 复盘</button>
+            </div>
+          </section>
+        </div>
+        <div class="command-grid">
+          <section class="command-panel">
+            <div class="command-kicker">队列健康</div>
+            <strong class="command-title">自动 ${escapeHtml(counts.auto)} · 待办 ${escapeHtml(counts.needs)}</strong>
+            <p class="command-copy">简单问题自动处理；成交、投诉、订单和低信心判断进入人工。</p>
+            <div class="metric-strip">
+              ${metricHtml(counts.approval, "待批准")}
+              ${metricHtml(counts.human, "需人工")}
+              ${metricHtml(counts.orders, "订单")}
+              ${metricHtml(counts.failed, "失败")}
+            </div>
+          </section>
+          <section class="command-panel">
+            <div class="command-kicker">最近 AI 决策</div>
+            <strong class="command-title">动作可追踪</strong>
+            <div class="decision-feed">
+              ${decisions.map(decisionItemHtml).join("") || `<div class="audit-item"><b>暂无判断</b>真实讯息进来后会显示 AI 的动作和理由。</div>`}
             </div>
           </section>
         </div>
@@ -2727,15 +2933,15 @@
         <div class="command-grid">
           <section class="command-panel accent">
             <div class="command-kicker">真实连接</div>
-            <strong class="command-title">${state.demoMode ? "Demo 模式" : "真实系统已连接"}</strong>
-            <p class="command-copy">${state.demoMode ? "目前使用演示数据。连接 Worker 后会读取真实 ChatDaddy webhook Case。" : "ChatDaddy、Worker、Dashboard 和记录表已经进入真实运营链路。"}</p>
+            <strong class="command-title">${state.demoMode ? "演示模式" : "真实系统已连接"}</strong>
+            <p class="command-copy">${state.demoMode ? "目前使用演示数据。连接 Worker 后会读取真实 ChatDaddy 顾客讯息。" : "ChatDaddy、Worker、中控台和记录表已经进入真实运营链路。"}</p>
             <div class="compact-list">
-              ${compactRow("ChatDaddy Webhook", state.demoMode ? "等待真实 Case" : "接收中", state.demoMode ? "待连接" : "正常")}
+              ${compactRow("ChatDaddy Webhook", state.demoMode ? "等待真实讯息" : "接收中", state.demoMode ? "待连接" : "正常")}
               ${compactRow("Worker API", apiUrlEl.value ? "已填写 URL" : "未填写 URL", apiUrlEl.value ? "已设置" : "待设置")}
               ${compactRow("操作记录", "审批、转人工、学习都会留下记录", "可追踪")}
             </div>
             <div class="quick-actions">
-              <button class="quick-action primary" data-dashboard-action="cases">打开 Case 队列</button>
+              <button class="quick-action primary" data-dashboard-action="cases">打开顾客队列</button>
             </div>
           </section>
           <section class="command-panel">
@@ -2743,14 +2949,14 @@
             <strong class="command-title">按岗位分配入口</strong>
             <p class="command-copy">复制对应入口给团队，不需要让客服碰技术设置。</p>
             <div class="team-roster">
-              ${memberRow("O", "Owner 管理者", "全局数据、真实连接、团队权限、AI 复盘", "最高权限")}
-              ${memberRow("A", "Admin 运营", "审核回复、处理异常、复盘规则", "运营权限")}
-              ${memberRow("S", "Staff 客服", "只看待处理顾客：批准、转人工、提交订单", "客服权限")}
+              ${memberRow("管", "管理者", "全局数据、真实连接、团队权限、AI 复盘", "最高权限")}
+              ${memberRow("运", "运营主管", "审核回复、处理异常、复盘规则", "运营权限")}
+              ${memberRow("客", "客服人员", "只看待处理顾客：批准、转人工、提交订单", "客服权限")}
             </div>
             <div class="quick-actions">
-              <button class="quick-action" data-copy-role-link="owner" type="button">复制 Owner 入口</button>
-              <button class="quick-action" data-copy-role-link="admin" type="button">复制 Admin 入口</button>
-              <button class="quick-action primary" data-copy-role-link="staff" type="button">复制 Staff 入口</button>
+              <button class="quick-action" data-copy-role-link="owner" type="button">复制管理者入口</button>
+              <button class="quick-action" data-copy-role-link="admin" type="button">复制运营入口</button>
+              <button class="quick-action primary" data-copy-role-link="staff" type="button">复制客服入口</button>
             </div>
           </section>
         </div>
@@ -2761,7 +2967,7 @@
             ${stepHtml("批准发送", "Send Message，把确认后的回复发给顾客。")}
             ${stepHtml("转人工", "Stop Flow / Assign，停止 Automation。")}
             ${stepHtml("提交订单", "订单资料完整后推给 Ops。")}
-            ${stepHtml("自动学习", "同类低风险 Case 下次减少审批。")}
+            ${stepHtml("自动学习", "同类低风险顾客下次减少审批。")}
           </div>
         </section>
         ${projectSettingsHtml()}
@@ -2772,7 +2978,7 @@
           <section class="command-panel accent">
             <div class="command-kicker">AI 复盘</div>
             <strong class="command-title">${learned} 条学习记录</strong>
-            <p class="command-copy">人工批准后可以把安全规则沉淀下来。下次同类低风险 Case，AI 可以更少打扰团队。</p>
+            <p class="command-copy">人工批准后可以把安全规则沉淀下来。下次同类低风险顾客，AI 可以更少打扰团队。</p>
             <div class="compact-list">
               ${compactRow("低风险 FAQ", "看价前问题可自动回复并接下一步 Flow", "可自动")}
               ${compactRow("价格后异议", "先人工确认成交话术，再逐步放宽", "需审核")}
@@ -2787,7 +2993,7 @@
             <div class="command-kicker">最近操作</div>
             <strong class="command-title">有记录，才可复盘</strong>
             <div class="audit-list">
-              ${recent.map(auditHtml).join("") || `<div class="audit-item"><b>暂无操作记录</b>真实 Case 进来后会显示审批、转人工和学习记录。</div>`}
+              ${recent.map(auditHtml).join("") || `<div class="audit-item"><b>暂无操作记录</b>真实顾客进来后会显示审批、转人工和学习记录。</div>`}
             </div>
           </section>
         </div>
@@ -2796,6 +3002,67 @@
 
     function metricHtml(value, label) {
       return `<div class="metric"><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span></div>`;
+    }
+
+    function laneCard(tone, value, title, body) {
+      return `
+        <div class="lane-card ${escapeHtml(tone)}">
+          <b>${escapeHtml(value)}</b>
+          <strong>${escapeHtml(title)}</strong>
+          <span>${escapeHtml(body)}</span>
+        </div>
+      `;
+    }
+
+    function summaryLine(index, title, body, tone) {
+      const label = tone === "risk" ? "高优先" : tone === "warn" ? "要确认" : tone === "blue" ? "动作" : "正常";
+      return `
+        <div class="summary-line">
+          <span class="summary-index">${escapeHtml(index)}</span>
+          <div><strong>${escapeHtml(title)}</strong><small>${escapeHtml(body)}</small></div>
+          <span class="ops-mini ${escapeHtml(tone || "")}">${escapeHtml(label)}</span>
+        </div>
+      `;
+    }
+
+    function topPriorityCase(cases) {
+      return sortCases(filterCases(cases, "needs_attention"), "priority")[0] || null;
+    }
+
+    function caseOneLine(item) {
+      const decision = item.latest_decision || {};
+      const status = statusLabel(item.status, decision.risk);
+      const action = actionLabel(decision.action);
+      const reason = decision.reason || item.last_message || "";
+      return `${status} · ${action} · ${reason}`;
+    }
+
+    function riskTone(item) {
+      const risk = item.latest_decision?.risk || item.risk || "low";
+      if (risk === "high" || item.status === "human_required" || item.status === "send_failed") return "risk";
+      if (risk === "medium" || item.status === "approval_required") return "warn";
+      if (item.status === "order") return "blue";
+      return "good";
+    }
+
+    function recentDecisions(cases) {
+      return [...cases]
+        .filter((item) => item.latest_decision)
+        .sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0))
+        .slice(0, 4);
+    }
+
+    function decisionItemHtml(item) {
+      const decision = item.latest_decision || {};
+      return `
+        <div class="decision-item">
+          <div>
+            <b>${escapeHtml(item.contact?.name || "顾客")} · ${escapeHtml(actionLabel(decision.action))}</b>
+            <small>${escapeHtml(decision.reason || item.last_message || "AI 已完成判断。")}</small>
+          </div>
+          <span class="ops-mini ${escapeHtml(riskTone(item))}">${escapeHtml(statusLabel(item.status, decision.risk))}</span>
+        </div>
+      `;
     }
 
     function compactRow(title, body, value) {
@@ -2905,7 +3172,7 @@
             <div class="settings-box">
               <h3>保存后系统会怎样用</h3>
               <div class="compact-list">
-                ${compactRow("顾客进来", "ChatDaddy webhook 进入 Case 队列", "接收")}
+                ${compactRow("顾客进来", "ChatDaddy webhook 进入顾客队列", "接收")}
                 ${compactRow("AI 判断", "按品牌大脑、Flow、规则决定下一步", "判断")}
                 ${compactRow("团队确认", "需要人的才显示给客服处理", "闭环")}
               </div>
@@ -2972,7 +3239,7 @@
           opsMini(`${counts.orders} 个订单`, "blue"),
           opsMini(`${counts.human} 个要人工`, counts.human > 0 ? "risk" : "good"),
         ], "focus")}
-        ${opsCard("处理规则", "先看动作，再看回复", "客服只需要处理待批准、需人工和订单。自动 Case 不会打扰你。", [
+        ${opsCard("处理规则", "先看动作，再看回复", "客服只需要处理待批准、需人工和订单。自动处理中的顾客不会打扰你。", [
           opsMini("批准发送", "good"),
           opsMini("转人工", "warn"),
           opsMini("提交订单", "blue"),
@@ -2990,7 +3257,7 @@
           opsMini(`${counts.failed} 个失败`, counts.failed > 0 ? "risk" : "good"),
         ], "focus")}
         ${opsStatusCard()}
-        ${opsCard("权限与学习", "角色清楚，AI 会复盘", "Owner 看全局；Admin 管 Case 和复盘；Staff 只处理顾客。", [
+        ${opsCard("权限与学习", "角色清楚，AI 会复盘", "管理者看全局；运营管顾客和复盘；客服只处理顾客。", [
           opsMini(`学习规则 ${learned}`, "good"),
           opsMini("自动通过", "blue"),
           opsMini("人工兜底", counts.human > 0 ? "warn" : "good"),
@@ -3026,19 +3293,19 @@
     function viewCopy(filter, counts) {
       const views = {
         all: {
-          title: `${counts.total} 个 Case 正在监控`,
+          title: `${counts.total} 位顾客正在监控`,
           body: "先处理橙色和红色；绿色自动跑，蓝色进入订单。",
         },
         needs_attention: {
-          title: `${counts.needs} 个需要你看`,
-          body: "这里只放要批准、要人工、订单和发送失败。",
+          title: `${counts.needs} 位顾客需要处理`,
+          body: "只显示待批准、需人工、订单和发送失败。",
         },
         approval_required: {
-          title: `${counts.approval} 个回复待批准`,
+          title: `${counts.approval} 条回复待批准`,
           body: "看 AI 建议，确认没问题就批准发送。",
         },
         human_required: {
-          title: `${counts.human} 个必须人工接手`,
+          title: `${counts.human} 位顾客需人工接手`,
           body: "投诉、敏感问题、低信心判断会停掉 Automation。",
         },
         order: {
@@ -3061,11 +3328,11 @@
         <article class="ops-card">
           <span class="ops-kicker">系统状态</span>
           <strong class="ops-title">${mode}</strong>
-          <p class="ops-copy">${state.demoMode ? "现在是公开 Demo；接入 Worker 后会读取真实 ChatDaddy Case。" : "ChatDaddy、Worker 和 Dashboard 已进入真实运营模式。"}</p>
+          <p class="ops-copy">${state.demoMode ? "现在是公开演示；接入 Worker 后会读取真实 ChatDaddy 顾客讯息。" : "ChatDaddy、Worker 和中控台已进入真实运营模式。"}</p>
           <div class="ops-list">
             ${opsRow("ChatDaddy Webhook", connected, dot)}
             ${opsRow("Worker API", connected, dot)}
-            ${opsRow("Google Sheet 记录", state.demoMode ? "Demo" : "同步中", state.demoMode ? "warn" : "")}
+            ${opsRow("Google Sheet 记录", state.demoMode ? "演示" : "同步中", state.demoMode ? "warn" : "")}
           </div>
         </article>
       `;
@@ -3107,7 +3374,7 @@
         <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}">
           <div class="case-head">
             <div class="case-name">
-              <label class="case-select" title="选择这个 Case">
+              <label class="case-select" title="选择这个顾客">
                 <input type="checkbox" data-select-case-id="${escapeHtml(item.id)}" ${selected ? "checked" : ""} />
                 <span aria-hidden="true"></span>
               </label>
@@ -3299,7 +3566,7 @@
         });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        addAuditEvent(`case_${action}`, `真实 Case ${caseId} 已执行 ${actionLabel(action)}。`);
+        addAuditEvent(`case_${action}`, `真实顾客 ${caseId} 已执行 ${actionLabel(action)}。`);
         await loadCases();
         if (data.case) openCase(data.case.id);
       } catch (error) {
@@ -3319,9 +3586,9 @@
         record.history.push({
           type: "approved_sent_demo",
           at: now,
-          note: "Demo: 已批准发送，不会真的发 WhatsApp。",
+          note: "演示：已批准发送，不会真的发 WhatsApp。",
         });
-        showToast("Demo：已批准发送，不会真的发 WhatsApp。");
+        showToast("演示：已批准发送，不会真的发 WhatsApp。");
       }
 
       if (action === "learn") {
@@ -3329,9 +3596,9 @@
           type: "learned_rule_created_demo",
           at: now,
           rule_id: `demo-rule-${Math.random().toString(16).slice(2, 8)}`,
-          note: "Demo: 以后类似 Case 可减少审批。",
+          note: "演示：以后类似顾客可减少审批。",
         });
-        showToast("Demo：已建立学习规则。");
+        showToast("演示：已建立学习规则。");
       }
 
       if (action === "handoff") {
@@ -3341,9 +3608,9 @@
         record.history.push({
           type: "marked_handoff_demo",
           at: now,
-          note: "Demo: 已转人工。",
+          note: "演示：已转人工。",
         });
-        showToast("Demo：已转人工。");
+        showToast("演示：已转人工。");
       }
 
       record.updated_at = now;
@@ -3357,7 +3624,7 @@
       const title = state.query ? `找不到「${state.query}」` : empty.title;
       const body = state.query
         ? "试试看搜索顾客名字、电话号码、关键词，或先清空搜索。"
-        : state.demoMode ? "当前筛选没有演示 Case，可以切换筛选或载入其他行业 Demo。" : "确认 ChatDaddy webhook 已经指向 Worker，然后用真实 WhatsApp 发一条测试消息。";
+        : state.demoMode ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。" : "确认 ChatDaddy webhook 已经指向 Worker，然后用真实 WhatsApp 发一条测试消息。";
       return `
         <div class="box" style="grid-column: 1 / -1;">
           <h3>${escapeHtml(title)}</h3>
