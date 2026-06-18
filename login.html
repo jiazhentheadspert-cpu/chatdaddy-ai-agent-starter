@@ -6,7 +6,7 @@
   <title>ReplyPilot AI 客服中控台</title>
   <style>
     :root {
-      --canvas: #f5f7f6;
+      --canvas: #f3f6f5;
       --panel: #ffffff;
       --panel-soft: #f9fbfa;
       --ink: #112321;
@@ -36,20 +36,22 @@
       min-height: 100vh;
       color: var(--ink);
       background:
-        linear-gradient(120deg, rgba(12,143,120,.10), transparent 42%),
-        linear-gradient(240deg, rgba(47,111,208,.10), transparent 44%),
-        linear-gradient(180deg, #fbfcfb, var(--canvas));
+        linear-gradient(180deg, rgba(255,255,255,.92), rgba(243,246,245,.96)),
+        linear-gradient(90deg, rgba(13,51,47,.045) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(13,51,47,.035) 1px, transparent 1px),
+        var(--canvas);
+      background-size: auto, 42px 42px, 42px 42px, auto;
     }
 
     button, input, select { font: inherit; }
 
     .shell {
-      width: min(1280px, calc(100% - 40px));
+      width: min(1180px, calc(100% - 40px));
       min-height: 100vh;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: minmax(0, 1.04fr) 430px;
-      gap: 42px;
+      grid-template-columns: minmax(0, 1fr) 410px;
+      gap: 48px;
       align-items: center;
       padding: 34px 0;
     }
@@ -64,7 +66,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      max-width: 760px;
+      max-width: 700px;
     }
 
     .brand {
@@ -110,7 +112,7 @@
     }
 
     .hero {
-      max-width: 760px;
+      max-width: 700px;
       min-width: 0;
     }
 
@@ -124,7 +126,7 @@
 
     h1 {
       margin: 12px 0 16px;
-      font-size: clamp(42px, 4.6vw, 60px);
+      font-size: clamp(44px, 5vw, 66px);
       line-height: 1.02;
       letter-spacing: 0;
       max-width: 100%;
@@ -137,10 +139,10 @@
 
     .lead {
       margin: 0;
-      max-width: 660px;
+      max-width: 620px;
       color: var(--muted);
-      font-size: 18px;
-      line-height: 1.55;
+      font-size: 17px;
+      line-height: 1.5;
       font-weight: 700;
       overflow-wrap: anywhere;
       word-break: break-word;
@@ -172,7 +174,7 @@
     }
 
     .signal-row {
-      max-width: 780px;
+      max-width: 700px;
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
@@ -181,14 +183,14 @@
     .signal {
       border: 1px solid var(--line);
       border-radius: 18px;
-      background: rgba(255,255,255,.78);
-      padding: 14px;
+      background: rgba(255,255,255,.84);
+      padding: 15px;
       box-shadow: var(--shadow-soft);
     }
 
     .signal b {
       display: block;
-      font-size: 22px;
+      font-size: 18px;
       line-height: 1;
       margin-bottom: 6px;
     }
@@ -201,10 +203,10 @@
 
     .ops-panel,
     .preview-panel {
-      max-width: 780px;
+      max-width: 700px;
       border: 1px solid var(--line);
-      border-radius: 28px;
-      background: rgba(255,255,255,.78);
+      border-radius: 22px;
+      background: rgba(255,255,255,.86);
       box-shadow: var(--shadow-soft);
       overflow: hidden;
     }
@@ -258,7 +260,7 @@
     .role-card {
       background: var(--panel-soft);
       padding: 17px;
-      min-height: 136px;
+      min-height: 126px;
     }
 
     .role-card strong {
@@ -362,7 +364,7 @@
     }
 
     .login-top {
-      padding: 28px 28px 20px;
+      padding: 26px 26px 20px;
       border-bottom: 1px solid var(--line);
       background:
         linear-gradient(135deg, rgba(12,143,120,.08), transparent 52%),
@@ -400,7 +402,7 @@
 
     .login h2 {
       margin: 0 0 8px;
-      font-size: 30px;
+      font-size: 28px;
       letter-spacing: 0;
     }
 
@@ -408,14 +410,14 @@
       margin: 0;
       color: var(--muted);
       line-height: 1.45;
-      font-weight: 720;
+      font-weight: 760;
       overflow-wrap: anywhere;
       word-break: break-all;
       line-break: anywhere;
     }
 
     .form {
-      padding: 24px 28px 28px;
+      padding: 22px 26px 26px;
     }
 
     label {
@@ -453,7 +455,7 @@
     .role {
       border: 1px solid var(--line);
       border-radius: 14px;
-      padding: 11px 8px;
+      padding: 12px 9px;
       background: #fff;
       color: var(--muted);
       font-weight: 900;
@@ -481,7 +483,7 @@
       line-height: 1.45;
       font-weight: 780;
       overflow-wrap: anywhere;
-      word-break: break-all;
+      word-break: break-word;
       line-break: anywhere;
     }
 
@@ -568,7 +570,7 @@
       margin-top: 18px;
       border: 1px solid #ecd6ae;
       background: #fff8eb;
-      color: var(--amber);
+      color: #825411;
       border-radius: 16px;
       padding: 13px 14px;
       font-size: 14px;
@@ -618,49 +620,49 @@
     <section class="product">
       <div class="nav">
         <div class="brand"><span class="mark">R</span><span>ReplyPilot AI</span></div>
-        <span class="env">中文工作台</span>
+        <span class="env">中文中控台</span>
       </div>
 
       <div class="hero">
-        <div class="eyebrow">AI Customer Operations</div>
-        <h1>统一入口，<span>处理每一位顾客。</span></h1>
-        <p class="lead">AI 整理顾客队列，判断风险和下一步动作。老板看全局，运营管异常，客服只处理待办。</p>
+        <div class="eyebrow">AI 客服运营系统</div>
+        <h1>一个入口，<span>管好全部顾客。</span></h1>
+        <p class="lead">ChatDaddy 负责执行讯息，ReplyPilot 负责判断、审批、转人工、订单和复盘。团队只看自己该处理的部分。</p>
         <div class="hero-actions">
           <a class="text-button primary-link" href="dashboard/index.html">打开中控台</a>
-          <a class="text-button" href="docs/ONBOARDING_ZH.md">查看上线流程</a>
+          <a class="text-button" href="docs/ONBOARDING_ZH.md">上线步骤</a>
         </div>
       </div>
 
       <section class="signal-row" aria-label="核心运营指标">
-        <div class="signal"><b>1</b><span>统一入口</span></div>
-        <div class="signal"><b>3</b><span>角色权限</span></div>
-        <div class="signal"><b>5+</b><span>闭环动作</span></div>
-        <div class="signal"><b>24/7</b><span>讯息同步</span></div>
+        <div class="signal"><b>队列</b><span>顾客自动排序</span></div>
+        <div class="signal"><b>判断</b><span>AI 给下一步</span></div>
+        <div class="signal"><b>审批</b><span>人只看重点</span></div>
+        <div class="signal"><b>复盘</b><span>越用越稳定</span></div>
       </section>
 
       <section class="ops-panel">
         <div class="ops-head">
           <div>
-            <b>权限清楚，操作更少</b>
-          <span>审批、转人工、订单和复盘集中在同一个后台。</span>
+            <b>操作路径固定，团队不乱点</b>
+            <span>顾客进来后，系统只把需要处理的动作推给对应角色。</span>
           </div>
           <span class="health">工作台在线</span>
         </div>
         <div class="role-grid">
           <article class="role-card">
             <strong>管理者</strong>
-            <p>查看全局数据、系统连接、团队权限和 AI 规则。</p>
-            <div class="chips"><span class="chip">全部顾客</span><span class="chip">系统设置</span></div>
+            <p>看全局、连接状态、团队权限和 AI 规则。</p>
+            <div class="chips"><span class="chip">全局</span><span class="chip">规则</span></div>
           </article>
           <article class="role-card">
             <strong>运营主管</strong>
-          <p>审核 AI 回复、处理异常顾客、复盘判断规则。</p>
-            <div class="chips"><span class="chip">审核回复</span><span class="chip">复盘 AI</span></div>
+            <p>处理异常、审核回复、复盘 AI 判断。</p>
+            <div class="chips"><span class="chip">审批</span><span class="chip">复盘</span></div>
           </article>
           <article class="role-card">
             <strong>客服人员</strong>
-            <p>只看待处理顾客，不接触 API、Token 或系统设置。</p>
-            <div class="chips"><span class="chip">只看顾客</span><span class="chip">隐藏设置</span></div>
+            <p>只看待办顾客，不接触系统密钥或技术设置。</p>
+            <div class="chips"><span class="chip">顾客</span><span class="chip">待办</span></div>
           </article>
         </div>
       </section>
@@ -669,18 +671,18 @@
         <div class="preview-card">
           <span>今日待办</span>
           <strong>8</strong>
-          <p>待批准、需人工、订单和异常集中显示。</p>
+          <p>待批准、需人工和订单集中显示。</p>
         </div>
         <div class="preview-card">
-          <span>AI 自动处理</span>
+          <span>AI 自动</span>
           <strong>24</strong>
-          <p>低风险 FAQ、跟进提醒和接 Flow 自动处理。</p>
+          <p>低风险问题、跟进和自动流程会自己处理。</p>
         </div>
         <div class="preview-card wide">
           <div>
             <span>优先级</span>
-            <strong>高风险顾客优先</strong>
-            <p>投诉、订单和低信心判断会排在最前面。</p>
+            <strong>先处理会影响成交的顾客</strong>
+            <p>投诉、订单、价格异议和低信心判断会排在前面。</p>
           </div>
           <div class="case-mini">
             Amira · 高风险
@@ -696,13 +698,13 @@
           <span class="status-pill">权限入口</span>
           <span class="env">演示模式</span>
         </div>
-        <h2>进入中控台</h2>
-        <p class="login-copy">先用演示身份查看权限范围。正式上线后，团队用自己的账号登录。</p>
+        <h2>选择身份进入</h2>
+        <p class="login-copy">公开演示可直接预览权限。正式上线后改为团队账号登录。</p>
       </div>
 
       <div class="form">
         <div class="field">
-          <label for="workspace">选择项目</label>
+          <label for="workspace">项目</label>
           <select id="workspace">
             <option value="demo">演示项目</option>
             <option value="beyoute">Beyoute</option>
@@ -710,18 +712,18 @@
         </div>
 
         <div class="field">
-          <label for="displayName">显示名称</label>
+          <label for="displayName">姓名</label>
           <input id="displayName" value="Jia Zhen" autocomplete="name" />
         </div>
 
         <div class="field">
-          <label>选择身份</label>
+          <label>身份权限</label>
           <div class="roles">
             <button class="role active" data-role="owner" type="button">管理者</button>
-            <button class="role" data-role="admin" type="button">运营</button>
-            <button class="role" data-role="staff" type="button">客服</button>
+            <button class="role" data-role="admin" type="button">运营主管</button>
+            <button class="role" data-role="staff" type="button">客服人员</button>
           </div>
-          <div class="role-help" id="roleHelp">管理者可查看全部顾客、系统状态和团队权限。</div>
+          <div class="role-help" id="roleHelp">可查看全部顾客、连接状态、团队权限和 AI 规则。</div>
           <div class="permission-preview" id="permissionPreview"></div>
         </div>
 
@@ -729,11 +731,11 @@
           <summary>系统连接（仅管理者使用）</summary>
           <div class="advanced-body">
             <div class="field">
-              <label for="apiUrl">Worker API URL</label>
-              <input id="apiUrl" placeholder="https://your-worker.workers.dev" />
+              <label for="apiUrl">系统接口地址</label>
+              <input id="apiUrl" placeholder="https://your-system-url.com" />
             </div>
             <div class="field">
-              <label for="adminToken">Admin Token</label>
+              <label for="adminToken">管理密钥</label>
               <input id="adminToken" placeholder="只给管理者 / 运营使用" type="password" />
             </div>
           </div>
@@ -742,11 +744,11 @@
         <button class="primary" id="loginBtn">进入中控台</button>
 
         <div class="links">
-          <a href="dashboard/index.html">直接查看中控台</a>
-          <a href="docs/ONBOARDING_ZH.md">查看上线流程</a>
+          <a href="dashboard/index.html">跳过身份选择</a>
+          <a href="docs/ONBOARDING_ZH.md">上线步骤</a>
         </div>
 
-        <div class="security-note">演示链接可以给团队查看；系统密钥和真实连接资料只限管理者保管。</div>
+        <div class="security-note">公开演示不放真实密钥。正式上线后，系统连接只给管理者看到。</div>
       </div>
     </section>
   </main>
@@ -756,14 +758,14 @@
     const roleHelp = document.getElementById("roleHelp");
     const permissionPreview = document.getElementById("permissionPreview");
     const roleHelpCopy = {
-      owner: "管理者可查看全部顾客、系统状态和团队权限。",
-      admin: "运营主管可审核回复、处理异常、查看复盘。",
-      staff: "客服只看待处理顾客，不会看到系统密钥。",
+      owner: "可查看全部顾客、连接状态、团队权限和 AI 规则。",
+      admin: "可审核回复、处理异常、查看 AI 复盘。",
+      staff: "只看待处理顾客，不显示系统密钥和连接设置。",
     };
     const permissionRows = {
-      owner: ["查看全部顾客和数据", "管理团队入口", "检查 AI 规则和复盘"],
-      admin: ["审核 AI 建议回复", "处理异常和转人工", "查看复盘，不接触密钥"],
-      staff: ["只看待处理顾客", "批准、转人工、提交订单", "隐藏系统设置"],
+      owner: ["全局中控台", "团队入口", "AI 规则和连接状态"],
+      admin: ["审核 AI 回复", "处理异常顾客", "复盘，不接触密钥"],
+      staff: ["只看顾客待办", "批准、转人工、提交订单", "隐藏系统设置"],
     };
     let selectedRole = "owner";
 
