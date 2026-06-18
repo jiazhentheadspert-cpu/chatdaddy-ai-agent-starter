@@ -173,6 +173,48 @@
       border-color: transparent;
     }
 
+    .hero-stats {
+      max-width: 700px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .hero-stat {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(47,111,208,.12), transparent 32%),
+        rgba(255,255,255,.88);
+      padding: 16px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .hero-stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .hero-stat small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.35;
+    }
+
     .signal-row {
       max-width: 700px;
       display: grid;
@@ -416,6 +458,33 @@
       line-break: anywhere;
     }
 
+    .login-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .login-meta div {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.82);
+      padding: 12px;
+    }
+
+    .login-meta span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .login-meta b {
+      display: block;
+      line-height: 1.15;
+    }
+
     .form {
       padding: 22px 26px 26px;
     }
@@ -582,6 +651,7 @@
       .shell { grid-template-columns: 1fr; padding: 28px 0; }
       .role-grid { grid-template-columns: 1fr; }
       .signal-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hero-stats { grid-template-columns: 1fr; }
       .preview-panel { grid-template-columns: 1fr; }
       .preview-card.wide { grid-template-columns: 1fr; }
       .nav { max-width: none; }
@@ -606,6 +676,9 @@
       .nav { align-items: flex-start; }
       .nav .env { display: none; }
       .signal-row, .ops-panel, .preview-panel { display: none; }
+      .hero-stats { grid-template-columns: 1fr; }
+      .hero-stat { padding: 14px; }
+      .login-meta { grid-template-columns: 1fr; }
       .login-topline { justify-content: flex-start; }
       .login-topline .env { display: none; }
       .login-copy { word-break: break-all; overflow-wrap: anywhere; }
@@ -625,13 +698,31 @@
 
       <div class="hero">
         <div class="eyebrow">AI 客服成交工作台</div>
-        <h1>让团队只处理<span>真正需要人的顾客。</span></h1>
-        <p class="lead">AI 先判断阶段、风险和下一步；客服进入队列后，只需要确认回复、转人工或提交订单。</p>
+        <h1>客服只处理<span>真正需要人的顾客。</span></h1>
+        <p class="lead">固定 Flow 交给 ChatDaddy 自动跑；顾客提问、订单、投诉和成交关键点才进入中控台。</p>
         <div class="hero-actions">
           <a class="text-button primary-link" href="dashboard/index.html">打开中控台</a>
           <a class="text-button" href="docs/ONBOARDING_ZH.md">上线步骤</a>
         </div>
       </div>
+
+      <section class="hero-stats" aria-label="核心产品能力">
+        <div class="hero-stat">
+          <span>队列判断</span>
+          <strong>先急后缓</strong>
+          <small>高风险、订单、待批准自动排前面。</small>
+        </div>
+        <div class="hero-stat">
+          <span>客服操作</span>
+          <strong>少按按钮</strong>
+          <small>只看建议回复和下一步动作。</small>
+        </div>
+        <div class="hero-stat">
+          <span>AI 复盘</span>
+          <strong>可追踪</strong>
+          <small>每次批准、转人工和规则都会留记录。</small>
+        </div>
+      </section>
 
       <section class="signal-row" aria-label="核心运营指标">
         <div class="signal"><b>排序</b><span>先看急单</span></div>
@@ -700,6 +791,16 @@
         </div>
         <h2>进入工作台</h2>
         <p class="login-copy">先用公开演示预览权限。正式上线后，会改成团队账号登录。</p>
+        <div class="login-meta">
+          <div>
+            <span>当前入口</span>
+            <b>公开演示</b>
+          </div>
+          <div>
+            <span>上线后</span>
+            <b>团队账号登录</b>
+          </div>
+        </div>
       </div>
 
       <div class="form">
