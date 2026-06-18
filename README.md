@@ -29,6 +29,14 @@ WhatsApp
 
 ## 快速开始
 
+Dashboard demo:
+
+```text
+https://jiazhentheadspert-cpu.github.io/chatdaddy-ai-agent-starter/
+```
+
+这个页面只是前端 Dashboard，需要你输入自己的 Worker API URL 和 Admin Token 才能看到真实 Case。
+
 1. 安装依赖。
 
 ```bash
