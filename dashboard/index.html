@@ -140,6 +140,28 @@
       font-weight: 760;
     }
 
+    .side-meter {
+      display: grid;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .side-meter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: rgba(255,255,255,.62);
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .side-meter-row strong {
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
     .workspace {
       min-width: 0;
       padding: 24px;
@@ -255,6 +277,41 @@
       border-radius: 18px;
       padding: 14px 16px;
       box-shadow: var(--shadow-sm);
+    }
+
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.78);
+      color: var(--muted);
+      padding: 8px 11px;
+      font-size: 13px;
+      font-weight: 880;
+      box-shadow: 0 8px 24px rgba(16,36,33,.045);
+    }
+
+    .status-chip::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(11,155,130,.09);
+    }
+
+    .status-chip.warn::before {
+      background: var(--amber);
+      box-shadow: 0 0 0 5px rgba(168,109,29,.10);
     }
 
     .session-title {
@@ -376,6 +433,36 @@
       display: grid;
       gap: 10px;
       margin-top: 14px;
+    }
+
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .quick-action {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 13px;
+      font-weight: 880;
+      cursor: pointer;
+      transition: .16s ease;
+    }
+
+    .quick-action:hover {
+      transform: translateY(-1px);
+      border-color: #9ed9cc;
+      box-shadow: 0 12px 28px rgba(16,36,33,.08);
+    }
+
+    .quick-action.primary {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, #0f9f83, #2f72d2);
     }
 
     .compact-row {
@@ -989,10 +1076,35 @@
       color: var(--ink);
     }
 
+    .reply-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .reply-chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 860;
+      cursor: pointer;
+    }
+
+    .reply-chip:hover {
+      color: var(--ink);
+      border-color: #9ed9cc;
+    }
+
     .action-stack {
       display: grid;
       gap: 12px;
       align-content: start;
+      position: sticky;
+      top: 0;
     }
 
     .action-card {
@@ -1094,8 +1206,12 @@
       </nav>
 
       <div class="side-card">
-        <strong>当前版本</strong>
-        <span>公开 Demo。连接 Worker 后会读取真实 ChatDaddy Case。</span>
+        <strong id="sideRole">Owner 管理者</strong>
+        <span id="sideHint">公开 Demo。连接 Worker 后会读取真实 ChatDaddy Case。</span>
+        <div class="side-meter">
+          <div class="side-meter-row"><span>工作区</span><strong id="sideWorkspace">DEMO</strong></div>
+          <div class="side-meter-row"><span>连接</span><strong id="sideConnection">Demo</strong></div>
+        </div>
       </div>
     </aside>
 
@@ -1103,7 +1219,7 @@
       <header class="topbar">
         <div>
           <span class="mode-tag" id="modeTag">公开演示</span>
-          <h1>AI 客服工作台</h1>
+          <h1 id="workspaceTitle">AI 客服工作台</h1>
           <div class="subtitle" id="dashboardSubtitle">集中查看顾客状态、AI 判断、建议回复、人工介入和订单进度。团队只处理该处理的 Case。</div>
         </div>
         <div class="setup" id="setupPanel">
@@ -1124,6 +1240,8 @@
           <button class="btn ghost" id="logoutBtn">退出</button>
         </div>
       </div>
+
+      <div class="status-strip" id="statusStrip" aria-label="系统状态"></div>
 
       <div class="demo-bar" id="demoBar">
         <div class="demo-copy">
@@ -1207,6 +1325,12 @@
           <div class="box" style="margin-top: 14px;">
             <h3>AI 建议回复</h3>
             <textarea id="replyBox"></textarea>
+            <div class="reply-tools" aria-label="回复快捷调整">
+              <button class="reply-chip" data-reply-template="warm" type="button">语气温柔一点</button>
+              <button class="reply-chip" data-reply-template="no_discount" type="button">不要给折扣</button>
+              <button class="reply-chip" data-reply-template="ask_phone" type="button">先问电话</button>
+              <button class="reply-chip" data-reply-template="shorten" type="button">缩短一点</button>
+            </div>
           </div>
         </div>
         <aside class="action-stack">
@@ -1514,6 +1638,19 @@
       });
     });
 
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-dashboard-action]");
+      if (target) {
+        handleDashboardAction(target.dataset.dashboardAction);
+        return;
+      }
+
+      const replyTarget = event.target.closest("[data-reply-template]");
+      if (replyTarget) {
+        applyReplyTemplate(replyTarget.dataset.replyTemplate);
+      }
+    });
+
     function readSession() {
       try {
         return JSON.parse(localStorage.getItem("agent_session") || "{}") || {};
@@ -1529,6 +1666,12 @@
 
       $("sessionTitle").textContent = `${workspace.toUpperCase()} · ${roleLabel} · ${name}`;
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
+      $("sideRole").textContent = roleLabel;
+      $("sideWorkspace").textContent = workspace.toUpperCase();
+      $("sideConnection").textContent = state.demoMode ? "Demo" : "Live";
+      $("sideHint").textContent = state.role === "staff"
+        ? "客服模式：只显示需要处理的顾客。"
+        : "管理模式：可查看连接、权限和 AI 复盘。";
 
       $("dashboardSubtitle").textContent = state.role === "staff"
         ? "客服工作台：只显示待批准、需人工和订单。"
@@ -1570,10 +1713,16 @@
       const view = state.workspaceView || "overview";
       const isCases = view === "cases";
       const isOverview = view === "overview";
+      const viewMeta = workspaceMeta(view);
 
       document.querySelectorAll("[data-workspace-view]").forEach((item) => {
         item.classList.toggle("active", item.dataset.workspaceView === view);
       });
+
+      $("sideConnection").textContent = state.demoMode ? "Demo" : "Live";
+      $("workspaceTitle").textContent = viewMeta.title;
+      $("dashboardSubtitle").textContent = viewMeta.subtitle;
+      $("statusStrip").innerHTML = statusStripHtml();
 
       $("demoBar").classList.toggle("hidden", !isCases);
       $("caseWorkbench").classList.toggle("hidden", !isCases);
@@ -1583,6 +1732,87 @@
       $("overviewView").classList.toggle("hidden", !isOverview);
       $("operationsView").classList.toggle("hidden", view !== "operations");
       $("learningView").classList.toggle("hidden", view !== "learning");
+    }
+
+    function workspaceMeta(view) {
+      const meta = {
+        overview: {
+          title: "AI 客服中控台",
+          subtitle: "先看整体风险、待处理数量和今天该做什么。",
+        },
+        cases: {
+          title: "Case 队列",
+          subtitle: "客服只需要打开顾客、确认 AI 建议、批准发送或转人工。",
+        },
+        operations: {
+          title: "运营设置",
+          subtitle: "检查真实连接、团队权限和 ChatDaddy 闭环动作。",
+        },
+        learning: {
+          title: "AI 复盘",
+          subtitle: "查看 AI 为什么这样判断，并把安全规则沉淀成下次自动处理。",
+        },
+      };
+      return meta[view] || meta.overview;
+    }
+
+    function statusStripHtml() {
+      const connectionTone = state.demoMode ? "warn" : "";
+      const connectionText = state.demoMode ? "Demo 数据" : "真实连接";
+      const roleText = state.role === "staff" ? "客服权限" : state.role === "admin" ? "运营权限" : "Owner 权限";
+      return `
+        <span class="status-chip ${connectionTone}">${connectionText}</span>
+        <span class="status-chip">AI 判断已开启</span>
+        <span class="status-chip">操作记录可追踪</span>
+        <span class="status-chip">${roleText}</span>
+      `;
+    }
+
+    function handleDashboardAction(action) {
+      if (action === "approval") {
+        state.filter = "approval_required";
+        setWorkspaceView("cases");
+        return;
+      }
+      if (action === "orders") {
+        state.filter = "order";
+        setWorkspaceView("cases");
+        return;
+      }
+      if (action === "human") {
+        state.filter = "human_required";
+        setWorkspaceView("cases");
+        return;
+      }
+      if (action === "connect") {
+        setWorkspaceView("operations");
+        return;
+      }
+      if (action === "learning") {
+        setWorkspaceView("learning");
+        return;
+      }
+      if (action === "cases") {
+        state.filter = "needs_attention";
+        setWorkspaceView("cases");
+      }
+    }
+
+    function applyReplyTemplate(template) {
+      const box = $("replyBox");
+      const text = box.value.trim();
+      if (!text) return;
+
+      const templates = {
+        warm: `亲，我明白你的顾虑。\n\n${text}`,
+        no_discount: `${text}\n\n我先帮你保留目前的配套，不直接乱给折扣，先确认哪一个比较适合你。`,
+        ask_phone: `${text}\n\n如果你方便，可以先把电话发我，我帮你确认资料后再继续处理。`,
+        shorten: text.split(/\n+/).map((line) => line.trim()).filter(Boolean).slice(0, 3).join("\n\n"),
+      };
+
+      box.value = templates[template] || text;
+      box.focus();
+      showToast("已调整建议回复，确认后再批准发送。");
     }
 
     function roleName(role) {
@@ -1747,6 +1977,11 @@
               ${metricHtml(counts.orders, "订单")}
               ${metricHtml(counts.auto, "自动中")}
             </div>
+            <div class="quick-actions">
+              <button class="quick-action primary" data-dashboard-action="cases">处理待办</button>
+              <button class="quick-action" data-dashboard-action="approval">待批准</button>
+              <button class="quick-action" data-dashboard-action="orders">订单</button>
+            </div>
           </section>
           <section class="command-panel">
             <div class="command-kicker">处理顺序</div>
@@ -1755,6 +1990,10 @@
               ${compactRow("高风险", "投诉、敏感、低信心先转人工", statusLabel("human_required"))}
               ${compactRow("成交机会", "看价后异议先审核成交回复", statusLabel("approval_required"))}
               ${compactRow("低风险", "FAQ 与 Follow-up 让 AI 自动跑", statusLabel("auto"))}
+            </div>
+            <div class="quick-actions">
+              <button class="quick-action" data-dashboard-action="human">看高风险</button>
+              <button class="quick-action" data-dashboard-action="learning">看 AI 复盘</button>
             </div>
           </section>
         </div>
@@ -1770,6 +2009,9 @@
               ${compactRow("ChatDaddy Webhook", state.demoMode ? "等待真实 Case" : "接收中", state.demoMode ? "待连接" : "正常")}
               ${compactRow("Worker API", apiUrlEl.value ? "已填写 URL" : "未填写 URL", apiUrlEl.value ? "已设置" : "待设置")}
               ${compactRow("操作记录", "审批、转人工、学习都会留下记录", "可追踪")}
+            </div>
+            <div class="quick-actions">
+              <button class="quick-action primary" data-dashboard-action="cases">打开 Case 队列</button>
             </div>
           </section>
           <section class="command-panel">
@@ -1804,6 +2046,10 @@
               ${compactRow("低风险 FAQ", "看价前问题可自动回复并接下一步 Flow", "可自动")}
               ${compactRow("价格后异议", "先人工确认成交话术，再逐步放宽", "需审核")}
               ${compactRow("投诉敏感", "永远转人工，不让 AI 硬回", "保护品牌")}
+            </div>
+            <div class="quick-actions">
+              <button class="quick-action primary" data-dashboard-action="approval">去审核回复</button>
+              <button class="quick-action" data-dashboard-action="connect">看连接设置</button>
             </div>
           </section>
           <section class="command-panel">
