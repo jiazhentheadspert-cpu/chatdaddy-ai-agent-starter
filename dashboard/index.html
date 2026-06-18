@@ -350,6 +350,36 @@
     .btn.ghost { background: transparent; }
     .hidden { display: none !important; }
 
+    .bulk-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(232,247,243,.72), rgba(237,244,255,.58));
+    }
+
+    .bulk-summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-weight: 850;
+    }
+
+    .bulk-summary b {
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .bulk-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
     .stats {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -852,6 +882,11 @@
       box-shadow: 0 22px 62px rgba(16, 36, 33, .12);
     }
 
+    .case-card.selected {
+      border-color: #2d6fca;
+      box-shadow: 0 22px 62px rgba(45, 111, 202, .15);
+    }
+
     .case-card::before {
       content: "";
       position: absolute;
@@ -870,6 +905,41 @@
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 14px;
+    }
+
+    .case-select {
+      display: inline-grid;
+      place-items: center;
+      position: relative;
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255,255,255,.86);
+      cursor: pointer;
+      flex: 0 0 auto;
+      margin-right: 8px;
+      transition: .16s ease;
+    }
+
+    .case-select input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .case-select span {
+      width: 14px;
+      height: 14px;
+      border-radius: 5px;
+      border: 2px solid #9db0b2;
+      background: #fff;
+    }
+
+    .case-select input:checked + span {
+      border-color: var(--blue);
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      box-shadow: inset 0 0 0 3px #fff;
     }
 
     .case-id {
@@ -961,6 +1031,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
       margin-top: 18px;
       padding-top: 14px;
       border-top: 1px solid var(--line);
@@ -969,10 +1040,65 @@
       font-size: 13px;
     }
 
+    .case-foot span {
+      min-width: 0;
+    }
+
+    .case-foot span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sla-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 920;
+      white-space: nowrap;
+    }
+
+    .sla-pill::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(11,155,130,.09);
+    }
+
+    .sla-pill.warn {
+      color: var(--amber);
+      border-color: #ebd1ac;
+      background: var(--soft-amber);
+    }
+
+    .sla-pill.warn::before {
+      background: var(--amber);
+      box-shadow: 0 0 0 4px rgba(168,109,29,.10);
+    }
+
+    .sla-pill.risk {
+      color: var(--red);
+      border-color: #e9b4b4;
+      background: var(--soft-red);
+    }
+
+    .sla-pill.risk::before {
+      background: var(--red);
+      box-shadow: 0 0 0 4px rgba(191,77,77,.10);
+    }
+
     .grid.list .case-card {
       min-height: auto;
       display: grid;
-      grid-template-columns: minmax(220px, .7fr) minmax(360px, 1fr) minmax(220px, .7fr);
+      grid-template-columns: minmax(240px, .72fr) minmax(360px, 1fr) minmax(240px, .72fr);
       gap: 18px;
       align-items: center;
     }
@@ -1049,6 +1175,71 @@
         repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(47,114,210,.05) 32px);
       min-height: 270px;
       align-content: start;
+    }
+
+    .panel-intel {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .detail-tile {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(135deg, #fff, #f8fbfa);
+      padding: 13px;
+      min-height: 92px;
+    }
+
+    .detail-tile.wide {
+      grid-column: span 2;
+    }
+
+    .detail-tile > span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    .detail-tile b {
+      display: block;
+      font-size: 18px;
+      line-height: 1.18;
+    }
+
+    .detail-tile small {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.35;
+      margin-top: 6px;
+    }
+
+    .check-list {
+      display: grid;
+      gap: 7px;
+      margin-top: 2px;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .check-row strong {
+      color: var(--ink);
+      white-space: nowrap;
     }
 
     .bubble {
@@ -1172,16 +1363,17 @@
         border-radius: 0 0 24px 24px;
       }
       .side-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .command-grid, .metric-strip, .steps, .queue-head, .queue-tools, .grid, .panel-body { grid-template-columns: 1fr; }
+      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .command-grid, .metric-strip, .steps, .queue-head, .queue-tools, .grid, .panel-body, .panel-intel { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
       .grid.list .case-card { grid-template-columns: 1fr; }
+      .detail-tile.wide { grid-column: auto; }
       .panel { padding: 10px; }
     }
 
     @media (max-width: 720px) {
       .workspace { padding: 16px; }
       .side-nav { grid-template-columns: 1fr 1fr; }
-      .toolbar { align-items: stretch; flex-direction: column; }
+      .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
       .view-toggle { align-self: flex-start; }
       .panel-body { padding: 14px; }
     }
@@ -1303,6 +1495,14 @@
             <button id="listView">列表</button>
           </div>
         </div>
+        <div class="bulk-bar hidden" id="bulkBar" aria-label="批量处理">
+          <div class="bulk-summary"><b id="bulkCount">0</b><span>个 Case 已选择</span></div>
+          <div class="bulk-actions">
+            <button class="btn" id="bulkMarkSeen" type="button">标记已看</button>
+            <button class="btn danger" id="bulkHandoff" type="button">批量转人工</button>
+            <button class="btn ghost" id="bulkClear" type="button">清除选择</button>
+          </div>
+        </div>
 
         <div id="error" class="error"></div>
         <section id="cases" class="grid"></section>
@@ -1321,9 +1521,10 @@
       </div>
       <div class="panel-body">
         <div class="left">
+          <div class="panel-intel" id="caseDetails"></div>
           <div class="box chat" id="chatBox"></div>
           <div class="box" style="margin-top: 14px;">
-            <h3>AI 建议回复</h3>
+            <h3>待确认回复</h3>
             <textarea id="replyBox"></textarea>
             <div class="reply-tools" aria-label="回复快捷调整">
               <button class="reply-chip" data-reply-template="warm" type="button">语气温柔一点</button>
@@ -1369,6 +1570,7 @@
       query: "",
       sort: "priority",
       workspaceView: "overview",
+      selected: new Set(),
     };
 
     const $ = (id) => document.getElementById(id);
@@ -1625,6 +1827,9 @@
     $("approveBtn").addEventListener("click", approveActive);
     $("learnBtn").addEventListener("click", learnActive);
     $("handoffBtn").addEventListener("click", handoffActive);
+    $("bulkMarkSeen").addEventListener("click", () => bulkDemoAction("mark_seen"));
+    $("bulkHandoff").addEventListener("click", () => bulkDemoAction("handoff"));
+    $("bulkClear").addEventListener("click", clearSelection);
 
     document.querySelectorAll("[data-filter]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -1856,6 +2061,7 @@
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
+        state.selected.clear();
         $("modeTag").textContent = "真实系统";
         state.cases = data.cases || [];
         render();
@@ -1867,6 +2073,7 @@
     function loadDemoCases() {
       state.demoMode = true;
       state.scenario = demoScenarioEl.value || "ecommerce";
+      state.selected.clear();
       $("modeTag").textContent = "公开演示";
       errorEl.textContent = "";
       state.cases = clone(DEMO_SCENARIOS[state.scenario] || DEMO_SCENARIOS.ecommerce);
@@ -1888,15 +2095,95 @@
       renderOpsLayer(all);
       renderWorkspaceViews(all, counts, learned);
       syncWorkspaceView();
+      pruneSelection(all);
       const filtered = filterCases(all, state.filter);
       const searched = searchCases(filtered, state.query);
       const visible = sortCases(searched, state.sort);
       renderQueueSummary(visible.length, filtered.length, all.length);
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
+      renderBulkBar();
 
       casesEl.querySelectorAll("[data-case-id]").forEach((card) => {
-        card.addEventListener("click", () => openCase(card.dataset.caseId));
+        card.addEventListener("click", (event) => {
+          if (event.target.closest("[data-select-case-id]")) return;
+          openCase(card.dataset.caseId);
+        });
       });
+
+      casesEl.querySelectorAll("[data-select-case-id]").forEach((checkbox) => {
+        checkbox.addEventListener("click", (event) => event.stopPropagation());
+        checkbox.addEventListener("change", () => toggleCaseSelection(checkbox.dataset.selectCaseId, checkbox.checked));
+      });
+    }
+
+    function pruneSelection(cases) {
+      const allowed = new Set(cases.map((item) => item.id));
+      [...state.selected].forEach((id) => {
+        if (!allowed.has(id)) state.selected.delete(id);
+      });
+    }
+
+    function toggleCaseSelection(caseId, checked) {
+      if (!caseId) return;
+      if (checked) state.selected.add(caseId);
+      else state.selected.delete(caseId);
+      render();
+    }
+
+    function clearSelection() {
+      state.selected.clear();
+      render();
+    }
+
+    function renderBulkBar() {
+      const count = state.selected.size;
+      $("bulkCount").textContent = count;
+      $("bulkBar").classList.toggle("hidden", count === 0);
+    }
+
+    function bulkDemoAction(action) {
+      const ids = [...state.selected];
+      if (!ids.length) return;
+      if (!state.demoMode && action === "handoff") {
+        showToast("真实系统建议逐个确认后再转人工。");
+        return;
+      }
+
+      const now = new Date().toISOString();
+      ids.forEach((id) => {
+        const record = state.cases.find((item) => item.id === id);
+        if (!record) return;
+        record.history = record.history || [];
+
+        if (action === "mark_seen") {
+          record.seen_by_operator = true;
+          record.history.push({
+            type: "operator_seen_demo",
+            at: now,
+            note: "Demo: 已标记为看过。",
+          });
+        }
+
+        if (action === "handoff") {
+          record.status = "human_required";
+          record.latest_decision = record.latest_decision || {};
+          record.latest_decision.risk = "high";
+          record.latest_decision.action = "ask_human";
+          record.latest_decision.reason = "批量操作：需要人工继续处理。";
+          record.history.push({
+            type: "bulk_handoff_demo",
+            at: now,
+            note: "Demo: 批量转人工。",
+          });
+        }
+
+        record.updated_at = now;
+      });
+
+      const message = action === "handoff" ? `Demo：已把 ${ids.length} 个 Case 转人工。` : `Demo：已标记 ${ids.length} 个 Case。`;
+      state.selected.clear();
+      render();
+      showToast(message);
     }
 
     function filterCases(cases, filter) {
@@ -2234,11 +2521,17 @@
       const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
       const words = (item.word_cloud || decision.keywords || []).slice(0, 5);
       const initials = (item.contact?.name || "C").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+      const selected = state.selected.has(item.id);
+      const sla = slaInfo(item);
 
       return `
-        <article class="case-card ${riskClass}" data-case-id="${escapeHtml(item.id)}">
+        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}">
           <div class="case-head">
             <div class="case-name">
+              <label class="case-select" title="选择这个 Case">
+                <input type="checkbox" data-select-case-id="${escapeHtml(item.id)}" ${selected ? "checked" : ""} />
+                <span aria-hidden="true"></span>
+              </label>
               <span class="case-id">${escapeHtml(initials)}</span>
               <div>
                 <b>${escapeHtml(item.contact?.name || "顾客")}</b>
@@ -2253,7 +2546,7 @@
           <div class="case-message">${escapeHtml(item.last_message || "")}</div>
           <div class="case-foot">
             <span>AI：${escapeHtml(actionLabel(decision.action))}</span>
-            <span>${formatDate(item.updated_at)}</span>
+            <span class="sla-pill ${escapeHtml(sla.tone)}">${escapeHtml(item.seen_by_operator ? "已看" : sla.text)}</span>
           </div>
         </article>
       `;
@@ -2270,6 +2563,7 @@
       $("replyBox").value = decision.reply_message || "";
       $("actionTitle").textContent = decision.action === "ask_human" ? "按「转人工」" : decision.send_now ? "可自动发送" : "按「批准发送」";
       $("actionReason").textContent = decision.reason || "确认回复后发送。";
+      $("caseDetails").innerHTML = caseDetailsHtml(item);
 
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
         const klass = msg.direction === "outbound" ? "out" : "in";
@@ -2285,6 +2579,109 @@
       }).join("");
 
       $("panel").classList.add("open");
+    }
+
+    function caseDetailsHtml(item) {
+      const decision = item.latest_decision || {};
+      const sla = slaInfo(item);
+      const handoff = handoffAdvice(item);
+      const checks = orderChecks(item);
+
+      return `
+        <div class="detail-tile">
+          <span>状态</span>
+          <b>${escapeHtml(statusLabel(item.status, decision.risk))}</b>
+          <small>${escapeHtml(intentLabel(decision.intent))}</small>
+        </div>
+        <div class="detail-tile">
+          <span>阶段</span>
+          <b>${escapeHtml(decision.stage || "S1")}</b>
+          <small>${escapeHtml(stageLabel(decision.stage))}</small>
+        </div>
+        <div class="detail-tile">
+          <span>下一步</span>
+          <b>${escapeHtml(actionLabel(decision.action))}</b>
+          <small>${escapeHtml(decision.send_now ? "可自动执行" : "需要确认")}</small>
+        </div>
+        <div class="detail-tile">
+          <span>SLA</span>
+          <b>${escapeHtml(sla.text)}</b>
+          <small>${escapeHtml(sla.note)}</small>
+        </div>
+        <div class="detail-tile wide">
+          <span>订单检查</span>
+          <div class="check-list">${checks.map((row) => `<div class="check-row"><span>${escapeHtml(row.label)}</span><strong>${escapeHtml(row.value)}</strong></div>`).join("")}</div>
+        </div>
+        <div class="detail-tile wide">
+          <span>交接建议</span>
+          <b>${escapeHtml(handoff.title)}</b>
+          <small>${escapeHtml(handoff.body)}</small>
+        </div>
+      `;
+    }
+
+    function slaInfo(item) {
+      const status = item.status;
+      if (status === "auto" || status === "sent") {
+        return { text: status === "auto" ? "自动中" : "已处理", tone: "", note: "不需要人工盯着。" };
+      }
+
+      const time = new Date(item.updated_at || item.last_message_at || Date.now()).getTime();
+      const minutes = Number.isFinite(time) ? Math.max(0, Math.floor((Date.now() - time) / 60000)) : 0;
+      if (minutes >= 60) return { text: "已超时", tone: "risk", note: `${minutes} 分钟未处理，优先看。` };
+      if (minutes >= 25) return { text: "优先处理", tone: "warn", note: `${minutes} 分钟未处理。` };
+      return { text: `${Math.max(minutes, 1)} 分钟`, tone: "", note: "仍在处理时限内。" };
+    }
+
+    function orderChecks(item) {
+      const text = `${item.last_message || ""} ${item.latest_decision?.intent || ""}`.toLowerCase();
+      const hasPhone = /(\+?60|01)\d|电话|phone/.test(text);
+      const hasAddress = /jalan|address|地址|no\s?\d+/i.test(text);
+      const hasPayment = /cod|付款|receipt|截图|paid|rm\d+/i.test(text);
+      return [
+        { label: "电话", value: hasPhone ? "有" : item.status === "order" ? "待补" : "未需要" },
+        { label: "地址", value: hasAddress ? "有" : item.status === "order" ? "待补" : "未需要" },
+        { label: "付款", value: hasPayment ? "需核对" : item.status === "order" ? "COD / 待确认" : "未需要" },
+      ];
+    }
+
+    function handoffAdvice(item) {
+      const decision = item.latest_decision || {};
+      if (item.status === "human_required" || decision.action === "ask_human") {
+        return {
+          title: "人工接手",
+          body: "停止 Automation，先看聊天记录，再用人工身份回复。",
+        };
+      }
+      if (item.status === "order") {
+        return {
+          title: "检查资料后提交",
+          body: "确认电话、地址和付款方式，再提交订单或交给 Ops。",
+        };
+      }
+      if (item.status === "approval_required") {
+        return {
+          title: "确认回复再发",
+          body: "看价后、敏感或成交话术，先审核再批准发送。",
+        };
+      }
+      return {
+        title: "让 AI 继续跑",
+        body: "低风险 FAQ 或 Follow-up，可让 Automation 继续处理。",
+      };
+    }
+
+    function stageLabel(stage) {
+      const map = {
+        S1: "了解问题",
+        S2: "USP / 方案",
+        S3: "信心证明 / 价格",
+        CLOSING: "成交处理",
+        ORDER: "订单阶段",
+        FOLLOW_UP: "跟进阶段",
+        HUMAN: "人工接手",
+      };
+      return map[stage] || "当前阶段";
     }
 
     async function approveActive() {
