@@ -41,6 +41,16 @@ https://jiazhentheadspert-cpu.github.io/chatdaddy-ai-agent-starter/
 - Admin：运营负责人，处理 Case 和复盘。
 - Staff：客服，只看要批准 / 要人工 / 订单，不看 Token、API、系统设置。
 
+也可以直接给团队不同入口：
+
+```text
+Owner: dashboard/?project_key=beyoute&role=owner&view=overview
+Admin: dashboard/?project_key=beyoute&role=admin&view=overview
+Staff: dashboard/?project_key=beyoute&role=staff&view=cases
+```
+
+正式上线后，这些会换成真实账号登录；现在的公开版先用来确认操作流程和权限体验。
+
 进入 Dashboard 后，如果没有填 API URL 和 Admin Token，会自动进入 Public Demo 模式。你可以直接试：
 
 - 切换行业场景

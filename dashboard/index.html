@@ -613,6 +613,50 @@
       font-weight: 760;
     }
 
+    .team-roster {
+      display: grid;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .member-row {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      gap: 11px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.82);
+      padding: 10px;
+    }
+
+    .member-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: var(--soft-green);
+      border: 1px solid #b9e3da;
+      color: var(--green-deep);
+      font-weight: 950;
+    }
+
+    .member-row b {
+      display: block;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .member-row small {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.35;
+      margin-top: 3px;
+    }
+
     .metric-strip {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1596,6 +1640,8 @@
       .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
       .view-toggle { align-self: flex-start; }
       .panel-body { padding: 14px; }
+      .member-row { grid-template-columns: 38px minmax(0, 1fr); }
+      .member-row .ops-mini { grid-column: 1 / -1; justify-content: center; }
     }
   </style>
 </head>
@@ -2695,10 +2741,11 @@
           <section class="command-panel">
             <div class="command-kicker">团队入口</div>
             <strong class="command-title">按岗位分配入口</strong>
-            <div class="compact-list">
-              ${compactRow("Owner", "全局数据、系统状态、真实连接", "最高权限")}
-              ${compactRow("Admin", "审核回复、处理异常、复盘 AI", "运营权限")}
-              ${compactRow("Staff", "只处理顾客 Case，不看技术设置", "客服权限")}
+            <p class="command-copy">复制对应入口给团队，不需要让客服碰技术设置。</p>
+            <div class="team-roster">
+              ${memberRow("O", "Owner 管理者", "全局数据、真实连接、团队权限、AI 复盘", "最高权限")}
+              ${memberRow("A", "Admin 运营", "审核回复、处理异常、复盘规则", "运营权限")}
+              ${memberRow("S", "Staff 客服", "只看待处理顾客：批准、转人工、提交订单", "客服权限")}
             </div>
             <div class="quick-actions">
               <button class="quick-action" data-copy-role-link="owner" type="button">复制 Owner 入口</button>
@@ -2762,6 +2809,19 @@
 
     function stepHtml(title, body) {
       return `<div class="step"><b>${escapeHtml(title)}</b><span>${escapeHtml(body)}</span></div>`;
+    }
+
+    function memberRow(initial, title, body, badge) {
+      return `
+        <div class="member-row">
+          <span class="member-avatar">${escapeHtml(initial)}</span>
+          <div>
+            <b>${escapeHtml(title)}</b>
+            <small>${escapeHtml(body)}</small>
+          </div>
+          <span class="ops-mini">${escapeHtml(badge)}</span>
+        </div>
+      `;
     }
 
     function copyRoleLink(role) {
