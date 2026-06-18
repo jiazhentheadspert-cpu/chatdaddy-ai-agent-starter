@@ -1,0 +1,29 @@
+name = "chatdaddy-ai-agent-starter"
+main = "src/worker.js"
+compatibility_date = "2026-06-18"
+
+[vars]
+PROJECT_KEY = "demo"
+PROJECT_NAME = "Demo WhatsApp AI Reply Agent"
+AUTO_SEND = "false"
+AI_PROVIDER = "openai"
+OPENAI_MODEL = "gpt-4o-mini"
+CHATDADDY_BOTS_FIRE_BASE = "https://api-bots.chatdaddy.tech"
+
+# Optional, but recommended after ChatDaddy is connected.
+CHATDADDY_ACCOUNT_ID = ""
+CHATDADDY_REPLY_BOT_ID = ""
+
+# Optional Google Sheet Apps Script /exec URL.
+GOOGLE_SHEET_WEB_APP_URL = ""
+
+[[kv_namespaces]]
+binding = "AGENT_KV"
+id = "replace_with_your_kv_namespace_id"
+
+# Set secrets with:
+# wrangler secret put OPENAI_API_KEY
+# wrangler secret put CHATDADDY_API_KEY
+# wrangler secret put CHATDADDY_WEBHOOK_SECRET
+# wrangler secret put ADMIN_TOKEN
+# wrangler secret put GOOGLE_SHEET_SECRET

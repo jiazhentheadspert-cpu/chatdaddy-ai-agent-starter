@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChatDaddy AI Agent Dashboard</title>
+  <style>
+    :root {
+      --bg: #f6f8f7;
+      --panel: #ffffff;
+      --ink: #142523;
+      --muted: #6b7b80;
+      --line: #d7e2df;
+      --green: #0f9f83;
+      --blue: #2f72d2;
+      --amber: #a96916;
+      --red: #bc4d4d;
+      --soft-green: #eaf8f4;
+      --soft-blue: #edf4ff;
+      --soft-amber: #fff5e8;
+      --soft-red: #fff0f0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(15, 159, 131, .08), transparent 34rem),
+        radial-gradient(circle at 100% 20%, rgba(47, 114, 210, .08), transparent 28rem),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    .app {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 4px;
+      font-weight: 650;
+    }
+
+    .setup {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(180px, .7fr) minmax(180px, .7fr) auto;
+      gap: 10px;
+      align-items: center;
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      backdrop-filter: blur(12px);
+    }
+
+    .setup input {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 12px;
+      min-width: 0;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: .16s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); border-color: #a9c9c1; }
+    .btn.primary { background: linear-gradient(135deg, #0f9f83, #2f72d2); color: #fff; border-color: transparent; }
+    .btn.danger { background: var(--soft-red); color: var(--red); border-color: #f0c1c1; }
+    .btn.ghost { background: transparent; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,.76);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+    }
+
+    .stat b { display: block; font-size: 24px; }
+    .stat span { color: var(--muted); font-weight: 750; }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 999px;
+      padding: 10px 15px;
+      font-weight: 850;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .pill.active {
+      background: var(--soft-green);
+      border-color: #9ed9cc;
+      color: var(--ink);
+    }
+
+    .view-toggle {
+      display: flex;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .view-toggle button {
+      border: 0;
+      background: transparent;
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .view-toggle button.active {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .grid.list {
+      grid-template-columns: 1fr;
+    }
+
+    .case-card {
+      position: relative;
+      min-height: 242px;
+      background: rgba(255,255,255,.88);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: 0 14px 38px rgba(20, 37, 35, .06);
+    }
+
+    .case-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 4px;
+      background: var(--green);
+    }
+
+    .case-card.medium::before { background: var(--amber); }
+    .case-card.high::before { background: var(--red); }
+    .case-card.order::before { background: var(--blue); }
+
+    .case-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .case-id {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: var(--soft-green);
+      border: 1px solid #b9e3da;
+      color: var(--ink);
+      font-weight: 950;
+      margin-right: 10px;
+    }
+
+    .case-name {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .case-name b {
+      font-size: 22px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-weight: 900;
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    .badge.low { color: var(--green); background: var(--soft-green); border-color: #b9e3da; }
+    .badge.medium { color: var(--amber); background: var(--soft-amber); border-color: #ebd1ac; }
+    .badge.high { color: var(--red); background: var(--soft-red); border-color: #e9b4b4; }
+    .badge.order { color: var(--blue); background: var(--soft-blue); border-color: #b7cdf1; }
+
+    .word-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      min-height: 76px;
+      margin-bottom: 16px;
+    }
+
+    .word {
+      font-weight: 950;
+      line-height: 1;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .word.big { font-size: 32px; color: var(--amber); background: var(--soft-amber); }
+    .word.mid { font-size: 22px; color: var(--blue); background: var(--soft-blue); }
+    .word.small { font-size: 16px; color: var(--green); background: var(--soft-green); }
+
+    .case-message {
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 44px;
+    }
+
+    .case-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 850;
+    }
+
+    .panel {
+      position: fixed;
+      inset: 0;
+      display: none;
+      background: rgba(9, 20, 18, .38);
+      z-index: 10;
+      padding: 28px;
+    }
+
+    .panel.open { display: grid; place-items: center; }
+
+    .panel-card {
+      width: min(1180px, 100%);
+      max-height: 92vh;
+      overflow: hidden;
+      background: #fff;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      box-shadow: 0 30px 90px rgba(0,0,0,.25);
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .panel-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, #ffffff, #f1faf8);
+    }
+
+    .panel-body {
+      overflow: auto;
+      padding: 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(300px, .8fr);
+      gap: 18px;
+    }
+
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      background: #fff;
+    }
+
+    .box h3 {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .chat {
+      display: grid;
+      gap: 12px;
+      background:
+        linear-gradient(rgba(255,255,255,.78), rgba(255,255,255,.78)),
+        repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(15,159,131,.07) 32px),
+        repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(47,114,210,.05) 32px);
+      min-height: 220px;
+    }
+
+    .bubble {
+      max-width: 78%;
+      padding: 13px 15px;
+      border-radius: 15px;
+      border: 1px solid var(--line);
+      background: #fff;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .bubble.in { justify-self: end; border-right: 4px solid var(--green); }
+    .bubble.out { justify-self: start; border-left: 4px solid var(--blue); }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .action-stack {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .action-card {
+      background: linear-gradient(135deg, var(--soft-green), var(--soft-blue));
+      border: 1px solid #b9e3da;
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .action-card b {
+      display: block;
+      font-size: 28px;
+      margin: 6px 0 10px;
+    }
+
+    .history {
+      display: grid;
+      gap: 8px;
+      max-height: 210px;
+      overflow: auto;
+    }
+
+    .history-item {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .error {
+      margin: 12px 0;
+      color: var(--red);
+      font-weight: 850;
+    }
+
+    @media (max-width: 980px) {
+      .setup, .stats, .grid, .panel-body { grid-template-columns: 1fr; }
+      .topbar { grid-template-columns: 1fr; }
+      .panel { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar">
+      <div>
+        <h1>AI Agent 中控台</h1>
+        <div class="subtitle">看 Case 状态、批准 AI 回复、转人工、让系统学习</div>
+      </div>
+      <div class="setup">
+        <input id="apiUrl" placeholder="API URL: https://your-worker.workers.dev" />
+        <input id="projectKey" placeholder="Project Key" />
+        <input id="adminToken" placeholder="Admin Token" type="password" />
+        <button class="btn primary" id="saveAndLoad">连接</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="statAll">0</b><span>全部</span></div>
+      <div class="stat"><b id="statApproval">0</b><span>要批准</span></div>
+      <div class="stat"><b id="statHuman">0</b><span>要人工</span></div>
+      <div class="stat"><b id="statOrder">0</b><span>订单</span></div>
+      <div class="stat"><b id="statAuto">0</b><span>自动</span></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="filters">
+        <button class="pill active" data-filter="all">全部</button>
+        <button class="pill" data-filter="approval_required">要批准</button>
+        <button class="pill" data-filter="human_required">要人工</button>
+        <button class="pill" data-filter="order">订单</button>
+        <button class="pill" data-filter="auto">自动</button>
+      </div>
+      <div class="view-toggle">
+        <button class="active" id="gridView">Grid</button>
+        <button id="listView">List</button>
+      </div>
+    </div>
+
+    <div id="error" class="error"></div>
+    <section id="cases" class="grid"></section>
+  </main>
+
+  <div id="panel" class="panel">
+    <div class="panel-card">
+      <div class="panel-top">
+        <div>
+          <h1 id="panelName">Customer</h1>
+          <div class="subtitle" id="panelMeta">Case detail</div>
+        </div>
+        <button class="btn ghost" id="closePanel">关闭</button>
+      </div>
+      <div class="panel-body">
+        <div class="left">
+          <div class="box chat" id="chatBox"></div>
+          <div class="box" style="margin-top: 14px;">
+            <h3>AI 建议回复</h3>
+            <textarea id="replyBox"></textarea>
+          </div>
+        </div>
+        <aside class="action-stack">
+          <div class="action-card">
+            <span>Agent Action</span>
+            <b id="actionTitle">按「批准发送」</b>
+            <p id="actionReason">确认回复后发送。</p>
+            <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
+          </div>
+          <button class="btn" id="learnBtn">以后类似 Case 自动通过</button>
+          <button class="btn danger" id="handoffBtn">转人工</button>
+          <div class="box">
+            <h3>Word Cloud</h3>
+            <div class="word-cloud" id="panelWords"></div>
+          </div>
+          <div class="box">
+            <h3>AI 操作记录</h3>
+            <div class="history" id="historyBox"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      cases: [],
+      filter: "all",
+      active: null,
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const apiUrlEl = $("apiUrl");
+    const projectKeyEl = $("projectKey");
+    const adminTokenEl = $("adminToken");
+    const casesEl = $("cases");
+    const errorEl = $("error");
+
+    apiUrlEl.value = localStorage.getItem("agent_api_url") || "";
+    projectKeyEl.value = localStorage.getItem("agent_project_key") || "demo";
+    adminTokenEl.value = localStorage.getItem("agent_admin_token") || "";
+
+    $("saveAndLoad").addEventListener("click", () => {
+      localStorage.setItem("agent_api_url", apiUrlEl.value.trim());
+      localStorage.setItem("agent_project_key", projectKeyEl.value.trim());
+      localStorage.setItem("agent_admin_token", adminTokenEl.value.trim());
+      loadCases();
+    });
+
+    $("gridView").addEventListener("click", () => setView("grid"));
+    $("listView").addEventListener("click", () => setView("list"));
+    $("closePanel").addEventListener("click", () => $("panel").classList.remove("open"));
+    $("approveBtn").addEventListener("click", approveActive);
+    $("learnBtn").addEventListener("click", learnActive);
+    $("handoffBtn").addEventListener("click", handoffActive);
+
+    document.querySelectorAll("[data-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-filter]").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        state.filter = button.dataset.filter;
+        render();
+      });
+    });
+
+    function setView(view) {
+      $("gridView").classList.toggle("active", view === "grid");
+      $("listView").classList.toggle("active", view === "list");
+      casesEl.classList.toggle("list", view === "list");
+    }
+
+    async function loadCases() {
+      errorEl.textContent = "";
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
+      const token = adminTokenEl.value.trim();
+
+      if (!api || !token) {
+        errorEl.textContent = "先输入 API URL 和 Admin Token。";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${api}/api/cases?project_key=${encodeURIComponent(project)}`, {
+          headers: { "x-admin-token": token },
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        state.cases = data.cases || [];
+        render();
+      } catch (error) {
+        errorEl.textContent = `连接失败：${error.message}`;
+      }
+    }
+
+    function render() {
+      const all = state.cases;
+      $("statAll").textContent = all.length;
+      $("statApproval").textContent = all.filter((item) => item.status === "approval_required").length;
+      $("statHuman").textContent = all.filter((item) => item.status === "human_required").length;
+      $("statOrder").textContent = all.filter((item) => item.status === "order").length;
+      $("statAuto").textContent = all.filter((item) => item.status === "auto").length;
+
+      const visible = state.filter === "all" ? all : all.filter((item) => item.status === state.filter);
+      casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
+
+      casesEl.querySelectorAll("[data-case-id]").forEach((card) => {
+        card.addEventListener("click", () => openCase(card.dataset.caseId));
+      });
+    }
+
+    function cardHtml(item) {
+      const decision = item.latest_decision || {};
+      const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
+      const words = (item.word_cloud || decision.keywords || []).slice(0, 5);
+      const initials = (item.contact?.name || "C").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+
+      return `
+        <article class="case-card ${riskClass}" data-case-id="${escapeHtml(item.id)}">
+          <div class="case-head">
+            <div class="case-name">
+              <span class="case-id">${escapeHtml(initials)}</span>
+              <b>${escapeHtml(item.contact?.name || "Customer")}</b>
+            </div>
+            <span class="badge ${riskClass}">${escapeHtml(statusLabel(item.status, decision.risk))}</span>
+          </div>
+          <div class="word-cloud">
+            ${words.map((word, index) => `<span class="word ${index === 0 ? "big" : index < 3 ? "mid" : "small"}">${escapeHtml(word)}</span>`).join("")}
+          </div>
+          <div class="case-message">${escapeHtml(item.last_message || "")}</div>
+          <div class="case-foot">
+            <span>Agent: ${escapeHtml(actionLabel(decision.action))}</span>
+            <span>${formatDate(item.updated_at)}</span>
+          </div>
+        </article>
+      `;
+    }
+
+    function openCase(caseId) {
+      const item = state.cases.find((record) => record.id === caseId);
+      if (!item) return;
+      state.active = item;
+
+      const decision = item.latest_decision || {};
+      $("panelName").textContent = item.contact?.name || "Customer";
+      $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${decision.stage || "S1"} · ${formatDate(item.updated_at)}`;
+      $("replyBox").value = decision.reply_message || "";
+      $("actionTitle").textContent = decision.action === "ask_human" ? "按「转人工」" : decision.send_now ? "可自动发送" : "按「批准发送」";
+      $("actionReason").textContent = decision.reason || "确认回复后发送。";
+
+      $("chatBox").innerHTML = (item.messages || []).map((msg) => {
+        const klass = msg.direction === "outbound" ? "out" : "in";
+        return `<div class="bubble ${klass}">${escapeHtml(msg.text || "")}</div>`;
+      }).join("") + `<div class="bubble out">${escapeHtml(decision.reply_message || "")}</div>`;
+
+      $("panelWords").innerHTML = (item.word_cloud || []).map((word, index) => {
+        return `<span class="word ${index === 0 ? "big" : index < 3 ? "mid" : "small"}">${escapeHtml(word)}</span>`;
+      }).join("");
+
+      $("historyBox").innerHTML = (item.history || []).slice().reverse().map((event) => {
+        return `<div class="history-item">${escapeHtml(formatDate(event.at))} · ${escapeHtml(event.type || "")}<br>${escapeHtml(event.decision?.reason || event.note || event.rule_id || "")}</div>`;
+      }).join("");
+
+      $("panel").classList.add("open");
+    }
+
+    async function approveActive() {
+      if (!state.active) return;
+      await postCaseAction(state.active.id, "approve", { reply_message: $("replyBox").value });
+    }
+
+    async function learnActive() {
+      if (!state.active) return;
+      await postCaseAction(state.active.id, "learn", {});
+    }
+
+    async function handoffActive() {
+      if (!state.active) return;
+      await postCaseAction(state.active.id, "handoff", { note: "Marked by dashboard operator" });
+    }
+
+    async function postCaseAction(caseId, action, body) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
+      const token = adminTokenEl.value.trim();
+
+      try {
+        const res = await fetch(`${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-admin-token": token,
+          },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        await loadCases();
+        if (data.case) openCase(data.case.id);
+      } catch (error) {
+        alert(`操作失败：${error.message}`);
+      }
+    }
+
+    function emptyHtml() {
+      return `
+        <div class="box" style="grid-column: 1 / -1;">
+          <h3>还没有 Case</h3>
+          <p class="subtitle">确认 ChatDaddy webhook 已经指向 Worker，然后用真实 WhatsApp 发一条测试消息。</p>
+        </div>
+      `;
+    }
+
+    function statusLabel(status, risk) {
+      if (status === "approval_required") return "待批准";
+      if (status === "human_required") return "要人工";
+      if (status === "order") return "订单";
+      if (status === "auto") return "自动";
+      if (status === "sent") return "已发送";
+      if (status === "send_failed") return "发送失败";
+      if (risk === "high") return "高风险";
+      if (risk === "medium") return "中风险";
+      return "低风险";
+    }
+
+    function actionLabel(action) {
+      const map = {
+        send_reply: "自动回复",
+        approve_reply: "批准发送",
+        ask_human: "转人工",
+        collect_order: "收订单",
+        review_receipt: "审 Receipt",
+        trigger_flow: "接 Flow",
+        wait: "等待",
+      };
+      return map[action] || action || "判断";
+    }
+
+    function formatDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString("zh-MY", { dateStyle: "short", timeStyle: "short" });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>

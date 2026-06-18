@@ -1,0 +1,17 @@
+{
+  "event": "message-insert",
+  "message": {
+    "id": "msg_demo_001",
+    "text": "有点贵，我考虑一下",
+    "direction": "inbound",
+    "createdAt": "2026-06-18T10:00:00.000Z"
+  },
+  "contact": {
+    "id": "contact_demo_001",
+    "name": "Demo Customer",
+    "phone": "+60000000000"
+  },
+  "conversation": {
+    "id": "conv_demo_001"
+  }
+}

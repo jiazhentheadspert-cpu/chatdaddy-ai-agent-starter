@@ -1,0 +1,20 @@
+{
+  "name": "chatdaddy-ai-agent-starter",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A public-safe starter for a ChatDaddy WhatsApp AI reply agent with dashboard, approval loop, and Google Sheet logging.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "secret:openai": "wrangler secret put OPENAI_API_KEY",
+    "secret:chatdaddy": "wrangler secret put CHATDADDY_API_KEY",
+    "secret:admin": "wrangler secret put ADMIN_TOKEN",
+    "secret:webhook": "wrangler secret put CHATDADDY_WEBHOOK_SECRET",
+    "secret:sheet": "wrangler secret put GOOGLE_SHEET_SECRET"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

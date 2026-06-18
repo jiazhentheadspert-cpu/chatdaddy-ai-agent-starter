@@ -1,0 +1,24 @@
+{
+  "project_key": "demo",
+  "brand_name": "Demo Brand",
+  "language": "zh-MY",
+  "steps": [
+    { "key": "s1", "label": "了解问题" },
+    { "key": "s2", "label": "USP / 效果" },
+    { "key": "s3", "label": "价格 / 成交" }
+  ],
+  "reply_assets": {
+    "value_statement": "我们的产品主打省时间、有效解决核心痛点，并有真实顾客反馈。",
+    "proof_summary": "可以使用顾客 review、认证、案例、退款/售后政策作为信心点。",
+    "price_objection_reply": "价钱会考虑是正常的。重点是你要解决的问题值不值得认真处理。",
+    "consider_reply": "可以的，你先考虑。为了帮你判断适不适合，我可以先问你最在意的是效果、价格还是安全？",
+    "order_cta": "如果你要，我可以先帮你保留一套。"
+  },
+  "handoff_rules": [
+    "投诉",
+    "退款",
+    "医疗或健康敏感",
+    "receipt 不清楚",
+    "AI 信心低"
+  ]
+}
