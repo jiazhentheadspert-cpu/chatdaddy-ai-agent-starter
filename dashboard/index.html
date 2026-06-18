@@ -136,6 +136,38 @@
       margin-left: 8px;
     }
 
+    .session-bar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+      background: rgba(255,255,255,.82);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      box-shadow: 0 14px 38px rgba(20, 37, 35, .05);
+    }
+
+    .session-title {
+      font-weight: 950;
+      font-size: 18px;
+    }
+
+    .session-subtitle {
+      color: var(--muted);
+      font-weight: 760;
+      margin-top: 2px;
+    }
+
+    .session-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .btn {
       border: 1px solid var(--line);
       background: #fff;
@@ -151,6 +183,7 @@
     .btn.primary { background: linear-gradient(135deg, #0f9f83, #2f72d2); color: #fff; border-color: transparent; }
     .btn.danger { background: var(--soft-red); color: var(--red); border-color: #f0c1c1; }
     .btn.ghost { background: transparent; }
+    .hidden { display: none !important; }
 
     .stats {
       display: grid;
@@ -508,7 +541,7 @@
     }
 
     @media (max-width: 980px) {
-      .setup, .demo-bar, .stats, .grid, .panel-body { grid-template-columns: 1fr; }
+      .setup, .demo-bar, .session-bar, .stats, .grid, .panel-body { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
       .panel { padding: 10px; }
     }
@@ -519,13 +552,24 @@
     <div class="topbar">
       <div>
         <h1>ReplyPilot AI <span class="mode-tag" id="modeTag">Public Demo</span></h1>
-        <div class="subtitle">AI 客服中控台：看 Case、批准回复、转人工、让系统学习</div>
+        <div class="subtitle" id="dashboardSubtitle">AI 客服中控台：看 Case、批准回复、转人工、让系统学习</div>
       </div>
-      <div class="setup">
+      <div class="setup" id="setupPanel">
         <input id="apiUrl" placeholder="API URL: https://your-worker.workers.dev" />
         <input id="projectKey" placeholder="Project Key" />
         <input id="adminToken" placeholder="Admin Token" type="password" />
         <button class="btn primary" id="saveAndLoad">连接真实系统</button>
+      </div>
+    </div>
+
+    <div class="session-bar" id="sessionBar">
+      <div>
+        <div class="session-title" id="sessionTitle">Public Demo Workspace</div>
+        <div class="session-subtitle" id="sessionSubtitle">Owner / Admin 可以看全部；Staff 只看要处理的顾客。</div>
+      </div>
+      <div class="session-actions">
+        <a class="btn" href="../login.html">切换账号</a>
+        <button class="btn ghost" id="logoutBtn">退出</button>
       </div>
     </div>
 
@@ -560,7 +604,7 @@
         <button class="pill" data-filter="approval_required">要批准</button>
         <button class="pill" data-filter="human_required">要人工</button>
         <button class="pill" data-filter="order">订单</button>
-        <button class="pill" data-filter="auto">自动</button>
+        <button class="pill" data-filter="auto" id="autoFilterBtn">自动</button>
       </div>
       <div class="view-toggle">
         <button class="active" id="gridView">Grid</button>
@@ -620,6 +664,8 @@
       active: null,
       demoMode: true,
       scenario: "ecommerce",
+      role: "owner",
+      session: {},
     };
 
     const $ = (id) => document.getElementById(id);
@@ -836,15 +882,26 @@
       ],
     };
 
-    apiUrlEl.value = localStorage.getItem("agent_api_url") || "";
-    projectKeyEl.value = localStorage.getItem("agent_project_key") || "demo";
+    const params = new URLSearchParams(window.location.search);
+    state.session = readSession();
+    state.role = params.get("role") || state.session.role || "owner";
+
+    apiUrlEl.value = params.get("api") || state.session.apiUrl || localStorage.getItem("agent_api_url") || "";
+    projectKeyEl.value = params.get("project_key") || state.session.projectKey || localStorage.getItem("agent_project_key") || "demo";
     adminTokenEl.value = localStorage.getItem("agent_admin_token") || "";
+
+    applySessionShell();
 
     $("saveAndLoad").addEventListener("click", () => {
       localStorage.setItem("agent_api_url", apiUrlEl.value.trim());
       localStorage.setItem("agent_project_key", projectKeyEl.value.trim());
       localStorage.setItem("agent_admin_token", adminTokenEl.value.trim());
       loadCases();
+    });
+
+    $("logoutBtn").addEventListener("click", () => {
+      localStorage.removeItem("agent_session");
+      window.location.href = "../login.html";
     });
 
     $("loadDemo").addEventListener("click", () => loadDemoCases());
@@ -864,6 +921,47 @@
         render();
       });
     });
+
+    function readSession() {
+      try {
+        return JSON.parse(localStorage.getItem("agent_session") || "{}") || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function applySessionShell() {
+      const workspace = projectKeyEl.value || state.session.workspace || "demo";
+      const name = state.session.displayName || (state.role === "staff" ? "Staff" : "Owner");
+      const roleLabel = roleName(state.role);
+
+      $("sessionTitle").textContent = `${workspace.toUpperCase()} · ${roleLabel} · ${name}`;
+      $("sessionSubtitle").textContent = roleSubtitle(state.role);
+
+      $("dashboardSubtitle").textContent = state.role === "staff"
+        ? "客服工作台：只看要批准、要人工、订单"
+        : "AI 客服中控台：看 Case、批准回复、转人工、让系统学习";
+
+      $("setupPanel").classList.toggle("hidden", state.role === "staff");
+      $("autoFilterBtn").classList.toggle("hidden", state.role === "staff");
+      $("learnBtn").classList.toggle("hidden", state.role === "staff");
+    }
+
+    function roleName(role) {
+      const map = { owner: "Owner", admin: "Admin", staff: "Staff" };
+      return map[role] || "Owner";
+    }
+
+    function roleSubtitle(role) {
+      if (role === "staff") return "只显示客服该处理的顾客，不显示 Token、API、系统设置和自动 Case。";
+      if (role === "admin") return "可以处理 Case、复盘 AI 决定、检查学习规则。";
+      return "可以看全部项目、系统状态、真实连接和团队入口。";
+    }
+
+    function casesForRole(cases) {
+      if (state.role !== "staff") return cases;
+      return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
+    }
 
     function setView(view) {
       $("gridView").classList.toggle("active", view === "grid");
@@ -908,13 +1006,14 @@
     }
 
     function render() {
-      const all = state.cases;
+      const all = casesForRole(state.cases);
       $("statAll").textContent = all.length;
       $("statApproval").textContent = all.filter((item) => item.status === "approval_required").length;
       $("statHuman").textContent = all.filter((item) => item.status === "human_required").length;
       $("statOrder").textContent = all.filter((item) => item.status === "order").length;
       $("statAuto").textContent = all.filter((item) => item.status === "auto").length;
 
+      if (state.role === "staff" && state.filter === "auto") state.filter = "all";
       const visible = state.filter === "all" ? all : all.filter((item) => item.status === state.filter);
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
 

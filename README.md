@@ -35,7 +35,13 @@ Dashboard demo:
 https://jiazhentheadspert-cpu.github.io/chatdaddy-ai-agent-starter/
 ```
 
-打开就会进入 Public Demo 模式，不需要 API URL、不需要 Admin Token。你可以直接试：
+打开就会进入 Login 页面。现在是可演示版本，不需要真实账号密码：
+
+- Owner：老板 / 系统拥有者，看全部。
+- Admin：运营负责人，处理 Case 和复盘。
+- Staff：客服，只看要批准 / 要人工 / 订单，不看 Token、API、系统设置。
+
+进入 Dashboard 后，如果没有填 API URL 和 Admin Token，会自动进入 Public Demo 模式。你可以直接试：
 
 - 切换行业场景
 - 点击顾客 Case
