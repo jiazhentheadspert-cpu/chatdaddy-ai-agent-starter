@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh">
+<html lang="zh-Hans">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,21 +19,25 @@
       --soft-green: #e8f7f3;
       --soft-blue: #edf4ff;
       --soft-amber: #fff6e8;
-      --shadow: 0 24px 70px rgba(20, 37, 35, .12);
-      --shadow-soft: 0 16px 44px rgba(17, 35, 33, .08);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --shadow: 0 28px 80px rgba(20, 37, 35, .12);
+      --shadow-soft: 0 16px 44px rgba(17, 35, 33, .07);
+      font-family: Inter, "Noto Sans SC", "PingFang SC", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     * { box-sizing: border-box; }
+
+    html,
+    body {
+      overflow-x: hidden;
+    }
 
     body {
       margin: 0;
       min-height: 100vh;
       color: var(--ink);
       background:
-        radial-gradient(circle at 72% 10%, rgba(47,111,208,.10), transparent 30rem),
-        radial-gradient(circle at 24% 0%, rgba(12,143,120,.10), transparent 34rem),
-        linear-gradient(90deg, rgba(13,51,47,.045), transparent 38%),
+        linear-gradient(120deg, rgba(12,143,120,.10), transparent 42%),
+        linear-gradient(240deg, rgba(47,111,208,.10), transparent 44%),
         linear-gradient(180deg, #fbfcfb, var(--canvas));
     }
 
@@ -53,6 +57,7 @@
     .product {
       display: grid;
       gap: 28px;
+      min-width: 0;
     }
 
     .nav {
@@ -73,8 +78,8 @@
     .mark {
       width: 40px;
       height: 40px;
-      border-radius: 12px;
-      background: var(--green-deep);
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--green-deep), #155b54);
       display: grid;
       place-items: center;
       color: #fff;
@@ -90,7 +95,7 @@
       background: rgba(255,255,255,.78);
       color: var(--muted);
       padding: 8px 12px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 850;
     }
 
@@ -106,6 +111,7 @@
 
     .hero {
       max-width: 760px;
+      min-width: 0;
     }
 
     .eyebrow {
@@ -121,15 +127,23 @@
       font-size: clamp(40px, 4.8vw, 62px);
       line-height: 1;
       letter-spacing: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    h1 span {
+      display: block;
     }
 
     .lead {
       margin: 0;
-      max-width: 680px;
+      max-width: 660px;
       color: var(--muted);
-      font-size: 20px;
+      font-size: 19px;
       line-height: 1.55;
-      font-weight: 730;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .hero-actions {
@@ -167,7 +181,7 @@
     .signal {
       border: 1px solid var(--line);
       border-radius: 18px;
-      background: rgba(255,255,255,.74);
+      background: rgba(255,255,255,.78);
       padding: 14px;
       box-shadow: var(--shadow-soft);
     }
@@ -258,7 +272,7 @@
       color: var(--muted);
       font-size: 14px;
       line-height: 1.45;
-      font-weight: 740;
+      font-weight: 720;
     }
 
     .chips {
@@ -340,10 +354,11 @@
     .login {
       background: rgba(255,255,255,.92);
       border: 1px solid var(--line);
-      border-radius: 30px;
+      border-radius: 28px;
       box-shadow: var(--shadow);
       overflow: hidden;
       position: relative;
+      min-width: 0;
     }
 
     .login-top {
@@ -369,7 +384,7 @@
       border: 1px solid #cddbd7;
       border-radius: 999px;
       background: var(--soft-green);
-      color: var(--green);
+      color: var(--green-deep);
       padding: 7px 10px;
       font-size: 12px;
       font-weight: 950;
@@ -393,7 +408,10 @@
       margin: 0;
       color: var(--muted);
       line-height: 1.45;
-      font-weight: 740;
+      font-weight: 720;
+      overflow-wrap: anywhere;
+      word-break: break-all;
+      line-break: anywhere;
     }
 
     .form {
@@ -405,7 +423,7 @@
       margin: 0 0 8px;
       color: var(--muted);
       font-size: 13px;
-      font-weight: 920;
+      font-weight: 900;
     }
 
     input, select {
@@ -438,7 +456,7 @@
       padding: 11px 8px;
       background: #fff;
       color: var(--muted);
-      font-weight: 920;
+      font-weight: 900;
       cursor: pointer;
       transition: .16s ease;
     }
@@ -461,7 +479,37 @@
       color: var(--muted);
       font-size: 13px;
       line-height: 1.45;
-      font-weight: 820;
+      font-weight: 780;
+      overflow-wrap: anywhere;
+      word-break: break-all;
+      line-break: anywhere;
+    }
+
+    .permission-preview {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .permission-row {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 760;
+    }
+
+    .permission-row::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      margin-top: 4px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(12,143,120,.10);
     }
 
     .advanced {
@@ -510,7 +558,7 @@
     }
 
     .links a {
-      color: var(--green);
+      color: var(--green-deep);
       text-decoration: none;
       font-weight: 900;
       font-size: 14px;
@@ -524,7 +572,7 @@
       border-radius: 16px;
       padding: 13px 14px;
       font-size: 14px;
-      font-weight: 790;
+      font-weight: 760;
       line-height: 1.45;
     }
 
@@ -538,10 +586,18 @@
     }
 
     @media (max-width: 560px) {
-      .shell { width: min(100% - 24px, 1280px); }
+      .shell { width: min(calc(100% - 24px), 1280px); }
       .signal-row, .roles { grid-template-columns: 1fr; }
-      h1 { font-size: clamp(34px, 12vw, 46px); }
-      .lead { font-size: 17px; }
+      h1 { font-size: clamp(34px, 11vw, 42px); line-height: 1.06; }
+      .lead { width: calc(100vw - 56px); max-width: 334px; font-size: 17px; word-break: break-all; }
+      .nav { align-items: flex-start; }
+      .nav .env { display: none; }
+      .signal-row, .ops-panel, .preview-panel { display: none; }
+      .login-topline { justify-content: flex-start; }
+      .login-topline .env { display: none; }
+      .login-copy { word-break: break-all; }
+      .ops-head { flex-direction: column; align-items: flex-start; }
+      .health { align-self: flex-start; }
       .login-top, .form { padding-left: 20px; padding-right: 20px; }
     }
   </style>
@@ -550,44 +606,44 @@
   <main class="shell">
     <section class="product">
       <div class="nav">
-        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI 客服中控台</span></div>
-        <span class="env">公开演示</span>
+        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI</span></div>
+        <span class="env">中文演示版</span>
       </div>
 
       <div class="hero">
         <div class="eyebrow">AI Customer Operations</div>
-        <h1>一个后台，管住 AI 回复、人工介入和订单成交。</h1>
-        <p class="lead">ReplyPilot 把 ChatDaddy 里的顾客消息整理成 Case 队列。AI 先判断意图、风险、阶段和下一步动作；团队只处理真正需要确认的顾客。</p>
+        <h1>AI 客服中控台，<span>关键顾客优先处理。</span></h1>
+        <p class="lead">系统把 ChatDaddy 讯息整理成顾客队列，自动判断阶段、风险和下一步动作。老板看全局，运营管异常，客服只处理需要确认的顾客。</p>
         <div class="hero-actions">
-          <a class="text-button primary-link" href="dashboard/index.html">查看公开 Demo</a>
-          <a class="text-button" href="docs/ONBOARDING_ZH.md">查看接入 SOP</a>
+          <a class="text-button primary-link" href="dashboard/index.html">进入公开演示</a>
+          <a class="text-button" href="docs/ONBOARDING_ZH.md">查看上线流程</a>
         </div>
       </div>
 
       <section class="signal-row" aria-label="核心运营指标">
-        <div class="signal"><b>1</b><span>统一中控台</span></div>
-        <div class="signal"><b>3</b><span>清晰角色权限</span></div>
-        <div class="signal"><b>5+</b><span>客服闭环动作</span></div>
-        <div class="signal"><b>24/7</b><span>持续接收讯息</span></div>
+        <div class="signal"><b>1</b><span>统一工作台</span></div>
+        <div class="signal"><b>3</b><span>角色权限</span></div>
+        <div class="signal"><b>5+</b><span>客服动作</span></div>
+        <div class="signal"><b>24/7</b><span>讯息接收</span></div>
       </section>
 
       <section class="ops-panel">
         <div class="ops-head">
           <div>
             <b>少操作，清楚分工</b>
-          <span>队列、审批、转人工、订单和复盘集中在同一个后台。</span>
+          <span>审批、转人工、订单和复盘集中在同一个后台。</span>
           </div>
-          <span class="health">演示工作台已开启</span>
+          <span class="health">工作台在线</span>
         </div>
         <div class="role-grid">
           <article class="role-card">
             <strong>管理者</strong>
             <p>查看全局数据、连接状态、团队权限和 AI 规则。</p>
-            <div class="chips"><span class="chip">全部 Case</span><span class="chip">系统设置</span></div>
+            <div class="chips"><span class="chip">全部顾客</span><span class="chip">系统设置</span></div>
           </article>
           <article class="role-card">
             <strong>运营主管</strong>
-            <p>审核 AI 回复、处理异常 Case、复盘 AI 决策。</p>
+          <p>审核 AI 回复、处理异常顾客、复盘 AI 判断。</p>
             <div class="chips"><span class="chip">审核回复</span><span class="chip">复盘 AI</span></div>
           </article>
           <article class="role-card">
@@ -602,18 +658,18 @@
         <div class="preview-card">
           <span>今日队列</span>
           <strong>8</strong>
-          <p>待批准、需人工、订单和异常会集中在这里。</p>
+          <p>待批准、需人工、订单和异常统一显示。</p>
         </div>
         <div class="preview-card">
           <span>AI 自动中</span>
           <strong>24</strong>
-          <p>低风险 FAQ、Follow-up 和接 Flow 不打扰客服。</p>
+          <p>低风险 FAQ、Follow-up 和接 Flow 自动处理。</p>
         </div>
         <div class="preview-card wide">
           <div>
-            <span>下一步动作</span>
-            <strong>先处理高风险顾客</strong>
-            <p>系统会把投诉、订单、低信心判断排在最前面。</p>
+            <span>处理优先级</span>
+            <strong>高风险顾客优先</strong>
+            <p>投诉、订单和低信心判断会排在最前面。</p>
           </div>
           <div class="case-mini">
             Amira · 高风险
@@ -626,16 +682,16 @@
     <section class="login">
       <div class="login-top">
         <div class="login-topline">
-          <span class="status-pill">安全演示模式</span>
-          <span class="env">本机 / GitHub Pages</span>
+          <span class="status-pill">团队入口</span>
+          <span class="env">公开演示</span>
         </div>
-        <h2>进入中控台</h2>
-        <p class="login-copy">选择身份后进入对应视图。正式上线后会使用账号密码登录，并自动识别团队权限。</p>
+        <h2>进入工作台</h2>
+        <p class="login-copy">先用演示身份查看权限效果。<br>正式上线后，团队成员使用自己的账号登录。</p>
       </div>
 
       <div class="form">
         <div class="field">
-          <label for="workspace">项目</label>
+          <label for="workspace">选择项目</label>
           <select id="workspace">
             <option value="demo">演示项目</option>
             <option value="beyoute">Beyoute</option>
@@ -643,22 +699,23 @@
         </div>
 
         <div class="field">
-          <label for="displayName">姓名</label>
+          <label for="displayName">显示名称</label>
           <input id="displayName" value="Jia Zhen" autocomplete="name" />
         </div>
 
         <div class="field">
-          <label>角色</label>
+          <label>进入身份</label>
           <div class="roles">
             <button class="role active" data-role="owner" type="button">管理者</button>
             <button class="role" data-role="admin" type="button">运营</button>
             <button class="role" data-role="staff" type="button">客服</button>
           </div>
-          <div class="role-help" id="roleHelp">管理者可以查看全部 Case、系统状态、真实连接和团队权限。</div>
+          <div class="role-help" id="roleHelp">管理者可查看全部顾客、系统状态和团队权限。</div>
+          <div class="permission-preview" id="permissionPreview"></div>
         </div>
 
         <details class="advanced">
-          <summary>高级设置：真实系统连接</summary>
+          <summary>系统连接（仅管理者使用）</summary>
           <div class="advanced-body">
             <div class="field">
               <label for="apiUrl">Worker API URL</label>
@@ -671,14 +728,14 @@
           </div>
         </details>
 
-        <button class="primary" id="loginBtn">进入中控台</button>
+        <button class="primary" id="loginBtn">进入工作台</button>
 
         <div class="links">
-          <a href="dashboard/index.html">打开演示中控台</a>
-          <a href="docs/ONBOARDING_ZH.md">查看接入 SOP</a>
+          <a href="dashboard/index.html">打开中控台</a>
+          <a href="docs/ONBOARDING_ZH.md">查看上线流程</a>
         </div>
 
-        <div class="security-note">内部演示用：可以分享 GitHub Pages 链接；不要分享本机 file:// 链接、API Token 或真实密钥。</div>
+        <div class="security-note">公开演示链接可以给团队查看；系统密钥和真实连接资料只限管理者保管。</div>
       </div>
     </section>
   </main>
@@ -686,23 +743,38 @@
   <script>
     const roleButtons = [...document.querySelectorAll("[data-role]")];
     const roleHelp = document.getElementById("roleHelp");
+    const permissionPreview = document.getElementById("permissionPreview");
     const roleHelpCopy = {
-      owner: "管理者可以查看全部 Case、系统状态、真实连接和团队权限。",
-      admin: "运营主管可以审核回复、处理异常、查看复盘，不需要碰底层部署。",
-      staff: "客服人员只会看到要处理的顾客，不会看到 Token、API 或系统开关。",
+      owner: "管理者可查看全部顾客、系统状态和团队权限。",
+      admin: "运营主管可审核回复、处理异常、查看复盘。",
+      staff: "客服只看要处理的顾客，不会看到系统密钥。",
+    };
+    const permissionRows = {
+      owner: ["查看全部顾客和数据", "管理团队入口", "检查 AI 规则和复盘"],
+      admin: ["审核 AI 建议回复", "处理异常和转人工", "查看复盘，不接触密钥"],
+      staff: ["只看要处理的顾客", "批准、转人工、提交订单", "隐藏系统设置"],
     };
     let selectedRole = "owner";
+
+    function renderPermissionPreview(role) {
+      permissionPreview.innerHTML = (permissionRows[role] || permissionRows.owner)
+        .map((text) => `<div class="permission-row">${text}</div>`)
+        .join("");
+    }
 
     roleButtons.forEach((button) => {
       button.addEventListener("click", () => {
         selectedRole = button.dataset.role;
         roleButtons.forEach((item) => item.classList.toggle("active", item === button));
         roleHelp.textContent = roleHelpCopy[selectedRole] || roleHelpCopy.owner;
+        renderPermissionPreview(selectedRole);
         if (selectedRole === "staff") {
           document.getElementById("displayName").value = "Support Team";
         }
       });
     });
+
+    renderPermissionPreview(selectedRole);
 
     document.getElementById("apiUrl").value = localStorage.getItem("agent_api_url") || "";
     document.getElementById("adminToken").value = localStorage.getItem("agent_admin_token") || "";
