@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ReplyPilot AI Operations Console</title>
+  <title>ReplyPilot AI 客服运营中控台</title>
   <style>
     :root {
       --canvas: #f5f7f6;
@@ -367,39 +367,39 @@
   <main class="shell">
     <section class="product">
       <div class="nav">
-        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI</span></div>
-        <span class="env">Public demo</span>
+        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI 客服运营</span></div>
+        <span class="env">公开演示</span>
       </div>
 
       <div class="hero">
-        <div class="eyebrow">AI support operations</div>
-        <h1>Role-based console for AI-assisted support teams.</h1>
-        <p class="lead">Review AI decisions, approve customer replies, route sensitive cases, and separate operational access for owners, admins, and support staff.</p>
+        <div class="eyebrow">AI 客服运营中控台</div>
+        <h1>一个入口，管理 AI 回复和人工审核。</h1>
+        <p class="lead">集中查看 AI 判断、审核建议回复、处理订单资料、转接敏感顾客，并用权限把老板、运营和客服分清楚。</p>
       </div>
 
       <section class="ops-panel">
         <div class="ops-head">
           <div>
-            <b>Access model</b>
-            <span>Designed for teams that need clear visibility without exposing backend controls.</span>
+            <b>权限分层</b>
+            <span>团队可以清楚分工，同时不暴露后台和技术设置。</span>
           </div>
-          <span class="health">Demo workspace ready</span>
+          <span class="health">演示工作台已开启</span>
         </div>
         <div class="role-grid">
           <article class="role-card">
-            <strong>Owner</strong>
-            <p>Full workspace visibility, system status, live connections, audit records, and configuration.</p>
-            <div class="chips"><span class="chip">All cases</span><span class="chip">Settings</span></div>
+            <strong>Owner 管理者</strong>
+            <p>查看全部顾客、系统状态、自动规则、记录表和真实连接。</p>
+            <div class="chips"><span class="chip">全部 Case</span><span class="chip">系统设置</span></div>
           </article>
           <article class="role-card">
-            <strong>Admin</strong>
-            <p>Operational control for approvals, handoffs, order review, and AI decision quality checks.</p>
-            <div class="chips"><span class="chip">Approvals</span><span class="chip">Review</span></div>
+            <strong>Admin 运营</strong>
+            <p>处理待审核回复、转人工、订单确认和 AI 决策复盘。</p>
+            <div class="chips"><span class="chip">审核回复</span><span class="chip">复盘 AI</span></div>
           </article>
           <article class="role-card">
-            <strong>Staff</strong>
-            <p>Focused case handling only. No API tokens, infrastructure, billing, or automation settings.</p>
-            <div class="chips"><span class="chip">Cases only</span><span class="chip">No settings</span></div>
+            <strong>Staff 客服</strong>
+            <p>只处理需要人工看的顾客，不会看到 API、后台、账单或系统设置。</p>
+            <div class="chips"><span class="chip">只看顾客</span><span class="chip">隐藏设置</span></div>
           </article>
         </div>
       </section>
@@ -407,55 +407,55 @@
 
     <section class="login">
       <div class="login-top">
-        <h2>Sign in to workspace</h2>
-        <p class="login-copy">Use demo access to preview role-based workflows. Connect your Worker API only when you are ready to use live data.</p>
+        <h2>进入工作台</h2>
+        <p class="login-copy">先用演示模式查看团队流程。准备接真实系统时，再连接 Worker API 和 Admin Token。</p>
       </div>
 
       <div class="form">
         <div class="field">
-          <label for="workspace">Workspace</label>
+          <label for="workspace">项目</label>
           <select id="workspace">
-            <option value="demo">Demo workspace</option>
+            <option value="demo">演示项目</option>
             <option value="beyoute">Beyoute</option>
           </select>
         </div>
 
         <div class="field">
-          <label for="displayName">Display name</label>
+          <label for="displayName">使用者名称</label>
           <input id="displayName" value="Jia Zhen" autocomplete="name" />
         </div>
 
         <div class="field">
-          <label>Access role</label>
+          <label>选择权限</label>
           <div class="roles">
             <button class="role active" data-role="owner" type="button">Owner</button>
             <button class="role" data-role="admin" type="button">Admin</button>
-            <button class="role" data-role="staff" type="button">Staff</button>
+            <button class="role" data-role="staff" type="button">客服</button>
           </div>
         </div>
 
         <details class="advanced">
-          <summary>Connect live system</summary>
+          <summary>连接真实系统</summary>
           <div class="advanced-body">
             <div class="field">
               <label for="apiUrl">Worker API URL</label>
               <input id="apiUrl" placeholder="https://your-worker.workers.dev" />
             </div>
             <div class="field">
-              <label for="adminToken">Admin token</label>
-              <input id="adminToken" placeholder="Owner/Admin only" type="password" />
+              <label for="adminToken">Admin Token</label>
+              <input id="adminToken" placeholder="只给 Owner / Admin 使用" type="password" />
             </div>
           </div>
         </details>
 
-        <button class="primary" id="loginBtn">Enter workspace</button>
+        <button class="primary" id="loginBtn">进入中控台</button>
 
         <div class="links">
-          <a href="dashboard/index.html">Open demo dashboard</a>
-          <a href="docs/ONBOARDING_ZH.md">Onboarding guide</a>
+          <a href="dashboard/index.html">打开演示 Dashboard</a>
+          <a href="docs/ONBOARDING_ZH.md">查看 Onboarding SOP</a>
         </div>
 
-        <div class="security-note">Never share API tokens, Cloudflare access, Supabase access, or admin credentials with support staff.</div>
+        <div class="security-note">不要把 API Token、Cloudflare、Supabase 或 Admin Token 给客服。客服只需要处理顾客 Case。</div>
       </div>
     </section>
   </main>
