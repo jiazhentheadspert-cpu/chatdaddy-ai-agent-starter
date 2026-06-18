@@ -117,10 +117,43 @@
       font-weight: 850;
     }
 
+    .side-nav button {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .side-nav button span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .side-nav small {
+      display: inline-flex;
+      min-width: 28px;
+      height: 24px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0 8px;
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.62);
+      font-size: 11px;
+      font-weight: 950;
+    }
+
     .side-nav button.active {
       color: #fff;
       background: rgba(255,255,255,.12);
       border-color: rgba(255,255,255,.18);
+    }
+
+    .side-nav button.active small {
+      background: rgba(255,255,255,.18);
+      color: #fff;
     }
 
     .side-card {
@@ -2181,10 +2214,10 @@
       </div>
 
       <nav class="side-nav" aria-label="主导航">
-        <button class="active" data-workspace-view="overview">中控台</button>
-        <button data-workspace-view="cases">顾客队列</button>
-        <button data-workspace-view="operations">运营设置</button>
-        <button data-workspace-view="learning">AI 复盘</button>
+        <button class="active" data-workspace-view="overview"><span>中控台</span><small id="navOverviewBadge">总览</small></button>
+        <button data-workspace-view="cases"><span>顾客队列</span><small id="navCasesBadge">0</small></button>
+        <button data-workspace-view="operations"><span>运营设置</span><small id="navOpsBadge">状态</small></button>
+        <button data-workspace-view="learning"><span>AI 复盘</span><small id="navLearningBadge">0</small></button>
       </nav>
 
       <div class="side-card">
@@ -3097,6 +3130,7 @@
       $("statHuman").textContent = counts.human;
       $("statOrder").textContent = counts.orders;
       $("statAuto").textContent = counts.auto;
+      renderNavigationBadges(counts, learned);
 
       if (state.role === "staff" && state.filter === "auto") state.filter = "all";
       syncFilterControls();
@@ -3127,6 +3161,15 @@
         state.deepLinkOpened = true;
         requestAnimationFrame(() => openCase(state.pendingCaseId));
       }
+    }
+
+    function renderNavigationBadges(counts, learned) {
+      const opsLabel = state.demoMode ? "演示" : "已连";
+      const casesLabel = counts.needs > 0 ? counts.needs : "稳";
+      $("navOverviewBadge").textContent = counts.needs > 0 ? "重点" : "正常";
+      $("navCasesBadge").textContent = casesLabel;
+      $("navOpsBadge").textContent = opsLabel;
+      $("navLearningBadge").textContent = learned || 0;
     }
 
     function pruneSelection(cases) {
