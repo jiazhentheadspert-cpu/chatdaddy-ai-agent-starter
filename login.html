@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ReplyPilot AI 客服运营中控台</title>
+  <title>ReplyPilot AI 客服工作台</title>
   <style>
     :root {
       --canvas: #f5f7f6;
@@ -550,17 +550,17 @@
   <main class="shell">
     <section class="product">
       <div class="nav">
-        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI 客服运营</span></div>
+        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI 客服工作台</span></div>
         <span class="env">公开演示</span>
       </div>
 
       <div class="hero">
         <div class="eyebrow">AI 客服运营中控台</div>
-        <h1>一个入口，管理顾客、团队和 AI 决策。</h1>
-        <p class="lead">AI 先判断顾客状态，再把需要批准、转人工和订单的 Case 推给团队。管理者看全局，运营看异常，客服只处理顾客。</p>
+        <h1>让团队只处理真正需要人的顾客。</h1>
+        <p class="lead">AI 负责判断意图、风险、阶段和下一步动作；团队只看到该处理的 Case。管理者看全局，运营管异常，客服专心回复顾客。</p>
         <div class="hero-actions">
           <a class="text-button primary-link" href="dashboard/index.html">查看公开 Demo</a>
-          <a class="text-button" href="docs/ONBOARDING_ZH.md">查看 Onboarding SOP</a>
+          <a class="text-button" href="docs/ONBOARDING_ZH.md">查看接入 SOP</a>
         </div>
       </div>
 
@@ -574,8 +574,8 @@
       <section class="ops-panel">
         <div class="ops-head">
           <div>
-            <b>权限分层</b>
-            <span>角色清楚，权限收敛，避免客服接触技术后台。</span>
+            <b>清晰权限，统一处理</b>
+            <span>每个角色只看到自己需要负责的内容。</span>
           </div>
           <span class="health">演示工作台已开启</span>
         </div>
@@ -612,8 +612,8 @@
         <div class="preview-card wide">
           <div>
             <span>AI 建议下一步</span>
-            <strong>先处理高风险 Case</strong>
-            <p>系统会把投诉、敏感问题和低信心判断推给人工。</p>
+            <strong>先处理高风险顾客</strong>
+            <p>投诉、敏感问题和低信心判断会自动排到人工前面。</p>
           </div>
           <div class="case-mini">
             Amira · 投诉风险
@@ -629,8 +629,8 @@
           <span class="status-pill">安全演示模式</span>
           <span class="env">本机 / GitHub Pages</span>
         </div>
-        <h2>进入工作台</h2>
-        <p class="login-copy">上线前可先用演示模式检查流程。连接真实系统时，再填入 Worker URL 和管理员 Token。</p>
+        <h2>进入 AI 客服工作台</h2>
+        <p class="login-copy">当前为内部演示入口。正式上线后会改成 HTTPS 账号登录，并按角色控制权限。</p>
       </div>
 
       <div class="form">
@@ -675,10 +675,10 @@
 
         <div class="links">
           <a href="dashboard/index.html">打开演示中控台</a>
-          <a href="docs/ONBOARDING_ZH.md">查看 Onboarding SOP</a>
+          <a href="docs/ONBOARDING_ZH.md">查看接入 SOP</a>
         </div>
 
-        <div class="security-note">正式上线后，客服只需要账号和权限，不需要接触 Token、Cloudflare、Supabase 或系统开关。</div>
+        <div class="security-note">内部测试用：不要把本机 file:// 链接发给团队。正式使用请部署到线上域名。</div>
       </div>
     </section>
   </main>

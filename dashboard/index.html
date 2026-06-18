@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ReplyPilot AI 客服运营中控台</title>
+  <title>ReplyPilot AI 客服工作台</title>
   <style>
     :root {
       --bg: #f4f7f6;
@@ -316,6 +316,172 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
       margin-bottom: 16px;
+    }
+
+    .workspace-view {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .command-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr);
+      gap: 12px;
+    }
+
+    .command-panel {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.94), rgba(248,251,250,.78)),
+        var(--panel);
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .command-panel.accent {
+      border-color: #9ed9cc;
+      background:
+        linear-gradient(135deg, rgba(232,247,243,.96), rgba(237,244,255,.78)),
+        var(--panel);
+    }
+
+    .command-kicker {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .command-title {
+      display: block;
+      font-size: clamp(24px, 2.6vw, 34px);
+      line-height: 1.05;
+      letter-spacing: 0;
+      margin-bottom: 10px;
+    }
+
+    .command-copy {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 760;
+      line-height: 1.48;
+    }
+
+    .compact-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .compact-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+      color: var(--muted);
+      font-weight: 820;
+    }
+
+    .compact-row:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .compact-row strong {
+      color: var(--ink);
+      font-size: 17px;
+    }
+
+    .compact-row small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-weight: 760;
+    }
+
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.72);
+      padding: 13px;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 860;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      padding: 13px;
+      min-height: 94px;
+    }
+
+    .step b {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .step span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 760;
+    }
+
+    .audit-list {
+      display: grid;
+      gap: 9px;
+      max-height: 260px;
+      overflow: auto;
+      margin-top: 14px;
+    }
+
+    .audit-item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 11px 12px;
+      color: var(--muted);
+      font-weight: 780;
+    }
+
+    .audit-item b {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 4px;
     }
 
     .ops-card {
@@ -894,7 +1060,7 @@
         border-radius: 0 0 24px 24px;
       }
       .side-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .queue-head, .queue-tools, .grid, .panel-body { grid-template-columns: 1fr; }
+      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .command-grid, .metric-strip, .steps, .queue-head, .queue-tools, .grid, .panel-body { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
       .grid.list .case-card { grid-template-columns: 1fr; }
       .panel { padding: 10px; }
@@ -921,10 +1087,10 @@
       </div>
 
       <nav class="side-nav" aria-label="主导航">
-        <button class="active" data-side-filter="all">中控台</button>
-        <button data-side-filter="needs_attention">待处理</button>
-        <button data-side-filter="order">订单</button>
-        <button data-side-filter="auto">AI 复盘</button>
+        <button class="active" data-workspace-view="overview">中控台</button>
+        <button data-workspace-view="cases">Case 队列</button>
+        <button data-workspace-view="operations">运营设置</button>
+        <button data-workspace-view="learning">AI 复盘</button>
       </nav>
 
       <div class="side-card">
@@ -937,8 +1103,8 @@
       <header class="topbar">
         <div>
           <span class="mode-tag" id="modeTag">公开演示</span>
-          <h1>AI 客服运营中控台</h1>
-          <div class="subtitle" id="dashboardSubtitle">集中查看顾客状态、AI 判断、建议回复、人工介入和订单进度。客服只处理该处理的 Case。</div>
+          <h1>AI 客服工作台</h1>
+          <div class="subtitle" id="dashboardSubtitle">集中查看顾客状态、AI 判断、建议回复、人工介入和订单进度。团队只处理该处理的 Case。</div>
         </div>
         <div class="setup" id="setupPanel">
           <input id="apiUrl" placeholder="Worker API URL" />
@@ -959,7 +1125,7 @@
         </div>
       </div>
 
-      <div class="demo-bar">
+      <div class="demo-bar" id="demoBar">
         <div class="demo-copy">
           <span class="demo-dot"></span>
           <div>
@@ -976,7 +1142,7 @@
         <button class="btn" id="loadDemo">载入演示</button>
       </div>
 
-      <div class="stats">
+      <div class="stats" id="statsPanel">
         <div class="stat"><b id="statAll">0</b><span>全部 Case</span></div>
         <div class="stat"><b id="statApproval">0</b><span>待批准</span></div>
         <div class="stat"><b id="statHuman">0</b><span>需人工</span></div>
@@ -986,7 +1152,11 @@
 
       <section class="ops-grid" id="opsGrid" aria-label="运营状态"></section>
 
-      <section class="workbench-card">
+      <section class="workspace-view" id="overviewView" aria-label="中控台总览"></section>
+      <section class="workspace-view hidden" id="operationsView" aria-label="运营设置"></section>
+      <section class="workspace-view hidden" id="learningView" aria-label="AI 复盘"></section>
+
+      <section class="workbench-card" id="caseWorkbench">
         <div class="queue-head">
           <div>
             <div class="queue-title">Case 队列</div>
@@ -1074,6 +1244,7 @@
       session: {},
       query: "",
       sort: "priority",
+      workspaceView: "overview",
     };
 
     const $ = (id) => document.getElementById(id);
@@ -1337,9 +1508,9 @@
       });
     });
 
-    document.querySelectorAll("[data-side-filter]").forEach((button) => {
+    document.querySelectorAll("[data-workspace-view]").forEach((button) => {
       button.addEventListener("click", () => {
-        setFilter(button.dataset.sideFilter);
+        setWorkspaceView(button.dataset.workspaceView);
       });
     });
 
@@ -1366,6 +1537,13 @@
       $("setupPanel").classList.toggle("hidden", state.role === "staff");
       $("autoFilterBtn").classList.toggle("hidden", state.role === "staff");
       $("learnBtn").classList.toggle("hidden", state.role === "staff");
+
+      document.querySelectorAll('[data-workspace-view="overview"], [data-workspace-view="operations"], [data-workspace-view="learning"]').forEach((item) => {
+        item.classList.toggle("hidden", state.role === "staff");
+      });
+      if (state.role === "staff") {
+        state.workspaceView = "cases";
+      }
     }
 
     function setFilter(filter) {
@@ -1374,13 +1552,37 @@
       render();
     }
 
+    function setWorkspaceView(view) {
+      state.workspaceView = view || "overview";
+      if (state.role === "staff" && ["overview", "operations", "learning"].includes(state.workspaceView)) {
+        state.workspaceView = "cases";
+      }
+      render();
+    }
+
     function syncFilterControls() {
       document.querySelectorAll("[data-filter]").forEach((item) => {
         item.classList.toggle("active", item.dataset.filter === state.filter);
       });
-      document.querySelectorAll("[data-side-filter]").forEach((item) => {
-        item.classList.toggle("active", item.dataset.sideFilter === state.filter);
+    }
+
+    function syncWorkspaceView() {
+      const view = state.workspaceView || "overview";
+      const isCases = view === "cases";
+      const isOverview = view === "overview";
+
+      document.querySelectorAll("[data-workspace-view]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.workspaceView === view);
       });
+
+      $("demoBar").classList.toggle("hidden", !isCases);
+      $("caseWorkbench").classList.toggle("hidden", !isCases);
+      $("statsPanel").classList.toggle("hidden", !isOverview);
+      $("opsGrid").classList.toggle("hidden", !isOverview);
+
+      $("overviewView").classList.toggle("hidden", !isOverview);
+      $("operationsView").classList.toggle("hidden", view !== "operations");
+      $("learningView").classList.toggle("hidden", view !== "learning");
     }
 
     function roleName(role) {
@@ -1443,15 +1645,19 @@
 
     function render() {
       const all = casesForRole(state.cases);
-      $("statAll").textContent = all.length;
-      $("statApproval").textContent = all.filter((item) => item.status === "approval_required").length;
-      $("statHuman").textContent = all.filter((item) => item.status === "human_required").length;
-      $("statOrder").textContent = all.filter((item) => item.status === "order").length;
-      $("statAuto").textContent = all.filter((item) => item.status === "auto").length;
+      const counts = countCases(all);
+      const learned = countLearnedRules(all);
+      $("statAll").textContent = counts.total;
+      $("statApproval").textContent = counts.approval;
+      $("statHuman").textContent = counts.human;
+      $("statOrder").textContent = counts.orders;
+      $("statAuto").textContent = counts.auto;
 
       if (state.role === "staff" && state.filter === "auto") state.filter = "all";
       syncFilterControls();
       renderOpsLayer(all);
+      renderWorkspaceViews(all, counts, learned);
+      syncWorkspaceView();
       const filtered = filterCases(all, state.filter);
       const searched = searchCases(filtered, state.query);
       const visible = sortCases(searched, state.sort);
@@ -1523,6 +1729,124 @@
       const queryText = state.query ? ` · 搜索「${state.query}」` : "";
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新更新" : "顾客名字";
       $("queueSummary").textContent = `显示 ${visibleCount}/${filteredCount} 个 Case${queryText} · ${sortText}排序 · 全部 ${totalCount}`;
+    }
+
+    function renderWorkspaceViews(cases, counts, learned) {
+      const next = viewCopy("needs_attention", counts);
+      const recent = recentEvents(cases);
+
+      $("overviewView").innerHTML = `
+        <div class="command-grid">
+          <section class="command-panel accent">
+            <div class="command-kicker">今日工作重点</div>
+            <strong class="command-title">${escapeHtml(next.title)}</strong>
+            <p class="command-copy">${escapeHtml(next.body)} 系统会把高风险、订单和待批准排在前面。</p>
+            <div class="metric-strip">
+              ${metricHtml(counts.approval, "待批准")}
+              ${metricHtml(counts.human, "需人工")}
+              ${metricHtml(counts.orders, "订单")}
+              ${metricHtml(counts.auto, "自动中")}
+            </div>
+          </section>
+          <section class="command-panel">
+            <div class="command-kicker">处理顺序</div>
+            <strong class="command-title">先风险，再成交，再自动</strong>
+            <div class="compact-list">
+              ${compactRow("高风险", "投诉、敏感、低信心先转人工", statusLabel("human_required"))}
+              ${compactRow("成交机会", "看价后异议先审核成交回复", statusLabel("approval_required"))}
+              ${compactRow("低风险", "FAQ 与 Follow-up 让 AI 自动跑", statusLabel("auto"))}
+            </div>
+          </section>
+        </div>
+      `;
+
+      $("operationsView").innerHTML = `
+        <div class="command-grid">
+          <section class="command-panel accent">
+            <div class="command-kicker">真实连接</div>
+            <strong class="command-title">${state.demoMode ? "Demo 模式" : "真实系统已连接"}</strong>
+            <p class="command-copy">${state.demoMode ? "目前使用演示数据。连接 Worker 后会读取真实 ChatDaddy webhook Case。" : "ChatDaddy、Worker、Dashboard 和记录表已经进入真实运营链路。"}</p>
+            <div class="compact-list">
+              ${compactRow("ChatDaddy Webhook", state.demoMode ? "等待真实 Case" : "接收中", state.demoMode ? "待连接" : "正常")}
+              ${compactRow("Worker API", apiUrlEl.value ? "已填写 URL" : "未填写 URL", apiUrlEl.value ? "已设置" : "待设置")}
+              ${compactRow("操作记录", "审批、转人工、学习都会留下记录", "可追踪")}
+            </div>
+          </section>
+          <section class="command-panel">
+            <div class="command-kicker">团队权限</div>
+            <strong class="command-title">让每个人只看该看的</strong>
+            <div class="compact-list">
+              ${compactRow("Owner", "全局数据、系统状态、真实连接", "最高权限")}
+              ${compactRow("Admin", "审核回复、处理异常、复盘 AI", "运营权限")}
+              ${compactRow("Staff", "只处理顾客 Case，不看技术设置", "客服权限")}
+            </div>
+          </section>
+        </div>
+        <section class="command-panel">
+          <div class="command-kicker">ChatDaddy 闭环动作</div>
+          <strong class="command-title">一个页面处理完下一步</strong>
+          <div class="steps">
+            ${stepHtml("批准发送", "Send Message，把确认后的回复发给顾客。")}
+            ${stepHtml("转人工", "Stop Flow / Assign，停止 Automation。")}
+            ${stepHtml("提交订单", "订单资料完整后推给 Ops。")}
+            ${stepHtml("自动学习", "同类低风险 Case 下次减少审批。")}
+          </div>
+        </section>
+      `;
+
+      $("learningView").innerHTML = `
+        <div class="command-grid">
+          <section class="command-panel accent">
+            <div class="command-kicker">AI 复盘</div>
+            <strong class="command-title">${learned} 条学习记录</strong>
+            <p class="command-copy">人工批准后可以把安全规则沉淀下来。下次同类低风险 Case，AI 可以更少打扰团队。</p>
+            <div class="compact-list">
+              ${compactRow("低风险 FAQ", "看价前问题可自动回复并接下一步 Flow", "可自动")}
+              ${compactRow("价格后异议", "先人工确认成交话术，再逐步放宽", "需审核")}
+              ${compactRow("投诉敏感", "永远转人工，不让 AI 硬回", "保护品牌")}
+            </div>
+          </section>
+          <section class="command-panel">
+            <div class="command-kicker">最近操作</div>
+            <strong class="command-title">有记录，才可复盘</strong>
+            <div class="audit-list">
+              ${recent.map(auditHtml).join("") || `<div class="audit-item"><b>暂无操作记录</b>真实 Case 进来后会显示审批、转人工和学习记录。</div>`}
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function metricHtml(value, label) {
+      return `<div class="metric"><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span></div>`;
+    }
+
+    function compactRow(title, body, value) {
+      return `
+        <div class="compact-row">
+          <div><strong>${escapeHtml(title)}</strong><small>${escapeHtml(body)}</small></div>
+          <span class="ops-mini">${escapeHtml(value)}</span>
+        </div>
+      `;
+    }
+
+    function stepHtml(title, body) {
+      return `<div class="step"><b>${escapeHtml(title)}</b><span>${escapeHtml(body)}</span></div>`;
+    }
+
+    function recentEvents(cases) {
+      return cases.flatMap((item) => {
+        return (item.history || []).map((event) => ({
+          caseName: item.contact?.name || "顾客",
+          type: event.type || "记录",
+          note: event.decision?.reason || event.note || event.rule_id || "",
+          at: event.at || item.updated_at,
+        }));
+      }).sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0)).slice(0, 5);
+    }
+
+    function auditHtml(event) {
+      return `<div class="audit-item"><b>${escapeHtml(formatDate(event.at))} · ${escapeHtml(event.caseName)}</b>${escapeHtml(event.type)} · ${escapeHtml(event.note)}</div>`;
     }
 
     function renderOpsLayer(cases) {
