@@ -462,6 +462,55 @@
       overflow: hidden;
     }
 
+    .queue-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, .62fr);
+      gap: 14px;
+      align-items: center;
+      padding: 18px 16px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.92), rgba(248,251,250,.72)),
+        #fff;
+    }
+
+    .queue-title {
+      font-size: 22px;
+      font-weight: 950;
+      line-height: 1.1;
+    }
+
+    .queue-subtitle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-weight: 760;
+    }
+
+    .queue-tools {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 160px;
+      gap: 10px;
+    }
+
+    .queue-tools input,
+    .queue-tools select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fff;
+      color: var(--ink);
+      padding: 11px 12px;
+      min-width: 0;
+      outline: none;
+      font-weight: 780;
+    }
+
+    .queue-tools input:focus,
+    .queue-tools select:focus {
+      border-color: #9ed9cc;
+      box-shadow: 0 0 0 4px rgba(11,155,130,.09);
+    }
+
     .toolbar {
       display: flex;
       justify-content: space-between;
@@ -845,7 +894,7 @@
         border-radius: 0 0 24px 24px;
       }
       .side-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .grid, .panel-body { grid-template-columns: 1fr; }
+      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .queue-head, .queue-tools, .grid, .panel-body { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
       .grid.list .case-card { grid-template-columns: 1fr; }
       .panel { padding: 10px; }
@@ -938,6 +987,20 @@
       <section class="ops-grid" id="opsGrid" aria-label="运营状态"></section>
 
       <section class="workbench-card">
+        <div class="queue-head">
+          <div>
+            <div class="queue-title">Case 队列</div>
+            <div class="queue-subtitle" id="queueSummary">按 AI 判断排序，先处理最重要的顾客。</div>
+          </div>
+          <div class="queue-tools">
+            <input id="caseSearch" placeholder="搜索顾客、关键词或讯息" />
+            <select id="caseSort" aria-label="排序方式">
+              <option value="priority">优先级排序</option>
+              <option value="newest">最新更新</option>
+              <option value="name">顾客名字</option>
+            </select>
+          </div>
+        </div>
         <div class="toolbar">
           <div class="filters">
             <button class="pill active" data-filter="all">全部</button>
@@ -1009,6 +1072,8 @@
       scenario: "ecommerce",
       role: "owner",
       session: {},
+      query: "",
+      sort: "priority",
     };
 
     const $ = (id) => document.getElementById(id);
@@ -1018,6 +1083,8 @@
     const casesEl = $("cases");
     const errorEl = $("error");
     const demoScenarioEl = $("demoScenario");
+    const caseSearchEl = $("caseSearch");
+    const caseSortEl = $("caseSort");
 
     const DEMO_SCENARIOS = {
       ecommerce: [
@@ -1248,6 +1315,14 @@
     });
 
     $("loadDemo").addEventListener("click", () => loadDemoCases());
+    caseSearchEl.addEventListener("input", () => {
+      state.query = caseSearchEl.value.trim();
+      render();
+    });
+    caseSortEl.addEventListener("change", () => {
+      state.sort = caseSortEl.value;
+      render();
+    });
 
     $("gridView").addEventListener("click", () => setView("grid"));
     $("listView").addEventListener("click", () => setView("list"));
@@ -1377,7 +1452,10 @@
       if (state.role === "staff" && state.filter === "auto") state.filter = "all";
       syncFilterControls();
       renderOpsLayer(all);
-      const visible = filterCases(all, state.filter);
+      const filtered = filterCases(all, state.filter);
+      const searched = searchCases(filtered, state.query);
+      const visible = sortCases(searched, state.sort);
+      renderQueueSummary(visible.length, filtered.length, all.length);
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
 
       casesEl.querySelectorAll("[data-case-id]").forEach((card) => {
@@ -1391,6 +1469,60 @@
         return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
       }
       return cases.filter((item) => item.status === filter);
+    }
+
+    function searchCases(cases, query) {
+      if (!query) return cases;
+      const needle = query.toLowerCase();
+      return cases.filter((item) => {
+        const decision = item.latest_decision || {};
+        const haystack = [
+          item.contact?.name,
+          item.contact?.phone,
+          item.last_message,
+          decision.intent,
+          decision.stage,
+          decision.reason,
+          decision.reply_message,
+          ...(item.word_cloud || []),
+          ...(decision.keywords || []),
+        ].join(" ").toLowerCase();
+        return haystack.includes(needle);
+      });
+    }
+
+    function sortCases(cases, sort) {
+      const copy = [...cases];
+      if (sort === "name") {
+        return copy.sort((a, b) => String(a.contact?.name || "").localeCompare(String(b.contact?.name || ""), "zh"));
+      }
+      if (sort === "newest") {
+        return copy.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+      }
+      return copy.sort((a, b) => priorityScore(b) - priorityScore(a));
+    }
+
+    function priorityScore(item) {
+      const risk = item.latest_decision?.risk || item.risk || "low";
+      const statusScore = {
+        human_required: 90,
+        send_failed: 82,
+        approval_required: 72,
+        order: 68,
+        auto: 18,
+        sent: 8,
+      }[item.status] || 20;
+      const riskScore = { high: 25, medium: 12, low: 0 }[risk] || 0;
+      const time = new Date(item.updated_at || Date.now()).getTime();
+      const minutes = Number.isFinite(time) ? Math.floor((Date.now() - time) / 60000) : 0;
+      const ageScore = Math.max(0, 12 - Math.floor(minutes / 10));
+      return statusScore + riskScore + ageScore;
+    }
+
+    function renderQueueSummary(visibleCount, filteredCount, totalCount) {
+      const queryText = state.query ? ` · 搜索「${state.query}」` : "";
+      const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新更新" : "顾客名字";
+      $("queueSummary").textContent = `显示 ${visibleCount}/${filteredCount} 个 Case${queryText} · ${sortText}排序 · 全部 ${totalCount}`;
     }
 
     function renderOpsLayer(cases) {
@@ -1674,10 +1806,14 @@
 
     function emptyHtml() {
       const empty = viewCopy(state.filter, { total: 0, needs: 0, approval: 0, human: 0, orders: 0, auto: 0, failed: 0 });
+      const title = state.query ? `找不到「${state.query}」` : empty.title;
+      const body = state.query
+        ? "试试看搜索顾客名字、电话号码、关键词，或先清空搜索。"
+        : state.demoMode ? "当前筛选没有演示 Case，可以切换筛选或载入其他行业 Demo。" : "确认 ChatDaddy webhook 已经指向 Worker，然后用真实 WhatsApp 发一条测试消息。";
       return `
         <div class="box" style="grid-column: 1 / -1;">
-          <h3>${escapeHtml(empty.title)}</h3>
-          <p class="subtitle">${escapeHtml(state.demoMode ? "当前筛选没有演示 Case，可以切换筛选或载入其他行业 Demo。" : "确认 ChatDaddy webhook 已经指向 Worker，然后用真实 WhatsApp 发一条测试消息。")}</p>
+          <h3>${escapeHtml(title)}</h3>
+          <p class="subtitle">${escapeHtml(body)}</p>
         </div>
       `;
     }
