@@ -75,13 +75,65 @@
       backdrop-filter: blur(12px);
     }
 
-    .setup input {
+    .setup input,
+    .demo-bar select {
       border: 1px solid var(--line);
       border-radius: 12px;
       padding: 11px 12px;
       min-width: 0;
       color: var(--ink);
       background: #fff;
+    }
+
+    .demo-bar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      background: rgba(255,255,255,.82);
+      border: 1px solid #b9e3da;
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 16px 40px rgba(20, 37, 35, .05);
+    }
+
+    .demo-copy {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .demo-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 8px rgba(15,159,131,.11);
+      flex: 0 0 auto;
+    }
+
+    .demo-copy b {
+      display: block;
+      font-size: 18px;
+    }
+
+    .demo-copy span {
+      color: var(--muted);
+      font-weight: 720;
+    }
+
+    .mode-tag {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #b9e3da;
+      background: var(--soft-green);
+      color: var(--green);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-weight: 900;
+      margin-left: 8px;
     }
 
     .btn {
@@ -191,6 +243,13 @@
       cursor: pointer;
       overflow: hidden;
       box-shadow: 0 14px 38px rgba(20, 37, 35, .06);
+      transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+
+    .case-card:hover {
+      transform: translateY(-2px);
+      border-color: #a9c9c1;
+      box-shadow: 0 20px 52px rgba(20, 37, 35, .10);
     }
 
     .case-card::before {
@@ -420,6 +479,28 @@
       font-weight: 750;
     }
 
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: #fff;
+      border-radius: 999px;
+      padding: 12px 16px;
+      font-weight: 850;
+      box-shadow: 0 18px 50px rgba(0,0,0,.22);
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+      z-index: 20;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
     .error {
       margin: 12px 0;
       color: var(--red);
@@ -427,7 +508,7 @@
     }
 
     @media (max-width: 980px) {
-      .setup, .stats, .grid, .panel-body { grid-template-columns: 1fr; }
+      .setup, .demo-bar, .stats, .grid, .panel-body { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
       .panel { padding: 10px; }
     }
@@ -437,15 +518,32 @@
   <main class="app">
     <div class="topbar">
       <div>
-        <h1>AI Agent 中控台</h1>
-        <div class="subtitle">看 Case 状态、批准 AI 回复、转人工、让系统学习</div>
+        <h1>ReplyPilot AI <span class="mode-tag" id="modeTag">Public Demo</span></h1>
+        <div class="subtitle">AI 客服中控台：看 Case、批准回复、转人工、让系统学习</div>
       </div>
       <div class="setup">
         <input id="apiUrl" placeholder="API URL: https://your-worker.workers.dev" />
         <input id="projectKey" placeholder="Project Key" />
         <input id="adminToken" placeholder="Admin Token" type="password" />
-        <button class="btn primary" id="saveAndLoad">连接</button>
+        <button class="btn primary" id="saveAndLoad">连接真实系统</button>
       </div>
+    </div>
+
+    <div class="demo-bar">
+      <div class="demo-copy">
+        <span class="demo-dot"></span>
+        <div>
+          <b>公开 Demo 模式</b>
+          <span>不用登录、不用 Token。先看 AI Agent 怎样处理真实客服场景。</span>
+        </div>
+      </div>
+      <select id="demoScenario">
+        <option value="ecommerce">电商成交客服</option>
+        <option value="course">课程咨询客服</option>
+        <option value="realestate">房地产 Lead 跟进</option>
+        <option value="aftersales">售后服务客服</option>
+      </select>
+      <button class="btn" id="loadDemo">载入 Demo</button>
     </div>
 
     <div class="stats">
@@ -513,11 +611,15 @@
     </div>
   </div>
 
+  <div class="toast" id="toast">Done</div>
+
   <script>
     const state = {
       cases: [],
       filter: "all",
       active: null,
+      demoMode: true,
+      scenario: "ecommerce",
     };
 
     const $ = (id) => document.getElementById(id);
@@ -526,6 +628,213 @@
     const adminTokenEl = $("adminToken");
     const casesEl = $("cases");
     const errorEl = $("error");
+    const demoScenarioEl = $("demoScenario");
+
+    const DEMO_SCENARIOS = {
+      ecommerce: [
+        demoCase({
+          id: "case-001",
+          name: "Maya Lim",
+          status: "approval_required",
+          risk: "medium",
+          stage: "CLOSING",
+          action: "approve_reply",
+          intent: "price_objection",
+          words: ["嫌贵", "已看价", "考虑一下", "成交回复", "中风险"],
+          customer: "有点贵，我考虑一下",
+          reply: "明白的 Maya，价钱会考虑是正常的。你先不要只看单盒价格，重点是它能不能解决你现在最在意的问题。你比较担心的是效果、价格，还是安全？",
+          reason: "看价后异议，不继续普通 Flow，改用成交回复。",
+        }),
+        demoCase({
+          id: "case-002",
+          name: "Aina",
+          status: "human_required",
+          risk: "high",
+          stage: "HUMAN",
+          action: "ask_human",
+          intent: "complaint",
+          words: ["投诉", "生气", "停止 Automation", "高风险"],
+          customer: "你们一直催很烦，我要投诉",
+          reply: "我先帮你停止自动跟进，并转给人工同事处理。我们会看清楚记录后再回复你。",
+          reason: "投诉和负面情绪必须转人工，避免 AI 继续推销。",
+        }),
+        demoCase({
+          id: "case-003",
+          name: "Chloe",
+          status: "order",
+          risk: "low",
+          stage: "ORDER",
+          action: "collect_order",
+          intent: "buy_intent",
+          words: ["可提交", "COD", "资料完整", "地址", "订单"],
+          customer: "Chloe 0120000000 No 12 Jalan Demo，我要 COD",
+          reply: "收到 Chloe，资料已经齐全。我会帮你提交 COD 订单，确认后会通知你。",
+          reason: "名字、电话、地址、付款方式齐全，可以提交订单。",
+        }),
+        demoCase({
+          id: "case-004",
+          name: "Joanne",
+          status: "approval_required",
+          risk: "medium",
+          stage: "ORDER",
+          action: "review_receipt",
+          intent: "receipt",
+          words: ["Receipt", "金额不对", "先审核", "付款"],
+          customer: "[Receipt image uploaded] RM149",
+          reply: "收到，我先帮你检查付款资料。金额需要确认一下，确认没问题后才继续处理订单。",
+          reason: "Receipt 金额不清楚，不能自动通过。",
+        }),
+        demoCase({
+          id: "case-005",
+          name: "Nadia",
+          status: "auto",
+          risk: "low",
+          stage: "S1",
+          action: "send_reply",
+          intent: "faq",
+          words: ["问用法", "多久有效", "看价前", "接 Step 2"],
+          customer: "一天喝几次？多久看到效果？",
+          reply: "通常一天 1-2 次，效果会看个人体质和配合度。多数顾客会先感觉排便和肚子比较轻。我先帮你看它主要怎样帮你处理。",
+          reason: "低风险 FAQ，可以自动回复后接下一步。",
+        }),
+        demoCase({
+          id: "case-006",
+          name: "May",
+          status: "auto",
+          risk: "low",
+          stage: "FOLLOW_UP",
+          action: "send_reply",
+          intent: "follow_up",
+          words: ["没回复", "6小时", "Follow-up", "轻提醒"],
+          customer: "看价后暂时没有回复",
+          reply: "May，我先帮你保留今天的优惠。如果你还在比较，我可以直接帮你算哪个配套比较适合。",
+          reason: "低风险跟进，不催促，轻 CTA。",
+        }),
+      ],
+      course: [
+        demoCase({
+          id: "course-001",
+          name: "Daniel",
+          status: "approval_required",
+          risk: "medium",
+          stage: "CLOSING",
+          action: "approve_reply",
+          intent: "price_objection",
+          words: ["学费贵", "ROI", "考虑", "成交回复"],
+          customer: "课程有点贵，我再想想",
+          reply: "明白的 Daniel。你先不要只看学费，重点是这堂课能不能帮你少走弯路、直接做出结果。你比较担心的是时间、学不会，还是回本速度？",
+          reason: "价格异议，AI 转成 ROI 角度，不直接硬推。",
+        }),
+        demoCase({
+          id: "course-002",
+          name: "Elaine",
+          status: "auto",
+          risk: "low",
+          stage: "S1",
+          action: "send_reply",
+          intent: "faq",
+          words: ["适合新手", "时间", "课程内容", "低风险"],
+          customer: "新手可以学吗？一周要花多久？",
+          reply: "可以，新手可以跟。建议一周预留 3-4 小时，先跟着步骤完成作业，不需要一开始就很专业。",
+          reason: "课程 FAQ，可自动回复。",
+        }),
+        demoCase({
+          id: "course-003",
+          name: "Farah",
+          status: "human_required",
+          risk: "high",
+          stage: "HUMAN",
+          action: "ask_human",
+          intent: "refund",
+          words: ["退款", "争议", "人工", "高风险"],
+          customer: "如果我上了没效果，可以马上退款吗？",
+          reply: "退款政策我先不乱承诺，我帮你转给同事确认条款后回复你。",
+          reason: "退款条款必须人工确认。",
+        }),
+      ],
+      realestate: [
+        demoCase({
+          id: "home-001",
+          name: "Mr Wong",
+          status: "approval_required",
+          risk: "medium",
+          stage: "S2",
+          action: "approve_reply",
+          intent: "budget_check",
+          words: ["预算", "贷款", "地点", "跟进"],
+          customer: "我预算大概 500k，想看靠近 PJ 的",
+          reply: "可以的 Mr Wong。500k 靠近 PJ 要看你优先交通、面积还是新旧楼。我先帮你筛掉不适合的，再安排 2-3 个比较值得看的选择。",
+          reason: "需要确认需求，不能乱推荐单位。",
+        }),
+        demoCase({
+          id: "home-002",
+          name: "Siti",
+          status: "auto",
+          risk: "low",
+          stage: "S1",
+          action: "send_reply",
+          intent: "faq",
+          words: ["贷款", "首期", "资格", "低风险"],
+          customer: "买房需要多少首期？",
+          reply: "一般要看贷款资格和项目条件。你可以先告诉我预算、收入范围和想买来自住还是投资，我再帮你大概判断。",
+          reason: "通用咨询，可自动回复。",
+        }),
+        demoCase({
+          id: "home-003",
+          name: "Jason",
+          status: "human_required",
+          risk: "high",
+          stage: "HUMAN",
+          action: "ask_human",
+          intent: "legal_sensitive",
+          words: ["合约", "法律", "高风险", "人工"],
+          customer: "签了 SPA 可以无条件取消吗？",
+          reply: "这个涉及合约条款，我先帮你转给专业同事确认，不乱给法律建议。",
+          reason: "法律相关问题必须转人工。",
+        }),
+      ],
+      aftersales: [
+        demoCase({
+          id: "service-001",
+          name: "Grace",
+          status: "human_required",
+          risk: "high",
+          stage: "HUMAN",
+          action: "ask_human",
+          intent: "complaint",
+          words: ["没收到货", "生气", "物流", "人工"],
+          customer: "三天了还没收到货，你们到底有没有发？",
+          reply: "我先帮你暂停自动回复，并转给同事查物流单号。查到后会直接回复你。",
+          reason: "售后投诉需要人工查订单。",
+        }),
+        demoCase({
+          id: "service-002",
+          name: "Kevin",
+          status: "order",
+          risk: "medium",
+          stage: "ORDER",
+          action: "review_receipt",
+          intent: "receipt",
+          words: ["付款截图", "待审核", "订单", "Receipt"],
+          customer: "我已经付款了，截图发你",
+          reply: "收到，我先帮你核对付款截图。确认后会更新订单状态。",
+          reason: "付款截图需要审核。",
+        }),
+        demoCase({
+          id: "service-003",
+          name: "Mei",
+          status: "auto",
+          risk: "low",
+          stage: "S1",
+          action: "send_reply",
+          intent: "faq",
+          words: ["换地址", "未发货", "低风险", "自动"],
+          customer: "还没发货的话可以换地址吗？",
+          reply: "可以，如果还没发货通常可以更换。麻烦你发新的收件人、电话和完整地址，我帮你记录。",
+          reason: "低风险售后 FAQ，可自动回复。",
+        }),
+      ],
+    };
 
     apiUrlEl.value = localStorage.getItem("agent_api_url") || "";
     projectKeyEl.value = localStorage.getItem("agent_project_key") || "demo";
@@ -537,6 +846,8 @@
       localStorage.setItem("agent_admin_token", adminTokenEl.value.trim());
       loadCases();
     });
+
+    $("loadDemo").addEventListener("click", () => loadDemoCases());
 
     $("gridView").addEventListener("click", () => setView("grid"));
     $("listView").addEventListener("click", () => setView("list"));
@@ -567,7 +878,8 @@
       const token = adminTokenEl.value.trim();
 
       if (!api || !token) {
-        errorEl.textContent = "先输入 API URL 和 Admin Token。";
+        loadDemoCases();
+        showToast("已载入公开 Demo。连接真实系统才需要 API URL 和 Admin Token。");
         return;
       }
 
@@ -577,11 +889,22 @@
         });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        state.demoMode = false;
+        $("modeTag").textContent = "Live API";
         state.cases = data.cases || [];
         render();
       } catch (error) {
         errorEl.textContent = `连接失败：${error.message}`;
       }
+    }
+
+    function loadDemoCases() {
+      state.demoMode = true;
+      state.scenario = demoScenarioEl.value || "ecommerce";
+      $("modeTag").textContent = "Public Demo";
+      errorEl.textContent = "";
+      state.cases = clone(DEMO_SCENARIOS[state.scenario] || DEMO_SCENARIOS.ecommerce);
+      render();
     }
 
     function render() {
@@ -671,6 +994,11 @@
     }
 
     async function postCaseAction(caseId, action, body) {
+      if (state.demoMode) {
+        handleDemoAction(caseId, action, body);
+        return;
+      }
+
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
       const token = adminTokenEl.value.trim();
@@ -693,6 +1021,50 @@
       }
     }
 
+    function handleDemoAction(caseId, action, body) {
+      const record = state.cases.find((item) => item.id === caseId);
+      if (!record) return;
+      const now = new Date().toISOString();
+
+      if (action === "approve") {
+        record.status = "sent";
+        record.latest_reply_sent = body.reply_message;
+        record.messages.push({ direction: "outbound", text: body.reply_message, at: now });
+        record.history.push({
+          type: "approved_sent_demo",
+          at: now,
+          note: "Demo: 已批准发送，不会真的发 WhatsApp。",
+        });
+        showToast("Demo：已批准发送，不会真的发 WhatsApp。");
+      }
+
+      if (action === "learn") {
+        record.history.push({
+          type: "learned_rule_created_demo",
+          at: now,
+          rule_id: `demo-rule-${Math.random().toString(16).slice(2, 8)}`,
+          note: "Demo: 以后类似 Case 可减少审批。",
+        });
+        showToast("Demo：已建立学习规则。");
+      }
+
+      if (action === "handoff") {
+        record.status = "human_required";
+        record.latest_decision.risk = "high";
+        record.latest_decision.action = "ask_human";
+        record.history.push({
+          type: "marked_handoff_demo",
+          at: now,
+          note: "Demo: 已转人工。",
+        });
+        showToast("Demo：已转人工。");
+      }
+
+      record.updated_at = now;
+      render();
+      openCase(caseId);
+    }
+
     function emptyHtml() {
       return `
         <div class="box" style="grid-column: 1 / -1;">
@@ -700,6 +1072,69 @@
           <p class="subtitle">确认 ChatDaddy webhook 已经指向 Worker，然后用真实 WhatsApp 发一条测试消息。</p>
         </div>
       `;
+    }
+
+    function demoCase(config) {
+      const now = new Date();
+      const createdAt = new Date(now.getTime() - Math.floor(Math.random() * 90 + 8) * 60 * 1000).toISOString();
+      return {
+        id: config.id,
+        project_key: "demo",
+        status: config.status,
+        contact: {
+          id: `contact-${config.id}`,
+          name: config.name,
+          phone: "+60000000000",
+        },
+        last_message: config.customer,
+        last_message_at: createdAt,
+        updated_at: createdAt,
+        created_at: createdAt,
+        word_cloud: config.words,
+        latest_decision: {
+          reply_message: config.reply,
+          intent: config.intent,
+          stage: config.stage,
+          risk: config.risk,
+          action: config.action,
+          send_now: config.status === "auto",
+          reason: config.reason,
+          keywords: config.words,
+          source: "demo",
+        },
+        messages: [
+          {
+            id: `${config.id}-in`,
+            direction: "inbound",
+            text: config.customer,
+            at: createdAt,
+          },
+        ],
+        history: [
+          {
+            type: "message_received_demo",
+            at: createdAt,
+            note: "ChatDaddy webhook 收到顾客消息。",
+          },
+          {
+            type: "ai_decision_demo",
+            at: createdAt,
+            decision: { reason: config.reason },
+          },
+        ],
+      };
+    }
+
+    function showToast(message) {
+      const toast = $("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function clone(value) {
+      return JSON.parse(JSON.stringify(value));
     }
 
     function statusLabel(status, risk) {
@@ -742,6 +1177,8 @@
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
     }
+
+    loadDemoCases();
   </script>
 </body>
 </html>

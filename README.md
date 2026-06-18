@@ -35,7 +35,17 @@ Dashboard demo:
 https://jiazhentheadspert-cpu.github.io/chatdaddy-ai-agent-starter/
 ```
 
-这个页面只是前端 Dashboard，需要你输入自己的 Worker API URL 和 Admin Token 才能看到真实 Case。
+打开就会进入 Public Demo 模式，不需要 API URL、不需要 Admin Token。你可以直接试：
+
+- 切换行业场景
+- 点击顾客 Case
+- 看 Word Cloud
+- 改 AI 建议回复
+- 点批准发送
+- 点转人工
+- 点以后类似 Case 自动通过
+
+如果要连接真实系统，才需要输入自己的 Worker API URL 和 Admin Token。
 
 1. 安装依赖。
 
