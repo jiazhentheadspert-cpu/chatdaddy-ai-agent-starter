@@ -435,6 +435,93 @@
         var(--panel);
     }
 
+    .readiness-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255,255,255,.84);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .readiness-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .readiness-head b {
+      display: block;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .readiness-head span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 780;
+    }
+
+    .readiness-score {
+      border: 1px solid #b9e3da;
+      background: var(--soft-green);
+      color: var(--green);
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .progress-track {
+      height: 9px;
+      border-radius: 999px;
+      background: #e7efed;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+    }
+
+    .readiness-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .ready-item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 10px;
+      min-height: 76px;
+    }
+
+    .ready-item.ready {
+      border-color: #b9e3da;
+      background: var(--soft-green);
+    }
+
+    .ready-item strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .ready-item span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.25;
+    }
+
     .command-kicker {
       color: var(--muted);
       font-size: 12px;
@@ -576,6 +663,136 @@
       font-size: 13px;
       line-height: 1.35;
       font-weight: 760;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .settings-box {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      padding: 15px;
+    }
+
+    .settings-box h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field-grid label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 920;
+    }
+
+    .field-grid input,
+    .field-grid textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fff;
+      color: var(--ink);
+      padding: 11px 12px;
+      outline: none;
+      font-weight: 760;
+    }
+
+    .field-grid textarea {
+      min-height: 92px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .field-grid input:focus,
+    .field-grid textarea:focus {
+      border-color: #9ed9cc;
+      box-shadow: 0 0 0 4px rgba(11,155,130,.09);
+    }
+
+    .flow-table {
+      display: grid;
+      gap: 8px;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .flow-row span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .rule-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .rule-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .rule-row strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .toggle {
+      width: 44px;
+      height: 26px;
+      border: 1px solid #cddbd7;
+      border-radius: 999px;
+      background: #eef3f1;
+      padding: 3px;
+      flex: 0 0 auto;
+      cursor: pointer;
+    }
+
+    .toggle::after {
+      content: "";
+      display: block;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #9db0b2;
+      transition: .16s ease;
+    }
+
+    .toggle.on {
+      background: var(--soft-green);
+      border-color: #9ed9cc;
+    }
+
+    .toggle.on::after {
+      transform: translateX(18px);
+      background: var(--green);
     }
 
     .audit-list {
@@ -1363,7 +1580,7 @@
         border-radius: 0 0 24px 24px;
       }
       .side-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .command-grid, .metric-strip, .steps, .queue-head, .queue-tools, .grid, .panel-body, .panel-intel { grid-template-columns: 1fr; }
+      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .command-grid, .metric-strip, .steps, .queue-head, .queue-tools, .grid, .panel-body, .panel-intel, .readiness-grid, .settings-grid { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
       .grid.list .case-card { grid-template-columns: 1fr; }
       .detail-tile.wide { grid-column: auto; }
@@ -1571,6 +1788,26 @@
       sort: "priority",
       workspaceView: "overview",
       selected: new Set(),
+      settings: null,
+    };
+
+    const DEFAULT_SETTINGS = {
+      brandVoice: "马来西亚华人客服语气：自然、直接、有温度。看价前先解决疑问；看价后用成交逻辑处理异议。",
+      brandKb: "产品 USP、价格、FAQ、信心证明、禁忌、订单资料和付款规则。",
+      flowMap: {
+        s1: "bot_b420c7c1986ebbce",
+        s2: "bot_5ce201ce96116e07",
+        s3: "bot_29650314b584a2ee",
+        payment2: "bot_39325bf252acbd0f",
+        payment3: "bot_39325bf252acbd0f",
+        followup: "",
+      },
+      rules: {
+        complaint: true,
+        health: true,
+        receipt: true,
+        priceAfter: true,
+      },
     };
 
     const $ = (id) => document.getElementById(id);
@@ -1796,6 +2033,7 @@
     apiUrlEl.value = params.get("api") || state.session.apiUrl || localStorage.getItem("agent_api_url") || "";
     projectKeyEl.value = params.get("project_key") || state.session.projectKey || localStorage.getItem("agent_project_key") || "demo";
     adminTokenEl.value = localStorage.getItem("agent_admin_token") || "";
+    state.settings = readProjectSettings(projectKeyEl.value || "demo");
 
     applySessionShell();
 
@@ -1803,6 +2041,7 @@
       localStorage.setItem("agent_api_url", apiUrlEl.value.trim());
       localStorage.setItem("agent_project_key", projectKeyEl.value.trim());
       localStorage.setItem("agent_admin_token", adminTokenEl.value.trim());
+      state.settings = readProjectSettings(projectKeyEl.value.trim() || "demo");
       loadCases();
     });
 
@@ -1853,6 +2092,21 @@
       const replyTarget = event.target.closest("[data-reply-template]");
       if (replyTarget) {
         applyReplyTemplate(replyTarget.dataset.replyTemplate);
+        return;
+      }
+
+      const saveSettings = event.target.closest("[data-save-settings]");
+      if (saveSettings) {
+        saveProjectSettings();
+        return;
+      }
+
+      const toggleRule = event.target.closest("[data-rule-key]");
+      if (toggleRule) {
+        const key = toggleRule.dataset.ruleKey;
+        state.settings = collectProjectSettingsFromForm();
+        state.settings.rules[key] = !state.settings.rules[key];
+        render();
       }
     });
 
@@ -1862,6 +2116,48 @@
       } catch {
         return {};
       }
+    }
+
+    function settingsKey(project) {
+      return `agent_project_settings_${project || "demo"}`;
+    }
+
+    function readProjectSettings(project) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(settingsKey(project)) || "{}") || {};
+        return {
+          ...clone(DEFAULT_SETTINGS),
+          ...saved,
+          flowMap: { ...DEFAULT_SETTINGS.flowMap, ...(saved.flowMap || {}) },
+          rules: { ...DEFAULT_SETTINGS.rules, ...(saved.rules || {}) },
+        };
+      } catch {
+        return clone(DEFAULT_SETTINGS);
+      }
+    }
+
+    function saveProjectSettings() {
+      const project = projectKeyEl.value.trim() || "demo";
+      state.settings = collectProjectSettingsFromForm();
+      localStorage.setItem(settingsKey(project), JSON.stringify(state.settings));
+      showToast("项目设置已保存。Demo 会保存在这台浏览器。");
+      render();
+    }
+
+    function collectProjectSettingsFromForm() {
+      return {
+        brandVoice: $("brandVoiceInput")?.value.trim() || DEFAULT_SETTINGS.brandVoice,
+        brandKb: $("brandKbInput")?.value.trim() || DEFAULT_SETTINGS.brandKb,
+        flowMap: {
+          s1: $("flowS1")?.value.trim() || "",
+          s2: $("flowS2")?.value.trim() || "",
+          s3: $("flowS3")?.value.trim() || "",
+          payment2: $("flowPayment2")?.value.trim() || "",
+          payment3: $("flowPayment3")?.value.trim() || "",
+          followup: $("flowFollowup")?.value.trim() || "",
+        },
+        rules: { ...state.settings.rules },
+      };
     }
 
     function applySessionShell() {
@@ -1965,11 +2261,65 @@
       const connectionTone = state.demoMode ? "warn" : "";
       const connectionText = state.demoMode ? "Demo 数据" : "真实连接";
       const roleText = state.role === "staff" ? "客服权限" : state.role === "admin" ? "运营权限" : "Owner 权限";
+      const ready = readinessScore();
       return `
         <span class="status-chip ${connectionTone}">${connectionText}</span>
         <span class="status-chip">AI 判断已开启</span>
         <span class="status-chip">操作记录可追踪</span>
+        <span class="status-chip ${ready.done < ready.total ? "warn" : ""}">上线准备 ${ready.done}/${ready.total}</span>
         <span class="status-chip">${roleText}</span>
+      `;
+    }
+
+    function readinessItems() {
+      const settings = state.settings || DEFAULT_SETTINGS;
+      const flowMap = settings.flowMap || {};
+      const rules = settings.rules || {};
+      return [
+        { title: "ChatDaddy", note: state.demoMode ? "Demo 模式" : "已连接", ready: !state.demoMode || Boolean(apiUrlEl.value.trim()) },
+        { title: "Webhook", note: apiUrlEl.value.trim() ? "已填 URL" : "待填 URL", ready: Boolean(apiUrlEl.value.trim()) },
+        { title: "品牌大脑", note: settings.brandVoice ? "已设置语气" : "待设置", ready: Boolean(settings.brandVoice && settings.brandKb) },
+        { title: "Flow ID", note: readyFlowCount(flowMap) >= 3 ? "核心 Flow 已填" : "待补 Flow", ready: readyFlowCount(flowMap) >= 3 },
+        { title: "安全规则", note: Object.values(rules).filter(Boolean).length >= 3 ? "保护已开" : "待确认", ready: Object.values(rules).filter(Boolean).length >= 3 },
+        { title: "团队权限", note: "Owner/Admin/Staff", ready: true },
+      ];
+    }
+
+    function readinessScore() {
+      const items = readinessItems();
+      return {
+        done: items.filter((item) => item.ready).length,
+        total: items.length,
+        items,
+      };
+    }
+
+    function readyFlowCount(flowMap) {
+      return Object.values(flowMap || {}).filter(Boolean).length;
+    }
+
+    function readinessCardHtml() {
+      const score = readinessScore();
+      const percent = Math.round((score.done / score.total) * 100);
+      return `
+        <section class="readiness-card">
+          <div class="readiness-head">
+            <div>
+              <b>上线准备度</b>
+              <span>把技术检查变成运营看得懂的状态。</span>
+            </div>
+            <div class="readiness-score">${score.done}/${score.total}</div>
+          </div>
+          <div class="progress-track"><div class="progress-bar" style="width:${percent}%"></div></div>
+          <div class="readiness-grid">
+            ${score.items.map((item) => `
+              <div class="ready-item ${item.ready ? "ready" : ""}">
+                <strong>${escapeHtml(item.title)}</strong>
+                <span>${escapeHtml(item.note)}</span>
+              </div>
+            `).join("")}
+          </div>
+        </section>
       `;
     }
 
@@ -2253,6 +2603,7 @@
       const recent = recentEvents(cases);
 
       $("overviewView").innerHTML = `
+        ${readinessCardHtml()}
         <div class="command-grid">
           <section class="command-panel accent">
             <div class="command-kicker">今日工作重点</div>
@@ -2321,6 +2672,7 @@
             ${stepHtml("自动学习", "同类低风险 Case 下次减少审批。")}
           </div>
         </section>
+        ${projectSettingsHtml()}
       `;
 
       $("learningView").innerHTML = `
@@ -2365,6 +2717,81 @@
 
     function stepHtml(title, body) {
       return `<div class="step"><b>${escapeHtml(title)}</b><span>${escapeHtml(body)}</span></div>`;
+    }
+
+    function projectSettingsHtml() {
+      const settings = state.settings || DEFAULT_SETTINGS;
+      const flows = settings.flowMap || DEFAULT_SETTINGS.flowMap;
+      return `
+        <section class="command-panel">
+          <div class="command-kicker">项目 Onboarding</div>
+          <strong class="command-title">让每个项目用同一套方法接入</strong>
+          <p class="command-copy">项目方只需要填品牌大脑、Flow ID 和安全规则。AI 判断逻辑保持一致，内容可以按项目调整。</p>
+          <div class="settings-grid">
+            <div class="settings-box">
+              <h3>品牌大脑</h3>
+              <div class="field-grid">
+                <label>回复语气
+                  <textarea id="brandVoiceInput">${escapeHtml(settings.brandVoice || "")}</textarea>
+                </label>
+                <label>知识重点
+                  <textarea id="brandKbInput">${escapeHtml(settings.brandKb || "")}</textarea>
+                </label>
+              </div>
+            </div>
+            <div class="settings-box">
+              <h3>ChatDaddy Flow ID</h3>
+              <div class="flow-table">
+                ${flowRow("Step 1", "flowS1", flows.s1)}
+                ${flowRow("Step 2", "flowS2", flows.s2)}
+                ${flowRow("Step 3", "flowS3", flows.s3)}
+                ${flowRow("Payment 2盒", "flowPayment2", flows.payment2)}
+                ${flowRow("Payment 3盒", "flowPayment3", flows.payment3)}
+                ${flowRow("Follow-up", "flowFollowup", flows.followup)}
+              </div>
+            </div>
+            <div class="settings-box">
+              <h3>安全规则</h3>
+              <div class="rule-list">
+                ${ruleRow("complaint", "投诉/生气", "自动停止 Flow，转人工。")}
+                ${ruleRow("health", "健康/敏感", "不乱承诺效果，必要时人工确认。")}
+                ${ruleRow("receipt", "付款截图", "金额不清楚先审核。")}
+                ${ruleRow("priceAfter", "看价后异议", "使用成交回复，不乱接普通 Flow。")}
+              </div>
+            </div>
+            <div class="settings-box">
+              <h3>保存后系统会怎样用</h3>
+              <div class="compact-list">
+                ${compactRow("顾客进来", "ChatDaddy webhook 进入 Case 队列", "接收")}
+                ${compactRow("AI 判断", "按品牌大脑、Flow、规则决定下一步", "判断")}
+                ${compactRow("团队确认", "需要人的才显示给客服处理", "闭环")}
+              </div>
+              <div class="quick-actions">
+                <button class="quick-action primary" data-save-settings type="button">保存项目设置</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function flowRow(label, id, value) {
+      return `
+        <label class="flow-row">
+          <span>${escapeHtml(label)}</span>
+          <input id="${escapeHtml(id)}" value="${escapeHtml(value || "")}" placeholder="bot_xxxxx" />
+        </label>
+      `;
+    }
+
+    function ruleRow(key, title, body) {
+      const enabled = Boolean((state.settings?.rules || {})[key]);
+      return `
+        <div class="rule-row">
+          <div><strong>${escapeHtml(title)}</strong>${escapeHtml(body)}</div>
+          <button class="toggle ${enabled ? "on" : ""}" data-rule-key="${escapeHtml(key)}" type="button" aria-label="切换 ${escapeHtml(title)}"></button>
+        </div>
+      `;
     }
 
     function recentEvents(cases) {
