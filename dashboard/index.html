@@ -1865,7 +1865,7 @@
         </div>
         <div class="setup" id="setupPanel">
           <input id="apiUrl" placeholder="系统接口地址" />
-          <input id="projectKey" placeholder="项目 Key" />
+          <input id="projectKey" placeholder="项目代号" />
           <input id="adminToken" placeholder="管理密钥" type="password" />
           <button class="btn primary" id="saveAndLoad">连接真实系统</button>
         </div>
@@ -2026,7 +2026,7 @@
 
     const DEFAULT_SETTINGS = {
       brandVoice: "马来西亚华人客服语气：自然、直接、有温度。看价前先解决疑问；看价后用成交逻辑处理异议。",
-      brandKb: "产品 USP、价格、常见问题、信心证明、禁忌、订单资料和付款规则。",
+      brandKb: "产品卖点、价格、常见问题、信心证明、禁忌、订单资料和付款规则。",
       flowMap: {
         s1: "bot_b420c7c1986ebbce",
         s2: "bot_5ce201ce96116e07",
@@ -2089,9 +2089,9 @@
           stage: "ORDER",
           action: "collect_order",
           intent: "buy_intent",
-          words: ["可提交", "COD", "资料完整", "地址", "订单"],
-          customer: "Chloe 0120000000 No 12 Jalan Demo，我要 COD",
-          reply: "收到 Chloe，资料已经齐全。我会帮你提交 COD 订单，确认后会通知你。",
+          words: ["可提交", "货到付款", "资料完整", "地址", "订单"],
+          customer: "Chloe 0120000000 No 12 Jalan Demo，我要货到付款",
+          reply: "收到 Chloe，资料已经齐全。我会帮你提交货到付款订单，确认后会通知你。",
           reason: "名字、电话、地址、付款方式齐全，可以提交订单。",
         }),
         demoCase({
@@ -2430,13 +2430,16 @@
 
     function applySessionShell() {
       const workspace = projectKeyEl.value || state.session.workspace || "demo";
+      const workspaceLabel = workspaceName(workspace);
       const name = state.session.displayName || (state.role === "staff" ? "客服" : "管理者");
       const roleLabel = roleName(state.role);
+      const titleParts = [workspaceLabel, roleLabel];
+      if (name && name !== roleLabel) titleParts.push(name);
 
-      $("sessionTitle").textContent = `${workspace.toUpperCase()} · ${roleLabel} · ${name}`;
+      $("sessionTitle").textContent = titleParts.join(" · ");
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
       $("sideRole").textContent = roleLabel;
-      $("sideWorkspace").textContent = workspace.toUpperCase();
+      $("sideWorkspace").textContent = workspaceLabel;
       $("sideConnection").textContent = state.demoMode ? "演示" : "真实";
       $("sideHint").textContent = state.role === "staff"
         ? "客服模式：只显示待处理顾客。"
@@ -2639,6 +2642,12 @@
     function roleName(role) {
       const map = { owner: "管理者", admin: "运营主管", staff: "客服人员" };
       return map[role] || "管理者";
+    }
+
+    function workspaceName(workspace) {
+      const map = { demo: "公开演示", beyoute: "Beyoute" };
+      const key = String(workspace || "demo").trim();
+      return map[key.toLowerCase()] || key;
     }
 
     function roleSubtitle(role) {
@@ -3133,7 +3142,7 @@
       const flows = settings.flowMap || DEFAULT_SETTINGS.flowMap;
       return `
         <section class="command-panel">
-          <div class="command-kicker">项目 Onboarding</div>
+          <div class="command-kicker">项目接入</div>
           <strong class="command-title">让每个项目用同一套方法接入</strong>
           <p class="command-copy">项目方只需要填品牌大脑、自动流程 ID 和安全规则。AI 判断逻辑保持一致，内容可以按项目调整。</p>
           <div class="settings-grid">
@@ -3151,11 +3160,11 @@
             <div class="settings-box">
               <h3>ChatDaddy 自动流程 ID</h3>
               <div class="flow-table">
-                ${flowRow("Step 1", "flowS1", flows.s1)}
-                ${flowRow("Step 2", "flowS2", flows.s2)}
-                ${flowRow("Step 3", "flowS3", flows.s3)}
-                ${flowRow("Payment 2盒", "flowPayment2", flows.payment2)}
-                ${flowRow("Payment 3盒", "flowPayment3", flows.payment3)}
+                ${flowRow("流程 1", "flowS1", flows.s1)}
+                ${flowRow("流程 2", "flowS2", flows.s2)}
+                ${flowRow("流程 3", "flowS3", flows.s3)}
+                ${flowRow("付款流程 2盒", "flowPayment2", flows.payment2)}
+                ${flowRow("付款流程 3盒", "flowPayment3", flows.payment3)}
                 ${flowRow("跟进", "flowFollowup", flows.followup)}
               </div>
             </div>
@@ -3171,7 +3180,7 @@
             <div class="settings-box">
               <h3>保存后系统会怎样用</h3>
               <div class="compact-list">
-                ${compactRow("顾客进来", "ChatDaddy webhook 进入顾客队列", "接收")}
+                ${compactRow("顾客进来", "ChatDaddy 讯息进入顾客队列", "接收")}
                 ${compactRow("AI 判断", "按品牌大脑、自动流程和规则决定下一步", "判断")}
                 ${compactRow("团队确认", "需要人的才显示给客服处理", "闭环")}
               </div>
@@ -3224,7 +3233,7 @@
     }
 
     function auditHtml(event) {
-      return `<div class="audit-item"><b>${escapeHtml(formatDate(event.at))} · ${escapeHtml(event.caseName)}</b>${escapeHtml(event.type)} · ${escapeHtml(event.note)}</div>`;
+      return `<div class="audit-item"><b>${escapeHtml(formatDate(event.at))} · ${escapeHtml(event.caseName)}</b>${escapeHtml(historyTypeLabel(event.type))} · ${escapeHtml(event.note)}</div>`;
     }
 
     function renderOpsLayer(cases) {
@@ -3368,6 +3377,7 @@
       const initials = (item.contact?.name || "C").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
       const selected = state.selected.has(item.id);
       const sla = slaInfo(item);
+      const stage = stageLabel(decision.stage);
 
       return `
         <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}">
@@ -3380,7 +3390,7 @@
               <span class="case-id">${escapeHtml(initials)}</span>
               <div>
                 <b>${escapeHtml(item.contact?.name || "顾客")}</b>
-                <div class="case-kicker">${escapeHtml(decision.stage || "S1")} · ${escapeHtml(intentLabel(decision.intent))}</div>
+                <div class="case-kicker">${escapeHtml(stage)} · ${escapeHtml(intentLabel(decision.intent))}</div>
               </div>
             </div>
             <span class="badge ${riskClass}">${escapeHtml(statusLabel(item.status, decision.risk))}</span>
@@ -3390,7 +3400,7 @@
           </div>
           <div class="case-message">${escapeHtml(item.last_message || "")}</div>
           <div class="case-foot">
-            <span>AI：${escapeHtml(actionLabel(decision.action))}</span>
+            <span>下一步：${escapeHtml(actionLabel(decision.action))}</span>
             <span class="sla-pill ${escapeHtml(sla.tone)}">${escapeHtml(item.seen_by_operator ? "已看" : sla.text)}</span>
           </div>
         </article>
@@ -3404,7 +3414,7 @@
 
       const decision = item.latest_decision || {};
       $("panelName").textContent = item.contact?.name || "顾客";
-      $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${decision.stage || "S1"} · ${formatDate(item.updated_at)}`;
+      $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
       $("replyBox").value = decision.reply_message || "";
       $("actionTitle").textContent = decision.action === "ask_human" ? "按「转人工」" : decision.send_now ? "可自动发送" : "按「批准发送」";
       $("actionReason").textContent = decision.reason || "确认回复后发送。";
@@ -3420,7 +3430,7 @@
       }).join("");
 
       $("historyBox").innerHTML = (item.history || []).slice().reverse().map((event) => {
-        return `<div class="history-item">${escapeHtml(formatDate(event.at))} · ${escapeHtml(event.type || "")}<br>${escapeHtml(event.decision?.reason || event.note || event.rule_id || "")}</div>`;
+        return `<div class="history-item">${escapeHtml(formatDate(event.at))} · ${escapeHtml(historyTypeLabel(event.type))}<br>${escapeHtml(event.decision?.reason || event.note || event.rule_id || "")}</div>`;
       }).join("");
 
       $("panel").classList.add("open");
@@ -3440,8 +3450,8 @@
         </div>
         <div class="detail-tile">
           <span>阶段</span>
-          <b>${escapeHtml(decision.stage || "S1")}</b>
-          <small>${escapeHtml(stageLabel(decision.stage))}</small>
+          <b>${escapeHtml(stageLabel(decision.stage))}</b>
+          <small>${escapeHtml(stageHint(decision.stage))}</small>
         </div>
         <div class="detail-tile">
           <span>下一步</span>
@@ -3486,7 +3496,7 @@
       return [
         { label: "电话", value: hasPhone ? "有" : item.status === "order" ? "待补" : "未需要" },
         { label: "地址", value: hasAddress ? "有" : item.status === "order" ? "待补" : "未需要" },
-        { label: "付款", value: hasPayment ? "需核对" : item.status === "order" ? "COD / 待确认" : "未需要" },
+        { label: "付款", value: hasPayment ? "需核对" : item.status === "order" ? "货到付款待确认" : "未需要" },
       ];
     }
 
@@ -3519,7 +3529,7 @@
     function stageLabel(stage) {
       const map = {
         S1: "了解问题",
-        S2: "USP / 方案",
+        S2: "卖点 / 方案",
         S3: "信心证明 / 价格",
         CLOSING: "成交处理",
         ORDER: "订单阶段",
@@ -3527,6 +3537,40 @@
         HUMAN: "人工接手",
       };
       return map[stage] || "当前阶段";
+    }
+
+    function stageHint(stage) {
+      const map = {
+        S1: "先问清楚顾客问题。",
+        S2: "说明产品卖点和适合人群。",
+        S3: "给信心、价格和下单方向。",
+        CLOSING: "看价后，处理异议并成交。",
+        ORDER: "检查电话、地址和付款。",
+        FOLLOW_UP: "顾客暂时没回，安排跟进。",
+        HUMAN: "交给真人处理。",
+      };
+      return map[stage] || "按当前状态处理。";
+    }
+
+    function historyTypeLabel(type) {
+      const map = {
+        message_received_demo: "收到顾客讯息",
+        ai_decision_demo: "AI 完成判断",
+        approved_sent_demo: "人工批准发送",
+        learned_rule_created_demo: "建立学习规则",
+        marked_handoff_demo: "转人工处理",
+        operator_seen_demo: "已标记查看",
+        bulk_handoff_demo: "批量转人工",
+        project_settings_saved: "保存项目设置",
+        copied_access_link: "复制团队入口",
+        case_approve: "真实批准发送",
+        case_learn: "真实建立规则",
+        case_handoff: "真实转人工",
+        case_approve_demo: "演示批准发送",
+        case_learn_demo: "演示建立规则",
+        case_handoff_demo: "演示转人工",
+      };
+      return map[type] || type || "操作记录";
     }
 
     async function approveActive() {
@@ -3541,7 +3585,7 @@
 
     async function handoffActive() {
       if (!state.active) return;
-      await postCaseAction(state.active.id, "handoff", { note: "Marked by dashboard operator" });
+      await postCaseAction(state.active.id, "handoff", { note: "客服在中控台转人工。" });
     }
 
     async function postCaseAction(caseId, action, body) {
@@ -3672,7 +3716,7 @@
           {
             type: "message_received_demo",
             at: createdAt,
-            note: "ChatDaddy webhook 收到顾客消息。",
+            note: "ChatDaddy 收到顾客讯息。",
           },
           {
             type: "ai_decision_demo",
