@@ -3,21 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ReplyPilot AI Login</title>
+  <title>ReplyPilot AI Operations Console</title>
   <style>
     :root {
-      --bg: #f5f8f7;
+      --canvas: #f5f7f6;
       --panel: #ffffff;
-      --ink: #122522;
-      --muted: #64767b;
-      --line: #d7e3df;
-      --green: #0f9f83;
-      --blue: #2f72d2;
-      --amber: #a96916;
-      --red: #bc4d4d;
-      --soft-green: #eaf8f4;
-      --soft-blue: #edf4ff;
-      --soft-amber: #fff5e8;
+      --panel-soft: #f9fbfa;
+      --ink: #112321;
+      --muted: #65777c;
+      --line: #dce5e2;
+      --green: #0c8f78;
+      --green-deep: #0d332f;
+      --blue: #2f6fd0;
+      --amber: #9b681c;
+      --shadow: 0 24px 70px rgba(20, 37, 35, .12);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
@@ -28,118 +27,225 @@
       min-height: 100vh;
       color: var(--ink);
       background:
-        radial-gradient(circle at 16% 8%, rgba(15, 159, 131, .14), transparent 28rem),
-        radial-gradient(circle at 92% 18%, rgba(47, 114, 210, .14), transparent 26rem),
-        linear-gradient(135deg, #fbfdfc, var(--bg));
+        linear-gradient(90deg, rgba(13,51,47,.05), transparent 38%),
+        linear-gradient(180deg, #fbfcfb, var(--canvas));
     }
 
     button, input, select { font: inherit; }
 
     .shell {
-      width: min(1180px, calc(100% - 32px));
+      width: min(1240px, calc(100% - 40px));
       min-height: 100vh;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 430px;
-      gap: 28px;
+      grid-template-columns: minmax(0, 1fr) 440px;
+      gap: 34px;
       align-items: center;
-      padding: 34px 0;
+      padding: 42px 0;
     }
 
-    .hero {
+    .product {
       display: grid;
-      gap: 20px;
+      gap: 28px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 760px;
     }
 
     .brand {
-      display: inline-flex;
+      display: flex;
       align-items: center;
       gap: 12px;
       font-weight: 950;
       letter-spacing: 0;
-      color: var(--ink);
     }
 
-    .logo {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--green), var(--blue));
-      box-shadow: 0 18px 44px rgba(15, 159, 131, .18);
+    .mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--green-deep);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 950;
+    }
+
+    .env {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #cddbd7;
+      border-radius: 999px;
+      background: rgba(255,255,255,.78);
+      color: var(--muted);
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .hero {
+      max-width: 760px;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
     }
 
     h1 {
-      margin: 0;
-      font-size: clamp(40px, 6vw, 72px);
-      line-height: .96;
+      margin: 12px 0 16px;
+      font-size: clamp(42px, 5vw, 64px);
+      line-height: 1;
       letter-spacing: 0;
-      max-width: 820px;
     }
 
     .lead {
       margin: 0;
+      max-width: 680px;
       color: var(--muted);
-      font-size: 21px;
-      line-height: 1.5;
-      font-weight: 760;
-      max-width: 720px;
+      font-size: 20px;
+      line-height: 1.55;
+      font-weight: 730;
     }
 
-    .map {
+    .ops-panel {
+      max-width: 780px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 18px 54px rgba(20, 37, 35, .07);
+      overflow: hidden;
+    }
+
+    .ops-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .ops-head b {
+      display: block;
+      font-size: 18px;
+    }
+
+    .ops-head span {
+      color: var(--muted);
+      font-weight: 760;
+      font-size: 14px;
+    }
+
+    .health {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .health::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(12,143,120,.12);
+    }
+
+    .role-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      max-width: 800px;
+      gap: 1px;
+      background: var(--line);
     }
 
-    .map-card {
-      min-height: 128px;
-      background: rgba(255,255,255,.76);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 16px;
-      box-shadow: 0 16px 42px rgba(20, 37, 35, .06);
+    .role-card {
+      background: var(--panel-soft);
+      padding: 18px;
+      min-height: 150px;
     }
 
-    .map-card b {
+    .role-card strong {
       display: block;
-      font-size: 22px;
+      font-size: 18px;
       margin-bottom: 8px;
     }
 
-    .map-card span {
+    .role-card p {
+      margin: 0;
       color: var(--muted);
-      font-weight: 750;
-      line-height: 1.35;
-    }
-
-    .panel {
-      background: rgba(255,255,255,.86);
-      border: 1px solid var(--line);
-      border-radius: 26px;
-      box-shadow: 0 26px 80px rgba(20, 37, 35, .12);
-      padding: 24px;
-      backdrop-filter: blur(16px);
-    }
-
-    .panel h2 {
-      margin: 0 0 6px;
-      font-size: 28px;
-    }
-
-    .panel p {
-      margin: 0 0 18px;
-      color: var(--muted);
-      font-weight: 760;
+      font-size: 14px;
       line-height: 1.45;
+      font-weight: 740;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .chip {
+      border: 1px solid #cddbd7;
+      background: #fff;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 880;
+    }
+
+    .login {
+      background: rgba(255,255,255,.92);
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .login-top {
+      padding: 28px 28px 20px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(12,143,120,.08), transparent 52%),
+        #fff;
+    }
+
+    .login h2 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    .login-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 740;
+    }
+
+    .form {
+      padding: 24px 28px 28px;
     }
 
     label {
       display: block;
-      margin: 14px 0 7px;
+      margin: 0 0 8px;
       color: var(--muted);
-      font-size: 14px;
-      font-weight: 900;
+      font-size: 13px;
+      font-weight: 920;
     }
 
     input, select {
@@ -150,39 +256,44 @@
       color: var(--ink);
       padding: 13px 14px;
       outline: none;
+      font-weight: 760;
     }
 
     input:focus, select:focus {
       border-color: #9ed9cc;
-      box-shadow: 0 0 0 4px rgba(15, 159, 131, .10);
+      box-shadow: 0 0 0 4px rgba(12,143,120,.10);
     }
+
+    .field + .field { margin-top: 16px; }
 
     .roles {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 8px;
+      gap: 9px;
     }
 
     .role {
       border: 1px solid var(--line);
-      background: #fff;
       border-radius: 14px;
       padding: 12px 8px;
-      cursor: pointer;
-      text-align: center;
-      font-weight: 950;
+      background: #fff;
       color: var(--muted);
+      font-weight: 920;
+      cursor: pointer;
+      transition: .16s ease;
     }
 
+    .role:hover { border-color: #b6c9c4; }
+
     .role.active {
-      color: var(--ink);
+      background: #eef9f6;
+      color: var(--green-deep);
       border-color: #9ed9cc;
-      background: var(--soft-green);
+      box-shadow: inset 0 0 0 1px rgba(12,143,120,.18);
     }
 
     .advanced {
-      margin: 16px 0;
+      margin-top: 16px;
       border: 1px solid var(--line);
       border-radius: 16px;
       overflow: hidden;
@@ -192,8 +303,8 @@
     .advanced summary {
       cursor: pointer;
       padding: 13px 14px;
-      font-weight: 900;
       color: var(--muted);
+      font-weight: 900;
     }
 
     .advanced-body {
@@ -201,108 +312,151 @@
       border-top: 1px solid var(--line);
     }
 
-    .btn {
+    .advanced-body .field:first-child { margin-top: 14px; }
+
+    .primary {
       width: 100%;
+      margin-top: 22px;
       border: 0;
       border-radius: 16px;
       padding: 14px 16px;
-      font-weight: 950;
       color: #fff;
-      background: linear-gradient(135deg, var(--green), var(--blue));
+      background: var(--green-deep);
+      font-weight: 950;
       cursor: pointer;
-      box-shadow: 0 16px 34px rgba(15, 159, 131, .18);
+      transition: .16s ease;
+      box-shadow: 0 18px 34px rgba(13, 51, 47, .18);
     }
 
-    .helper {
-      margin-top: 14px;
-      display: grid;
-      gap: 8px;
+    .primary:hover { transform: translateY(-1px); background: #0a2a27; }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
     }
 
-    .helper a {
+    .links a {
       color: var(--green);
-      font-weight: 900;
       text-decoration: none;
+      font-weight: 900;
+      font-size: 14px;
     }
 
-    .notice {
-      margin-top: 16px;
-      border-radius: 16px;
-      background: var(--soft-amber);
-      border: 1px solid #ebd1ac;
+    .security-note {
+      margin-top: 18px;
+      border: 1px solid #ecd6ae;
+      background: #fff8eb;
       color: var(--amber);
-      padding: 12px 14px;
-      font-weight: 820;
-      line-height: 1.4;
+      border-radius: 16px;
+      padding: 13px 14px;
+      font-size: 14px;
+      font-weight: 790;
+      line-height: 1.45;
     }
 
-    @media (max-width: 920px) {
-      .shell { grid-template-columns: 1fr; }
-      .map { grid-template-columns: 1fr; }
+    @media (max-width: 940px) {
+      .shell { grid-template-columns: 1fr; padding: 28px 0; }
+      .role-grid { grid-template-columns: 1fr; }
+      .nav { max-width: none; }
     }
   </style>
 </head>
 <body>
   <main class="shell">
-    <section class="hero">
-      <div class="brand"><span class="logo"></span><span>ReplyPilot AI</span></div>
-      <h1>一个入口，给老板、Admin、客服处理 AI Case。</h1>
-      <p class="lead">客服不用碰 ChatDaddy 技术设置。登录后只看到自己该处理的顾客：要批准、要人工、订单。</p>
-
-      <div class="map">
-        <div class="map-card">
-          <b>Owner</b>
-          <span>看全部项目、自动规则、记录表和系统状态。</span>
-        </div>
-        <div class="map-card">
-          <b>Admin</b>
-          <span>管理 Case、检查 AI 学习、处理异常。</span>
-        </div>
-        <div class="map-card">
-          <b>Staff</b>
-          <span>只看顾客 Case，不看 Token、API 和后台设置。</span>
-        </div>
+    <section class="product">
+      <div class="nav">
+        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI</span></div>
+        <span class="env">Public demo</span>
       </div>
+
+      <div class="hero">
+        <div class="eyebrow">AI support operations</div>
+        <h1>Role-based console for AI-assisted support teams.</h1>
+        <p class="lead">Review AI decisions, approve customer replies, route sensitive cases, and separate operational access for owners, admins, and support staff.</p>
+      </div>
+
+      <section class="ops-panel">
+        <div class="ops-head">
+          <div>
+            <b>Access model</b>
+            <span>Designed for teams that need clear visibility without exposing backend controls.</span>
+          </div>
+          <span class="health">Demo workspace ready</span>
+        </div>
+        <div class="role-grid">
+          <article class="role-card">
+            <strong>Owner</strong>
+            <p>Full workspace visibility, system status, live connections, audit records, and configuration.</p>
+            <div class="chips"><span class="chip">All cases</span><span class="chip">Settings</span></div>
+          </article>
+          <article class="role-card">
+            <strong>Admin</strong>
+            <p>Operational control for approvals, handoffs, order review, and AI decision quality checks.</p>
+            <div class="chips"><span class="chip">Approvals</span><span class="chip">Review</span></div>
+          </article>
+          <article class="role-card">
+            <strong>Staff</strong>
+            <p>Focused case handling only. No API tokens, infrastructure, billing, or automation settings.</p>
+            <div class="chips"><span class="chip">Cases only</span><span class="chip">No settings</span></div>
+          </article>
+        </div>
+      </section>
     </section>
 
-    <section class="panel">
-      <h2>登录工作台</h2>
-      <p>现在是可演示入口。真实团队账号上线后，会接正式数据库和密码验证。</p>
-
-      <label for="workspace">项目</label>
-      <select id="workspace">
-        <option value="beyoute">Beyoute</option>
-        <option value="demo">Demo</option>
-      </select>
-
-      <label for="displayName">名字</label>
-      <input id="displayName" placeholder="例如：Jia Zhen / Jayden" value="Jia Zhen" />
-
-      <label>角色</label>
-      <div class="roles">
-        <button class="role active" data-role="owner" type="button">Owner</button>
-        <button class="role" data-role="admin" type="button">Admin</button>
-        <button class="role" data-role="staff" type="button">Staff</button>
+    <section class="login">
+      <div class="login-top">
+        <h2>Sign in to workspace</h2>
+        <p class="login-copy">Use demo access to preview role-based workflows. Connect your Worker API only when you are ready to use live data.</p>
       </div>
 
-      <details class="advanced">
-        <summary>连接真实系统</summary>
-        <div class="advanced-body">
-          <label for="apiUrl">API URL</label>
-          <input id="apiUrl" placeholder="https://your-worker.workers.dev" />
-          <label for="adminToken">Admin Token</label>
-          <input id="adminToken" placeholder="只有 Owner/Admin 才需要" type="password" />
+      <div class="form">
+        <div class="field">
+          <label for="workspace">Workspace</label>
+          <select id="workspace">
+            <option value="demo">Demo workspace</option>
+            <option value="beyoute">Beyoute</option>
+          </select>
         </div>
-      </details>
 
-      <button class="btn" id="loginBtn">进入 Dashboard</button>
+        <div class="field">
+          <label for="displayName">Display name</label>
+          <input id="displayName" value="Jia Zhen" autocomplete="name" />
+        </div>
 
-      <div class="helper">
-        <a href="dashboard/index.html">直接看公开 Demo</a>
-        <a href="docs/ONBOARDING_ZH.md">查看项目 Onboarding SOP</a>
+        <div class="field">
+          <label>Access role</label>
+          <div class="roles">
+            <button class="role active" data-role="owner" type="button">Owner</button>
+            <button class="role" data-role="admin" type="button">Admin</button>
+            <button class="role" data-role="staff" type="button">Staff</button>
+          </div>
+        </div>
+
+        <details class="advanced">
+          <summary>Connect live system</summary>
+          <div class="advanced-body">
+            <div class="field">
+              <label for="apiUrl">Worker API URL</label>
+              <input id="apiUrl" placeholder="https://your-worker.workers.dev" />
+            </div>
+            <div class="field">
+              <label for="adminToken">Admin token</label>
+              <input id="adminToken" placeholder="Owner/Admin only" type="password" />
+            </div>
+          </div>
+        </details>
+
+        <button class="primary" id="loginBtn">Enter workspace</button>
+
+        <div class="links">
+          <a href="dashboard/index.html">Open demo dashboard</a>
+          <a href="docs/ONBOARDING_ZH.md">Onboarding guide</a>
+        </div>
+
+        <div class="security-note">Never share API tokens, Cloudflare access, Supabase access, or admin credentials with support staff.</div>
       </div>
-
-      <div class="notice">正式给客服用之前，不要把 Admin Token、Cloudflare、Supabase、ChatDaddy API Token 给客服。</div>
     </section>
   </main>
 
@@ -315,7 +469,7 @@
         selectedRole = button.dataset.role;
         roleButtons.forEach((item) => item.classList.toggle("active", item === button));
         if (selectedRole === "staff") {
-          document.getElementById("displayName").value = "Jayden";
+          document.getElementById("displayName").value = "Support Team";
         }
       });
     });
@@ -324,7 +478,7 @@
     document.getElementById("adminToken").value = localStorage.getItem("agent_admin_token") || "";
 
     document.getElementById("loginBtn").addEventListener("click", () => {
-      const workspace = document.getElementById("workspace").value || "beyoute";
+      const workspace = document.getElementById("workspace").value || "demo";
       const apiUrl = document.getElementById("apiUrl").value.trim();
       const adminToken = document.getElementById("adminToken").value.trim();
       const displayName = document.getElementById("displayName").value.trim() || "Team";
