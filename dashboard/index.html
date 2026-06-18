@@ -311,6 +311,149 @@
     .stat b { display: block; font-size: 26px; line-height: 1; }
     .stat span { color: var(--muted); font-weight: 750; }
 
+    .ops-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .ops-card {
+      position: relative;
+      min-height: 168px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.92), rgba(248,251,250,.74)),
+        var(--panel);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .ops-card::after {
+      content: "";
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      right: -66px;
+      bottom: -78px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(11,155,130,.13), transparent 68%);
+      pointer-events: none;
+    }
+
+    .ops-card.focus {
+      border-color: #9ed9cc;
+      background:
+        linear-gradient(135deg, rgba(232,247,243,.96), rgba(237,244,255,.78)),
+        var(--panel);
+    }
+
+    .ops-kicker {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .ops-title {
+      display: block;
+      font-size: 24px;
+      line-height: 1.08;
+      margin-bottom: 8px;
+      letter-spacing: 0;
+    }
+
+    .ops-copy {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 760;
+      line-height: 1.45;
+    }
+
+    .ops-tags,
+    .ops-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .ops-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .ops-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-weight: 850;
+    }
+
+    .ops-row span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .ops-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(11,155,130,.10);
+      flex: 0 0 auto;
+      display: inline-block;
+    }
+
+    .ops-dot.warn { background: var(--amber); box-shadow: 0 0 0 5px rgba(168,109,29,.10); }
+    .ops-dot.risk { background: var(--red); box-shadow: 0 0 0 5px rgba(191,77,77,.10); }
+
+    .ops-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 7px 10px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .ops-mini.good {
+      color: var(--green);
+      background: var(--soft-green);
+      border-color: #b9e3da;
+    }
+
+    .ops-mini.warn {
+      color: var(--amber);
+      background: var(--soft-amber);
+      border-color: #ebd1ac;
+    }
+
+    .ops-mini.blue {
+      color: var(--blue);
+      background: var(--soft-blue);
+      border-color: #b7cdf1;
+    }
+
+    .ops-mini.risk {
+      color: var(--red);
+      background: var(--soft-red);
+      border-color: #e9b4b4;
+    }
+
     .workbench-card {
       border: 1px solid var(--line);
       border-radius: 24px;
@@ -702,7 +845,7 @@
         border-radius: 0 0 24px 24px;
       }
       .side-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .topbar, .setup, .demo-bar, .session-bar, .stats, .grid, .panel-body { grid-template-columns: 1fr; }
+      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .grid, .panel-body { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
       .grid.list .case-card { grid-template-columns: 1fr; }
       .panel { padding: 10px; }
@@ -791,6 +934,8 @@
         <div class="stat"><b id="statOrder">0</b><span>订单</span></div>
         <div class="stat"><b id="statAuto">0</b><span>自动处理</span></div>
       </div>
+
+      <section class="ops-grid" id="opsGrid" aria-label="运营状态"></section>
 
       <section class="workbench-card">
         <div class="toolbar">
@@ -1231,6 +1376,7 @@
 
       if (state.role === "staff" && state.filter === "auto") state.filter = "all";
       syncFilterControls();
+      renderOpsLayer(all);
       const visible = filterCases(all, state.filter);
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
 
@@ -1245,6 +1391,140 @@
         return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
       }
       return cases.filter((item) => item.status === filter);
+    }
+
+    function renderOpsLayer(cases) {
+      const counts = countCases(cases);
+      const learned = countLearnedRules(cases);
+      const view = viewCopy(state.filter, counts);
+
+      const staffCards = `
+        ${opsCard("今日重点", view.title, view.body, [
+          opsMini(`${counts.needs} 个需处理`, counts.needs > 0 ? "warn" : "good"),
+          opsMini(`${counts.orders} 个订单`, "blue"),
+          opsMini(`${counts.human} 个要人工`, counts.human > 0 ? "risk" : "good"),
+        ], "focus")}
+        ${opsCard("处理规则", "先看动作，再看回复", "客服只需要处理待批准、需人工和订单。自动 Case 不会打扰你。", [
+          opsMini("批准发送", "good"),
+          opsMini("转人工", "warn"),
+          opsMini("提交订单", "blue"),
+        ])}
+        ${opsCard("交接记录", "每一步都会留下记录", "谁批准、谁转人工、AI 为什么判断，都会进入操作记录。", [
+          opsMini(`${learned} 条学习`, "good"),
+          opsMini("可追踪", "blue"),
+        ])}
+      `;
+
+      const adminCards = `
+        ${opsCard("今日重点", view.title, view.body, [
+          opsMini(`${counts.needs} 个需处理`, counts.needs > 0 ? "warn" : "good"),
+          opsMini(`${counts.auto} 个自动`, "good"),
+          opsMini(`${counts.failed} 个失败`, counts.failed > 0 ? "risk" : "good"),
+        ], "focus")}
+        ${opsStatusCard()}
+        ${opsCard("权限与学习", "角色清楚，AI 会复盘", "Owner 看全局；Admin 管 Case 和复盘；Staff 只处理顾客。", [
+          opsMini(`学习规则 ${learned}`, "good"),
+          opsMini("自动通过", "blue"),
+          opsMini("人工兜底", counts.human > 0 ? "warn" : "good"),
+        ])}
+      `;
+
+      $("opsGrid").innerHTML = state.role === "staff" ? staffCards : adminCards;
+    }
+
+    function countCases(cases) {
+      const approval = cases.filter((item) => item.status === "approval_required").length;
+      const human = cases.filter((item) => item.status === "human_required").length;
+      const orders = cases.filter((item) => item.status === "order").length;
+      const auto = cases.filter((item) => item.status === "auto").length;
+      const failed = cases.filter((item) => item.status === "send_failed").length;
+      return {
+        total: cases.length,
+        approval,
+        human,
+        orders,
+        auto,
+        failed,
+        needs: approval + human + orders + failed,
+      };
+    }
+
+    function countLearnedRules(cases) {
+      return cases.reduce((sum, item) => {
+        return sum + (item.history || []).filter((event) => String(event.type || "").includes("learn")).length;
+      }, 0);
+    }
+
+    function viewCopy(filter, counts) {
+      const views = {
+        all: {
+          title: `${counts.total} 个 Case 正在监控`,
+          body: "先处理橙色和红色；绿色自动跑，蓝色进入订单。",
+        },
+        needs_attention: {
+          title: `${counts.needs} 个需要你看`,
+          body: "这里只放要批准、要人工、订单和发送失败。",
+        },
+        approval_required: {
+          title: `${counts.approval} 个回复待批准`,
+          body: "看 AI 建议，确认没问题就批准发送。",
+        },
+        human_required: {
+          title: `${counts.human} 个必须人工接手`,
+          body: "投诉、敏感问题、低信心判断会停掉 Automation。",
+        },
+        order: {
+          title: `${counts.orders} 个订单待处理`,
+          body: "检查资料和付款，确认后再提交或交给 Ops。",
+        },
+        auto: {
+          title: `${counts.auto} 个自动处理中`,
+          body: "低风险 FAQ、Follow-up 和接 Flow 会自动跑。",
+        },
+      };
+      return views[filter] || views.all;
+    }
+
+    function opsStatusCard() {
+      const mode = state.demoMode ? "演示中" : "真实系统";
+      const connected = state.demoMode ? "待连接" : "正常";
+      const dot = state.demoMode ? "warn" : "";
+      return `
+        <article class="ops-card">
+          <span class="ops-kicker">系统状态</span>
+          <strong class="ops-title">${mode}</strong>
+          <p class="ops-copy">${state.demoMode ? "现在是公开 Demo；接入 Worker 后会读取真实 ChatDaddy Case。" : "ChatDaddy、Worker 和 Dashboard 已进入真实运营模式。"}</p>
+          <div class="ops-list">
+            ${opsRow("ChatDaddy Webhook", connected, dot)}
+            ${opsRow("Worker API", connected, dot)}
+            ${opsRow("Google Sheet 记录", state.demoMode ? "Demo" : "同步中", state.demoMode ? "warn" : "")}
+          </div>
+        </article>
+      `;
+    }
+
+    function opsCard(kicker, title, body, tags, extraClass = "") {
+      return `
+        <article class="ops-card ${extraClass}">
+          <span class="ops-kicker">${escapeHtml(kicker)}</span>
+          <strong class="ops-title">${escapeHtml(title)}</strong>
+          <p class="ops-copy">${escapeHtml(body)}</p>
+          <div class="ops-tags">${tags.join("")}</div>
+        </article>
+      `;
+    }
+
+    function opsMini(label, tone = "") {
+      return `<span class="ops-mini ${tone}">${escapeHtml(label)}</span>`;
+    }
+
+    function opsRow(label, value, tone = "") {
+      return `
+        <div class="ops-row">
+          <span><i class="ops-dot ${tone}"></i> ${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
+      `;
     }
 
     function cardHtml(item) {
@@ -1393,10 +1673,11 @@
     }
 
     function emptyHtml() {
+      const empty = viewCopy(state.filter, { total: 0, needs: 0, approval: 0, human: 0, orders: 0, auto: 0, failed: 0 });
       return `
         <div class="box" style="grid-column: 1 / -1;">
-          <h3>还没有 Case</h3>
-          <p class="subtitle">确认 ChatDaddy webhook 已经指向 Worker，然后用真实 WhatsApp 发一条测试消息。</p>
+          <h3>${escapeHtml(empty.title)}</h3>
+          <p class="subtitle">${escapeHtml(state.demoMode ? "当前筛选没有演示 Case，可以切换筛选或载入其他行业 Demo。" : "确认 ChatDaddy webhook 已经指向 Worker，然后用真实 WhatsApp 发一条测试消息。")}</p>
         </div>
       `;
     }

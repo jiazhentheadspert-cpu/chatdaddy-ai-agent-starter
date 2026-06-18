@@ -237,6 +237,14 @@
       line-height: 1;
     }
 
+    .preview-card p {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      font-weight: 760;
+    }
+
     .case-mini {
       border: 1px solid var(--line);
       border-radius: 16px;
@@ -431,32 +439,32 @@
 
       <div class="hero">
         <div class="eyebrow">AI 客服运营中控台</div>
-        <h1>一个入口，管理客服团队和 AI 决策。</h1>
-        <p class="lead">让 AI 先判断顾客状态，客服只处理要批准、要人工和订单。老板看全局，运营看异常，客服只看顾客。</p>
+        <h1>一个入口，管理顾客、团队和 AI 决策。</h1>
+        <p class="lead">AI 先判断顾客状态，再把需要批准、转人工和订单的 Case 推给团队。管理者看全局，运营看异常，客服只处理顾客。</p>
       </div>
 
       <section class="ops-panel">
         <div class="ops-head">
           <div>
             <b>权限分层</b>
-            <span>团队可以清楚分工，同时不暴露后台和技术设置。</span>
+            <span>角色清楚，权限收敛，避免客服接触技术后台。</span>
           </div>
           <span class="health">演示工作台已开启</span>
         </div>
         <div class="role-grid">
           <article class="role-card">
-            <strong>Owner 管理者</strong>
-            <p>看全局、系统状态、自动规则和真实连接。</p>
+            <strong>管理者</strong>
+            <p>查看全局数据、系统状态、自动规则和真实连接。</p>
             <div class="chips"><span class="chip">全部 Case</span><span class="chip">系统设置</span></div>
           </article>
           <article class="role-card">
-            <strong>Admin 运营</strong>
-            <p>处理审核、转人工、订单和 AI 复盘。</p>
+            <strong>运营主管</strong>
+            <p>处理审核、转人工、订单异常和 AI 复盘。</p>
             <div class="chips"><span class="chip">审核回复</span><span class="chip">复盘 AI</span></div>
           </article>
           <article class="role-card">
-            <strong>Staff 客服</strong>
-            <p>只处理顾客，不看 API、后台或系统设置。</p>
+            <strong>客服人员</strong>
+            <p>只处理顾客 Case，不显示 API、Token 或系统设置。</p>
             <div class="chips"><span class="chip">只看顾客</span><span class="chip">隐藏设置</span></div>
           </article>
         </div>
@@ -466,15 +474,18 @@
         <div class="preview-card">
           <span>今日待处理</span>
           <strong>8</strong>
+          <p>待批准、需人工、订单和发送失败会集中在这里。</p>
         </div>
         <div class="preview-card">
           <span>自动处理</span>
           <strong>24</strong>
+          <p>低风险 FAQ、Follow-up 和接 Flow 自动执行。</p>
         </div>
         <div class="preview-card wide">
           <div>
-            <span>下一步</span>
+            <span>AI 建议下一步</span>
             <strong>先处理高风险 Case</strong>
+            <p>系统会把投诉、敏感问题和低信心判断推给人工。</p>
           </div>
           <div class="case-mini">
             Amira · 投诉风险
@@ -487,7 +498,7 @@
     <section class="login">
       <div class="login-top">
         <h2>进入工作台</h2>
-        <p class="login-copy">先用演示模式查看流程。接真实系统时，再填 Worker URL 和管理员 Token。</p>
+        <p class="login-copy">上线前可先用演示模式检查流程。连接真实系统时，再填入 Worker URL 和管理员 Token。</p>
       </div>
 
       <div class="form">
@@ -500,12 +511,12 @@
         </div>
 
         <div class="field">
-          <label for="displayName">使用者名称</label>
+          <label for="displayName">姓名</label>
           <input id="displayName" value="Jia Zhen" autocomplete="name" />
         </div>
 
         <div class="field">
-          <label>使用权限</label>
+          <label>角色</label>
           <div class="roles">
             <button class="role active" data-role="owner" type="button">管理者</button>
             <button class="role" data-role="admin" type="button">运营</button>
@@ -514,7 +525,7 @@
         </div>
 
         <details class="advanced">
-          <summary>真实系统连接</summary>
+          <summary>高级设置：真实系统连接</summary>
           <div class="advanced-body">
             <div class="field">
               <label for="apiUrl">Worker API URL</label>
@@ -534,7 +545,7 @@
           <a href="docs/ONBOARDING_ZH.md">查看 Onboarding SOP</a>
         </div>
 
-        <div class="security-note">客服不用拿 Token。只给他们账号和权限，他们只处理顾客 Case。</div>
+        <div class="security-note">正式上线后，客服只需要账号和权限，不需要接触 Token、Cloudflare、Supabase 或系统开关。</div>
       </div>
     </section>
   </main>
