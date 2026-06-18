@@ -3,22 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ChatDaddy AI Agent Dashboard</title>
+  <title>ReplyPilot AI 客服运营中控台</title>
   <style>
     :root {
-      --bg: #f6f8f7;
+      --bg: #f4f7f6;
       --panel: #ffffff;
-      --ink: #142523;
-      --muted: #6b7b80;
-      --line: #d7e2df;
-      --green: #0f9f83;
-      --blue: #2f72d2;
-      --amber: #a96916;
-      --red: #bc4d4d;
-      --soft-green: #eaf8f4;
+      --panel-soft: #f8fbfa;
+      --ink: #102421;
+      --muted: #63757a;
+      --line: #d9e5e2;
+      --green: #0b9b82;
+      --green-deep: #0e3430;
+      --blue: #2d6fca;
+      --amber: #a86d1d;
+      --red: #bf4d4d;
+      --soft-green: #e8f7f3;
       --soft-blue: #edf4ff;
       --soft-amber: #fff5e8;
       --soft-red: #fff0f0;
+      --shadow-sm: 0 10px 28px rgba(16, 36, 33, .06);
+      --shadow-md: 0 22px 64px rgba(16, 36, 33, .10);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
@@ -26,9 +30,11 @@
 
     body {
       margin: 0;
+      min-height: 100vh;
       background:
-        radial-gradient(circle at 20% 0%, rgba(15, 159, 131, .08), transparent 34rem),
-        radial-gradient(circle at 100% 20%, rgba(47, 114, 210, .08), transparent 28rem),
+        linear-gradient(90deg, rgba(14, 52, 48, .055), transparent 30%),
+        radial-gradient(circle at 82% 6%, rgba(45, 111, 202, .12), transparent 28rem),
+        radial-gradient(circle at 28% 0%, rgba(11, 155, 130, .10), transparent 34rem),
         var(--bg);
       color: var(--ink);
     }
@@ -37,42 +43,142 @@
       font: inherit;
     }
 
-    .app {
-      max-width: 1480px;
+    .app-shell {
+      width: min(1680px, 100%);
+      min-height: 100vh;
       margin: 0 auto;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 0;
+      overflow-x: hidden;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 22px;
+      background: linear-gradient(180deg, #0f2926, #112421);
+      color: rgba(255,255,255,.86);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 950;
+      box-shadow: 0 18px 46px rgba(11,155,130,.22);
+      flex: 0 0 auto;
+    }
+
+    .brand b {
+      display: block;
+      color: #fff;
+      line-height: 1.1;
+      font-size: 18px;
+    }
+
+    .brand span {
+      color: rgba(255,255,255,.58);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .side-nav {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .side-nav button,
+    .side-card {
+      width: 100%;
+      text-align: left;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      background: rgba(255,255,255,.045);
+      color: rgba(255,255,255,.72);
+      padding: 11px 12px;
+      font-weight: 850;
+    }
+
+    .side-nav button.active {
+      color: #fff;
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.18);
+    }
+
+    .side-card {
+      display: grid;
+      gap: 8px;
+      color: rgba(255,255,255,.76);
+      line-height: 1.45;
+    }
+
+    .side-card strong {
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .side-card span {
+      color: rgba(255,255,255,.55);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .workspace {
+      min-width: 0;
       padding: 24px;
     }
 
     .topbar {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr);
       gap: 18px;
-      align-items: center;
-      margin-bottom: 18px;
+      align-items: start;
+      margin-bottom: 16px;
     }
 
     h1 {
       margin: 0;
-      font-size: 26px;
+      font-size: clamp(28px, 3vw, 42px);
+      line-height: 1.05;
       letter-spacing: 0;
     }
 
     .subtitle {
       color: var(--muted);
-      margin-top: 4px;
-      font-weight: 650;
+      margin-top: 8px;
+      font-weight: 760;
+      line-height: 1.45;
+      max-width: 720px;
     }
 
     .setup {
       display: grid;
-      grid-template-columns: minmax(220px, 1fr) minmax(180px, .7fr) minmax(180px, .7fr) auto;
+      grid-template-columns: minmax(180px, 1fr) minmax(160px, .8fr) minmax(160px, .8fr) auto;
       gap: 10px;
       align-items: center;
-      background: rgba(255,255,255,.72);
+      background: rgba(255,255,255,.78);
       border: 1px solid var(--line);
-      border-radius: 16px;
+      border-radius: 18px;
       padding: 12px;
       backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-sm);
     }
 
     .setup input,
@@ -83,6 +189,7 @@
       min-width: 0;
       color: var(--ink);
       background: #fff;
+      font-weight: 720;
     }
 
     .demo-bar {
@@ -91,11 +198,11 @@
       gap: 12px;
       align-items: center;
       background: rgba(255,255,255,.82);
-      border: 1px solid #b9e3da;
+      border: 1px solid var(--line);
       border-radius: 18px;
-      padding: 14px 16px;
+      padding: 13px 16px;
       margin-bottom: 16px;
-      box-shadow: 0 16px 40px rgba(20, 37, 35, .05);
+      box-shadow: var(--shadow-sm);
     }
 
     .demo-copy {
@@ -131,9 +238,10 @@
       background: var(--soft-green);
       color: var(--green);
       border-radius: 999px;
-      padding: 7px 10px;
+      padding: 7px 11px;
       font-weight: 900;
-      margin-left: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
     }
 
     .session-bar {
@@ -146,7 +254,7 @@
       border: 1px solid var(--line);
       border-radius: 18px;
       padding: 14px 16px;
-      box-shadow: 0 14px 38px rgba(20, 37, 35, .05);
+      box-shadow: var(--shadow-sm);
     }
 
     .session-title {
@@ -197,17 +305,28 @@
       border: 1px solid var(--line);
       border-radius: 16px;
       padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
     }
 
-    .stat b { display: block; font-size: 24px; }
+    .stat b { display: block; font-size: 26px; line-height: 1; }
     .stat span { color: var(--muted); font-weight: 750; }
+
+    .workbench-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255,255,255,.70);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
 
     .toolbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin-bottom: 16px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.78);
     }
 
     .filters {
@@ -260,6 +379,7 @@
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
+      padding: 16px;
     }
 
     .grid.list {
@@ -268,21 +388,23 @@
 
     .case-card {
       position: relative;
-      min-height: 242px;
-      background: rgba(255,255,255,.88);
+      min-height: 228px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.95), rgba(248,251,250,.90)),
+        var(--panel);
       border: 1px solid var(--line);
       border-radius: 18px;
       padding: 18px;
       cursor: pointer;
       overflow: hidden;
-      box-shadow: 0 14px 38px rgba(20, 37, 35, .06);
+      box-shadow: var(--shadow-sm);
       transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
     }
 
     .case-card:hover {
       transform: translateY(-2px);
       border-color: #a9c9c1;
-      box-shadow: 0 20px 52px rgba(20, 37, 35, .10);
+      box-shadow: 0 22px 62px rgba(16, 36, 33, .12);
     }
 
     .case-card::before {
@@ -302,7 +424,7 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
     }
 
     .case-id {
@@ -325,11 +447,22 @@
       min-width: 0;
     }
 
+    .case-name > div {
+      min-width: 0;
+    }
+
     .case-name b {
-      font-size: 22px;
+      font-size: 21px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .case-kicker {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
     }
 
     .badge {
@@ -351,8 +484,8 @@
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
-      min-height: 76px;
-      margin-bottom: 16px;
+      min-height: 68px;
+      margin-bottom: 13px;
     }
 
     .word {
@@ -364,8 +497,8 @@
       border: 1px solid var(--line);
     }
 
-    .word.big { font-size: 32px; color: var(--amber); background: var(--soft-amber); }
-    .word.mid { font-size: 22px; color: var(--blue); background: var(--soft-blue); }
+    .word.big { font-size: 29px; color: var(--amber); background: var(--soft-amber); }
+    .word.mid { font-size: 20px; color: var(--blue); background: var(--soft-blue); }
     .word.small { font-size: 16px; color: var(--green); background: var(--soft-green); }
 
     .case-message {
@@ -388,25 +521,43 @@
       border-top: 1px solid var(--line);
       color: var(--muted);
       font-weight: 850;
+      font-size: 13px;
+    }
+
+    .grid.list .case-card {
+      min-height: auto;
+      display: grid;
+      grid-template-columns: minmax(220px, .7fr) minmax(360px, 1fr) minmax(220px, .7fr);
+      gap: 18px;
+      align-items: center;
+    }
+
+    .grid.list .case-head,
+    .grid.list .word-cloud,
+    .grid.list .case-message,
+    .grid.list .case-foot {
+      margin: 0;
+      padding: 0;
+      border: 0;
     }
 
     .panel {
       position: fixed;
       inset: 0;
       display: none;
-      background: rgba(9, 20, 18, .38);
+      background: rgba(9, 20, 18, .46);
       z-index: 10;
-      padding: 28px;
+      padding: 24px;
     }
 
     .panel.open { display: grid; place-items: center; }
 
     .panel-card {
-      width: min(1180px, 100%);
-      max-height: 92vh;
+      width: min(1260px, 100%);
+      max-height: 94vh;
       overflow: hidden;
       background: #fff;
-      border-radius: 22px;
+      border-radius: 24px;
       border: 1px solid var(--line);
       box-shadow: 0 30px 90px rgba(0,0,0,.25);
       display: grid;
@@ -427,7 +578,7 @@
       overflow: auto;
       padding: 22px;
       display: grid;
-      grid-template-columns: minmax(0, 1.55fr) minmax(300px, .8fr);
+      grid-template-columns: minmax(0, 1.5fr) minmax(320px, .72fr);
       gap: 18px;
     }
 
@@ -451,7 +602,8 @@
         linear-gradient(rgba(255,255,255,.78), rgba(255,255,255,.78)),
         repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(15,159,131,.07) 32px),
         repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(47,114,210,.05) 32px);
-      min-height: 220px;
+      min-height: 270px;
+      align-content: start;
     }
 
     .bubble {
@@ -469,13 +621,14 @@
 
     textarea {
       width: 100%;
-      min-height: 180px;
+      min-height: 230px;
       resize: vertical;
       border: 1px solid var(--line);
       border-radius: 16px;
       padding: 14px;
       line-height: 1.55;
       font-weight: 700;
+      color: var(--ink);
     }
 
     .action-stack {
@@ -535,93 +688,137 @@
     }
 
     .error {
-      margin: 12px 0;
+      margin: 12px 16px 0;
       color: var(--red);
       font-weight: 850;
     }
 
-    @media (max-width: 980px) {
-      .setup, .demo-bar, .session-bar, .stats, .grid, .panel-body { grid-template-columns: 1fr; }
+    @media (max-width: 1180px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: static;
+        height: auto;
+        grid-template-columns: 1fr;
+        border-radius: 0 0 24px 24px;
+      }
+      .side-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .topbar, .setup, .demo-bar, .session-bar, .stats, .grid, .panel-body { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
+      .grid.list .case-card { grid-template-columns: 1fr; }
       .panel { padding: 10px; }
+    }
+
+    @media (max-width: 720px) {
+      .workspace { padding: 16px; }
+      .side-nav { grid-template-columns: 1fr 1fr; }
+      .toolbar { align-items: stretch; flex-direction: column; }
+      .view-toggle { align-self: flex-start; }
+      .panel-body { padding: 14px; }
     }
   </style>
 </head>
 <body>
-  <main class="app">
-    <div class="topbar">
-      <div>
-        <h1>ReplyPilot AI <span class="mode-tag" id="modeTag">Public Demo</span></h1>
-        <div class="subtitle" id="dashboardSubtitle">AI 客服中控台：看 Case、批准回复、转人工、让系统学习</div>
-      </div>
-      <div class="setup" id="setupPanel">
-        <input id="apiUrl" placeholder="API URL: https://your-worker.workers.dev" />
-        <input id="projectKey" placeholder="Project Key" />
-        <input id="adminToken" placeholder="Admin Token" type="password" />
-        <button class="btn primary" id="saveAndLoad">连接真实系统</button>
-      </div>
-    </div>
-
-    <div class="session-bar" id="sessionBar">
-      <div>
-        <div class="session-title" id="sessionTitle">Public Demo Workspace</div>
-        <div class="session-subtitle" id="sessionSubtitle">Owner / Admin 可以看全部；Staff 只看要处理的顾客。</div>
-      </div>
-      <div class="session-actions">
-        <a class="btn" href="../login.html">切换账号</a>
-        <button class="btn ghost" id="logoutBtn">退出</button>
-      </div>
-    </div>
-
-    <div class="demo-bar">
-      <div class="demo-copy">
-        <span class="demo-dot"></span>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">RP</div>
         <div>
-          <b>公开 Demo 模式</b>
-          <span>不用登录、不用 Token。先看 AI Agent 怎样处理真实客服场景。</span>
+          <b>ReplyPilot AI</b>
+          <span>客服运营中控台</span>
         </div>
       </div>
-      <select id="demoScenario">
-        <option value="ecommerce">电商成交客服</option>
-        <option value="course">课程咨询客服</option>
-        <option value="realestate">房地产 Lead 跟进</option>
-        <option value="aftersales">售后服务客服</option>
-      </select>
-      <button class="btn" id="loadDemo">载入 Demo</button>
-    </div>
 
-    <div class="stats">
-      <div class="stat"><b id="statAll">0</b><span>全部</span></div>
-      <div class="stat"><b id="statApproval">0</b><span>要批准</span></div>
-      <div class="stat"><b id="statHuman">0</b><span>要人工</span></div>
-      <div class="stat"><b id="statOrder">0</b><span>订单</span></div>
-      <div class="stat"><b id="statAuto">0</b><span>自动</span></div>
-    </div>
+      <nav class="side-nav" aria-label="主导航">
+        <button class="active">中控台</button>
+        <button>待处理</button>
+        <button>订单</button>
+        <button>AI 复盘</button>
+      </nav>
 
-    <div class="toolbar">
-      <div class="filters">
-        <button class="pill active" data-filter="all">全部</button>
-        <button class="pill" data-filter="approval_required">要批准</button>
-        <button class="pill" data-filter="human_required">要人工</button>
-        <button class="pill" data-filter="order">订单</button>
-        <button class="pill" data-filter="auto" id="autoFilterBtn">自动</button>
+      <div class="side-card">
+        <strong>当前版本</strong>
+        <span>公开 Demo。连接 Worker 后会读取真实 ChatDaddy Case。</span>
       </div>
-      <div class="view-toggle">
-        <button class="active" id="gridView">Grid</button>
-        <button id="listView">List</button>
-      </div>
-    </div>
+    </aside>
 
-    <div id="error" class="error"></div>
-    <section id="cases" class="grid"></section>
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <span class="mode-tag" id="modeTag">公开演示</span>
+          <h1>AI 客服运营中控台</h1>
+          <div class="subtitle" id="dashboardSubtitle">集中查看顾客状态、AI 判断、建议回复、人工介入和订单进度。客服只处理该处理的 Case。</div>
+        </div>
+        <div class="setup" id="setupPanel">
+          <input id="apiUrl" placeholder="Worker API URL" />
+          <input id="projectKey" placeholder="项目 Key" />
+          <input id="adminToken" placeholder="管理员 Token" type="password" />
+          <button class="btn primary" id="saveAndLoad">连接真实系统</button>
+        </div>
+      </header>
+
+      <div class="session-bar" id="sessionBar">
+        <div>
+          <div class="session-title" id="sessionTitle">公开演示工作台</div>
+          <div class="session-subtitle" id="sessionSubtitle">Owner / Admin 看全局；Staff 只看待处理顾客。</div>
+        </div>
+        <div class="session-actions">
+          <a class="btn" href="../login.html">切换账号</a>
+          <button class="btn ghost" id="logoutBtn">退出</button>
+        </div>
+      </div>
+
+      <div class="demo-bar">
+        <div class="demo-copy">
+          <span class="demo-dot"></span>
+          <div>
+            <b>演示数据</b>
+            <span>用真实客服场景展示 AI 怎样判断、回复、转人工和学习。</span>
+          </div>
+        </div>
+        <select id="demoScenario">
+          <option value="ecommerce">电商成交客服</option>
+          <option value="course">课程咨询客服</option>
+          <option value="realestate">房地产 Lead 跟进</option>
+          <option value="aftersales">售后服务客服</option>
+        </select>
+        <button class="btn" id="loadDemo">载入演示</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b id="statAll">0</b><span>全部 Case</span></div>
+        <div class="stat"><b id="statApproval">0</b><span>待批准</span></div>
+        <div class="stat"><b id="statHuman">0</b><span>需人工</span></div>
+        <div class="stat"><b id="statOrder">0</b><span>订单</span></div>
+        <div class="stat"><b id="statAuto">0</b><span>自动处理</span></div>
+      </div>
+
+      <section class="workbench-card">
+        <div class="toolbar">
+          <div class="filters">
+            <button class="pill active" data-filter="all">全部</button>
+            <button class="pill" data-filter="approval_required">待批准</button>
+            <button class="pill" data-filter="human_required">需人工</button>
+            <button class="pill" data-filter="order">订单</button>
+            <button class="pill" data-filter="auto" id="autoFilterBtn">自动</button>
+          </div>
+          <div class="view-toggle" aria-label="切换视图">
+            <button class="active" id="gridView">卡片</button>
+            <button id="listView">列表</button>
+          </div>
+        </div>
+
+        <div id="error" class="error"></div>
+        <section id="cases" class="grid"></section>
+      </section>
+    </section>
   </main>
 
   <div id="panel" class="panel">
     <div class="panel-card">
       <div class="panel-top">
         <div>
-          <h1 id="panelName">Customer</h1>
-          <div class="subtitle" id="panelMeta">Case detail</div>
+          <h1 id="panelName">顾客</h1>
+          <div class="subtitle" id="panelMeta">Case 详情</div>
         </div>
         <button class="btn ghost" id="closePanel">关闭</button>
       </div>
@@ -635,7 +832,7 @@
         </div>
         <aside class="action-stack">
           <div class="action-card">
-            <span>Agent Action</span>
+            <span>AI 建议动作</span>
             <b id="actionTitle">按「批准发送」</b>
             <p id="actionReason">确认回复后发送。</p>
             <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
@@ -643,7 +840,7 @@
           <button class="btn" id="learnBtn">以后类似 Case 自动通过</button>
           <button class="btn danger" id="handoffBtn">转人工</button>
           <div class="box">
-            <h3>Word Cloud</h3>
+            <h3>重点词</h3>
             <div class="word-cloud" id="panelWords"></div>
           </div>
           <div class="box">
@@ -655,7 +852,7 @@
     </div>
   </div>
 
-  <div class="toast" id="toast">Done</div>
+  <div class="toast" id="toast">已完成</div>
 
   <script>
     const state = {
@@ -725,10 +922,10 @@
           stage: "ORDER",
           action: "review_receipt",
           intent: "receipt",
-          words: ["Receipt", "金额不对", "先审核", "付款"],
-          customer: "[Receipt image uploaded] RM149",
+          words: ["付款截图", "金额不对", "先审核", "付款"],
+          customer: "[付款截图已上传] RM149",
           reply: "收到，我先帮你检查付款资料。金额需要确认一下，确认没问题后才继续处理订单。",
-          reason: "Receipt 金额不清楚，不能自动通过。",
+          reason: "付款金额不清楚，不能自动通过。",
         }),
         demoCase({
           id: "case-005",
@@ -861,7 +1058,7 @@
           stage: "ORDER",
           action: "review_receipt",
           intent: "receipt",
-          words: ["付款截图", "待审核", "订单", "Receipt"],
+          words: ["付款截图", "待审核", "订单", "付款"],
           customer: "我已经付款了，截图发你",
           reply: "收到，我先帮你核对付款截图。确认后会更新订单状态。",
           reason: "付款截图需要审核。",
@@ -932,15 +1129,15 @@
 
     function applySessionShell() {
       const workspace = projectKeyEl.value || state.session.workspace || "demo";
-      const name = state.session.displayName || (state.role === "staff" ? "Staff" : "Owner");
+      const name = state.session.displayName || (state.role === "staff" ? "客服" : "管理者");
       const roleLabel = roleName(state.role);
 
       $("sessionTitle").textContent = `${workspace.toUpperCase()} · ${roleLabel} · ${name}`;
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
 
       $("dashboardSubtitle").textContent = state.role === "staff"
-        ? "客服工作台：只看要批准、要人工、订单"
-        : "AI 客服中控台：看 Case、批准回复、转人工、让系统学习";
+        ? "客服工作台：只显示待批准、需人工和订单。"
+        : "集中查看顾客状态、AI 判断、建议回复、人工介入和订单进度。";
 
       $("setupPanel").classList.toggle("hidden", state.role === "staff");
       $("autoFilterBtn").classList.toggle("hidden", state.role === "staff");
@@ -948,13 +1145,13 @@
     }
 
     function roleName(role) {
-      const map = { owner: "Owner", admin: "Admin", staff: "Staff" };
-      return map[role] || "Owner";
+      const map = { owner: "Owner 管理者", admin: "Admin 运营", staff: "Staff 客服" };
+      return map[role] || "Owner 管理者";
     }
 
     function roleSubtitle(role) {
       if (role === "staff") return "只显示客服该处理的顾客，不显示 Token、API、系统设置和自动 Case。";
-      if (role === "admin") return "可以处理 Case、复盘 AI 决定、检查学习规则。";
+      if (role === "admin") return "可以处理 Case、复盘 AI 判断、检查学习规则。";
       return "可以看全部项目、系统状态、真实连接和团队入口。";
     }
 
@@ -977,7 +1174,7 @@
 
       if (!api || !token) {
         loadDemoCases();
-        showToast("已载入公开 Demo。连接真实系统才需要 API URL 和 Admin Token。");
+        showToast("已载入公开演示。连接真实系统才需要 Worker URL 和管理员 Token。");
         return;
       }
 
@@ -988,7 +1185,7 @@
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
-        $("modeTag").textContent = "Live API";
+        $("modeTag").textContent = "真实系统";
         state.cases = data.cases || [];
         render();
       } catch (error) {
@@ -999,7 +1196,7 @@
     function loadDemoCases() {
       state.demoMode = true;
       state.scenario = demoScenarioEl.value || "ecommerce";
-      $("modeTag").textContent = "Public Demo";
+      $("modeTag").textContent = "公开演示";
       errorEl.textContent = "";
       state.cases = clone(DEMO_SCENARIOS[state.scenario] || DEMO_SCENARIOS.ecommerce);
       render();
@@ -1033,7 +1230,10 @@
           <div class="case-head">
             <div class="case-name">
               <span class="case-id">${escapeHtml(initials)}</span>
-              <b>${escapeHtml(item.contact?.name || "Customer")}</b>
+              <div>
+                <b>${escapeHtml(item.contact?.name || "顾客")}</b>
+                <div class="case-kicker">${escapeHtml(decision.stage || "S1")} · ${escapeHtml(intentLabel(decision.intent))}</div>
+              </div>
             </div>
             <span class="badge ${riskClass}">${escapeHtml(statusLabel(item.status, decision.risk))}</span>
           </div>
@@ -1042,7 +1242,7 @@
           </div>
           <div class="case-message">${escapeHtml(item.last_message || "")}</div>
           <div class="case-foot">
-            <span>Agent: ${escapeHtml(actionLabel(decision.action))}</span>
+            <span>AI：${escapeHtml(actionLabel(decision.action))}</span>
             <span>${formatDate(item.updated_at)}</span>
           </div>
         </article>
@@ -1055,7 +1255,7 @@
       state.active = item;
 
       const decision = item.latest_decision || {};
-      $("panelName").textContent = item.contact?.name || "Customer";
+      $("panelName").textContent = item.contact?.name || "顾客";
       $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${decision.stage || "S1"} · ${formatDate(item.updated_at)}`;
       $("replyBox").value = decision.reply_message || "";
       $("actionTitle").textContent = decision.action === "ask_human" ? "按「转人工」" : decision.send_now ? "可自动发送" : "按「批准发送」";
@@ -1254,11 +1454,26 @@
         approve_reply: "批准发送",
         ask_human: "转人工",
         collect_order: "收订单",
-        review_receipt: "审 Receipt",
-        trigger_flow: "接 Flow",
+        review_receipt: "审付款",
+        trigger_flow: "接自动流程",
         wait: "等待",
       };
       return map[action] || action || "判断";
+    }
+
+    function intentLabel(intent) {
+      const map = {
+        price_objection: "价格异议",
+        complaint: "投诉风险",
+        buy_intent: "下单意向",
+        receipt: "付款审核",
+        faq: "常见问题",
+        follow_up: "跟进提醒",
+        refund: "退款条款",
+        budget_check: "预算确认",
+        legal_sensitive: "敏感问题",
+      };
+      return map[intent] || "顾客咨询";
     }
 
     function formatDate(value) {
