@@ -5,7 +5,7 @@
 它做三件事：
 
 1. 接收 ChatDaddy webhook 的顾客消息。
-2. 让 AI 判断：自动回复、要批准、转人工、订单、Follow-up。
+2. 让 AI 判断：要批准、转人工、订单、Follow-up，固定 Flow 才自动跑。
 3. 在 Dashboard 处理 Case，并可写入 Google Sheet 做复盘。
 
 这个 repo 不包含任何真实顾客资料、API token、Google Sheet 链接或生产账号。
@@ -133,14 +133,15 @@ dashboard/index.html
 1. `AUTO_SEND=false`
 2. Dashboard 审批 20-50 个真实 case
 3. 找出稳定低风险类型
-4. 再逐步开启自动回复或自动规则
+4. 再逐步开启已验证的自动规则
 
 ## 核心闭环
 
 ```text
 顾客问问题
   -> AI 判断 intent / stage / risk
-  -> 低风险：自动回复
+  -> 广告关键词：ChatDaddy Step 1 自己发，AI 不补发
+  -> 顾客疑问：Dashboard 待批准，客服确认后再发
   -> 中风险：Dashboard 批准
   -> 高风险：转人工
   -> 已下单：收资料 / 交给订单流程

@@ -96,10 +96,14 @@ async function handleChatDaddyWebhook(request, env, projectKey) {
 }
 
 async function decide(env, projectKey, inbound) {
+  if (isStepOneKeywordLead(inbound.text || "")) {
+    return rulesDecision(inbound);
+  }
+
   if (env.OPENAI_API_KEY && (env.AI_PROVIDER || "openai") === "openai") {
     try {
       const aiDecision = await decideWithOpenAI(env, projectKey, inbound);
-      return normalizeDecision(aiDecision, "openai");
+      return enforceReplyPolicy(normalizeDecision(aiDecision, "openai"), inbound, env);
     } catch (error) {
       const fallback = rulesDecision(inbound);
       fallback.reason = `AI fallback: ${error.message || String(error)}`;
@@ -169,6 +173,19 @@ function rulesDecision(inbound) {
   const text = inbound.text || "";
   const lower = text.toLowerCase();
 
+  if (isStepOneKeywordLead(text)) {
+    return normalizeDecision({
+      reply_message: "ChatDaddy 已经根据关键词进入 Step 1，AI 不额外发送文字。",
+      intent: "keyword_lead",
+      stage: "S1",
+      risk: "low",
+      action: "trigger_flow",
+      send_now: false,
+      reason: "顾客从广告关键词进来，由 ChatDaddy Step 1 自动流程处理，AI 不重复回复。",
+      keywords: ["关键词进线", "Step 1", "不额外回复"],
+    }, "rules");
+  }
+
   if (/(投诉|生气|骗子|退款|退钱|cancel|refund|complaint)/i.test(text)) {
     return normalizeDecision({
       reply_message: "我先帮你转给人工同事处理，这类情况我们需要看清楚记录后再回复你。",
@@ -236,26 +253,26 @@ function rulesDecision(inbound) {
 
   if (/(多久|有效|效果|怎么用|一天|几次|how long|effect|use)/i.test(lower)) {
     return normalizeDecision({
-      reply_message: "可以的，通常要看个人情况和配合度。你可以先告诉我你现在最想改善什么，我再帮你判断适不适合。",
+      reply_message: "亲，效果会看个人体质和配合度。多数顾客会先感觉排便和肚子比较轻；认真配合的人通常 1-2 周会比较明显。我先帮你看它主要怎样帮你处理。",
       intent: "faq",
       stage: "S1",
-      risk: "low",
-      action: "send_reply",
-      send_now: true,
-      reason: "低风险 FAQ",
-      keywords: ["问用法", "效果", "低风险"],
+      risk: "medium",
+      action: "approve_reply",
+      send_now: false,
+      reason: "顾客开始问用法或效果，需要客服确认后再发，避免 AI 自动乱回。",
+      keywords: ["顾客疑问", "效果", "待批准"],
     }, "rules");
   }
 
   return normalizeDecision({
-    reply_message: "可以，我先了解一下。你现在主要想解决什么问题？",
+    reply_message: "收到，我先看你的情况再回复你。你现在最在意的是效果、价格，还是安全感？",
     intent: "unclear",
     stage: "S1",
-    risk: "low",
-    action: "send_reply",
-    send_now: true,
-    reason: "普通开场问题",
-    keywords: ["了解问题", "S1", "低风险"],
+    risk: "medium",
+    action: "approve_reply",
+    send_now: false,
+    reason: "顾客讯息需要人工确认语境，不自动回复。",
+    keywords: ["需要判断", "手动回复", "待批准"],
   }, "rules");
 }
 
@@ -277,6 +294,65 @@ function normalizeDecision(input, source) {
   };
 }
 
+function enforceReplyPolicy(decision, inbound, env) {
+  const text = inbound.text || "";
+  if (isStepOneKeywordLead(text)) {
+    return normalizeDecision({
+      reply_message: "ChatDaddy 已经根据关键词进入 Step 1，AI 不额外发送文字。",
+      intent: "keyword_lead",
+      stage: "S1",
+      risk: "low",
+      action: "trigger_flow",
+      send_now: false,
+      reason: "顾客从广告关键词进来，由 ChatDaddy Step 1 自动流程处理，AI 不重复回复。",
+      keywords: ["关键词进线", "Step 1", "不额外回复"],
+    }, decision.source || "policy");
+  }
+
+  if (decision.send_now && env.ALLOW_AI_AUTO_REPLY !== "true") {
+    return {
+      ...decision,
+      risk: decision.risk === "high" ? "high" : "medium",
+      action: decision.action === "ask_human" ? "ask_human" : "approve_reply",
+      send_now: false,
+      reason: `顾客有疑问或需要语境判断，先让客服确认。原判断：${decision.reason}`,
+      keywords: uniqueWords([...(decision.keywords || []), "手动回复", "待批准"]).slice(0, 8),
+    };
+  }
+
+  return decision;
+}
+
+function isStepOneKeywordLead(text) {
+  const value = normalizeText(text);
+  if (!value) return false;
+
+  const hasQuestionOrConcern = /(？|\?|吗|怎样|怎么|多久|效果|可以|没有|怕|担心|贵|考虑|试过|产品|下单|地址|电话|付款|receipt|refund|投诉|药|怀孕|病|医生)/i.test(value);
+  if (hasQuestionOrConcern) return false;
+
+  const keywordLeads = [
+    "我要了解beyoute",
+    "我要了解beyoute+阻碳kombucha",
+    "了解beyoute",
+    "beyoute+阻碳kombucha",
+    "beyoute阻碳kombucha",
+    "阻碳kombucha",
+  ];
+
+  return keywordLeads.some((keyword) => value.includes(keyword));
+}
+
+function normalizeText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[💚💕❤️❤🌹🎉✨\s]/g, "")
+    .trim();
+}
+
+function uniqueWords(words) {
+  return [...new Set(words.filter(Boolean))];
+}
+
 async function upsertCase(env, projectKey, inbound, decision, rawPayload) {
   const kv = getKV(env);
   const caseId = inbound.conversationId || inbound.messageId || crypto.randomUUID();
@@ -288,6 +364,8 @@ async function upsertCase(env, projectKey, inbound, decision, rawPayload) {
     ? "human_required"
     : decision.action === "collect_order" || decision.action === "review_receipt"
       ? "order"
+      : decision.action === "trigger_flow" || decision.action === "wait"
+        ? "auto"
       : decision.send_now
         ? "auto"
         : "approval_required";

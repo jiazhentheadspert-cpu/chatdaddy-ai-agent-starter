@@ -51,11 +51,14 @@ npm run secret:chatdaddy
 建议顺序：
 
 ```text
-先接 webhook
+ChatDaddy 先设置广告关键词 -> 直接进入 Step 1
+-> 再接 webhook
 -> Dashboard 能看到 Case
--> 先人工批准发送
--> 稳定后开低风险自动回复
+-> 顾客后续有疑问，先人工批准发送
+-> 稳定后只放宽已经验证过的低风险规则
 -> 最后才接自动 Flow / Follow-up
 ```
 
 不要第一天就全自动。
+
+重点：顾客刚从广告关键词进来时，不要让 AI 再补发一句。Step 1 交给 ChatDaddy Flow 自己发。

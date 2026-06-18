@@ -354,6 +354,7 @@
     .btn.primary { background: linear-gradient(135deg, #0f9f83, #2f72d2); color: #fff; border-color: transparent; }
     .btn.danger { background: var(--soft-red); color: var(--red); border-color: #f0c1c1; }
     .btn.ghost { background: transparent; }
+    .btn:disabled { cursor: not-allowed; opacity: .55; transform: none; }
     .hidden { display: none !important; }
 
     .bulk-bar {
@@ -1519,21 +1520,22 @@
       position: fixed;
       inset: 0;
       display: none;
-      background: rgba(9, 20, 18, .46);
+      background: rgba(9, 20, 18, .50);
       z-index: 10;
       padding: 24px;
+      backdrop-filter: blur(10px);
     }
 
     .panel.open { display: grid; place-items: center; }
 
     .panel-card {
-      width: min(1260px, 100%);
+      width: min(1360px, 100%);
       max-height: 94vh;
       overflow: hidden;
       background: #fff;
-      border-radius: 24px;
+      border-radius: 28px;
       border: 1px solid var(--line);
-      box-shadow: 0 30px 90px rgba(0,0,0,.25);
+      box-shadow: 0 34px 110px rgba(0,0,0,.28);
       display: grid;
       grid-template-rows: auto 1fr;
     }
@@ -1543,17 +1545,64 @@
       justify-content: space-between;
       align-items: center;
       gap: 16px;
-      padding: 18px 22px;
+      padding: 18px 20px;
       border-bottom: 1px solid var(--line);
-      background: linear-gradient(135deg, #ffffff, #f1faf8);
+      background:
+        radial-gradient(circle at 92% 0%, rgba(45,111,202,.10), transparent 30%),
+        linear-gradient(135deg, #ffffff, #f1faf8);
+    }
+
+    .panel-customer {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      min-width: 0;
+    }
+
+    .panel-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      color: var(--green-deep);
+      background: linear-gradient(135deg, #dff8f1, #eff7ff);
+      border: 1px solid #b9e3da;
+      font-weight: 950;
+      flex: 0 0 auto;
+    }
+
+    .panel-eyebrow {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .panel-top h1 {
+      font-size: 25px;
+      line-height: 1.1;
+    }
+
+    .panel-top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .panel-body {
       overflow: auto;
-      padding: 22px;
+      padding: 18px;
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(320px, .72fr);
+      grid-template-columns: minmax(0, 1.44fr) minmax(340px, .64fr);
       gap: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.90), rgba(248,251,250,.96)),
+        var(--panel-soft);
     }
 
     .box {
@@ -1561,12 +1610,33 @@
       border-radius: 18px;
       padding: 18px;
       background: #fff;
+      box-shadow: 0 12px 34px rgba(16,36,33,.045);
     }
 
     .box h3 {
       margin: 0 0 12px;
       color: var(--muted);
       font-size: 16px;
+    }
+
+    .box-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .box-title span {
+      color: var(--green);
+      font-size: 12px;
+      letter-spacing: 0;
+      text-transform: none;
     }
 
     .chat {
@@ -1576,7 +1646,9 @@
         linear-gradient(rgba(255,255,255,.78), rgba(255,255,255,.78)),
         repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(15,159,131,.07) 32px),
         repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(47,114,210,.05) 32px);
-      min-height: 270px;
+      min-height: 310px;
+      max-height: 360px;
+      overflow: auto;
       align-content: start;
     }
 
@@ -1592,7 +1664,7 @@
       border-radius: 16px;
       background: linear-gradient(135deg, #fff, #f8fbfa);
       padding: 13px;
-      min-height: 92px;
+      min-height: 88px;
     }
 
     .detail-tile.wide {
@@ -1660,7 +1732,7 @@
 
     textarea {
       width: 100%;
-      min-height: 230px;
+      min-height: 190px;
       resize: vertical;
       border: 1px solid var(--line);
       border-radius: 16px;
@@ -1698,20 +1770,40 @@
       gap: 12px;
       align-content: start;
       position: sticky;
-      top: 0;
+      top: 12px;
     }
 
     .action-card {
-      background: linear-gradient(135deg, var(--soft-green), var(--soft-blue));
+      background:
+        radial-gradient(circle at top right, rgba(45,111,202,.13), transparent 36%),
+        linear-gradient(135deg, var(--soft-green), var(--soft-blue));
       border: 1px solid #b9e3da;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 18px;
     }
 
     .action-card b {
       display: block;
-      font-size: 28px;
+      font-size: 30px;
+      line-height: 1.08;
       margin: 6px 0 10px;
+    }
+
+    .action-card span,
+    .action-card p {
+      color: var(--muted);
+      font-weight: 820;
+      line-height: 1.45;
+    }
+
+    .action-card .btn {
+      margin-top: 14px;
+      min-height: 48px;
+    }
+
+    .side-actions {
+      display: grid;
+      gap: 10px;
     }
 
     .history {
@@ -1727,6 +1819,14 @@
       padding: 10px;
       color: var(--muted);
       font-weight: 750;
+    }
+
+    .left { min-width: 0; }
+
+    .reply-card {
+      margin-top: 14px;
+      border-color: #b9e3da;
+      background: linear-gradient(180deg, #fff, #fbfefd);
     }
 
     .toast {
@@ -1775,6 +1875,80 @@
 
     @media (max-width: 720px) {
       body { overflow-x: hidden; }
+      .panel.open { align-items: stretch; }
+      .panel {
+        padding: 0;
+        justify-items: stretch;
+      }
+      .panel-card {
+        position: absolute;
+        inset: 10px;
+        width: auto;
+        max-width: none;
+        max-height: none;
+        border-radius: 22px;
+      }
+      .panel-top {
+        align-items: flex-start;
+        padding: 14px;
+      }
+      .panel-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+      }
+      .panel-top h1 { font-size: 22px; }
+      .panel-top-actions {
+        align-self: flex-start;
+        gap: 8px;
+      }
+      .panel-body {
+        gap: 12px;
+        padding: 12px 24px 12px 12px;
+        min-width: 0;
+        max-width: 100%;
+      }
+      .panel-intel { margin-bottom: 10px; }
+      .action-stack {
+        position: static;
+        order: -1;
+        min-width: 0;
+        max-width: 100%;
+      }
+      .action-card {
+        padding: 15px;
+        border-radius: 18px;
+        min-width: 0;
+      }
+      .action-card b { font-size: 24px; }
+      .action-card p,
+      .action-card span,
+      .detail-tile small,
+      .history-item {
+        overflow-wrap: anywhere;
+      }
+      .chat {
+        min-height: 220px;
+        max-height: 320px;
+      }
+      .bubble {
+        max-width: 92%;
+        overflow-wrap: anywhere;
+      }
+      textarea { min-height: 150px; }
+      .reply-card { margin-top: 10px; }
+      .word.big { font-size: 22px; }
+      .word.mid { font-size: 17px; }
+      .word.small { font-size: 14px; }
+      #panelWords .word:nth-child(n+4) { display: none; }
+      .box,
+      .detail-tile,
+      .action-card,
+      .word-cloud {
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+      }
       .app-shell, .sidebar, .workspace {
         width: 100% !important;
         max-width: 100vw !important;
@@ -1820,7 +1994,6 @@
       }
       .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
       .view-toggle { align-self: flex-start; }
-      .panel-body { padding: 14px; }
       .member-row { grid-template-columns: 38px minmax(0, 1fr); }
       .member-row .ops-mini { grid-column: 1 / -1; justify-content: center; }
       .summary-line, .decision-item { grid-template-columns: 1fr; }
@@ -1906,7 +2079,7 @@
         <div class="stat"><b id="statApproval">0</b><span>待批准</span></div>
         <div class="stat"><b id="statHuman">0</b><span>需人工</span></div>
         <div class="stat"><b id="statOrder">0</b><span>订单</span></div>
-        <div class="stat"><b id="statAuto">0</b><span>自动处理</span></div>
+        <div class="stat"><b id="statAuto">0</b><span>Flow 自动</span></div>
       </div>
 
       <section class="ops-grid" id="opsGrid" aria-label="运营状态"></section>
@@ -1962,18 +2135,28 @@
   <div id="panel" class="panel">
     <div class="panel-card">
       <div class="panel-top">
-        <div>
-          <h1 id="panelName">顾客</h1>
-          <div class="subtitle" id="panelMeta">顾客详情</div>
+        <div class="panel-customer">
+          <div class="panel-avatar" id="panelAvatar">客</div>
+          <div>
+            <div class="panel-eyebrow">当前顾客</div>
+            <h1 id="panelName">顾客</h1>
+            <div class="subtitle" id="panelMeta">顾客详情</div>
+          </div>
         </div>
-        <button class="btn ghost" id="closePanel">关闭</button>
+        <div class="panel-top-actions">
+          <span class="badge low" id="panelStatusPill">待处理</span>
+          <button class="btn ghost" id="closePanel">关闭</button>
+        </div>
       </div>
       <div class="panel-body">
         <div class="left">
           <div class="panel-intel" id="caseDetails"></div>
-          <div class="box chat" id="chatBox"></div>
-          <div class="box" style="margin-top: 14px;">
-            <h3>待确认回复</h3>
+          <div class="box">
+            <div class="box-title">聊天记录 <span>先看最后一句</span></div>
+            <div class="chat" id="chatBox"></div>
+          </div>
+          <div class="box reply-card">
+            <div class="box-title">建议回复 <span>可以直接修改</span></div>
             <textarea id="replyBox"></textarea>
             <div class="reply-tools" aria-label="回复快捷调整">
               <button class="reply-chip" data-reply-template="warm" type="button">语气温柔一点</button>
@@ -1990,8 +2173,10 @@
             <p id="actionReason">确认回复后发送。</p>
             <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
           </div>
-          <button class="btn" id="learnBtn">以后类似顾客自动通过</button>
-          <button class="btn danger" id="handoffBtn">转人工</button>
+          <div class="side-actions">
+            <button class="btn" id="learnBtn">以后类似情况少审核</button>
+            <button class="btn danger" id="handoffBtn">转人工</button>
+          </div>
           <div class="box">
             <h3>重点词</h3>
             <div class="word-cloud" id="panelWords"></div>
@@ -2022,10 +2207,12 @@
       selected: new Set(),
       settings: null,
       auditEvents: [],
+      pendingCaseId: null,
+      deepLinkOpened: false,
     };
 
     const DEFAULT_SETTINGS = {
-      brandVoice: "马来西亚华人客服语气：自然、直接、有温度。看价前先解决疑问；看价后用成交逻辑处理异议。",
+      brandVoice: "马来西亚华人客服语气：自然、直接、有温度。广告关键词由 ChatDaddy 自动进入 Step 1；顾客后续只要提问或有顾虑，先进入待批准。",
       brandKb: "产品卖点、价格、常见问题、信心证明、禁忌、订单资料和付款规则。",
       flowMap: {
         s1: "bot_b420c7c1986ebbce",
@@ -2038,6 +2225,7 @@
       rules: {
         complaint: true,
         health: true,
+        questions: true,
         receipt: true,
         priceAfter: true,
       },
@@ -2057,6 +2245,32 @@
       ecommerce: [
         demoCase({
           id: "case-001",
+          name: "Mints",
+          status: "auto",
+          risk: "low",
+          stage: "S1",
+          action: "trigger_flow",
+          intent: "keyword_lead",
+          words: ["关键词进线", "进 Step 1", "不额外回复", "自动流程"],
+          customer: "我要了解Beyoute+阻碳 Kombucha",
+          reply: "ChatDaddy 已经根据关键词进入 Step 1，AI 不额外发送文字。",
+          reason: "顾客从广告关键词进来，由 ChatDaddy Step 1 自动流程处理，AI 不重复回复。",
+        }),
+        demoCase({
+          id: "case-002",
+          name: "WV",
+          status: "approval_required",
+          risk: "medium",
+          stage: "S1",
+          action: "approve_reply",
+          intent: "product_doubt",
+          words: ["试过没效", "担心没效果", "手动回复", "待批准"],
+          customer: "对，我尝试太多产品了。我害怕最后还是一样没什么效果",
+          reply: "明白，你会担心是正常的，尤其是之前试过很多产品没有效果。\n\n我先不会直接叫你买。我先帮你看清楚：Beyoute 重点不是泻药，而是阻碳水、燃脂和排宿便，比较适合想认真调整肚腩、排便和体重的人。\n\n如果你愿意，我可以先问你 2 个问题，判断你适不适合再推荐配套。",
+          reason: "顾客表达担心和过去失败经验，必须人工确认语气后再回复。",
+        }),
+        demoCase({
+          id: "case-003",
           name: "Maya Lim",
           status: "approval_required",
           risk: "medium",
@@ -2069,7 +2283,7 @@
           reason: "看价后异议，不继续普通自动流程，改用成交回复。",
         }),
         demoCase({
-          id: "case-002",
+          id: "case-004",
           name: "Aina",
           status: "human_required",
           risk: "high",
@@ -2082,7 +2296,7 @@
           reason: "投诉和负面情绪必须转人工，避免 AI 继续推销。",
         }),
         demoCase({
-          id: "case-003",
+          id: "case-005",
           name: "Chloe",
           status: "order",
           risk: "low",
@@ -2095,7 +2309,7 @@
           reason: "名字、电话、地址、付款方式齐全，可以提交订单。",
         }),
         demoCase({
-          id: "case-004",
+          id: "case-006",
           name: "Joanne",
           status: "approval_required",
           risk: "medium",
@@ -2108,20 +2322,20 @@
           reason: "付款金额不清楚，不能自动通过。",
         }),
         demoCase({
-          id: "case-005",
+          id: "case-007",
           name: "Nadia",
-          status: "auto",
-          risk: "low",
+          status: "approval_required",
+          risk: "medium",
           stage: "S1",
-          action: "send_reply",
+          action: "approve_reply",
           intent: "faq",
-          words: ["问用法", "多久有效", "看价前", "接 Step 2"],
+          words: ["问用法", "多久有效", "手动回复", "待批准"],
           customer: "一天喝几次？多久看到效果？",
           reply: "通常一天 1-2 次，效果会看个人体质和配合度。多数顾客会先感觉排便和肚子比较轻。我先帮你看它主要怎样帮你处理。",
-          reason: "低风险问题，可以自动回复后接下一步。",
+          reason: "顾客开始问问题，需要客服确认后再回复，不直接自动发送。",
         }),
         demoCase({
-          id: "case-006",
+          id: "case-008",
           name: "May",
           status: "auto",
           risk: "low",
@@ -2151,15 +2365,15 @@
         demoCase({
           id: "course-002",
           name: "Elaine",
-          status: "auto",
-          risk: "low",
+          status: "approval_required",
+          risk: "medium",
           stage: "S1",
-          action: "send_reply",
+          action: "approve_reply",
           intent: "faq",
-          words: ["适合新手", "时间", "课程内容", "低风险"],
+          words: ["适合新手", "时间", "课程内容", "待批准"],
           customer: "新手可以学吗？一周要花多久？",
           reply: "可以，新手可以跟。建议一周预留 3-4 小时，先跟着步骤完成作业，不需要一开始就很专业。",
-          reason: "课程常见问题，可自动回复。",
+          reason: "顾客正在问课程细节，先让客服确认再发送。",
         }),
         demoCase({
           id: "course-003",
@@ -2192,15 +2406,15 @@
         demoCase({
           id: "home-002",
           name: "Siti",
-          status: "auto",
-          risk: "low",
+          status: "approval_required",
+          risk: "medium",
           stage: "S1",
-          action: "send_reply",
+          action: "approve_reply",
           intent: "faq",
-          words: ["贷款", "首期", "资格", "低风险"],
+          words: ["贷款", "首期", "资格", "待批准"],
           customer: "买房需要多少首期？",
           reply: "一般要看贷款资格和项目条件。你可以先告诉我预算、收入范围和想买来自住还是投资，我再帮你大概判断。",
-          reason: "通用咨询，可自动回复。",
+          reason: "牵涉资格和预算，先让顾问确认后再回复。",
         }),
         demoCase({
           id: "home-003",
@@ -2246,15 +2460,15 @@
         demoCase({
           id: "service-003",
           name: "Mei",
-          status: "auto",
-          risk: "low",
+          status: "approval_required",
+          risk: "medium",
           stage: "S1",
-          action: "send_reply",
+          action: "approve_reply",
           intent: "faq",
-          words: ["换地址", "未发货", "低风险", "自动"],
+          words: ["换地址", "未发货", "待批准", "客服确认"],
           customer: "还没发货的话可以换地址吗？",
           reply: "可以，如果还没发货通常可以更换。麻烦你发新的收件人、电话和完整地址，我帮你记录。",
-          reason: "低风险售后问题，可自动回复。",
+          reason: "涉及订单资料修改，先确认订单状态再回复。",
         }),
       ],
     };
@@ -2263,6 +2477,7 @@
     state.session = readSession();
     state.role = params.get("role") || state.session.role || "owner";
     state.workspaceView = params.get("view") || state.workspaceView;
+    state.pendingCaseId = params.get("case_id") || null;
 
     apiUrlEl.value = params.get("api") || state.session.apiUrl || localStorage.getItem("agent_api_url") || "";
     projectKeyEl.value = params.get("project_key") || state.session.projectKey || localStorage.getItem("agent_project_key") || "demo";
@@ -2739,6 +2954,11 @@
         checkbox.addEventListener("click", (event) => event.stopPropagation());
         checkbox.addEventListener("change", () => toggleCaseSelection(checkbox.dataset.selectCaseId, checkbox.checked));
       });
+
+      if (state.pendingCaseId && !state.deepLinkOpened) {
+        state.deepLinkOpened = true;
+        requestAnimationFrame(() => openCase(state.pendingCaseId));
+      }
     }
 
     function pruneSelection(cases) {
@@ -2918,7 +3138,7 @@
           <section class="command-panel">
             <div class="command-kicker">队列健康</div>
             <strong class="command-title">自动 ${escapeHtml(counts.auto)} · 待办 ${escapeHtml(counts.needs)}</strong>
-            <p class="command-copy">简单问题自动处理；成交、投诉和订单进入待办。</p>
+            <p class="command-copy">固定 Flow 自动跑；顾客提问、投诉和订单进入待办。</p>
             <div class="metric-strip">
               ${metricHtml(counts.approval, "待批准")}
               ${metricHtml(counts.human, "需人工")}
@@ -2988,7 +3208,8 @@
             <strong class="command-title">${learned} 条学习记录</strong>
             <p class="command-copy">人工批准后可以把安全规则沉淀下来。下次同类低风险顾客，AI 可以更少打扰团队。</p>
             <div class="compact-list">
-              ${compactRow("低风险问题", "看价前问题可自动回复并接下一步自动流程", "可自动")}
+              ${compactRow("关键词进线", "ChatDaddy 自动进入 Step 1，AI 不额外回复", "自动")}
+              ${compactRow("顾客疑问", "问效果、用法、担心没效，先人工确认", "待批准")}
               ${compactRow("价格后异议", "先人工确认成交话术，再逐步放宽", "需审核")}
               ${compactRow("投诉敏感", "永远转人工，不让 AI 硬回", "保护品牌")}
             </div>
@@ -3173,6 +3394,7 @@
               <div class="rule-list">
                 ${ruleRow("complaint", "投诉/生气", "自动停止流程，转人工。")}
                 ${ruleRow("health", "健康/敏感", "不乱承诺效果，必要时人工确认。")}
+                ${ruleRow("questions", "顾客疑问", "问用法、效果或担心没效，先待批准。")}
                 ${ruleRow("receipt", "付款截图", "金额不清楚先审核。")}
                 ${ruleRow("priceAfter", "看价后异议", "使用成交回复，不乱接普通自动流程。")}
               </div>
@@ -3321,8 +3543,8 @@
           body: "检查资料和付款，确认后再提交或交给运营。",
         },
         auto: {
-          title: `${counts.auto} 个自动处理中`,
-          body: "低风险问题、跟进和自动流程会自己跑。",
+          title: `${counts.auto} 个 Flow 自动中`,
+          body: "只包含 ChatDaddy 固定 Flow、关键词进线和已排好的跟进。",
         },
       };
       return views[filter] || views.all;
@@ -3413,11 +3635,19 @@
       state.active = item;
 
       const decision = item.latest_decision || {};
+      const isFlowOnly = decision.action === "trigger_flow";
+      const statusTone = riskTone(item);
       $("panelName").textContent = item.contact?.name || "顾客";
+      $("panelAvatar").textContent = initialsFor(item.contact?.name || "顾客");
       $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
       $("replyBox").value = decision.reply_message || "";
-      $("actionTitle").textContent = decision.action === "ask_human" ? "按「转人工」" : decision.send_now ? "可自动发送" : "按「批准发送」";
+      $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = decision.reason || "确认回复后发送。";
+      $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
+      $("panelStatusPill").textContent = statusLabel(item.status, decision.risk);
+      $("approveBtn").textContent = isFlowOnly ? "已交给 Step 1" : item.status === "order" ? "确认处理" : "批准发送";
+      $("approveBtn").disabled = isFlowOnly;
+      $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly);
       $("caseDetails").innerHTML = caseDetailsHtml(item);
 
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
@@ -3434,6 +3664,15 @@
       }).join("");
 
       $("panel").classList.add("open");
+    }
+
+    function initialsFor(name) {
+      return String(name || "顾客")
+        .split(/\s+/)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "客";
     }
 
     function caseDetailsHtml(item) {
@@ -3456,7 +3695,7 @@
         <div class="detail-tile">
           <span>下一步</span>
           <b>${escapeHtml(actionLabel(decision.action))}</b>
-          <small>${escapeHtml(decision.send_now ? "可自动执行" : "需要确认")}</small>
+          <small>${escapeHtml(actionHint(item))}</small>
         </div>
         <div class="detail-tile">
           <span>处理时限</span>
@@ -3478,7 +3717,7 @@
     function slaInfo(item) {
       const status = item.status;
       if (status === "auto" || status === "sent") {
-        return { text: status === "auto" ? "自动中" : "已处理", tone: "", note: "不需要人工盯着。" };
+        return { text: status === "auto" ? "自动中" : "已处理", tone: "", note: "固定 Flow 已接手。" };
       }
 
       const time = new Date(item.updated_at || item.last_message_at || Date.now()).getTime();
@@ -3502,6 +3741,12 @@
 
     function handoffAdvice(item) {
       const decision = item.latest_decision || {};
+      if (decision.action === "trigger_flow") {
+        return {
+          title: "不用人工回复",
+          body: "这是广告关键词进线，交给 ChatDaddy Step 1 自动流程处理。",
+        };
+      }
       if (item.status === "human_required" || decision.action === "ask_human") {
         return {
           title: "人工接手",
@@ -3521,8 +3766,8 @@
         };
       }
       return {
-        title: "让 AI 继续跑",
-        body: "低风险问题或跟进，可让自动流程继续处理。",
+        title: "继续监控",
+        body: "没有人工风险时，保持在当前流程；顾客再提问就进待批准。",
       };
     }
 
@@ -3550,6 +3795,24 @@
         HUMAN: "交给真人处理。",
       };
       return map[stage] || "按当前状态处理。";
+    }
+
+    function actionTitle(item) {
+      const decision = item.latest_decision || {};
+      if (decision.action === "trigger_flow") return "不用发送";
+      if (decision.action === "ask_human") return "按「转人工」";
+      if (item.status === "order") return "检查后提交";
+      if (decision.send_now) return "Flow 自动中";
+      return "按「批准发送」";
+    }
+
+    function actionHint(item) {
+      const decision = item.latest_decision || {};
+      if (decision.action === "trigger_flow") return "ChatDaddy 已接 Step 1，AI 不补发文字";
+      if (decision.action === "ask_human") return "停止自动流程，人工接手";
+      if (item.status === "order") return "确认资料后再提交订单";
+      if (decision.send_now) return "固定 Flow 或已排程动作继续执行";
+      return "顾客有疑问或成交语境，需要人确认";
     }
 
     function historyTypeLabel(type) {
@@ -3753,12 +4016,12 @@
 
     function actionLabel(action) {
       const map = {
-        send_reply: "自动回复",
+        send_reply: "发送回复",
         approve_reply: "批准发送",
         ask_human: "转人工",
         collect_order: "收订单",
         review_receipt: "审付款",
-        trigger_flow: "接自动流程",
+        trigger_flow: "进 Step 1",
         approve: "批准发送",
         learn: "建立自动规则",
         handoff: "转人工",
@@ -3770,6 +4033,8 @@
 
     function intentLabel(intent) {
       const map = {
+        keyword_lead: "广告关键词",
+        product_doubt: "效果顾虑",
         price_objection: "价格异议",
         complaint: "投诉风险",
         buy_intent: "下单意向",

@@ -624,9 +624,9 @@
       </div>
 
       <div class="hero">
-        <div class="eyebrow">AI 客服运营系统</div>
-        <h1>一个入口，<span>管好全部顾客。</span></h1>
-        <p class="lead">ChatDaddy 负责执行讯息，ReplyPilot 负责判断、审批、转人工、订单和复盘。团队只看自己该处理的部分。</p>
+        <div class="eyebrow">AI 客服成交工作台</div>
+        <h1>让团队只处理<span>真正需要人的顾客。</span></h1>
+        <p class="lead">AI 先判断阶段、风险和下一步；客服进入队列后，只需要确认回复、转人工或提交订单。</p>
         <div class="hero-actions">
           <a class="text-button primary-link" href="dashboard/index.html">打开中控台</a>
           <a class="text-button" href="docs/ONBOARDING_ZH.md">上线步骤</a>
@@ -634,17 +634,17 @@
       </div>
 
       <section class="signal-row" aria-label="核心运营指标">
-        <div class="signal"><b>队列</b><span>顾客自动排序</span></div>
-        <div class="signal"><b>判断</b><span>AI 给下一步</span></div>
-        <div class="signal"><b>审批</b><span>人只看重点</span></div>
-        <div class="signal"><b>复盘</b><span>越用越稳定</span></div>
+        <div class="signal"><b>排序</b><span>先看急单</span></div>
+        <div class="signal"><b>判断</b><span>AI 给动作</span></div>
+        <div class="signal"><b>确认</b><span>人只按重点</span></div>
+        <div class="signal"><b>复盘</b><span>沉淀规则</span></div>
       </section>
 
       <section class="ops-panel">
         <div class="ops-head">
           <div>
-            <b>操作路径固定，团队不乱点</b>
-            <span>顾客进来后，系统只把需要处理的动作推给对应角色。</span>
+            <b>一个队列处理全部顾客</b>
+            <span>待批准、需人工、订单和自动跟进分开显示，客服不会乱点。</span>
           </div>
           <span class="health">工作台在线</span>
         </div>
@@ -656,12 +656,12 @@
           </article>
           <article class="role-card">
             <strong>运营主管</strong>
-            <p>处理异常、审核回复、复盘 AI 判断。</p>
+            <p>审核回复、处理异常、复盘 AI 判断。</p>
             <div class="chips"><span class="chip">审批</span><span class="chip">复盘</span></div>
           </article>
           <article class="role-card">
             <strong>客服人员</strong>
-            <p>只看待办顾客，不接触系统密钥或技术设置。</p>
+            <p>只看顾客待办，不接触密钥或技术设置。</p>
             <div class="chips"><span class="chip">顾客</span><span class="chip">待办</span></div>
           </article>
         </div>
@@ -674,15 +674,15 @@
           <p>待批准、需人工和订单集中显示。</p>
         </div>
         <div class="preview-card">
-          <span>AI 自动</span>
+          <span>Flow 自动</span>
           <strong>24</strong>
-          <p>低风险问题、跟进和自动流程会自己处理。</p>
+          <p>关键词进线和固定跟进交给 ChatDaddy 自动跑。</p>
         </div>
         <div class="preview-card wide">
           <div>
-            <span>优先级</span>
+            <span>处理顺序</span>
             <strong>先处理会影响成交的顾客</strong>
-            <p>投诉、订单、价格异议和低信心判断会排在前面。</p>
+            <p>投诉、订单、价格异议和低信心会自动排前面。</p>
           </div>
           <div class="case-mini">
             Amira · 高风险
@@ -698,8 +698,8 @@
           <span class="status-pill">权限入口</span>
           <span class="env">演示模式</span>
         </div>
-        <h2>选择身份进入</h2>
-        <p class="login-copy">公开演示可直接预览权限。正式上线后改为团队账号登录。</p>
+        <h2>进入工作台</h2>
+        <p class="login-copy">先用公开演示预览权限。正式上线后，会改成团队账号登录。</p>
       </div>
 
       <div class="form">
@@ -717,7 +717,7 @@
         </div>
 
         <div class="field">
-          <label>身份权限</label>
+          <label>选择身份</label>
           <div class="roles">
             <button class="role active" data-role="owner" type="button">管理者</button>
             <button class="role" data-role="admin" type="button">运营主管</button>
@@ -741,14 +741,14 @@
           </div>
         </details>
 
-        <button class="primary" id="loginBtn">进入中控台</button>
+        <button class="primary" id="loginBtn">进入工作台</button>
 
         <div class="links">
           <a href="dashboard/index.html">跳过身份选择</a>
           <a href="docs/ONBOARDING_ZH.md">上线步骤</a>
         </div>
 
-        <div class="security-note">公开演示不放真实密钥。正式上线后，系统连接只给管理者看到。</div>
+        <div class="security-note">公开演示不保存真实密钥。正式使用时，系统连接只给管理者看到。</div>
       </div>
     </section>
   </main>
@@ -758,8 +758,8 @@
     const roleHelp = document.getElementById("roleHelp");
     const permissionPreview = document.getElementById("permissionPreview");
     const roleHelpCopy = {
-      owner: "可查看全部顾客、连接状态、团队权限和 AI 规则。",
-      admin: "可审核回复、处理异常、查看 AI 复盘。",
+      owner: "查看全部顾客、连接状态、团队权限和 AI 规则。",
+      admin: "审核回复、处理异常、查看 AI 复盘。",
       staff: "只看待处理顾客，不显示系统密钥和连接设置。",
     };
     const permissionRows = {
