@@ -729,10 +729,10 @@
       </div>
 
       <nav class="side-nav" aria-label="主导航">
-        <button class="active">中控台</button>
-        <button>待处理</button>
-        <button>订单</button>
-        <button>AI 复盘</button>
+        <button class="active" data-side-filter="all">中控台</button>
+        <button data-side-filter="needs_attention">待处理</button>
+        <button data-side-filter="order">订单</button>
+        <button data-side-filter="auto">AI 复盘</button>
       </nav>
 
       <div class="side-card">
@@ -796,6 +796,7 @@
         <div class="toolbar">
           <div class="filters">
             <button class="pill active" data-filter="all">全部</button>
+            <button class="pill" data-filter="needs_attention">需处理</button>
             <button class="pill" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_required">需人工</button>
             <button class="pill" data-filter="order">订单</button>
@@ -1112,10 +1113,13 @@
 
     document.querySelectorAll("[data-filter]").forEach((button) => {
       button.addEventListener("click", () => {
-        document.querySelectorAll("[data-filter]").forEach((item) => item.classList.remove("active"));
-        button.classList.add("active");
-        state.filter = button.dataset.filter;
-        render();
+        setFilter(button.dataset.filter);
+      });
+    });
+
+    document.querySelectorAll("[data-side-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        setFilter(button.dataset.sideFilter);
       });
     });
 
@@ -1142,6 +1146,21 @@
       $("setupPanel").classList.toggle("hidden", state.role === "staff");
       $("autoFilterBtn").classList.toggle("hidden", state.role === "staff");
       $("learnBtn").classList.toggle("hidden", state.role === "staff");
+    }
+
+    function setFilter(filter) {
+      state.filter = filter || "all";
+      syncFilterControls();
+      render();
+    }
+
+    function syncFilterControls() {
+      document.querySelectorAll("[data-filter]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.filter === state.filter);
+      });
+      document.querySelectorAll("[data-side-filter]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.sideFilter === state.filter);
+      });
     }
 
     function roleName(role) {
@@ -1211,12 +1230,21 @@
       $("statAuto").textContent = all.filter((item) => item.status === "auto").length;
 
       if (state.role === "staff" && state.filter === "auto") state.filter = "all";
-      const visible = state.filter === "all" ? all : all.filter((item) => item.status === state.filter);
+      syncFilterControls();
+      const visible = filterCases(all, state.filter);
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
 
       casesEl.querySelectorAll("[data-case-id]").forEach((card) => {
         card.addEventListener("click", () => openCase(card.dataset.caseId));
       });
+    }
+
+    function filterCases(cases, filter) {
+      if (filter === "all") return cases;
+      if (filter === "needs_attention") {
+        return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
+      }
+      return cases.filter((item) => item.status === filter);
     }
 
     function cardHtml(item) {
