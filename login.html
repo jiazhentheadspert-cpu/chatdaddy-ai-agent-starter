@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ReplyPilot AI 客服工作台</title>
+  <title>ReplyPilot AI 客服中控台</title>
   <style>
     :root {
       --canvas: #f5f7f6;
@@ -550,14 +550,14 @@
   <main class="shell">
     <section class="product">
       <div class="nav">
-        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI 客服工作台</span></div>
+        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI 客服中控台</span></div>
         <span class="env">公开演示</span>
       </div>
 
       <div class="hero">
         <div class="eyebrow">AI Customer Operations</div>
-        <h1>一个入口，管理 AI 客服与人工闭环。</h1>
-        <p class="lead">AI 先判断顾客意图、风险、阶段和下一步动作；团队只处理需要确认的 Case。管理者看全局，运营管异常，客服专心成交和服务。</p>
+        <h1>一个后台，管住 AI 回复、人工介入和订单成交。</h1>
+        <p class="lead">ReplyPilot 把 ChatDaddy 里的顾客消息整理成 Case 队列。AI 先判断意图、风险、阶段和下一步动作；团队只处理真正需要确认的顾客。</p>
         <div class="hero-actions">
           <a class="text-button primary-link" href="dashboard/index.html">查看公开 Demo</a>
           <a class="text-button" href="docs/ONBOARDING_ZH.md">查看接入 SOP</a>
@@ -565,34 +565,34 @@
       </div>
 
       <section class="signal-row" aria-label="核心运营指标">
-        <div class="signal"><b>1</b><span>统一工作台</span></div>
-        <div class="signal"><b>3</b><span>角色权限</span></div>
-        <div class="signal"><b>5+</b><span>常见闭环动作</span></div>
-        <div class="signal"><b>24/7</b><span>Webhook 接收</span></div>
+        <div class="signal"><b>1</b><span>统一中控台</span></div>
+        <div class="signal"><b>3</b><span>清晰角色权限</span></div>
+        <div class="signal"><b>5+</b><span>客服闭环动作</span></div>
+        <div class="signal"><b>24/7</b><span>持续接收讯息</span></div>
       </section>
 
       <section class="ops-panel">
         <div class="ops-head">
           <div>
-            <b>清晰权限，统一处理</b>
-          <span>权限、队列、审批和复盘集中在同一个工作台。</span>
+            <b>少操作，清楚分工</b>
+          <span>队列、审批、转人工、订单和复盘集中在同一个后台。</span>
           </div>
           <span class="health">演示工作台已开启</span>
         </div>
         <div class="role-grid">
           <article class="role-card">
             <strong>管理者</strong>
-            <p>查看全局 Dashboard、系统状态、自动规则和真实连接。</p>
+            <p>查看全局数据、连接状态、团队权限和 AI 规则。</p>
             <div class="chips"><span class="chip">全部 Case</span><span class="chip">系统设置</span></div>
           </article>
           <article class="role-card">
             <strong>运营主管</strong>
-            <p>审核 AI 回复、处理转人工、订单异常和 AI 复盘。</p>
+            <p>审核 AI 回复、处理异常 Case、复盘 AI 决策。</p>
             <div class="chips"><span class="chip">审核回复</span><span class="chip">复盘 AI</span></div>
           </article>
           <article class="role-card">
             <strong>客服人员</strong>
-            <p>只处理顾客 Case，不显示 API、Token 或系统设置。</p>
+            <p>只看需要处理的顾客，不接触 API、Token 或系统设置。</p>
             <div class="chips"><span class="chip">只看顾客</span><span class="chip">隐藏设置</span></div>
           </article>
         </div>
@@ -600,23 +600,23 @@
 
       <section class="preview-panel" aria-label="工作台预览">
         <div class="preview-card">
-          <span>今日待处理</span>
+          <span>今日队列</span>
           <strong>8</strong>
-          <p>待批准、需人工、订单和发送失败会集中在这里。</p>
+          <p>待批准、需人工、订单和异常会集中在这里。</p>
         </div>
         <div class="preview-card">
-          <span>自动处理</span>
+          <span>AI 自动中</span>
           <strong>24</strong>
-          <p>低风险 FAQ、Follow-up 和接 Flow 自动执行。</p>
+          <p>低风险 FAQ、Follow-up 和接 Flow 不打扰客服。</p>
         </div>
         <div class="preview-card wide">
           <div>
-            <span>AI 建议下一步</span>
+            <span>下一步动作</span>
             <strong>先处理高风险顾客</strong>
-            <p>投诉、敏感问题和低信心判断会自动排到人工前面。</p>
+            <p>系统会把投诉、订单、低信心判断排在最前面。</p>
           </div>
           <div class="case-mini">
-            Amira · 投诉风险
+            Amira · 高风险
             <small>AI 建议：转人工</small>
           </div>
         </div>
@@ -629,8 +629,8 @@
           <span class="status-pill">安全演示模式</span>
           <span class="env">本机 / GitHub Pages</span>
         </div>
-        <h2>进入工作台</h2>
-        <p class="login-copy">选择角色后进入对应权限视图。正式上线后会改成 HTTPS 账号登录，并由系统自动识别团队权限。</p>
+        <h2>进入中控台</h2>
+        <p class="login-copy">选择身份后进入对应视图。正式上线后会使用账号密码登录，并自动识别团队权限。</p>
       </div>
 
       <div class="form">
@@ -671,14 +671,14 @@
           </div>
         </details>
 
-        <button class="primary" id="loginBtn">进入工作台</button>
+        <button class="primary" id="loginBtn">进入中控台</button>
 
         <div class="links">
           <a href="dashboard/index.html">打开演示中控台</a>
           <a href="docs/ONBOARDING_ZH.md">查看接入 SOP</a>
         </div>
 
-        <div class="security-note">内部演示用：可以分享 GitHub Pages 链接；不要分享本机 file:// 链接或任何 Token。</div>
+        <div class="security-note">内部演示用：可以分享 GitHub Pages 链接；不要分享本机 file:// 链接、API Token 或真实密钥。</div>
       </div>
     </section>
   </main>
@@ -688,7 +688,7 @@
     const roleHelp = document.getElementById("roleHelp");
     const roleHelpCopy = {
       owner: "管理者可以查看全部 Case、系统状态、真实连接和团队权限。",
-      admin: "运营主管可以审核回复、处理异常、查看复盘，但不需要碰底层部署。",
+      admin: "运营主管可以审核回复、处理异常、查看复盘，不需要碰底层部署。",
       staff: "客服人员只会看到要处理的顾客，不会看到 Token、API 或系统开关。",
     };
     let selectedRole = "owner";

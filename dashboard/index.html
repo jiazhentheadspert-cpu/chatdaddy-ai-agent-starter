@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ReplyPilot AI 客服工作台</title>
+  <title>ReplyPilot AI 客服中控台</title>
   <style>
     :root {
       --bg: #f4f7f6;
@@ -560,6 +560,9 @@
     }
 
     .quick-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       border: 1px solid var(--line);
       border-radius: 999px;
       background: #fff;
@@ -1789,6 +1792,7 @@
       workspaceView: "overview",
       selected: new Set(),
       settings: null,
+      auditEvents: [],
     };
 
     const DEFAULT_SETTINGS = {
@@ -2029,11 +2033,13 @@
     const params = new URLSearchParams(window.location.search);
     state.session = readSession();
     state.role = params.get("role") || state.session.role || "owner";
+    state.workspaceView = params.get("view") || state.workspaceView;
 
     apiUrlEl.value = params.get("api") || state.session.apiUrl || localStorage.getItem("agent_api_url") || "";
     projectKeyEl.value = params.get("project_key") || state.session.projectKey || localStorage.getItem("agent_project_key") || "demo";
     adminTokenEl.value = localStorage.getItem("agent_admin_token") || "";
     state.settings = readProjectSettings(projectKeyEl.value || "demo");
+    state.auditEvents = readAuditEvents(projectKeyEl.value || "demo");
 
     applySessionShell();
 
@@ -2042,6 +2048,7 @@
       localStorage.setItem("agent_project_key", projectKeyEl.value.trim());
       localStorage.setItem("agent_admin_token", adminTokenEl.value.trim());
       state.settings = readProjectSettings(projectKeyEl.value.trim() || "demo");
+      state.auditEvents = readAuditEvents(projectKeyEl.value.trim() || "demo");
       loadCases();
     });
 
@@ -2101,6 +2108,12 @@
         return;
       }
 
+      const copyRole = event.target.closest("[data-copy-role-link]");
+      if (copyRole) {
+        copyRoleLink(copyRole.dataset.copyRoleLink);
+        return;
+      }
+
       const toggleRule = event.target.closest("[data-rule-key]");
       if (toggleRule) {
         const key = toggleRule.dataset.ruleKey;
@@ -2122,6 +2135,10 @@
       return `agent_project_settings_${project || "demo"}`;
     }
 
+    function auditKey(project) {
+      return `agent_audit_events_${project || "demo"}`;
+    }
+
     function readProjectSettings(project) {
       try {
         const saved = JSON.parse(localStorage.getItem(settingsKey(project)) || "{}") || {};
@@ -2136,10 +2153,32 @@
       }
     }
 
+    function readAuditEvents(project) {
+      try {
+        return JSON.parse(localStorage.getItem(auditKey(project)) || "[]") || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function addAuditEvent(type, note) {
+      const project = projectKeyEl.value.trim() || "demo";
+      state.auditEvents = [
+        {
+          type,
+          note,
+          at: new Date().toISOString(),
+        },
+        ...(state.auditEvents || []),
+      ].slice(0, 12);
+      localStorage.setItem(auditKey(project), JSON.stringify(state.auditEvents));
+    }
+
     function saveProjectSettings() {
       const project = projectKeyEl.value.trim() || "demo";
       state.settings = collectProjectSettingsFromForm();
       localStorage.setItem(settingsKey(project), JSON.stringify(state.settings));
+      addAuditEvent("project_settings_saved", "更新品牌大脑、Flow ID 和安全规则。");
       showToast("项目设置已保存。Demo 会保存在这台浏览器。");
       render();
     }
@@ -2531,6 +2570,7 @@
       });
 
       const message = action === "handoff" ? `Demo：已把 ${ids.length} 个 Case 转人工。` : `Demo：已标记 ${ids.length} 个 Case。`;
+      addAuditEvent(action === "handoff" ? "bulk_handoff_demo" : "bulk_seen_demo", message);
       state.selected.clear();
       render();
       showToast(message);
@@ -2653,12 +2693,17 @@
             </div>
           </section>
           <section class="command-panel">
-            <div class="command-kicker">团队权限</div>
-            <strong class="command-title">让每个人只看该看的</strong>
+            <div class="command-kicker">团队入口</div>
+            <strong class="command-title">按岗位分配入口</strong>
             <div class="compact-list">
               ${compactRow("Owner", "全局数据、系统状态、真实连接", "最高权限")}
               ${compactRow("Admin", "审核回复、处理异常、复盘 AI", "运营权限")}
               ${compactRow("Staff", "只处理顾客 Case，不看技术设置", "客服权限")}
+            </div>
+            <div class="quick-actions">
+              <button class="quick-action" data-copy-role-link="owner" type="button">复制 Owner 入口</button>
+              <button class="quick-action" data-copy-role-link="admin" type="button">复制 Admin 入口</button>
+              <button class="quick-action primary" data-copy-role-link="staff" type="button">复制 Staff 入口</button>
             </div>
           </section>
         </div>
@@ -2717,6 +2762,44 @@
 
     function stepHtml(title, body) {
       return `<div class="step"><b>${escapeHtml(title)}</b><span>${escapeHtml(body)}</span></div>`;
+    }
+
+    function copyRoleLink(role) {
+      const url = roleLink(role);
+      const label = roleName(role);
+      const finish = () => {
+        addAuditEvent("copied_access_link", `复制 ${label} 入口。`);
+        showToast(`已复制 ${label} 入口。`);
+        render();
+      };
+
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(url).then(finish).catch(() => fallbackCopy(url, finish));
+        return;
+      }
+
+      fallbackCopy(url, finish);
+    }
+
+    function roleLink(role) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("project_key", projectKeyEl.value.trim() || "demo");
+      url.searchParams.set("role", role || "staff");
+      url.searchParams.set("view", role === "staff" ? "cases" : "overview");
+      return url.toString();
+    }
+
+    function fallbackCopy(value, onDone) {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+      onDone();
     }
 
     function projectSettingsHtml() {
@@ -2795,14 +2878,23 @@
     }
 
     function recentEvents(cases) {
-      return cases.flatMap((item) => {
+      const caseEvents = cases.flatMap((item) => {
         return (item.history || []).map((event) => ({
           caseName: item.contact?.name || "顾客",
           type: event.type || "记录",
           note: event.decision?.reason || event.note || event.rule_id || "",
           at: event.at || item.updated_at,
         }));
-      }).sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0)).slice(0, 5);
+      });
+      const systemEvents = (state.auditEvents || []).map((event) => ({
+        caseName: "系统",
+        type: event.type || "记录",
+        note: event.note || "",
+        at: event.at,
+      }));
+      return [...caseEvents, ...systemEvents]
+        .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
+        .slice(0, 7);
     }
 
     function auditHtml(event) {
@@ -3147,6 +3239,7 @@
         });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        addAuditEvent(`case_${action}`, `真实 Case ${caseId} 已执行 ${actionLabel(action)}。`);
         await loadCases();
         if (data.case) openCase(data.case.id);
       } catch (error) {
@@ -3194,6 +3287,7 @@
       }
 
       record.updated_at = now;
+      addAuditEvent(`case_${action}_demo`, `${record.contact?.name || "顾客"} 已执行 ${actionLabel(action)}。`);
       render();
       openCase(caseId);
     }
@@ -3295,6 +3389,10 @@
         collect_order: "收订单",
         review_receipt: "审付款",
         trigger_flow: "接自动流程",
+        approve: "批准发送",
+        learn: "建立自动规则",
+        handoff: "转人工",
+        mark_seen: "标记已看",
         wait: "等待",
       };
       return map[action] || action || "判断";
