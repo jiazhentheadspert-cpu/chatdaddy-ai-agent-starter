@@ -1,6 +1,14 @@
-# ChatDaddy AI Agent Starter
+# ReplyPilot AI Agent Starter
 
-一个公开安全版的 WhatsApp AI 回复 Agent starter。
+一个公开安全版的 WhatsApp AI 客服运营中控台 starter。
+
+当前定位：
+
+```text
+Demo / Pilot ready
+```
+
+适合给一个品牌真实试跑、验证客服闭环、再复制到下一个项目。它还不是陌生客户自助注册、自助计费、自助上线的完整 SaaS。
 
 它做三件事：
 
@@ -15,6 +23,13 @@
 - 已经用 ChatDaddy / WhatsApp Business API。
 - 有 ManyChat-style Automation Flow，想加入 AI 判断。
 - 需要客服一页式 Dashboard：看顾客状态、批准回复、转人工、复盘学习。
+- 接受先用 Pilot / Managed setup 跑通一个品牌，再复制到更多品牌。
+
+## 不适合谁
+
+- 期待像成熟 SaaS 一样，陌生客户自己注册、自己付款、自己连接、自己上线。
+- 没有人负责连接 ChatDaddy webhook、Flow、Google Sheet 和上线检查。
+- 想一开始就全自动发送所有 AI 回复，不做人工批准和风险控制。
 
 ## 架构
 
@@ -50,6 +65,12 @@ Staff: dashboard/?project_key=beyoute&role=staff&view=cases
 ```
 
 正式上线后，这些会换成真实账号登录；现在的公开版先用来确认操作流程和权限体验。
+
+上线成熟度清单看：
+
+```text
+docs/PRODUCTION_READINESS_ZH.md
+```
 
 进入 Dashboard 后，如果没有填 API URL 和 Admin Token，会自动进入 Public Demo 模式。你可以直接试：
 
@@ -167,5 +188,7 @@ examples/*.json               测试 payload 和 runtime config
 - API key 只用 `wrangler secret put`。
 - Dashboard 必须用 `ADMIN_TOKEN`。
 - 真实顾客资料只存在你的 Worker/KV/Sheet，不进 GitHub。
+- Staff 入口不应该显示 API URL、Admin Token、Webhook Secret 或 runtime 设置。
+- Pilot 阶段先保持 Flow 自动触发关闭，确认稳定后再逐步开放。
 
 详细看 [docs/SECURITY_ZH.md](docs/SECURITY_ZH.md)。

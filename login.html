@@ -654,6 +654,72 @@
       line-height: 1.45;
     }
 
+    .readiness-panel {
+      max-width: 700px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255,255,255,.88);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .readiness-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .readiness-head b {
+      display: block;
+      font-size: 18px;
+    }
+
+    .readiness-head span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .readiness-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+    }
+
+    .readiness-item {
+      background: var(--panel-soft);
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 760;
+    }
+
+    .readiness-item::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      margin-top: 4px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(16,185,157,.12);
+    }
+
+    .readiness-item strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+
     @media (max-width: 940px) {
       .shell { grid-template-columns: 1fr; padding: 28px 0; }
       .role-grid { grid-template-columns: 1fr; }
@@ -682,7 +748,7 @@
       .lead { width: 100%; max-width: 100%; font-size: 17px; word-break: break-all; overflow-wrap: anywhere; }
       .nav { align-items: flex-start; }
       .nav .env { display: none; }
-      .signal-row, .ops-panel, .preview-panel { display: none; }
+      .signal-row, .ops-panel, .preview-panel, .readiness-panel { display: none; }
       .hero-stats { grid-template-columns: 1fr; }
       .hero-stat { padding: 14px; }
       .login-meta { grid-template-columns: 1fr; }
@@ -710,6 +776,7 @@
         <div class="hero-actions">
           <a class="text-button primary-link" href="dashboard/index.html">打开中控台</a>
           <a class="text-button" href="docs/ONBOARDING_ZH.md">上线步骤</a>
+          <a class="text-button" href="docs/PRODUCTION_READINESS_ZH.md">成熟度清单</a>
         </div>
       </div>
 
@@ -731,6 +798,80 @@
         </div>
       </section>
 
+      <section class="signal-row" aria-label="核心运营指标">
+        <div class="signal"><b>排序</b><span>先看急单</span></div>
+        <div class="signal"><b>判断</b><span>AI 给动作</span></div>
+        <div class="signal"><b>确认</b><span>人只按重点</span></div>
+        <div class="signal"><b>复盘</b><span>沉淀规则</span></div>
+      </section>
+
+      <section class="ops-panel">
+        <div class="ops-head">
+          <div>
+            <b>一个队列处理全部顾客</b>
+            <span>待批准、需人工、订单和自动跟进分开显示，客服不会乱点。</span>
+          </div>
+          <span class="health">工作台在线</span>
+        </div>
+        <div class="role-grid">
+          <article class="role-card">
+            <strong>管理者</strong>
+            <p>看全局、连接状态、团队权限和 AI 规则。</p>
+            <div class="chips"><span class="chip">全局</span><span class="chip">规则</span></div>
+          </article>
+          <article class="role-card">
+            <strong>运营主管</strong>
+            <p>审核回复、处理异常、复盘 AI 判断。</p>
+            <div class="chips"><span class="chip">审批</span><span class="chip">复盘</span></div>
+          </article>
+          <article class="role-card">
+            <strong>客服人员</strong>
+            <p>只看顾客待办，不接触密钥或技术设置。</p>
+            <div class="chips"><span class="chip">顾客</span><span class="chip">待办</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="preview-panel" aria-label="工作台预览">
+        <div class="preview-card">
+          <span>今日待办</span>
+          <strong>8</strong>
+          <p>待批准、需人工和订单集中显示。</p>
+        </div>
+        <div class="preview-card">
+          <span>Flow 自动</span>
+          <strong>24</strong>
+          <p>关键词进线和固定跟进交给 ChatDaddy 自动跑。</p>
+        </div>
+        <div class="preview-card wide">
+          <div>
+            <span>处理顺序</span>
+            <strong>先处理会影响成交的顾客</strong>
+            <p>投诉、订单、价格异议和低信心会自动排前面。</p>
+          </div>
+          <div class="case-mini">
+            Amira · 高风险
+            <small>AI 建议：转人工</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="readiness-panel" aria-label="上线成熟度">
+        <div class="readiness-head">
+          <div>
+            <b>当前定位：Pilot ready，不是纯自助 SaaS</b>
+            <span>先给一个品牌真实试跑，确认闭环后再复制到下一个品牌。</span>
+          </div>
+          <span class="health">可试跑</span>
+        </div>
+        <div class="readiness-list">
+          <div class="readiness-item"><div><strong>已适合</strong>内部品牌、代运营客户、有人协助上线的项目。</div></div>
+          <div class="readiness-item"><div><strong>不承诺</strong>陌生客户零协助自助注册、付费、上线。</div></div>
+          <div class="readiness-item"><div><strong>上线前</strong>必须检查 webhook、AI 判断、Sheet 记录和转人工。</div></div>
+          <div class="readiness-item"><div><strong>客服端</strong>只看顾客待办，不碰 token、Flow、部署设置。</div></div>
+        </div>
+      </section>
+
     </section>
 
     <section class="login">
@@ -744,11 +885,11 @@
         <div class="login-meta">
           <div>
             <span>当前入口</span>
-            <b>公开演示</b>
+            <b>Demo / Pilot</b>
           </div>
           <div>
-            <span>上线后</span>
-            <b>团队账号登录</b>
+            <span>正式 SaaS 前</span>
+            <b>先跑上线检查</b>
           </div>
         </div>
       </div>
@@ -802,9 +943,10 @@
         <div class="links">
           <a href="dashboard/index.html">跳过身份选择</a>
           <a href="docs/ONBOARDING_ZH.md">上线步骤</a>
+          <a href="docs/PRODUCTION_READINESS_ZH.md">成熟度清单</a>
         </div>
 
-        <div class="security-note">公开演示不保存真实密钥。正式使用时，系统连接只给管理者看到。</div>
+        <div class="security-note">公开演示不保存真实密钥。正式使用时，系统连接只给管理者看到；客服入口不显示密钥和部署设置。</div>
       </div>
     </section>
   </main>

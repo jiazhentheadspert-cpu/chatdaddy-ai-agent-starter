@@ -1486,8 +1486,12 @@
 
     .case-select input {
       position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       opacity: 0;
-      pointer-events: none;
+      cursor: pointer;
+      z-index: 2;
     }
 
     .case-select span {
@@ -1496,6 +1500,7 @@
       border-radius: 5px;
       border: 2px solid #9db0b2;
       background: #fff;
+      pointer-events: none;
     }
 
     .case-select input:checked + span {
@@ -3044,9 +3049,14 @@
       const connectionTone = state.demoMode ? "warn" : "";
       const connectionText = state.demoMode ? "演示" : "真实";
       const roleText = state.role === "staff" ? "客服" : state.role === "admin" ? "运营" : "管理";
+      const maturity = state.demoMode ? "Demo" : "Pilot";
+      const maturityTone = state.demoMode ? "warn" : "";
+      const safetyText = state.role === "staff" ? "隐藏系统设置" : "Flow 自动触发先关闭";
       return `
+        <span class="status-chip ${maturityTone}">${maturity}</span>
         <span class="status-chip ${connectionTone}">${connectionText}</span>
         <span class="status-chip">AI 开启</span>
+        <span class="status-chip">${safetyText}</span>
         <span class="status-chip">${roleText}</span>
       `;
     }
@@ -3532,6 +3542,7 @@
 
       $("operationsView").innerHTML = `
         ${readinessCardHtml()}
+        ${productionBoundaryHtml()}
         <div class="command-grid">
           <section class="command-panel accent">
             <div class="command-kicker">连接</div>
@@ -3597,6 +3608,25 @@
             </div>
           </section>
         </div>
+      `;
+    }
+
+    function productionBoundaryHtml() {
+      return `
+        <section class="command-panel">
+          <div class="command-kicker">成熟度</div>
+          <strong class="command-title">当前适合 Pilot，不是纯自助 SaaS</strong>
+          <p class="command-copy">这个工作台可以给单个品牌真实试跑。对陌生客户全面开放前，还要把入口、权限、上线检查和错误处理产品化。</p>
+          <div class="steps">
+            ${stepHtml("可试跑", "Webhook、AI 判断、转人工和记录表通过后可以用于单品牌 Pilot。")}
+            ${stepHtml("要监督", "首次 20-50 个真实 case 建议人工批准，不直接全自动。")}
+            ${stepHtml("客服安全", "客服入口只看顾客，不显示 token、Flow、部署设置。")}
+            ${stepHtml("待 SaaS 化", "计费先不做；先补固定域名、正式账号、监控和自助接入。")}
+          </div>
+          <div class="quick-actions">
+            <a class="quick-action" href="../docs/PRODUCTION_READINESS_ZH.md" target="_blank" rel="noreferrer">查看成熟度清单</a>
+          </div>
+        </section>
       `;
     }
 
