@@ -2346,7 +2346,7 @@
 
       <div class="status-strip" id="statusStrip" aria-label="系统状态"></div>
 
-      <div class="demo-bar" id="demoBar">
+      <div class="demo-bar hidden" id="demoBar">
         <div class="demo-copy">
           <span class="demo-dot"></span>
           <div>
@@ -2807,7 +2807,14 @@
       window.location.href = "../login.html";
     });
 
-    $("loadDemo").addEventListener("click", () => loadDemoCases());
+    $("loadDemo").addEventListener("click", () => {
+      if (!canUseDemoMode()) {
+        setRealQueueEmpty("客服入口只读取真实讯息，不能载入演示数据。");
+        showToast("客服入口只显示真实讯息。");
+        return;
+      }
+      loadDemoCases();
+    });
     caseSearchEl.addEventListener("input", () => {
       state.query = caseSearchEl.value.trim();
       render();
@@ -3019,6 +3026,7 @@
       $("setupPanel").classList.toggle("hidden", view !== "operations" || state.role === "staff");
 
       $("demoBar").classList.toggle("hidden", !isCases || !canUseDemoMode());
+      $("loadDemo").disabled = !canUseDemoMode();
       $("caseWorkbench").classList.toggle("hidden", !isCases);
       $("statsPanel").classList.toggle("hidden", !isOverview);
       $("opsGrid").classList.add("hidden");
@@ -4559,7 +4567,11 @@
       const title = state.query ? `找不到「${state.query}」` : empty.title;
       const body = state.query
         ? "试试看搜索顾客名字、电话号码、关键词，或先清空搜索。"
-        : state.demoMode ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。" : "确认 ChatDaddy 讯息入口已经连接系统接口，然后用真实 WhatsApp 发一条测试消息。";
+        : state.demoMode
+          ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。"
+          : state.filter === "auto"
+            ? "目前没有自动回复记录；AI 自动发送后会在这里留下内容。"
+            : "确认 ChatDaddy 讯息入口已经连接系统接口，然后用真实 WhatsApp 发一条测试消息。";
       return `
         <div class="box" style="grid-column: 1 / -1;">
           <h3>${escapeHtml(title)}</h3>
