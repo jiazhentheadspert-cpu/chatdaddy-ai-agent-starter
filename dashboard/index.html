@@ -2445,9 +2445,9 @@
             <div class="chat" id="chatBox"></div>
           </div>
           <div class="box reply-card">
-            <div class="box-title">回复 <span>可修改</span></div>
+            <div class="box-title">回复 <span id="replyModeLabel">可修改</span></div>
             <textarea id="replyBox"></textarea>
-            <div class="reply-tools" aria-label="回复快捷调整">
+            <div class="reply-tools" id="replyTools" aria-label="回复快捷调整">
               <button class="reply-chip" data-reply-template="warm" type="button">温柔</button>
               <button class="reply-chip" data-reply-template="no_discount" type="button">不折扣</button>
               <button class="reply-chip" data-reply-template="ask_phone" type="button">先问电话</button>
@@ -2962,15 +2962,15 @@
       $("sideWorkspace").textContent = workspaceLabel;
       $("sideConnection").textContent = state.demoMode ? "演示" : "真实";
       $("sideHint").textContent = state.role === "staff"
-        ? "只看待处理。"
+        ? "看待处理和自动记录。"
         : "总览、连接、复盘。";
 
       $("dashboardSubtitle").textContent = state.role === "staff"
-        ? "按建议处理。"
+        ? "处理待确认，追踪已自动回复。"
         : "先处理红色和橙色。";
 
       $("setupPanel").classList.toggle("hidden", true);
-      $("autoFilterBtn").classList.toggle("hidden", state.role === "staff");
+      $("autoFilterBtn").classList.toggle("hidden", false);
       $("learnBtn").classList.toggle("hidden", state.role === "staff");
 
       document.querySelectorAll('[data-workspace-view="overview"], [data-workspace-view="operations"], [data-workspace-view="learning"]').forEach((item) => {
@@ -3183,7 +3183,7 @@
 
     function casesForRole(cases) {
       if (state.role !== "staff") return cases;
-      return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
+      return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed", "auto_sent", "sent"].includes(item.status));
     }
 
     function setView(view) {
@@ -3209,14 +3209,16 @@
       }
 
       try {
-        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=pending&include_tests=0&real_only=1&limit=100`;
+        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=0&real_only=1&limit=100&scan_limit=1000`;
         let res = await fetch(approvalUrl, { headers: authHeaders(token) });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
         state.selected.clear();
         $("modeTag").textContent = "真实系统";
-        const liveItems = Array.isArray(data.items) ? data.items.filter((item) => !isDemoLikeApprovalItem(item)) : [];
+        const liveItems = Array.isArray(data.items)
+          ? data.items.filter((item) => isDashboardVisibleApproval(item) && !isDemoLikeApprovalItem(item))
+          : [];
         state.cases = liveItems.map(approvalToCase);
         render();
       } catch (error) {
@@ -3248,6 +3250,11 @@
       return { "x-admin-token": token, "x-staff-token": token };
     }
 
+    function isDashboardVisibleApproval(item = {}) {
+      const status = String(item.status || "").toLowerCase();
+      return ["pending", "sent", "send_failed"].includes(status);
+    }
+
     function approvalToCase(item) {
       const signals = item.decision?.signals || {};
       const action = item.action || {};
@@ -3259,6 +3266,24 @@
       const status = approvalStatus(item);
       const words = approvalWords(item, signals, action);
       const at = item.updated_at || item.created_at || inbound.message_at || new Date().toISOString();
+      const finalReply = item.final_text || reply.text || "";
+      const sentLike = ["auto_sent", "sent", "send_failed"].includes(status);
+      const messages = [
+        {
+          id: inbound.provider_message_id || inbound.event_id || `${item.id}-in`,
+          direction: "inbound",
+          text: inbound.text || "",
+          at: inbound.message_at || at,
+        },
+      ];
+      if (sentLike && finalReply) {
+        messages.push({
+          id: `${item.id}-out`,
+          direction: "outbound",
+          text: finalReply,
+          at: item.approved_at || item.updated_at || at,
+        });
+      }
 
       return {
         id: item.id,
@@ -3276,29 +3301,22 @@
         created_at: item.created_at || at,
         word_cloud: words,
         latest_decision: {
-          reply_message: item.final_text || reply.text || "",
+          reply_message: finalReply,
           intent: signals.intent || signals.customer_intent || action.type || "approval",
           stage,
           risk,
           action: approvalAction(item),
-          send_now: false,
-          reason: item.decision?.ui?.operator_instruction || action.operator_instruction || action.label || "等待确认。",
+          send_now: status === "auto_sent",
+          reason: approvalReason(item, status, action),
           keywords: words,
           source: reply.model || "live_agent",
         },
-        messages: [
-          {
-            id: inbound.provider_message_id || inbound.event_id || `${item.id}-in`,
-            direction: "inbound",
-            text: inbound.text || "",
-            at: inbound.message_at || at,
-          },
-        ],
+        messages,
         history: [
           {
-            type: "ai_decision",
+            type: status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : "ai_decision",
             at,
-            note: item.decision?.ui?.summary || action.label || "待处理。",
+            note: approvalReason(item, status, action),
           },
         ],
         raw_approval: item,
@@ -3306,6 +3324,8 @@
     }
 
     function approvalStatus(item) {
+      if (item.status === "sent" && (item.auto_reply || item.category === "auto" || item.decision?.delivery?.mode === "auto_send" || item.approved_by === "agent_auto_send")) return "auto_sent";
+      if (item.status === "sent") return "sent";
       if (item.status === "send_failed") return "send_failed";
       if (item.category === "handoff") return "human_required";
       if (item.category === "ops") return "order";
@@ -3314,9 +3334,17 @@
 
     function approvalAction(item) {
       const type = item.action?.type || "";
+      if (item.status === "sent" || item.category === "auto") return "auto_reply";
       if (item.category === "handoff" || type === "ask_team") return "ask_human";
       if (item.category === "ops" || /order|receipt|payment/i.test(type)) return "collect_order";
       return "approve_reply";
+    }
+
+    function approvalReason(item, status, action) {
+      if (status === "auto_sent") return "AI 已自动回复顾客；这里保留已发送内容，方便客服追踪。";
+      if (status === "sent") return "这条回复已发送给顾客。";
+      if (status === "send_failed") return item.send_result?.reason || item.send_result?.error || "自动/批准发送失败，需要检查。";
+      return item.decision?.ui?.operator_instruction || action.operator_instruction || action.label || "等待确认。";
     }
 
     function approvalWords(item, signals, action) {
@@ -3523,6 +3551,7 @@
 
     function filterCases(cases, filter) {
       if (filter === "all") return cases;
+      if (filter === "auto") return cases.filter((item) => ["auto", "auto_sent"].includes(item.status));
       if (filter === "needs_attention") {
         return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
       }
@@ -4045,7 +4074,7 @@
       const approval = cases.filter((item) => item.status === "approval_required").length;
       const human = cases.filter((item) => item.status === "human_required").length;
       const orders = cases.filter((item) => item.status === "order").length;
-      const auto = cases.filter((item) => item.status === "auto").length;
+      const auto = cases.filter((item) => ["auto", "auto_sent"].includes(item.status)).length;
       const failed = cases.filter((item) => item.status === "send_failed").length;
       return {
         total: cases.length,
@@ -4087,8 +4116,8 @@
           body: "检查资料和付款，确认后再提交或交给运营。",
         },
         auto: {
-          title: `${counts.auto} 个 Flow 自动中`,
-          body: "只包含 ChatDaddy 固定 Flow、关键词进线和已排好的跟进。",
+          title: `${counts.auto} 条自动回复记录`,
+          body: "这里可以看 AI 自动回复了什么；已发送记录只读，不会重复发送。",
         },
       };
       return views[filter] || views.all;
@@ -4187,24 +4216,30 @@
 
       const decision = item.latest_decision || {};
       const isFlowOnly = decision.action === "trigger_flow";
+      const readOnly = isCaseReadOnly(item);
       const statusTone = riskTone(item);
       $("panelName").textContent = item.contact?.name || "顾客";
       $("panelAvatar").textContent = initialsFor(item.contact?.name || "顾客");
       $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
       $("replyBox").value = decision.reply_message || "";
+      $("replyBox").readOnly = readOnly;
+      $("replyModeLabel").textContent = readOnly ? "已发送，只读" : "可修改";
+      $("replyTools").classList.toggle("hidden", readOnly);
       $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = actionHint(item);
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
       $("panelStatusPill").textContent = statusLabel(item.status, decision.risk);
-      $("approveBtn").textContent = isFlowOnly ? "已交给 Step 1" : item.status === "order" ? "确认处理" : "批准发送";
-      $("approveBtn").disabled = isFlowOnly;
-      $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly);
+      $("approveBtn").textContent = readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : item.status === "order" ? "确认处理" : "批准发送";
+      $("approveBtn").disabled = isFlowOnly || readOnly;
+      $("handoffBtn").disabled = readOnly;
+      $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
       $("caseDetails").innerHTML = caseDetailsHtml(item);
 
+      const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound");
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
         const klass = msg.direction === "outbound" ? "out" : "in";
         return `<div class="bubble ${klass}">${escapeHtml(msg.text || "")}</div>`;
-      }).join("") + `<div class="bubble out">${escapeHtml(decision.reply_message || "")}</div>`;
+      }).join("") + (!hasOutbound && decision.reply_message ? `<div class="bubble out">${escapeHtml(decision.reply_message || "")}</div>` : "");
 
       $("panelWords").innerHTML = (item.word_cloud || []).map((word, index) => {
         return `<span class="word ${index === 0 ? "big" : index < 3 ? "mid" : "small"}">${escapeHtml(word)}</span>`;
@@ -4252,8 +4287,8 @@
 
     function slaInfo(item) {
       const status = item.status;
-      if (status === "auto" || status === "sent") {
-        return { text: status === "auto" ? "自动中" : "已处理", tone: "", note: "固定 Flow 已接手。" };
+      if (status === "auto" || status === "auto_sent" || status === "sent") {
+        return { text: status === "auto_sent" ? "已自动回" : status === "auto" ? "自动中" : "已处理", tone: "", note: "已留记录。" };
       }
 
       const time = new Date(item.updated_at || item.last_message_at || Date.now()).getTime();
@@ -4278,6 +4313,9 @@
 
     function actionTitle(item) {
       const decision = item.latest_decision || {};
+      if (item.status === "auto_sent") return "AI 已自动回复";
+      if (item.status === "sent") return "已发送";
+      if (item.status === "send_failed") return "发送失败";
       if (decision.action === "trigger_flow") return "不用发送";
       if (decision.action === "ask_human") return "按「转人工」";
       if (item.status === "order") return "检查后提交";
@@ -4287,6 +4325,9 @@
 
     function actionHint(item) {
       const decision = item.latest_decision || {};
+      if (item.status === "auto_sent") return "下面显示的回复已经自动发送给顾客。";
+      if (item.status === "sent") return "这条回复已发送，保留给团队追踪。";
+      if (item.status === "send_failed") return "这条没有成功发送，需要检查错误或人工处理。";
       if (decision.action === "trigger_flow") return "ChatDaddy 已接 Step 1，AI 不补发文字";
       if (decision.action === "ask_human") return "停止自动流程，人工接手";
       if (item.status === "order") return "确认资料后再提交订单";
@@ -4311,22 +4352,32 @@
         case_approve_demo: "演示批准发送",
         case_learn_demo: "演示建立规则",
         case_handoff_demo: "演示转人工",
+        auto_reply_sent: "AI 自动回复",
+        auto_reply_failed: "自动回复失败",
+        reply_sent: "回复已发送",
       };
       return map[type] || type || "操作记录";
     }
 
+    function isCaseReadOnly(item) {
+      return ["auto", "auto_sent", "sent"].includes(item.status);
+    }
+
     async function approveActive() {
       if (!state.active) return;
+      if (isCaseReadOnly(state.active)) return;
       await postCaseAction(state.active.id, "approve", { reply_message: $("replyBox").value });
     }
 
     async function learnActive() {
       if (!state.active) return;
+      if (isCaseReadOnly(state.active)) return;
       await postCaseAction(state.active.id, "learn", {});
     }
 
     async function handoffActive() {
       if (!state.active) return;
+      if (isCaseReadOnly(state.active)) return;
       await postCaseAction(state.active.id, "handoff", { note: "客服在中控台转人工。" });
     }
 
@@ -4513,6 +4564,7 @@
       if (status === "human_required") return "要人工";
       if (status === "order") return "订单";
       if (status === "auto") return "自动";
+      if (status === "auto_sent") return "已自动回复";
       if (status === "sent") return "已发送";
       if (status === "send_failed") return "发送失败";
       if (risk === "high") return "高风险";
@@ -4523,6 +4575,7 @@
     function actionLabel(action) {
       const map = {
         send_reply: "发送回复",
+        auto_reply: "AI 自动回复",
         approve_reply: "批准发送",
         ask_human: "转人工",
         collect_order: "收订单",
