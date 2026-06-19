@@ -3418,6 +3418,14 @@
           note: handoffSummary(item),
         });
       }
+      const opsTracking = approvalOpsTrackingSummary(item);
+      if (opsTracking) {
+        history.push({
+          type: opsTracking.type,
+          at: item.updated_at || at,
+          note: opsTracking.note,
+        });
+      }
       const messages = [
         {
           id: inbound.provider_message_id || inbound.event_id || `${item.id}-in`,
@@ -3503,6 +3511,26 @@
       if (handoff.attempted && !handoff.sent) return `${reason} Dashboard 已记录；外部人工同步失败，请在 ChatDaddy 手动处理。`;
       if (handoff.reason) return `${reason} Dashboard 已记录；ChatDaddy tag/assign 尚未配置。`;
       return `${reason} Dashboard 已记录。`;
+    }
+
+    function approvalOpsTrackingSummary(item = {}) {
+      const actionType = item.action?.type || "";
+      if (!["collect_order", "receipt_review"].includes(actionType)) return null;
+      const results = item.send_result?.results || [];
+      const tracking = results.find((result) => result?.purpose === "order_tracking" || result?.purpose === "receipt_tracking");
+      if (!tracking) return null;
+      const isReceipt = actionType === "receipt_review";
+      const noun = isReceipt ? "收据" : "订单";
+      if (tracking.sent) {
+        return {
+          type: isReceipt ? "receipt_tracked" : "order_tracked",
+          note: `${noun}已同步 ChatDaddy tag，后续可追踪。`,
+        };
+      }
+      return {
+        type: isReceipt ? "receipt_tracking_failed" : "order_tracking_failed",
+        note: `${noun}已在 Dashboard 记录；ChatDaddy tag 同步失败，需要人工检查。`,
+      };
     }
 
     function approvalWords(item, signals, action) {
@@ -4588,6 +4616,10 @@
         reply_sending: "回复发送中",
         handoff_done: "已转人工",
         handoff_recorded: "转人工记录",
+        order_tracked: "订单已标记",
+        receipt_tracked: "收据已标记",
+        order_tracking_failed: "订单标记失败",
+        receipt_tracking_failed: "收据标记失败",
       };
       return map[type] || type || "操作记录";
     }
