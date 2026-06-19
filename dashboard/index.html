@@ -2499,6 +2499,8 @@
       pendingCaseId: null,
       deepLinkOpened: false,
       loading: false,
+      actionBusy: false,
+      bulkBusy: false,
     };
 
     const DEFAULT_SETTINGS = {
@@ -3525,8 +3527,8 @@
       const hasActionable = selectedCases.length > 0;
       $("bulkCount").textContent = count;
       $("bulkBar").classList.toggle("hidden", count === 0);
-      $("bulkMarkSeen").disabled = !hasActionable;
-      $("bulkHandoff").disabled = !hasActionable;
+      $("bulkMarkSeen").disabled = state.bulkBusy || !hasActionable;
+      $("bulkHandoff").disabled = state.bulkBusy || !hasActionable;
     }
 
     function selectedActionableCases() {
@@ -3548,13 +3550,19 @@
         showToast("已发送/自动记录是只读，不能批量操作。");
         return;
       }
+      if (state.bulkBusy) return;
+      if (action === "handoff" && !window.confirm(`确认把 ${items.length} 条真实顾客记录转人工？这不会发送 AI 建议给顾客。`)) {
+        return;
+      }
 
+      state.bulkBusy = true;
+      renderBulkBar();
       try {
         for (const item of items) {
           if (action === "mark_seen") {
-            await postCaseAction(item.id, "mark_seen", { note: "客服已看过。" }, { reload: false, reopen: false, silent: true });
+            await postCaseAction(item.id, "mark_seen", { note: "客服已看过。" }, { reload: false, reopen: false, silent: true, lock: false });
           } else if (action === "handoff") {
-            await postCaseAction(item.id, "handoff", { note: "客服批量转人工，不发送 AI 建议。" }, { reload: false, reopen: false, silent: true });
+            await postCaseAction(item.id, "handoff", { note: "客服批量转人工，不发送 AI 建议。" }, { reload: false, reopen: false, silent: true, lock: false });
           }
         }
         state.selected.clear();
@@ -3562,6 +3570,9 @@
         showToast(action === "handoff" ? `已转人工 ${items.length} 条。` : `已标记 ${items.length} 条。`);
       } catch (error) {
         alert(`批量操作失败：${error.message}`);
+      } finally {
+        state.bulkBusy = false;
+        renderBulkBar();
       }
     }
 
@@ -4288,8 +4299,8 @@
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
       $("panelStatusPill").textContent = statusLabel(item.status, decision.risk);
       $("approveBtn").textContent = readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : item.status === "order" ? "确认处理" : "批准发送";
-      $("approveBtn").disabled = isFlowOnly || readOnly;
-      $("handoffBtn").disabled = readOnly;
+      $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly;
+      $("handoffBtn").disabled = state.actionBusy || readOnly;
       $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
       $("caseDetails").innerHTML = caseDetailsHtml(item);
 
@@ -4418,24 +4429,30 @@
     }
 
     function isCaseReadOnly(item) {
-      return ["auto", "auto_sent", "sent"].includes(item.status);
+      return ["auto", "auto_sent", "sent", "sending"].includes(item.status);
     }
 
     async function approveActive() {
       if (!state.active) return;
       if (isCaseReadOnly(state.active)) return;
+      if (state.actionBusy) return;
+      if (!confirmLiveAction("approve", state.active)) return;
       await postCaseAction(state.active.id, "approve", { reply_message: $("replyBox").value });
     }
 
     async function learnActive() {
       if (!state.active) return;
       if (isCaseReadOnly(state.active)) return;
-      await postCaseAction(state.active.id, "learn", {});
+      if (state.actionBusy) return;
+      if (!confirmLiveAction("learn", state.active)) return;
+      await postCaseAction(state.active.id, "learn", { reply_message: $("replyBox").value });
     }
 
     async function handoffActive() {
       if (!state.active) return;
       if (isCaseReadOnly(state.active)) return;
+      if (state.actionBusy) return;
+      if (!confirmLiveAction("handoff", state.active)) return;
       await postCaseAction(state.active.id, "handoff", { note: "客服在中控台转人工。" });
     }
 
@@ -4449,8 +4466,13 @@
       const project = projectKeyEl.value.trim() || "demo";
       const token = adminTokenEl.value.trim();
       const active = state.cases.find((item) => item.id === caseId);
+      const shouldLock = options.lock !== false;
 
       try {
+        if (shouldLock) {
+          if (state.actionBusy) return;
+          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "mark_seen" ? "标记中..." : "发送中...");
+        }
         const isApproval = active?.source === "approval";
         const endpoint = isApproval
           ? approvalActionEndpoint(api, caseId, action, project)
@@ -4476,7 +4498,41 @@
       } catch (error) {
         if (!options.silent) alert(`操作失败：${error.message}`);
         throw error;
+      } finally {
+        if (shouldLock) setPanelBusy(false);
       }
+    }
+
+    function confirmLiveAction(action, item) {
+      if (state.demoMode) return true;
+      const name = item.contact?.name || "这位顾客";
+      const reply = $("replyBox").value.trim() || item.latest_decision?.reply_message || "";
+      if (action === "handoff") {
+        return window.confirm(`确认把 ${name} 转人工？\n\n这不会发送 AI 建议给顾客，会在 Dashboard/记录表留下处理记录。`);
+      }
+      if (!reply.trim()) {
+        alert("建议回复是空的，不能发送。");
+        return false;
+      }
+      const actionText = action === "learn" ? "发送并建立同类少审规则" : "发送给真实顾客";
+      const preview = reply.trim().slice(0, 180);
+      return window.confirm(`确认${actionText}：${name}？\n\n将发送内容：\n${preview}${reply.length > 180 ? "..." : ""}`);
+    }
+
+    function setPanelBusy(isBusy, label = "处理中...") {
+      state.actionBusy = isBusy;
+      if (!state.active) return;
+      const decision = state.active.latest_decision || {};
+      const readOnly = isCaseReadOnly(state.active);
+      const isFlowOnly = decision.action === "trigger_flow";
+      $("approveBtn").disabled = isBusy || isFlowOnly || readOnly;
+      $("handoffBtn").disabled = isBusy || readOnly;
+      $("learnBtn").disabled = isBusy || readOnly;
+      if (isBusy) {
+        $("approveBtn").textContent = label;
+        return;
+      }
+      $("approveBtn").textContent = readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : state.active.status === "order" ? "确认处理" : "批准发送";
     }
 
     function approvalActionEndpoint(api, caseId, action, project) {
