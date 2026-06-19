@@ -2510,9 +2510,9 @@
         s1: "bot_b420c7c1986ebbce",
         s2: "bot_5ce201ce96116e07",
         s3: "bot_29650314b584a2ee",
-        payment2: "bot_39325bf252acbd0f",
-        payment3: "bot_39325bf252acbd0f",
-        followup: "",
+        order: "",
+        payment: "bot_39325bf252acbd0f",
+        follow_up_1: "",
       },
       rules: {
         complaint: true,
@@ -2876,6 +2876,10 @@
       const toggleRule = event.target.closest("[data-rule-key]");
       if (toggleRule) {
         const key = toggleRule.dataset.ruleKey;
+        if (!state.demoMode) {
+          showToast("真实系统安全规则由 Worker 强制执行，不能在页面临时关闭。");
+          return;
+        }
         state.settings = collectProjectSettingsFromForm();
         state.settings.rules[key] = !state.settings.rules[key];
         render();
@@ -2933,12 +2937,49 @@
       localStorage.setItem(auditKey(project), JSON.stringify(state.auditEvents));
     }
 
-    function saveProjectSettings() {
+    async function saveProjectSettings() {
       const project = projectKeyEl.value.trim() || "demo";
       state.settings = collectProjectSettingsFromForm();
+      if (state.role === "staff") {
+        alert("客服权限不能修改项目设置。");
+        return;
+      }
+
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const token = adminTokenEl.value.trim();
+      if (!state.demoMode && api && !token) {
+        alert("缺少管理密钥，不能保存到真实系统。");
+        return;
+      }
+      if (!state.demoMode && api && token) {
+        try {
+          showToast("正在保存到真实系统。");
+          const endpoint = `${api}/api/agent-runtime/config?project_key=${encodeURIComponent(project)}`;
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              ...authHeaders(token),
+            },
+            body: JSON.stringify(runtimeSettingsPayload(project, state.settings)),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) throw new Error(data.next || data.error || `HTTP ${res.status}`);
+          state.settings = settingsFromRuntimeConfig(data.runtime_config, state.settings);
+          localStorage.setItem(settingsKey(project), JSON.stringify(state.settings));
+          addAuditEvent("project_settings_saved_live", "项目设置已保存到 Worker Runtime。");
+          showToast("项目设置已保存到真实系统。");
+          render();
+          return;
+        } catch (error) {
+          alert(`真实系统保存失败：${error.message}`);
+          return;
+        }
+      }
+
       localStorage.setItem(settingsKey(project), JSON.stringify(state.settings));
       addAuditEvent("project_settings_saved", "更新品牌大脑、自动流程 ID 和安全规则。");
-      showToast("项目设置已保存。演示设置会保存在这台浏览器。");
+      showToast("项目设置已保存为本机草稿；未写入真实系统。");
       render();
     }
 
@@ -2950,12 +2991,56 @@
           s1: $("flowS1")?.value.trim() || "",
           s2: $("flowS2")?.value.trim() || "",
           s3: $("flowS3")?.value.trim() || "",
-          payment2: $("flowPayment2")?.value.trim() || "",
-          payment3: $("flowPayment3")?.value.trim() || "",
-          followup: $("flowFollowup")?.value.trim() || "",
+          order: $("flowOrder")?.value.trim() || "",
+          payment: $("flowPayment")?.value.trim() || "",
+          follow_up_1: $("flowFollowup1")?.value.trim() || "",
         },
         rules: { ...state.settings.rules },
       };
+    }
+
+    function runtimeSettingsPayload(project, settings) {
+      const flowMap = { ...(settings.flowMap || {}) };
+      return {
+        project_key: project,
+        updated_by: state.session.displayName || roleName(state.role),
+        config: {
+          reply_assets: {
+            ui_brand_voice: settings.brandVoice || "",
+            ui_knowledge_focus: settings.brandKb || "",
+          },
+          safety: {
+            dashboard_rules_locked: true,
+            operator_rules: settings.rules || {},
+          },
+        },
+        flows: flowMap,
+      };
+    }
+
+    function settingsFromRuntimeConfig(runtimeConfig, fallback = DEFAULT_SETTINGS) {
+      const flowMap = { ...(fallback.flowMap || DEFAULT_SETTINGS.flowMap) };
+      Object.entries(runtimeConfig?.flow_map || {}).forEach(([key, slot]) => {
+        const value = runtimeFlowDisplayValue(slot);
+        if (value) flowMap[key] = value;
+      });
+      const assets = runtimeConfig?.reply_assets || {};
+      return {
+        ...clone(DEFAULT_SETTINGS),
+        ...fallback,
+        brandVoice: assets.ui_brand_voice || fallback.brandVoice || DEFAULT_SETTINGS.brandVoice,
+        brandKb: assets.ui_knowledge_focus || fallback.brandKb || DEFAULT_SETTINGS.brandKb,
+        flowMap,
+        rules: { ...DEFAULT_SETTINGS.rules, ...(fallback.rules || {}) },
+      };
+    }
+
+    function runtimeFlowDisplayValue(slot) {
+      if (!slot) return "";
+      if (typeof slot === "string") return slot;
+      if (slot.provider_bot_id) return slot.provider_bot_id;
+      if (slot.provider_flow_id) return `flow:${slot.provider_flow_id}`;
+      return "";
     }
 
     function applySessionShell() {
@@ -3239,10 +3324,30 @@
           ? data.items.filter((item) => isDashboardVisibleApproval(item) && !isDemoLikeApprovalItem(item))
           : [];
         state.cases = liveItems.map(approvalToCase);
+        if (state.role !== "staff") await loadRuntimeSettings({ silent: true });
         render();
       } catch (error) {
         errorEl.textContent = `连接失败：${error.message}`;
         setRealQueueEmpty(`连接失败：${error.message}`);
+      }
+    }
+
+    async function loadRuntimeSettings(options = {}) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
+      if (!api) return null;
+      try {
+        const endpoint = `${api}/api/agent-runtime/config?project_key=${encodeURIComponent(project)}`;
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        state.settings = settingsFromRuntimeConfig(data.runtime_config, state.settings || readProjectSettings(project));
+        localStorage.setItem(settingsKey(project), JSON.stringify(state.settings));
+        if (!options.silent) showToast("已读取真实项目设置。");
+        return data.runtime_config;
+      } catch (error) {
+        if (!options.silent) showToast(`读取项目设置失败：${error.message}`);
+        return null;
       }
     }
 
@@ -4054,7 +4159,7 @@
         <section class="command-panel">
           <div class="command-kicker">项目接入</div>
           <strong class="command-title">让每个项目用同一套方法接入</strong>
-          <p class="command-copy">项目方只需要填品牌大脑、自动流程 ID 和安全规则。AI 判断逻辑保持一致，内容可以按项目调整。</p>
+          <p class="command-copy">管理者可更新 Runtime 使用的 ChatDaddy Flow/Bot ID；安全规则在真实系统中由 Worker 强制执行。</p>
           <div class="settings-grid">
             <div class="settings-box">
               <h3>品牌大脑</h3>
@@ -4073,9 +4178,9 @@
                 ${flowRow("流程 1", "flowS1", flows.s1)}
                 ${flowRow("流程 2", "flowS2", flows.s2)}
                 ${flowRow("流程 3", "flowS3", flows.s3)}
-                ${flowRow("付款流程 2盒", "flowPayment2", flows.payment2)}
-                ${flowRow("付款流程 3盒", "flowPayment3", flows.payment3)}
-                ${flowRow("跟进", "flowFollowup", flows.followup)}
+                ${flowRow("订单资料流程", "flowOrder", flows.order)}
+                ${flowRow("付款 / Receipt", "flowPayment", flows.payment)}
+                ${flowRow("跟进 1", "flowFollowup1", flows.follow_up_1)}
               </div>
             </div>
             <div class="settings-box">
@@ -4092,7 +4197,7 @@
               <h3>保存后系统会怎样用</h3>
               <div class="compact-list">
                 ${compactRow("顾客进来", "ChatDaddy 讯息进入顾客队列", "接收")}
-                ${compactRow("AI 判断", "按品牌大脑、自动流程和规则决定下一步", "判断")}
+                ${compactRow("AI 判断", "按 Runtime Flow ID 和强制安全规则决定下一步", "判断")}
                 ${compactRow("团队确认", "需要人的才显示给客服处理", "闭环")}
               </div>
               <div class="quick-actions">
