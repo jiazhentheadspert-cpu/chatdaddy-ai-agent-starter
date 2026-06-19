@@ -790,7 +790,7 @@
           <span class="env">演示模式</span>
         </div>
         <h2>进入工作台</h2>
-        <p class="login-copy">先用公开演示预览权限。正式上线后，会改成团队账号登录。</p>
+        <p class="login-copy">团队用同一个入口进入。客服只看顾客待办，管理者才看系统连接。</p>
         <div class="login-meta">
           <div>
             <span>当前入口</span>
@@ -828,8 +828,13 @@
           <div class="permission-preview" id="permissionPreview"></div>
         </div>
 
+        <div class="field">
+          <label for="staffToken">团队安全码</label>
+          <input id="staffToken" placeholder="客服 / 运营输入安全码" type="password" />
+        </div>
+
         <details class="advanced">
-          <summary>系统连接（仅管理者使用）</summary>
+          <summary>系统连接（管理者设置一次即可）</summary>
           <div class="advanced-body">
             <div class="field">
               <label for="apiUrl">系统接口地址</label>
@@ -858,6 +863,7 @@
     const roleButtons = [...document.querySelectorAll("[data-role]")];
     const roleHelp = document.getElementById("roleHelp");
     const permissionPreview = document.getElementById("permissionPreview");
+    const params = new URLSearchParams(window.location.search);
     const roleHelpCopy = {
       owner: "查看全部顾客、连接状态、团队权限和 AI 规则。",
       admin: "审核回复、处理异常、查看 AI 复盘。",
@@ -876,27 +882,32 @@
         .join("");
     }
 
+    function setSelectedRole(role) {
+      selectedRole = roleHelpCopy[role] ? role : "owner";
+      roleButtons.forEach((item) => item.classList.toggle("active", item.dataset.role === selectedRole));
+      roleHelp.textContent = roleHelpCopy[selectedRole] || roleHelpCopy.owner;
+      renderPermissionPreview(selectedRole);
+      if (selectedRole === "staff" && document.getElementById("displayName").value === "Jia Zhen") {
+        document.getElementById("displayName").value = "Support Team";
+      }
+    }
+
     roleButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        selectedRole = button.dataset.role;
-        roleButtons.forEach((item) => item.classList.toggle("active", item === button));
-        roleHelp.textContent = roleHelpCopy[selectedRole] || roleHelpCopy.owner;
-        renderPermissionPreview(selectedRole);
-        if (selectedRole === "staff") {
-          document.getElementById("displayName").value = "Support Team";
-        }
-      });
+      button.addEventListener("click", () => setSelectedRole(button.dataset.role));
     });
 
-    renderPermissionPreview(selectedRole);
+    document.getElementById("workspace").value = params.get("project_key") || localStorage.getItem("agent_project_key") || "demo";
+    setSelectedRole(params.get("role") || "owner");
 
-    document.getElementById("apiUrl").value = localStorage.getItem("agent_api_url") || "";
+    document.getElementById("apiUrl").value = params.get("api") || localStorage.getItem("agent_api_url") || "";
     document.getElementById("adminToken").value = localStorage.getItem("agent_admin_token") || "";
+    document.getElementById("staffToken").value = params.get("staff_token") || localStorage.getItem("agent_staff_token") || "";
 
     document.getElementById("loginBtn").addEventListener("click", () => {
       const workspace = document.getElementById("workspace").value || "demo";
       const apiUrl = document.getElementById("apiUrl").value.trim();
       const adminToken = document.getElementById("adminToken").value.trim();
+      const staffToken = document.getElementById("staffToken").value.trim();
       const displayName = document.getElementById("displayName").value.trim() || "Team";
 
       const session = {
@@ -906,6 +917,7 @@
         displayName,
         apiUrl,
         hasAdminToken: Boolean(adminToken),
+        hasStaffToken: Boolean(staffToken),
         signedInAt: new Date().toISOString(),
       };
 
@@ -913,8 +925,11 @@
       localStorage.setItem("agent_project_key", workspace);
       if (apiUrl) localStorage.setItem("agent_api_url", apiUrl);
       if (adminToken && selectedRole !== "staff") localStorage.setItem("agent_admin_token", adminToken);
+      if (staffToken) localStorage.setItem("agent_staff_token", staffToken);
 
       const params = new URLSearchParams({ project_key: workspace, role: selectedRole });
+      if (apiUrl) params.set("api", apiUrl);
+      if (selectedRole === "staff") params.set("view", "cases");
       window.location.href = `dashboard/index.html?${params.toString()}`;
     });
   </script>

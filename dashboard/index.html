@@ -2682,7 +2682,18 @@
 
     apiUrlEl.value = params.get("api") || state.session.apiUrl || localStorage.getItem("agent_api_url") || "";
     projectKeyEl.value = params.get("project_key") || state.session.projectKey || localStorage.getItem("agent_project_key") || "demo";
-    adminTokenEl.value = localStorage.getItem("agent_admin_token") || "";
+    const incomingStaffToken = params.get("staff_token") || params.get("operator_token") || "";
+    if (incomingStaffToken) {
+      localStorage.setItem("agent_staff_token", incomingStaffToken);
+      params.delete("staff_token");
+      params.delete("operator_token");
+      const cleanUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+    adminTokenEl.value = state.role === "staff"
+      ? localStorage.getItem("agent_staff_token") || ""
+      : localStorage.getItem("agent_admin_token") || localStorage.getItem("agent_staff_token") || "";
+    adminTokenEl.placeholder = state.role === "staff" ? "客服安全码" : "管理密钥 / 团队安全码";
     state.settings = readProjectSettings(projectKeyEl.value || "demo");
     state.auditEvents = readAuditEvents(projectKeyEl.value || "demo");
 
@@ -2691,7 +2702,8 @@
     $("saveAndLoad").addEventListener("click", () => {
       localStorage.setItem("agent_api_url", apiUrlEl.value.trim());
       localStorage.setItem("agent_project_key", projectKeyEl.value.trim());
-      localStorage.setItem("agent_admin_token", adminTokenEl.value.trim());
+      if (state.role === "staff") localStorage.setItem("agent_staff_token", adminTokenEl.value.trim());
+      else localStorage.setItem("agent_admin_token", adminTokenEl.value.trim());
       state.settings = readProjectSettings(projectKeyEl.value.trim() || "demo");
       state.auditEvents = readAuditEvents(projectKeyEl.value.trim() || "demo");
       loadCases();
@@ -3091,24 +3103,114 @@
 
       if (!api || !token) {
         loadDemoCases();
-        showToast("已载入公开演示。连接真实系统才需要接口地址和管理密钥。");
+        showToast("已载入公开演示。连接真实系统需要接口地址和团队安全码。");
         return;
       }
 
       try {
-        const res = await fetch(`${api}/api/cases?project_key=${encodeURIComponent(project)}`, {
-          headers: { "x-admin-token": token },
-        });
+        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=pending&include_tests=0&limit=100`;
+        let res = await fetch(approvalUrl, { headers: authHeaders(token) });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
         state.selected.clear();
         $("modeTag").textContent = "真实系统";
-        state.cases = data.cases || [];
+        state.cases = Array.isArray(data.items) ? data.items.map(approvalToCase) : data.cases || [];
         render();
       } catch (error) {
         errorEl.textContent = `连接失败：${error.message}`;
       }
+    }
+
+    function authHeaders(token) {
+      if (state.role === "staff") return { "x-staff-token": token };
+      return { "x-admin-token": token, "x-staff-token": token };
+    }
+
+    function approvalToCase(item) {
+      const signals = item.decision?.signals || {};
+      const action = item.action || {};
+      const inbound = item.inbound || {};
+      const customer = item.customer || {};
+      const reply = item.reply || {};
+      const risk = signals.risk_level || signals.risk || item.risk_level || "medium";
+      const stage = reply.stage_after || signals.stage || signals.stage_key || "CLOSING";
+      const status = approvalStatus(item);
+      const words = approvalWords(item, signals, action);
+      const at = item.updated_at || item.created_at || inbound.message_at || new Date().toISOString();
+
+      return {
+        id: item.id,
+        source: "approval",
+        project_key: item.project_key || projectKeyEl.value.trim() || "beyoute",
+        status,
+        contact: {
+          id: customer.chat_id || customer.phone || item.id,
+          name: customer.name || "WhatsApp Customer",
+          phone: customer.phone || "",
+        },
+        last_message: inbound.text || "",
+        last_message_at: inbound.message_at || at,
+        updated_at: at,
+        created_at: item.created_at || at,
+        word_cloud: words,
+        latest_decision: {
+          reply_message: item.final_text || reply.text || "",
+          intent: signals.intent || signals.customer_intent || action.type || "approval",
+          stage,
+          risk,
+          action: approvalAction(item),
+          send_now: false,
+          reason: item.decision?.ui?.operator_instruction || action.operator_instruction || action.label || "AI 已判断下一步，等待客服确认。",
+          keywords: words,
+          source: reply.model || "live_agent",
+        },
+        messages: [
+          {
+            id: inbound.provider_message_id || inbound.event_id || `${item.id}-in`,
+            direction: "inbound",
+            text: inbound.text || "",
+            at: inbound.message_at || at,
+          },
+        ],
+        history: [
+          {
+            type: "ai_decision",
+            at,
+            note: item.decision?.ui?.summary || action.label || "AI 已放入待处理队列。",
+          },
+        ],
+        raw_approval: item,
+      };
+    }
+
+    function approvalStatus(item) {
+      if (item.status === "send_failed") return "send_failed";
+      if (item.category === "handoff") return "human_required";
+      if (item.category === "ops") return "order";
+      return "approval_required";
+    }
+
+    function approvalAction(item) {
+      const type = item.action?.type || "";
+      if (item.category === "handoff" || type === "ask_team") return "ask_human";
+      if (item.category === "ops" || /order|receipt|payment/i.test(type)) return "collect_order";
+      return "approve_reply";
+    }
+
+    function approvalWords(item, signals, action) {
+      const raw = [
+        signals.intent,
+        signals.customer_intent,
+        signals.risk_level || signals.risk,
+        signals.stage || signals.stage_key,
+        action.label,
+        action.flow_key,
+        item.category,
+        ...(Array.isArray(signals.tags) ? signals.tags : []),
+      ].filter(Boolean);
+      const words = raw.map((word) => String(word).replace(/_/g, " ").trim()).filter(Boolean);
+      return [...new Set(words)].slice(0, 8);
     }
 
     function loadDemoCases() {
@@ -4150,15 +4252,21 @@
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
       const token = adminTokenEl.value.trim();
+      const active = state.cases.find((item) => item.id === caseId);
 
       try {
-        const res = await fetch(`${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`, {
+        const isApproval = active?.source === "approval";
+        const endpoint = isApproval
+          ? approvalActionEndpoint(api, caseId, action, project)
+          : `${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`;
+        const payload = isApproval ? approvalActionPayload(action, body) : body;
+        const res = await fetch(endpoint, {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "x-admin-token": token,
+            ...authHeaders(token),
           },
-          body: JSON.stringify(body),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -4168,6 +4276,27 @@
       } catch (error) {
         alert(`操作失败：${error.message}`);
       }
+    }
+
+    function approvalActionEndpoint(api, caseId, action, project) {
+      const realAction = action === "handoff" ? "reject" : "approve";
+      return `${api}/api/approvals/${encodeURIComponent(caseId)}/${realAction}?project_key=${encodeURIComponent(project)}`;
+    }
+
+    function approvalActionPayload(action, body) {
+      if (action === "handoff") {
+        return {
+          reason: body.note || "客服选择转人工，不发送 AI 建议。",
+          user: state.session.displayName || roleName(state.role),
+        };
+      }
+      return {
+        text: body.reply_message,
+        replyText: body.reply_message,
+        confirmLiveSend: true,
+        autoApproveSimilar: action === "learn",
+        user: state.session.displayName || roleName(state.role),
+      };
     }
 
     function handleDemoAction(caseId, action, body) {
