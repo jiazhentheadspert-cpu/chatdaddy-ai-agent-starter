@@ -2823,8 +2823,8 @@
     $("approveBtn").addEventListener("click", approveActive);
     $("learnBtn").addEventListener("click", learnActive);
     $("handoffBtn").addEventListener("click", handoffActive);
-    $("bulkMarkSeen").addEventListener("click", () => bulkDemoAction("mark_seen"));
-    $("bulkHandoff").addEventListener("click", () => bulkDemoAction("handoff"));
+    $("bulkMarkSeen").addEventListener("click", () => bulkCaseAction("mark_seen"));
+    $("bulkHandoff").addEventListener("click", () => bulkCaseAction("handoff"));
     $("bulkClear").addEventListener("click", clearSelection);
 
     document.querySelectorAll("[data-filter]").forEach((button) => {
@@ -3453,7 +3453,6 @@
       $("statAuto").textContent = counts.auto;
       renderNavigationBadges(counts, learned);
 
-      if (state.role === "staff" && state.filter === "auto") state.filter = "all";
       syncFilterControls();
       renderOpsLayer(all);
       renderWorkspaceViews(all, counts, learned);
@@ -3514,17 +3513,53 @@
 
     function renderBulkBar() {
       const count = state.selected.size;
+      const selectedCases = selectedActionableCases();
+      const hasActionable = selectedCases.length > 0;
       $("bulkCount").textContent = count;
       $("bulkBar").classList.toggle("hidden", count === 0);
+      $("bulkMarkSeen").disabled = !hasActionable;
+      $("bulkHandoff").disabled = !hasActionable;
+    }
+
+    function selectedActionableCases() {
+      return [...state.selected]
+        .map((id) => state.cases.find((item) => item.id === id))
+        .filter((item) => item && !isCaseReadOnly(item));
+    }
+
+    async function bulkCaseAction(action) {
+      const ids = [...state.selected];
+      if (!ids.length) return;
+      if (state.demoMode) {
+        bulkDemoAction(action);
+        return;
+      }
+
+      const items = selectedActionableCases();
+      if (!items.length) {
+        showToast("已发送/自动记录是只读，不能批量操作。");
+        return;
+      }
+
+      try {
+        for (const item of items) {
+          if (action === "mark_seen") {
+            await postCaseAction(item.id, "mark_seen", { note: "客服已看过。" }, { reload: false, reopen: false, silent: true });
+          } else if (action === "handoff") {
+            await postCaseAction(item.id, "handoff", { note: "客服批量转人工，不发送 AI 建议。" }, { reload: false, reopen: false, silent: true });
+          }
+        }
+        state.selected.clear();
+        await loadCases();
+        showToast(action === "handoff" ? `已转人工 ${items.length} 条。` : `已标记 ${items.length} 条。`);
+      } catch (error) {
+        alert(`批量操作失败：${error.message}`);
+      }
     }
 
     function bulkDemoAction(action) {
       const ids = [...state.selected];
       if (!ids.length) return;
-      if (!state.demoMode && action === "handoff") {
-        showToast("真实系统建议逐个确认后再转人工。");
-        return;
-      }
 
       const now = new Date().toISOString();
       ids.forEach((id) => {
@@ -4396,7 +4431,7 @@
       await postCaseAction(state.active.id, "handoff", { note: "客服在中控台转人工。" });
     }
 
-    async function postCaseAction(caseId, action, body) {
+    async function postCaseAction(caseId, action, body, options = {}) {
       if (state.demoMode) {
         handleDemoAction(caseId, action, body);
         return;
@@ -4422,21 +4457,35 @@
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
         addAuditEvent(`case_${action}`, `真实顾客 ${caseId} 已执行 ${actionLabel(action)}。`);
-        await loadCases();
-        if (data.case) openCase(data.case.id);
+        if (options.reload !== false) {
+          await loadCases();
+          const returnedCase = data.case || data.item;
+          if (options.reopen !== false && returnedCase) openCase(returnedCase.id);
+        }
+        return data;
       } catch (error) {
-        alert(`操作失败：${error.message}`);
+        if (!options.silent) alert(`操作失败：${error.message}`);
+        throw error;
       }
     }
 
     function approvalActionEndpoint(api, caseId, action, project) {
+      if (action === "mark_seen") {
+        return `${api}/api/approvals/${encodeURIComponent(caseId)}/mark-seen?project_key=${encodeURIComponent(project)}`;
+      }
       const realAction = action === "handoff" ? "reject" : "approve";
       return `${api}/api/approvals/${encodeURIComponent(caseId)}/${realAction}?project_key=${encodeURIComponent(project)}`;
     }
 
     function approvalActionPayload(action, body) {
+      if (action === "mark_seen") {
+        return {
+          note: body.note || "客服已看过。",
+          user: state.session.displayName || roleName(state.role),
+        };
+      }
       if (action === "handoff") {
         return {
           reason: body.note || "客服选择转人工，不发送 AI 建议。",
