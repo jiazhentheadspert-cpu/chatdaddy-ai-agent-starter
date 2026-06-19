@@ -3195,7 +3195,7 @@
 
     function casesForRole(cases) {
       if (state.role !== "staff") return cases;
-      return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed", "auto_sent", "sent"].includes(item.status));
+      return cases.filter((item) => ["approval_required", "human_required", "handoff_done", "order", "send_failed", "auto_sent", "sent", "sending"].includes(item.status));
     }
 
     function setView(view) {
@@ -3283,7 +3283,7 @@
 
     function isDashboardVisibleApproval(item = {}) {
       const status = String(item.status || "").toLowerCase();
-      return ["pending", "sent", "send_failed"].includes(status);
+      return ["pending", "sent", "send_failed", "sending", "rejected"].includes(status);
     }
 
     function approvalToCase(item) {
@@ -3299,6 +3299,20 @@
       const at = item.updated_at || item.created_at || inbound.message_at || new Date().toISOString();
       const finalReply = item.final_text || reply.text || "";
       const sentLike = ["auto_sent", "sent", "send_failed"].includes(status);
+      const history = [
+        {
+          type: status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : status === "handoff_done" ? "handoff_done" : status === "sending" ? "reply_sending" : "ai_decision",
+          at,
+          note: approvalReason(item, status, action),
+        },
+      ];
+      if (status === "handoff_done") {
+        history.push({
+          type: "handoff_recorded",
+          at: item.rejected_at || item.updated_at || at,
+          note: handoffSummary(item),
+        });
+      }
       const messages = [
         {
           id: inbound.provider_message_id || inbound.event_id || `${item.id}-in`,
@@ -3334,7 +3348,7 @@
         latest_decision: {
           reply_message: finalReply,
           intent: signals.intent || signals.customer_intent || action.type || "approval",
-          stage,
+          stage: status === "handoff_done" ? "HUMAN" : stage,
           risk,
           action: approvalAction(item),
           send_now: status === "auto_sent",
@@ -3343,18 +3357,14 @@
           source: reply.model || "live_agent",
         },
         messages,
-        history: [
-          {
-            type: status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : "ai_decision",
-            at,
-            note: approvalReason(item, status, action),
-          },
-        ],
+        history,
         raw_approval: item,
       };
     }
 
     function approvalStatus(item) {
+      if (item.status === "rejected") return "handoff_done";
+      if (item.status === "sending") return "sending";
       if (item.status === "sent" && (item.auto_reply || item.category === "auto" || item.decision?.delivery?.mode === "auto_send" || item.approved_by === "agent_auto_send")) return "auto_sent";
       if (item.status === "sent") return "sent";
       if (item.status === "send_failed") return "send_failed";
@@ -3365,6 +3375,7 @@
 
     function approvalAction(item) {
       const type = item.action?.type || "";
+      if (item.status === "rejected") return "handoff_done";
       if (item.status === "sent" || item.category === "auto") return "auto_reply";
       if (item.category === "handoff" || item.category === "human" || type === "ask_team") return "ask_human";
       if (item.category === "ops" || item.category === "order" || /order|receipt|payment/i.test(type)) return "collect_order";
@@ -3375,7 +3386,18 @@
       if (status === "auto_sent") return "AI 已自动回复顾客；这里保留已发送内容，方便客服追踪。";
       if (status === "sent") return "这条回复已发送给顾客。";
       if (status === "send_failed") return item.send_result?.reason || item.send_result?.error || "自动/批准发送失败，需要检查。";
+      if (status === "handoff_done") return handoffSummary(item);
+      if (status === "sending") return "这条回复正在发送中，先不要重复操作。";
       return item.decision?.ui?.operator_instruction || action.operator_instruction || action.label || "等待确认。";
+    }
+
+    function handoffSummary(item = {}) {
+      const handoff = item.handoff_result || {};
+      const reason = item.rejection_reason || "客服已选择转人工，不发送 AI 建议。";
+      if (handoff.attempted && handoff.sent) return `${reason} 已同步到外部人工处理入口。`;
+      if (handoff.attempted && !handoff.sent) return `${reason} Dashboard 已记录；外部人工同步失败，请在 ChatDaddy 手动处理。`;
+      if (handoff.reason) return `${reason} Dashboard 已记录；ChatDaddy tag/assign 尚未配置。`;
+      return `${reason} Dashboard 已记录。`;
     }
 
     function approvalWords(item, signals, action) {
@@ -3627,6 +3649,7 @@
     function filterCases(cases, filter) {
       if (filter === "all") return cases;
       if (filter === "auto") return cases.filter((item) => ["auto", "auto_sent"].includes(item.status));
+      if (filter === "human_required") return cases.filter((item) => ["human_required", "handoff_done"].includes(item.status));
       if (filter === "needs_attention") {
         return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
       }
@@ -4165,7 +4188,9 @@
 
     function countCases(cases) {
       const approval = cases.filter((item) => item.status === "approval_required").length;
-      const human = cases.filter((item) => item.status === "human_required").length;
+      const humanOpen = cases.filter((item) => item.status === "human_required").length;
+      const handoffDone = cases.filter((item) => item.status === "handoff_done").length;
+      const human = humanOpen + handoffDone;
       const orders = cases.filter((item) => item.status === "order").length;
       const auto = cases.filter((item) => ["auto", "auto_sent"].includes(item.status)).length;
       const failed = cases.filter((item) => item.status === "send_failed").length;
@@ -4176,7 +4201,8 @@
         orders,
         auto,
         failed,
-        needs: approval + human + orders + failed,
+        handoffDone,
+        needs: approval + humanOpen + orders + failed,
       };
     }
 
@@ -4316,7 +4342,7 @@
       $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
       $("replyBox").value = decision.reply_message || "";
       $("replyBox").readOnly = readOnly;
-      $("replyModeLabel").textContent = readOnly ? "已发送，只读" : "可修改";
+      $("replyModeLabel").textContent = item.status === "handoff_done" ? "已转人工，只读" : readOnly ? "已记录，只读" : "可修改";
       $("replyTools").classList.toggle("hidden", readOnly);
       $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = actionHint(item);
@@ -4332,7 +4358,7 @@
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
         const klass = msg.direction === "outbound" ? "out" : "in";
         return `<div class="bubble ${klass}">${escapeHtml(msg.text || "")}</div>`;
-      }).join("") + (!hasOutbound && decision.reply_message ? `<div class="bubble out">${escapeHtml(decision.reply_message || "")}</div>` : "");
+      }).join("") + (!readOnly && !hasOutbound && decision.reply_message ? `<div class="bubble out">${escapeHtml(decision.reply_message || "")}</div>` : "");
 
       $("panelWords").innerHTML = (item.word_cloud || []).map((word, index) => {
         return `<span class="word ${index === 0 ? "big" : index < 3 ? "mid" : "small"}">${escapeHtml(word)}</span>`;
@@ -4380,9 +4406,11 @@
 
     function slaInfo(item) {
       const status = item.status;
-      if (status === "auto" || status === "auto_sent" || status === "sent") {
+      if (status === "auto" || status === "auto_sent" || status === "sent" || status === "handoff_done") {
+        if (status === "handoff_done") return { text: "已转人工", tone: "", note: "Dashboard 已留记录。" };
         return { text: status === "auto_sent" ? "已自动回" : status === "auto" ? "自动中" : "已处理", tone: "", note: "已留记录。" };
       }
+      if (status === "sending") return { text: "发送中", tone: "warn", note: "等待系统完成发送。" };
 
       const time = new Date(item.updated_at || item.last_message_at || Date.now()).getTime();
       const minutes = Number.isFinite(time) ? Math.max(0, Math.floor((Date.now() - time) / 60000)) : 0;
@@ -4408,6 +4436,8 @@
       const decision = item.latest_decision || {};
       if (item.status === "auto_sent") return "AI 已自动回复";
       if (item.status === "sent") return "已发送";
+      if (item.status === "handoff_done") return "已转人工";
+      if (item.status === "sending") return "发送中";
       if (item.status === "send_failed") return "发送失败";
       if (decision.action === "trigger_flow") return "不用发送";
       if (decision.action === "ask_human") return "按「转人工」";
@@ -4420,6 +4450,8 @@
       const decision = item.latest_decision || {};
       if (item.status === "auto_sent") return "下面显示的回复已经自动发送给顾客。";
       if (item.status === "sent") return "这条回复已发送，保留给团队追踪。";
+      if (item.status === "handoff_done") return "这条没有发送 AI 建议，已留下转人工记录。";
+      if (item.status === "sending") return "系统正在发送这条回复，先不要重复点击。";
       if (item.status === "send_failed") return "这条没有成功发送，需要检查错误或人工处理。";
       if (decision.action === "trigger_flow") return "ChatDaddy 已接 Step 1，AI 不补发文字";
       if (decision.action === "ask_human") return "停止自动流程，人工接手";
@@ -4448,12 +4480,15 @@
         auto_reply_sent: "AI 自动回复",
         auto_reply_failed: "自动回复失败",
         reply_sent: "回复已发送",
+        reply_sending: "回复发送中",
+        handoff_done: "已转人工",
+        handoff_recorded: "转人工记录",
       };
       return map[type] || type || "操作记录";
     }
 
     function isCaseReadOnly(item) {
-      return ["auto", "auto_sent", "sent", "sending"].includes(item.status);
+      return ["auto", "auto_sent", "sent", "sending", "handoff_done"].includes(item.status);
     }
 
     async function approveActive() {
@@ -4726,10 +4761,12 @@
     function statusLabel(status, risk) {
       if (status === "approval_required") return "待批准";
       if (status === "human_required") return "要人工";
+      if (status === "handoff_done") return "已转人工";
       if (status === "order") return "订单";
       if (status === "auto") return "自动";
       if (status === "auto_sent") return "已自动回复";
       if (status === "sent") return "已发送";
+      if (status === "sending") return "发送中";
       if (status === "send_failed") return "发送失败";
       if (risk === "high") return "高风险";
       if (risk === "medium") return "中风险";
@@ -4742,6 +4779,7 @@
         auto_reply: "AI 自动回复",
         approve_reply: "批准发送",
         ask_human: "转人工",
+        handoff_done: "已转人工",
         collect_order: "收订单",
         review_receipt: "审付款",
         trigger_flow: "进 Step 1",
