@@ -6,21 +6,24 @@
   <title>ReplyPilot AI 客服中控台</title>
   <style>
     :root {
-      --canvas: #f3f6f5;
-      --panel: #ffffff;
-      --panel-soft: #f9fbfa;
-      --ink: #112321;
-      --muted: #65777c;
-      --line: #dce5e2;
-      --green: #0c8f78;
-      --green-deep: #0d332f;
-      --blue: #2f6fd0;
-      --amber: #9b681c;
-      --soft-green: #e8f7f3;
-      --soft-blue: #edf4ff;
-      --soft-amber: #fff6e8;
-      --shadow: 0 28px 80px rgba(20, 37, 35, .12);
-      --shadow-soft: 0 16px 44px rgba(17, 35, 33, .07);
+      --canvas: #eef3f4;
+      --panel: rgba(255,255,255,.94);
+      --panel-soft: #f6fafb;
+      --ink: #0b1718;
+      --muted: #63737c;
+      --line: rgba(92, 112, 121, .22);
+      --green: #10b99d;
+      --green-deep: #082f32;
+      --blue: #3578f6;
+      --cyan: #00b7d8;
+      --amber: #b7791f;
+      --soft-green: #e9fbf6;
+      --soft-blue: #edf5ff;
+      --soft-cyan: #e8fbff;
+      --soft-amber: #fff5e6;
+      --shadow: 0 34px 92px rgba(8, 23, 29, .16);
+      --shadow-soft: 0 16px 44px rgba(8, 23, 29, .08);
+      --glow: 0 0 0 1px rgba(0, 183, 216, .14), 0 18px 50px rgba(0, 183, 216, .10);
       font-family: Inter, "Noto Sans SC", "PingFang SC", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
@@ -36,9 +39,9 @@
       min-height: 100vh;
       color: var(--ink);
       background:
-        linear-gradient(180deg, rgba(255,255,255,.92), rgba(243,246,245,.96)),
-        linear-gradient(90deg, rgba(13,51,47,.045) 1px, transparent 1px),
-        linear-gradient(0deg, rgba(13,51,47,.035) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(6, 18, 24, .08), rgba(255,255,255,.94) 42%, rgba(226, 246, 250, .72)),
+        linear-gradient(90deg, rgba(8, 23, 29, .045) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(8, 23, 29, .035) 1px, transparent 1px),
         var(--canvas);
       background-size: auto, 42px 42px, 42px 42px, auto;
     }
@@ -80,13 +83,13 @@
     .mark {
       width: 40px;
       height: 40px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--green-deep), #155b54);
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--cyan), var(--green) 48%, var(--blue));
       display: grid;
       place-items: center;
       color: #fff;
       font-weight: 950;
-      box-shadow: 0 14px 36px rgba(13, 51, 47, .18);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 18px 46px rgba(0,183,216,.20);
     }
 
     .env {
@@ -107,8 +110,8 @@
       height: 8px;
       margin-right: 8px;
       border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 0 5px rgba(12,143,120,.11);
+      background: var(--cyan);
+      box-shadow: 0 0 0 5px rgba(0,183,216,.10);
     }
 
     .hero {
@@ -117,7 +120,7 @@
     }
 
     .eyebrow {
-      color: var(--green);
+      color: var(--cyan);
       font-size: 13px;
       font-weight: 950;
       letter-spacing: .07em;
@@ -186,8 +189,9 @@
       border: 1px solid var(--line);
       border-radius: 20px;
       background:
-        radial-gradient(circle at 100% 0%, rgba(47,111,208,.12), transparent 32%),
+        linear-gradient(90deg, rgba(0,183,216,.07) 1px, transparent 1px),
         rgba(255,255,255,.88);
+      background-size: 28px 28px, auto;
       padding: 16px;
       box-shadow: var(--shadow-soft);
     }
@@ -403,14 +407,17 @@
       overflow: hidden;
       position: relative;
       min-width: 0;
+      backdrop-filter: blur(18px);
     }
 
     .login-top {
       padding: 26px 26px 20px;
       border-bottom: 1px solid var(--line);
       background:
-        linear-gradient(135deg, rgba(12,143,120,.08), transparent 52%),
+        linear-gradient(90deg, rgba(0,183,216,.08) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(232,251,255,.78), transparent 58%),
         #fff;
+      background-size: 30px 30px, auto, auto;
     }
 
     .login-topline {
@@ -427,7 +434,7 @@
       gap: 7px;
       border: 1px solid #cddbd7;
       border-radius: 999px;
-      background: var(--soft-green);
+      background: var(--soft-cyan);
       color: var(--green-deep);
       padding: 7px 10px;
       font-size: 12px;
@@ -439,7 +446,7 @@
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: var(--green);
+      background: var(--cyan);
     }
 
     .login h2 {
@@ -509,8 +516,8 @@
     }
 
     input:focus, select:focus {
-      border-color: #9ed9cc;
-      box-shadow: 0 0 0 4px rgba(12,143,120,.10);
+      border-color: rgba(0,183,216,.36);
+      box-shadow: 0 0 0 4px rgba(0,183,216,.10);
     }
 
     .field + .field { margin-top: 16px; }
@@ -535,10 +542,10 @@
     .role:hover { border-color: #b6c9c4; }
 
     .role.active {
-      background: #eef9f6;
+      background: var(--soft-cyan);
       color: var(--green-deep);
-      border-color: #9ed9cc;
-      box-shadow: inset 0 0 0 1px rgba(12,143,120,.18);
+      border-color: rgba(0,183,216,.36);
+      box-shadow: inset 0 0 0 1px rgba(0,183,216,.18), var(--glow);
     }
 
     .role-help {
@@ -579,8 +586,8 @@
       height: 10px;
       margin-top: 4px;
       border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 0 5px rgba(12,143,120,.10);
+      background: var(--cyan);
+      box-shadow: 0 0 0 5px rgba(0,183,216,.10);
     }
 
     .advanced {
@@ -612,11 +619,11 @@
       border-radius: 16px;
       padding: 14px 16px;
       color: #fff;
-      background: linear-gradient(135deg, var(--green), var(--blue));
+      background: linear-gradient(135deg, var(--green), var(--cyan) 48%, var(--blue));
       font-weight: 950;
       cursor: pointer;
       transition: .16s ease;
-      box-shadow: 0 18px 34px rgba(47, 111, 208, .18);
+      box-shadow: 0 18px 38px rgba(0, 183, 216, .20);
     }
 
     .primary:hover { transform: translateY(-1px); filter: brightness(.98); }
@@ -724,63 +731,6 @@
         </div>
       </section>
 
-      <section class="signal-row" aria-label="核心运营指标">
-        <div class="signal"><b>排序</b><span>先看急单</span></div>
-        <div class="signal"><b>判断</b><span>AI 给动作</span></div>
-        <div class="signal"><b>确认</b><span>人只按重点</span></div>
-        <div class="signal"><b>复盘</b><span>沉淀规则</span></div>
-      </section>
-
-      <section class="ops-panel">
-        <div class="ops-head">
-          <div>
-            <b>一个队列处理全部顾客</b>
-            <span>待批准、需人工、订单和自动跟进分开显示，客服不会乱点。</span>
-          </div>
-          <span class="health">工作台在线</span>
-        </div>
-        <div class="role-grid">
-          <article class="role-card">
-            <strong>管理者</strong>
-            <p>看全局、连接状态、团队权限和 AI 规则。</p>
-            <div class="chips"><span class="chip">全局</span><span class="chip">规则</span></div>
-          </article>
-          <article class="role-card">
-            <strong>运营主管</strong>
-            <p>审核回复、处理异常、复盘 AI 判断。</p>
-            <div class="chips"><span class="chip">审批</span><span class="chip">复盘</span></div>
-          </article>
-          <article class="role-card">
-            <strong>客服人员</strong>
-            <p>只看顾客待办，不接触密钥或技术设置。</p>
-            <div class="chips"><span class="chip">顾客</span><span class="chip">待办</span></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="preview-panel" aria-label="工作台预览">
-        <div class="preview-card">
-          <span>今日待办</span>
-          <strong>8</strong>
-          <p>待批准、需人工和订单集中显示。</p>
-        </div>
-        <div class="preview-card">
-          <span>Flow 自动</span>
-          <strong>24</strong>
-          <p>关键词进线和固定跟进交给 ChatDaddy 自动跑。</p>
-        </div>
-        <div class="preview-card wide">
-          <div>
-            <span>处理顺序</span>
-            <strong>先处理会影响成交的顾客</strong>
-            <p>投诉、订单、价格异议和低信心会自动排前面。</p>
-          </div>
-          <div class="case-mini">
-            Amira · 高风险
-            <small>AI 建议：转人工</small>
-          </div>
-        </div>
-      </section>
     </section>
 
     <section class="login">
