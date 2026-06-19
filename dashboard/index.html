@@ -2971,6 +2971,7 @@
       $("sideRole").textContent = roleLabel;
       $("sideWorkspace").textContent = workspaceLabel;
       $("sideConnection").textContent = state.demoMode ? "演示" : "真实";
+      $("modeTag").textContent = canUseDemoMode() ? "演示" : "读取中";
       $("sideHint").textContent = state.role === "staff"
         ? "看待处理和自动记录。"
         : "总览、连接、复盘。";
@@ -3215,7 +3216,12 @@
           showToast("已载入演示。");
           return;
         }
-        setRealQueueEmpty(!api ? "缺少系统接口地址，不能读取真实讯息。" : "缺少客服/管理安全码，不能读取真实讯息。");
+        const missingMessage = !api
+          ? "这个入口缺少系统接口地址，不能读取真实讯息。请用正式 Beyoute Dashboard 链接重新打开。"
+          : state.role === "staff"
+            ? "这个客服入口缺少团队安全码，所以没有权限读取真实顾客。请用最新客服入口链接重新打开，不要用旧收藏。"
+            : "缺少管理密钥 / 团队安全码，不能读取真实讯息。";
+        setRealQueueEmpty(missingMessage);
         return;
       }
 
@@ -3963,7 +3969,13 @@
     }
 
     function copyRoleLink(role) {
-      const url = roleLink(role);
+      let url;
+      try {
+        url = roleLink(role);
+      } catch (error) {
+        alert(error.message);
+        return;
+      }
       const label = roleName(role);
       const finish = () => {
         addAuditEvent("copied_access_link", `复制 ${label} 入口。`);
@@ -3981,9 +3993,21 @@
 
     function roleLink(role) {
       const url = new URL(window.location.href);
+      const api = apiUrlEl.value.trim() || localStorage.getItem("agent_api_url") || "";
       url.searchParams.set("project_key", projectKeyEl.value.trim() || "demo");
       url.searchParams.set("role", role || "staff");
       url.searchParams.set("view", role === "staff" ? "cases" : "overview");
+      url.searchParams.delete("staff_token");
+      url.searchParams.delete("operator_token");
+      if (api) url.searchParams.set("api", api);
+      if (role === "staff") {
+        const staffToken = localStorage.getItem("agent_staff_token")
+          || (state.role === "staff" ? adminTokenEl.value.trim() : "");
+        if (!staffToken) {
+          throw new Error("这台浏览器没有客服安全码，不能复制客服入口。请用 COPY_Beyoute_Dashboard_Links.command 生成正式链接。");
+        }
+        url.searchParams.set("staff_token", staffToken);
+      }
       return url.toString();
     }
 
