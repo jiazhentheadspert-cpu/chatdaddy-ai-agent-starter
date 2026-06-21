@@ -1578,6 +1578,16 @@
       font-weight: 850;
     }
 
+    .case-duplicate {
+      margin-top: 4px;
+      color: var(--amber);
+      font-size: 11px;
+      font-weight: 920;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .badge {
       border: 1px solid var(--line);
       border-radius: 999px;
@@ -1633,10 +1643,20 @@
     .case-word-block strong {
       display: block;
       color: var(--green-deep);
-      font-size: clamp(24px, 2.2vw, 34px);
-      line-height: 1.02;
+      font-size: clamp(18px, 1.7vw, 24px);
+      line-height: 1.22;
       letter-spacing: 0;
       overflow-wrap: anywhere;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .case-block-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 950;
     }
 
     .case-word-mini {
@@ -1688,6 +1708,41 @@
       display: block;
       font-size: 17px;
       line-height: 1.2;
+    }
+
+    .case-action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .card-action {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.92);
+      color: var(--ink);
+      padding: 6px 12px;
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .card-action.primary {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+    }
+
+    .card-action.danger {
+      color: var(--red);
+      border-color: rgba(201,74,85,.28);
+      background: var(--soft-red);
+    }
+
+    .card-action:disabled {
+      cursor: not-allowed;
+      opacity: .55;
     }
 
     .case-insight small {
@@ -2419,7 +2474,7 @@
           <span class="side-label"><b class="side-code">OR</b><em>订单</em></span>
           <small id="navOrderBadge">0</small>
         </button>
-        <button data-side-key="logs" data-side-filter="all">
+        <button data-side-key="logs" data-side-filter="records">
           <span class="side-label"><b class="side-code">LG</b><em>记录</em></span>
           <small id="navLogBadge">记录</small>
         </button>
@@ -2619,6 +2674,7 @@
       actionBusy: false,
       bulkBusy: false,
       sidebarKey: "ai_reply",
+      contactStats: {},
     };
 
     const DEFAULT_SETTINGS = {
@@ -2983,6 +3039,14 @@
     });
 
     document.addEventListener("click", (event) => {
+      const cardAction = event.target.closest("[data-card-action]");
+      if (cardAction) {
+        event.preventDefault();
+        event.stopPropagation();
+        handleCardAction(cardAction);
+        return;
+      }
+
       const target = event.target.closest("[data-dashboard-action]");
       if (target) {
         handleDashboardAction(target.dataset.dashboardAction);
@@ -3234,6 +3298,7 @@
       const map = {
         auto: "automation",
         order: "orders",
+        records: "logs",
         human_required: "customer_service",
         handoff_done: "customer_service",
       };
@@ -3852,6 +3917,7 @@
       const all = casesForRole(state.cases);
       const counts = countCases(all);
       const learned = countLearnedRules(all);
+      state.contactStats = buildContactStats(all);
       $("statAll").textContent = counts.total;
       $("statApproval").textContent = counts.approval;
       $("statHuman").textContent = counts.human;
@@ -3871,9 +3937,10 @@
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
       renderBulkBar();
 
-      casesEl.querySelectorAll("[data-case-id]").forEach((card) => {
+      casesEl.querySelectorAll(".case-card[data-case-id]").forEach((card) => {
         card.addEventListener("click", (event) => {
           if (event.target.closest("[data-select-case-id]")) return;
+          if (event.target.closest("[data-card-action]")) return;
           openCase(card.dataset.caseId);
         });
       });
@@ -3887,6 +3954,27 @@
         state.deepLinkOpened = true;
         requestAnimationFrame(() => openCase(state.pendingCaseId));
       }
+    }
+
+    function contactKey(item = {}) {
+      return String(item.contact?.id || item.contact?.phone || item.contact?.name || item.id || "").trim();
+    }
+
+    function buildContactStats(cases) {
+      const stats = {};
+      cases.forEach((item) => {
+        const key = contactKey(item);
+        if (!key) return;
+        const entry = stats[key] || { total: 0, open: 0, sent: 0, latest: null };
+        entry.total += 1;
+        if (!isCaseReadOnly(item) || ["approval_required", "human_required", "order", "send_failed", "sending"].includes(item.status)) entry.open += 1;
+        if (["auto_sent", "sent"].includes(item.status)) entry.sent += 1;
+        const itemTime = new Date(item.updated_at || item.last_message_at || 0).getTime();
+        const latestTime = new Date(entry.latest?.updated_at || entry.latest?.last_message_at || 0).getTime();
+        if (!entry.latest || itemTime > latestTime) entry.latest = item;
+        stats[key] = entry;
+      });
+      return stats;
     }
 
     function closePanel() {
@@ -4030,6 +4118,7 @@
     function filterCases(cases, filter) {
       if (filter === "all") return cases;
       if (filter === "auto") return cases.filter((item) => ["auto", "auto_sent"].includes(item.status));
+      if (filter === "records") return cases.filter((item) => ["auto_sent", "sent", "handoff_done", "send_failed"].includes(item.status));
       if (filter === "human_required") return cases.filter((item) => ["human_required", "handoff_done"].includes(item.status));
       if (filter === "needs_attention") {
         return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
@@ -4619,6 +4708,10 @@
           title: `${counts.auto} 条自动回复记录`,
           body: "这里可以看 AI 自动回复了什么；已发送记录只读，不会重复发送。",
         },
+        records: {
+          title: `处理记录`,
+          body: "只看已发送、已自动回复、已转人工和失败记录。",
+        },
       };
       return views[filter] || views.all;
     }
@@ -4665,16 +4758,93 @@
       `;
     }
 
+    function riskLabel(risk) {
+      if (risk === "high") return "高风险";
+      if (risk === "medium") return "中风险";
+      if (risk === "low") return "低风险";
+      return "风险待定";
+    }
+
+    function localizedWord(word) {
+      const key = String(word || "").trim().toLowerCase().replace(/_/g, " ");
+      const map = {
+        "general question": "普通问题",
+        "ingredient question": "成分问题",
+        "usage question": "用法问题",
+        "receipt upload": "收据上传",
+        "price objection": "价格异议",
+        "keyword lead": "广告关键词",
+        "product doubt": "效果顾虑",
+        "buy intent": "下单意向",
+        "health sensitive": "敏感健康",
+        "approval": "待批准",
+        "approve reply": "批准发送",
+        "auto reply": "自动回复",
+        "collect order": "收订单",
+        "review receipt": "审付款",
+        "trigger flow": "进 Flow",
+        "medium": "中风险",
+        "low": "低风险",
+        "high": "高风险",
+      };
+      if (/^step\s*\d+$/i.test(key)) return key.replace(/^step\s*/i, "Step ");
+      return map[key] || String(word || "").replace(/_/g, " ").trim();
+    }
+
+    function customerPreviewText(item) {
+      const text = String(item.last_message || item.messages?.find((msg) => msg.direction === "inbound")?.text || "").trim();
+      if (text) return text;
+      const decision = item.latest_decision || {};
+      if (decision.intent === "receipt" || decision.action === "review_receipt") return "顾客上传了付款截图";
+      return "顾客没有文字讯息";
+    }
+
+    function caseMiniTags(item, decision) {
+      const stage = stageLabel(decision.stage);
+      const tags = [
+        riskLabel(decision.risk),
+        stage === "当前阶段" ? "" : stage,
+        actionLabel(decision.action),
+      ].filter(Boolean);
+      const extra = (item.word_cloud || decision.keywords || [])
+        .map(localizedWord)
+        .filter(Boolean)
+        .filter((tag) => !tags.includes(tag))
+        .slice(0, 1);
+      return [...tags, ...extra].slice(0, 4);
+    }
+
+    function duplicateSummaryHtml(item) {
+      const stats = state.contactStats?.[contactKey(item)];
+      if (!stats || stats.total <= 1) return "";
+      const parts = [`同顾客 ${stats.total} 条`];
+      if (stats.open) parts.push(`未处理 ${stats.open}`);
+      if (stats.sent) parts.push(`已发 ${stats.sent}`);
+      return `<div class="case-duplicate">${escapeHtml(parts.join(" · "))}</div>`;
+    }
+
+    function cardQuickActionsHtml(item) {
+      if (isCaseReadOnly(item)) return "";
+      const decision = item.latest_decision || {};
+      const canApprove = decision.action !== "trigger_flow" && item.status !== "sending";
+      const approveText = item.status === "order" ? "确认" : "批准";
+      return `
+        <div class="case-action-row">
+          ${canApprove ? `<button class="card-action primary" type="button" data-card-action="approve" data-case-id="${escapeHtml(item.id)}">${escapeHtml(approveText)}</button>` : ""}
+          <button class="card-action danger" type="button" data-card-action="handoff" data-case-id="${escapeHtml(item.id)}">人工</button>
+        </div>
+      `;
+    }
+
     function cardHtml(item) {
       const decision = item.latest_decision || {};
       const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
-      const words = (item.word_cloud || decision.keywords || []).slice(0, 4);
       const initials = initialsFor(item.contact?.name || "顾客");
       const selected = state.selected.has(item.id);
       const sla = slaInfo(item);
       const stage = stageLabel(decision.stage);
-      const mainWord = words[0] || intentLabel(decision.intent);
-      const subWords = words.slice(1, 4);
+      const preview = customerPreviewText(item);
+      const tags = caseMiniTags(item, decision);
 
       return `
         <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}">
@@ -4688,19 +4858,22 @@
               <div>
                 <b>${escapeHtml(item.contact?.name || "顾客")}</b>
                 <div class="case-kicker">${escapeHtml(stage)} · ${escapeHtml(intentLabel(decision.intent))}</div>
+                ${duplicateSummaryHtml(item)}
               </div>
             </div>
             <span class="badge ${riskClass}">${escapeHtml(statusLabel(item.status, decision.risk))}</span>
           </div>
           <div class="case-word-block">
-            <strong>${escapeHtml(mainWord)}</strong>
+            <span class="case-block-label">顾客最后一句</span>
+            <strong>${escapeHtml(preview)}</strong>
             <div class="case-word-mini">
-              ${subWords.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
+              ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
             </div>
           </div>
           <div class="case-insight">
             <strong>${escapeHtml(actionLabel(decision.action))}</strong>
           </div>
+          ${cardQuickActionsHtml(item)}
           <div class="case-foot">
             <span>${escapeHtml(formatDate(item.updated_at))}</span>
             <span class="sla-pill ${escapeHtml(sla.tone)}">${escapeHtml(item.seen_by_operator ? "已看" : sla.text)}</span>
@@ -4743,7 +4916,7 @@
         return `<div class="bubble ${klass}">${escapeHtml(msg.text || "")}</div>`;
       }).join("") + (!readOnly && !hasOutbound && decision.reply_message ? `<div class="bubble out">${escapeHtml(decision.reply_message || "")}</div>` : "");
 
-      $("panelWords").innerHTML = (item.word_cloud || []).map((word, index) => {
+      $("panelWords").innerHTML = (item.word_cloud || []).map(localizedWord).filter(Boolean).map((word, index) => {
         return `<span class="word ${index === 0 ? "big" : index < 3 ? "mid" : "small"}">${escapeHtml(word)}</span>`;
       }).join("");
 
@@ -4799,22 +4972,27 @@
 
       const time = new Date(item.updated_at || item.last_message_at || Date.now()).getTime();
       const minutes = Number.isFinite(time) ? Math.max(0, Math.floor((Date.now() - time) / 60000)) : 0;
-      if (minutes >= 60) return { text: "已超时", tone: "risk", note: `${minutes} 分钟未处理，优先看。` };
-      if (minutes >= 25) return { text: "优先处理", tone: "warn", note: `${minutes} 分钟未处理。` };
-      return { text: `${Math.max(minutes, 1)} 分钟`, tone: "", note: "仍在处理时限内。" };
+      if (minutes >= 180) return { text: "急", tone: "risk", note: `${minutes} 分钟未处理，先看。` };
+      if (minutes >= 60) return { text: "待处理", tone: "warn", note: `${minutes} 分钟未处理。` };
+      if (minutes >= 25) return { text: "优先", tone: "warn", note: `${minutes} 分钟未处理。` };
+      return { text: "新", tone: "", note: "新进队列。" };
     }
 
     function stageLabel(stage) {
+      const key = String(stage || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
       const map = {
         S1: "了解问题",
+        STEP_1: "Step 1",
         S2: "卖点 / 方案",
+        STEP_2: "Step 2",
         S3: "信心证明 / 价格",
+        STEP_3: "Step 3",
         CLOSING: "成交处理",
         ORDER: "订单阶段",
         FOLLOW_UP: "跟进阶段",
         HUMAN: "人工接手",
       };
-      return map[stage] || "当前阶段";
+      return map[key] || "当前阶段";
     }
 
     function actionTitle(item) {
@@ -4878,6 +5056,53 @@
 
     function isCaseReadOnly(item) {
       return ["auto", "auto_sent", "sent", "sending", "handoff_done"].includes(item.status);
+    }
+
+    async function handleCardAction(button) {
+      if (state.actionBusy) return;
+      const action = button.dataset.cardAction;
+      const caseId = button.dataset.caseId;
+      const item = state.cases.find((record) => record.id === caseId);
+      if (!item || isCaseReadOnly(item)) {
+        showToast("这条记录已经处理，不能重复操作。");
+        return;
+      }
+      if (!confirmCardAction(action, item)) return;
+
+      const originalText = button.textContent;
+      state.actionBusy = true;
+      button.disabled = true;
+      button.textContent = action === "handoff" ? "处理中" : "发送中";
+      try {
+        if (action === "handoff") {
+          await postCaseAction(item.id, "handoff", { note: "客服在卡片上转人工，不发送 AI 建议。" }, { reopen: false, lock: false });
+          showToast("已转人工。");
+          return;
+        }
+        await postCaseAction(item.id, "approve", { reply_message: item.latest_decision?.reply_message || "" }, { reopen: false, lock: false });
+        showToast("已批准发送。");
+      } catch (error) {
+        alert(`操作失败：${error.message}`);
+        button.disabled = false;
+        button.textContent = originalText;
+      } finally {
+        state.actionBusy = false;
+      }
+    }
+
+    function confirmCardAction(action, item) {
+      if (state.demoMode) return true;
+      const name = item.contact?.name || "这位顾客";
+      if (action === "handoff") {
+        return window.confirm(`确认把 ${name} 转人工？\n\n不会发送 AI 建议给顾客，只留下人工处理记录。`);
+      }
+      const reply = String(item.latest_decision?.reply_message || "").trim();
+      if (!reply) {
+        alert("这条没有 AI 建议回复，不能直接批准。请打开详情检查。");
+        return false;
+      }
+      const preview = reply.slice(0, 160);
+      return window.confirm(`确认发送给 ${name}？\n\n将发送：\n${preview}${reply.length > 160 ? "..." : ""}`);
     }
 
     async function approveActive() {
@@ -5184,6 +5409,10 @@
     function intentLabel(intent) {
       const map = {
         keyword_lead: "广告关键词",
+        general_question: "普通问题",
+        ingredient_question: "成分问题",
+        usage_question: "用法问题",
+        receipt_upload: "收据上传",
         product_doubt: "效果顾虑",
         price_objection: "价格异议",
         complaint: "投诉风险",
