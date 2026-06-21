@@ -113,6 +113,37 @@
       align-content: start;
     }
 
+    .side-section {
+      margin: 16px 0 2px;
+      color: rgba(255,255,255,.42);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .08em;
+    }
+
+    .side-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .side-code {
+      width: 28px;
+      color: rgba(255,255,255,.78);
+      font-weight: 950;
+      letter-spacing: .02em;
+      flex: 0 0 auto;
+    }
+
+    .side-label em {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-style: normal;
+    }
+
     .side-nav button,
     .side-card {
       width: 100%;
@@ -2348,10 +2379,37 @@
       </div>
 
       <nav class="side-nav" aria-label="主导航">
-        <button class="active" data-workspace-view="overview"><span>中控台</span><small id="navOverviewBadge">总览</small></button>
-        <button data-workspace-view="cases"><span>顾客队列</span><small id="navCasesBadge">0</small></button>
-        <button data-workspace-view="operations"><span>运营设置</span><small id="navOpsBadge">状态</small></button>
-        <button data-workspace-view="learning"><span>AI 复盘</span><small id="navLearningBadge">0</small></button>
+        <div class="side-section">AGENT 岗位</div>
+        <button class="active" data-side-key="ai_reply" data-side-filter="all">
+          <span class="side-label"><b class="side-code">AI</b><em>回复 Agent</em></span>
+          <small id="navCasesBadge">0</small>
+        </button>
+        <button data-side-key="content" data-side-filter="all">
+          <span class="side-label"><b class="side-code">CO</b><em>内容 Agent</em></span>
+          <small>内容</small>
+        </button>
+        <button data-side-key="customer_service" data-side-filter="human_required">
+          <span class="side-label"><b class="side-code">CS</b><em>客服 Agent</em></span>
+          <small id="navCsBadge">0</small>
+        </button>
+
+        <div class="side-section">工作区</div>
+        <button data-side-key="brand_brain" data-side-filter="all">
+          <span class="side-label"><b class="side-code">BR</b><em>品牌大脑</em></span>
+          <small>Brain</small>
+        </button>
+        <button data-side-key="automation" data-side-filter="auto">
+          <span class="side-label"><b class="side-code">AU</b><em>Automation</em></span>
+          <small id="navAutoBadge">0</small>
+        </button>
+        <button data-side-key="orders" data-side-filter="order">
+          <span class="side-label"><b class="side-code">OR</b><em>订单</em></span>
+          <small id="navOrderBadge">0</small>
+        </button>
+        <button data-side-key="logs" data-side-filter="all">
+          <span class="side-label"><b class="side-code">LG</b><em>记录</em></span>
+          <small id="navLogBadge">记录</small>
+        </button>
       </nav>
 
       <div class="side-card">
@@ -2547,6 +2605,7 @@
       loading: false,
       actionBusy: false,
       bulkBusy: false,
+      sidebarKey: "ai_reply",
     };
 
     const DEFAULT_SETTINGS = {
@@ -2896,6 +2955,14 @@
       });
     });
 
+    document.querySelectorAll("[data-side-key]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.sidebarKey = button.dataset.sideKey || "ai_reply";
+        state.filter = button.dataset.sideFilter || "all";
+        setWorkspaceView("cases");
+      });
+    });
+
     document.addEventListener("click", (event) => {
       const target = event.target.closest("[data-dashboard-action]");
       if (target) {
@@ -3117,9 +3184,6 @@
       $("autoFilterBtn").classList.toggle("hidden", false);
       $("learnBtn").classList.toggle("hidden", state.role === "staff");
 
-      document.querySelectorAll('[data-workspace-view="overview"], [data-workspace-view="operations"], [data-workspace-view="learning"]').forEach((item) => {
-        item.classList.toggle("hidden", state.role === "staff");
-      });
       if (state.role === "staff") {
         state.workspaceView = "cases";
       }
@@ -3127,6 +3191,7 @@
 
     function setFilter(filter) {
       state.filter = filter || "all";
+      state.sidebarKey = sidebarKeyForFilter(state.filter);
       syncFilterControls();
       render();
     }
@@ -3142,6 +3207,24 @@
     function syncFilterControls() {
       document.querySelectorAll("[data-filter]").forEach((item) => {
         item.classList.toggle("active", item.dataset.filter === state.filter);
+      });
+      syncSidebarControls();
+    }
+
+    function sidebarKeyForFilter(filter) {
+      const map = {
+        auto: "automation",
+        order: "orders",
+        human_required: "customer_service",
+        handoff_done: "customer_service",
+      };
+      return map[filter] || "ai_reply";
+    }
+
+    function syncSidebarControls() {
+      const key = state.sidebarKey || sidebarKeyForFilter(state.filter);
+      document.querySelectorAll("[data-side-key]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.sideKey === key);
       });
     }
 
@@ -3789,10 +3872,18 @@
     function renderNavigationBadges(counts, learned) {
       const opsLabel = state.demoMode ? "演示" : "已连";
       const casesLabel = counts.needs > 0 ? counts.needs : "稳";
-      $("navOverviewBadge").textContent = counts.needs > 0 ? "重点" : "正常";
-      $("navCasesBadge").textContent = casesLabel;
-      $("navOpsBadge").textContent = opsLabel;
-      $("navLearningBadge").textContent = learned || 0;
+      const setBadge = (id, value) => {
+        const element = $(id);
+        if (element) element.textContent = value;
+      };
+      setBadge("navOverviewBadge", counts.needs > 0 ? "重点" : "正常");
+      setBadge("navCasesBadge", casesLabel);
+      setBadge("navOpsBadge", opsLabel);
+      setBadge("navLearningBadge", learned || 0);
+      setBadge("navCsBadge", counts.human || 0);
+      setBadge("navAutoBadge", counts.auto || 0);
+      setBadge("navOrderBadge", counts.orders || 0);
+      setBadge("navLogBadge", learned || "记录");
     }
 
     function pruneSelection(cases) {
