@@ -14,6 +14,9 @@ OPENAI_SALES_BRAIN_MODEL = "gpt-5.4-mini"
 OPENAI_SALES_BRAIN_ESCALATION_MODEL = "gpt-5.4"
 OPENAI_SALES_BRAIN_ESCALATE = "false"
 OPENAI_SALES_BRAIN_MAX_OUTPUT_TOKENS = "360"
+OPENAI_SALES_BRAIN_INPUT_USD_PER_MTOK = "1"
+OPENAI_SALES_BRAIN_OUTPUT_USD_PER_MTOK = "8"
+OPERATING_TIMEZONE_OFFSET_HOURS = "8"
 CHATDADDY_BOTS_FIRE_BASE = "https://api-bots.chatdaddy.tech"
 
 # Optional, but recommended after ChatDaddy is connected.
@@ -37,4 +40,5 @@ database_id = "replace_with_your_d1_database_id"
 # wrangler secret put CHATDADDY_API_KEY
 # wrangler secret put CHATDADDY_WEBHOOK_SECRET
 # wrangler secret put ADMIN_TOKEN
+# wrangler secret put STAFF_TOKEN
 # wrangler secret put GOOGLE_SHEET_SECRET

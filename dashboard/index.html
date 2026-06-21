@@ -236,6 +236,16 @@
       font-weight: 900;
     }
 
+    .side-meter-divider {
+      height: 1px;
+      margin: 2px 0;
+      background: rgba(255,255,255,.08);
+    }
+
+    .side-meter-row.cost strong {
+      color: #b8fff3;
+    }
+
     .workspace {
       min-width: 0;
       padding: 24px;
@@ -2486,6 +2496,11 @@
         <div class="side-meter">
           <div class="side-meter-row"><span>工作区</span><strong id="sideWorkspace">DEMO</strong></div>
           <div class="side-meter-row"><span>连接</span><strong id="sideConnection">演示</strong></div>
+          <div class="side-meter-divider" aria-hidden="true"></div>
+          <div class="side-meter-row cost"><span>今日 AI 成本</span><strong id="sideCostToday">US$0.00</strong></div>
+          <div class="side-meter-row cost"><span>本月 AI 成本</span><strong id="sideCostMonth">US$0.00</strong></div>
+          <div class="side-meter-row"><span>今日增强</span><strong id="sideEnhancedToday">0 次</strong></div>
+          <div class="side-meter-row"><span>模式</span><strong id="sideSpendMode">省钱模式</strong></div>
         </div>
       </div>
     </aside>
@@ -2675,6 +2690,7 @@
       bulkBusy: false,
       sidebarKey: "ai_reply",
       contactStats: {},
+      usageSummary: null,
     };
 
     const DEFAULT_SETTINGS = {
@@ -3258,6 +3274,7 @@
       $("sideHint").textContent = state.role === "staff"
         ? "看待处理和自动记录。"
         : "总览、连接、复盘。";
+      renderSideUsage();
 
       $("dashboardSubtitle").textContent = state.role === "staff"
         ? "处理待确认，追踪已自动回复。"
@@ -3323,6 +3340,7 @@
       });
 
       $("sideConnection").textContent = state.demoMode ? "演示" : "真实";
+      renderSideUsage();
       $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
       $("statusStrip").classList.toggle("hidden", state.role === "staff");
@@ -3623,10 +3641,34 @@
         const contactNames = await loadContactNameMap(liveItems, token);
         state.cases = liveItems.map((item) => approvalToCase(item, contactNames));
         if (state.role !== "staff") await loadRuntimeSettings({ silent: true });
+        await loadUsageSummary(token);
         render();
       } catch (error) {
         errorEl.textContent = `连接失败：${error.message}`;
         setRealQueueEmpty(`连接失败：${error.message}`);
+      }
+    }
+
+    async function loadUsageSummary(token) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
+      if (!api || !token) {
+        state.usageSummary = null;
+        renderSideUsage();
+        return null;
+      }
+      try {
+        const endpoint = `${api}/api/usage/summary?project_key=${encodeURIComponent(project)}`;
+        const res = await fetch(endpoint, { headers: authHeaders(token) });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        state.usageSummary = data;
+        renderSideUsage();
+        return data;
+      } catch (_error) {
+        state.usageSummary = null;
+        renderSideUsage();
+        return null;
       }
     }
 
@@ -3673,6 +3715,7 @@
       state.demoMode = false;
       state.loading = false;
       state.selected.clear();
+      state.usageSummary = null;
       $("modeTag").textContent = "真实系统";
       state.cases = [];
       errorEl.textContent = message;
@@ -3907,6 +3950,7 @@
       state.demoMode = true;
       state.scenario = demoScenarioEl.value || "ecommerce";
       state.selected.clear();
+      state.usageSummary = null;
       $("modeTag").textContent = "公开演示";
       errorEl.textContent = "";
       state.cases = clone(DEMO_SCENARIOS[state.scenario] || DEMO_SCENARIOS.ecommerce);
@@ -5432,6 +5476,24 @@
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return value;
       return date.toLocaleString("zh-MY", { dateStyle: "short", timeStyle: "short" });
+    }
+
+    function renderSideUsage() {
+      const summary = state.usageSummary || {};
+      const today = summary.today || {};
+      const month = summary.month || {};
+      const mode = summary.mode_label || (state.demoMode ? "演示" : "省钱模式");
+      $("sideCostToday").textContent = formatUsd(today.estimated_cost_usd);
+      $("sideCostMonth").textContent = formatUsd(month.estimated_cost_usd);
+      $("sideEnhancedToday").textContent = `${Number(today.enhanced_replies || 0)} 次`;
+      $("sideSpendMode").textContent = mode;
+    }
+
+    function formatUsd(value) {
+      const amount = Number(value || 0);
+      if (!Number.isFinite(amount) || amount <= 0) return "US$0.00";
+      if (amount < 0.01) return `US$${amount.toFixed(4)}`;
+      return `US$${amount.toFixed(2)}`;
     }
 
     function escapeHtml(value) {

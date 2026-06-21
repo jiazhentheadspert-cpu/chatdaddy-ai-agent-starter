@@ -3,7 +3,7 @@ const VERSION = "chatdaddy-ai-agent-starter-0.1.0";
 const CORS_HEADERS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET,POST,OPTIONS",
-  "access-control-allow-headers": "content-type,authorization,x-admin-token,x-webhook-secret",
+  "access-control-allow-headers": "content-type,authorization,x-admin-token,x-staff-token,x-webhook-secret",
 };
 
 export default {
@@ -30,6 +30,11 @@ export default {
       if (url.pathname === "/api/cases" && request.method === "GET") {
         requireAdmin(request, env);
         return listCases(env, projectKey);
+      }
+
+      if (url.pathname === "/api/usage/summary" && request.method === "GET") {
+        requireOperator(request, env);
+        return usageSummary(env, projectKey);
       }
 
       const approveMatch = url.pathname.match(/^\/api\/cases\/([^/]+)\/approve$/);
@@ -166,7 +171,17 @@ async function decideWithOpenAI(env, projectKey, inbound) {
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error("OpenAI returned empty content");
-  return JSON.parse(content);
+  const decision = JSON.parse(content);
+  await logAIUsage(env, {
+    projectKey,
+    provider: "openai",
+    model: env.OPENAI_MODEL || "gpt-4o-mini",
+    feature: "reply_decision",
+    eventId: inbound.messageId || inbound.conversationId || "",
+    intent: decision.intent || "",
+    usage: data.usage || {},
+  });
+  return decision;
 }
 
 function rulesDecision(inbound) {
@@ -627,6 +642,168 @@ function verifyWebhook(request, env) {
   }
 }
 
+async function logAIUsage(env, record) {
+  if (!env.APPROVAL_DB) return { ok: false, skipped: true };
+  await ensureUsageSchema(env);
+  const usage = normalizeUsage(record.usage);
+  const inputRate = positiveNumber(env.OPENAI_SALES_BRAIN_INPUT_USD_PER_MTOK, 1);
+  const outputRate = positiveNumber(env.OPENAI_SALES_BRAIN_OUTPUT_USD_PER_MTOK, 8);
+  const estimatedCost = roundCost((usage.input_tokens / 1000000) * inputRate + (usage.output_tokens / 1000000) * outputRate);
+  const now = new Date().toISOString();
+  const id = `usage:${record.projectKey}:${record.provider}:${record.eventId || crypto.randomUUID()}:${now}`;
+  await env.APPROVAL_DB.prepare(`
+    INSERT INTO ai_usage_logs (
+      id, project_key, provider, model, feature, case_id, event_id, intent,
+      input_tokens, output_tokens, total_tokens, estimated_cost_usd, created_at, data
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id.slice(0, 240),
+    record.projectKey,
+    record.provider,
+    record.model,
+    record.feature,
+    record.eventId || "",
+    record.eventId || "",
+    record.intent || "",
+    usage.input_tokens,
+    usage.output_tokens,
+    usage.total_tokens,
+    estimatedCost,
+    now,
+    JSON.stringify({
+      feature: record.feature,
+      intent: record.intent || "",
+      pricing_unit: "usd_per_million_tokens",
+      input_usd_per_mtok: inputRate,
+      output_usd_per_mtok: outputRate,
+    }),
+  ).run();
+  return { ok: true, estimated_cost_usd: estimatedCost };
+}
+
+async function usageSummary(env, projectKey) {
+  if (!env.APPROVAL_DB) {
+    return json({
+      ok: true,
+      project_key: projectKey,
+      available: false,
+      currency: "USD",
+      mode_label: "省钱模式",
+      today: emptyUsageSummary(),
+      month: emptyUsageSummary(),
+      note: "省钱模式已开；成本记录需要连接资料库后显示。",
+    });
+  }
+
+  await ensureUsageSchema(env);
+  const todayStart = usageWindowStartIso(env, "day");
+  const monthStart = usageWindowStartIso(env, "month");
+  const [today, month] = await Promise.all([
+    usageSince(env, projectKey, todayStart),
+    usageSince(env, projectKey, monthStart),
+  ]);
+
+  return json({
+    ok: true,
+    project_key: projectKey,
+    available: true,
+    currency: "USD",
+    mode_label: "省钱模式",
+    today,
+    month,
+    note: "普通问题先走规则；复杂成交问题才调用增强 AI。",
+  });
+}
+
+async function usageSince(env, projectKey, sinceIso) {
+  const row = await env.APPROVAL_DB.prepare(`
+    SELECT COUNT(*) AS enhanced_replies, COALESCE(SUM(estimated_cost_usd), 0) AS estimated_cost_usd
+    FROM ai_usage_logs
+    WHERE project_key = ? AND created_at >= ?
+  `).bind(projectKey, sinceIso).first();
+  return {
+    enhanced_replies: positiveInteger(row?.enhanced_replies),
+    estimated_cost_usd: roundCost(row?.estimated_cost_usd || 0),
+  };
+}
+
+async function ensureUsageSchema(env) {
+  await env.APPROVAL_DB.prepare(`
+    CREATE TABLE IF NOT EXISTS ai_usage_logs (
+      id TEXT PRIMARY KEY,
+      project_key TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      model TEXT NOT NULL,
+      feature TEXT,
+      case_id TEXT,
+      event_id TEXT,
+      intent TEXT,
+      input_tokens INTEGER DEFAULT 0,
+      output_tokens INTEGER DEFAULT 0,
+      total_tokens INTEGER DEFAULT 0,
+      estimated_cost_usd REAL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      data TEXT
+    )
+  `).run();
+  await env.APPROVAL_DB.prepare(`
+    CREATE INDEX IF NOT EXISTS ai_usage_project_created_idx
+    ON ai_usage_logs (project_key, created_at DESC)
+  `).run();
+  await env.APPROVAL_DB.prepare(`
+    CREATE INDEX IF NOT EXISTS ai_usage_project_feature_created_idx
+    ON ai_usage_logs (project_key, feature, created_at DESC)
+  `).run();
+}
+
+function normalizeUsage(usage = {}) {
+  const inputTokens = positiveInteger(usage.input_tokens ?? usage.prompt_tokens);
+  const outputTokens = positiveInteger(usage.output_tokens ?? usage.completion_tokens);
+  const totalTokens = positiveInteger(usage.total_tokens ?? inputTokens + outputTokens);
+  return {
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: totalTokens || inputTokens + outputTokens,
+  };
+}
+
+function emptyUsageSummary() {
+  return {
+    enhanced_replies: 0,
+    estimated_cost_usd: 0,
+  };
+}
+
+function usageWindowStartIso(env, unit) {
+  const offsetHours = positiveNumber(env.OPERATING_TIMEZONE_OFFSET_HOURS, 8);
+  const offsetMs = offsetHours * 60 * 60 * 1000;
+  const shifted = new Date(Date.now() + offsetMs);
+  const year = shifted.getUTCFullYear();
+  const month = shifted.getUTCMonth();
+  const day = shifted.getUTCDate();
+  const localStartMs = unit === "month" ? Date.UTC(year, month, 1) : Date.UTC(year, month, day);
+  return new Date(localStartMs - offsetMs).toISOString();
+}
+
+function positiveInteger(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return 0;
+  return Math.round(number);
+}
+
+function positiveNumber(value, fallback = 0) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return fallback;
+  return number;
+}
+
+function roundCost(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  return Math.round(number * 10000) / 10000;
+}
+
 function requireAdmin(request, env) {
   if (!env.ADMIN_TOKEN) {
     const error = new Error("ADMIN_TOKEN is not configured");
@@ -641,6 +818,17 @@ function requireAdmin(request, env) {
     error.status = 401;
     throw error;
   }
+}
+
+function requireOperator(request, env) {
+  const url = new URL(request.url);
+  const adminToken = request.headers.get("x-admin-token") || url.searchParams.get("token");
+  const staffToken = request.headers.get("x-staff-token") || url.searchParams.get("staff_token");
+  if (env.ADMIN_TOKEN && adminToken === env.ADMIN_TOKEN) return;
+  if (env.STAFF_TOKEN && staffToken === env.STAFF_TOKEN) return;
+  const error = new Error("unauthorized");
+  error.status = 401;
+  throw error;
 }
 
 function getKV(env) {
@@ -698,7 +886,13 @@ function json(data, status = 200) {
 
 function firstString(...values) {
   for (const value of values) {
-    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "string" && value.trim()) {
+      const text = value.trim();
+      if (/^\{\{[^}]+\}\}$/.test(text) || /^%7B%7B.+%7D%7D$/i.test(text)) continue;
+      if (/^(message|chat|contact|conversation|lastMessage|last_message)\.[A-Za-z0-9_.]+$/.test(text)) continue;
+      if (/^(Unique ID|Phone Number|Name|Email)$/i.test(text)) continue;
+      return text;
+    }
     if (typeof value === "number") return String(value);
   }
   return "";
