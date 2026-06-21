@@ -2288,6 +2288,52 @@
       .summary-line, .decision-item { grid-template-columns: 1fr; }
       .summary-index { display: none; }
     }
+
+    body.staff-mode .app-shell {
+      width: 100%;
+      max-width: none;
+      grid-template-columns: 248px minmax(0, 1fr);
+    }
+
+    body.staff-mode .sidebar {
+      display: grid;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      min-width: 248px;
+    }
+
+    body.staff-mode .workspace {
+      min-width: 0;
+    }
+
+    @media (max-width: 1180px) and (min-width: 821px) {
+      body.staff-mode .app-shell {
+        grid-template-columns: 220px minmax(0, 1fr);
+      }
+
+      body.staff-mode .sidebar {
+        position: sticky;
+        height: 100vh;
+        min-width: 220px;
+      }
+
+      body.staff-mode .side-nav {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 820px) {
+      body.staff-mode .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      body.staff-mode .sidebar {
+        position: static;
+        height: auto;
+        min-width: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2768,6 +2814,8 @@
     const params = new URLSearchParams(window.location.search);
     state.session = readSession();
     state.role = params.get("role") || state.session.role || "owner";
+    document.body.classList.toggle("staff-mode", state.role === "staff");
+    document.body.dataset.role = state.role;
     state.workspaceView = params.get("view") || state.workspaceView;
     state.pendingCaseId = params.get("case_id") || null;
 
@@ -3289,6 +3337,87 @@
       casesEl.classList.toggle("list", view === "list");
     }
 
+    function approvalContactDigits(item = {}) {
+      const candidates = [
+        item.customer?.chat_id,
+        item.customer?.phone,
+        item.inbound?.chat_id,
+        item.inbound?.phone,
+        item.chat_id,
+        item.phone,
+      ];
+      const raw = candidates.find((value) => String(value || "").trim());
+      return String(raw || "").replace(/\D/g, "");
+    }
+
+    function firstCleanCustomerName(...values) {
+      for (const value of values) {
+        const text = String(value || "").trim();
+        if (!text) continue;
+        const normalized = text.toLowerCase();
+        if (["whatsapp customer", "customer", "live case", "demo customer", "test customer", "unknown", "undefined", "null"].includes(normalized)) continue;
+        if (/^\+?\d[\d\s().-]{5,}$/.test(text)) continue;
+        return text;
+      }
+      return "";
+    }
+
+    function fallbackCustomerNameFromDigits(digits) {
+      const clean = String(digits || "").replace(/\D/g, "");
+      return clean ? `顾客 ${clean.slice(-4)}` : "顾客";
+    }
+
+    async function loadContactNameMap(items, token) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      if (!api || !token || !Array.isArray(items) || !items.length) return {};
+      const contacts = [...new Set(items.map(approvalContactDigits).filter(Boolean))].slice(0, 120);
+      if (!contacts.length) return {};
+
+      try {
+        const endpoint = `${api}/api/channels/chatdaddy/contacts?contacts=${encodeURIComponent(contacts.join(","))}`;
+        const res = await fetch(endpoint, { headers: authHeaders(token) });
+        const data = await res.json();
+        if (!res.ok || !data.ok) return {};
+
+        const names = {};
+        Object.entries(data.names || {}).forEach(([id, name]) => {
+          const digits = String(id || "").replace(/\D/g, "");
+          const cleanName = firstCleanCustomerName(name);
+          if (digits && cleanName) names[digits] = cleanName;
+        });
+
+        (data.items || []).forEach((contact) => {
+          const id = String(contact.id || contact.requested_id || contact.phone || "").replace(/\D/g, "");
+          const cleanName = firstCleanCustomerName(contact.name, contact.display_name, contact.displayName);
+          if (id && cleanName) names[id] = cleanName;
+        });
+        return names;
+      } catch (_error) {
+        return {};
+      }
+    }
+
+    function customerDisplayNameFromApproval(item = {}, contactNames = {}) {
+      const digits = approvalContactDigits(item);
+      const customFields = item.decision?.signals?.custom_fields || {};
+      const name = firstCleanCustomerName(
+        contactNames[digits],
+        contactNames[`+${digits}`],
+        item.customer?.name,
+        item.customer?.displayName,
+        item.customer?.display_name,
+        item.inbound?.customer_name,
+        item.inbound?.contact_name,
+        item.inbound?.display_name,
+        item.customer_name,
+        item.contact_name,
+        customFields.customer_name,
+        customFields.contact_name,
+        customFields.name
+      );
+      return name || fallbackCustomerNameFromDigits(digits);
+    }
+
     async function loadCases() {
       errorEl.textContent = "";
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
@@ -3323,7 +3452,8 @@
         const liveItems = Array.isArray(data.items)
           ? data.items.filter((item) => isDashboardVisibleApproval(item) && !isDemoLikeApprovalItem(item))
           : [];
-        state.cases = liveItems.map(approvalToCase);
+        const contactNames = await loadContactNameMap(liveItems, token);
+        state.cases = liveItems.map((item) => approvalToCase(item, contactNames));
         if (state.role !== "staff") await loadRuntimeSettings({ silent: true });
         render();
       } catch (error) {
@@ -3391,7 +3521,7 @@
       return ["pending", "sent", "send_failed", "sending", "rejected"].includes(status);
     }
 
-    function approvalToCase(item) {
+    function approvalToCase(item, contactNames = {}) {
       const signals = item.decision?.signals || {};
       const action = item.action || {};
       const inbound = item.inbound || {};
@@ -3404,6 +3534,8 @@
       const at = item.updated_at || item.created_at || inbound.message_at || new Date().toISOString();
       const finalReply = item.final_text || reply.text || "";
       const sentLike = ["auto_sent", "sent", "send_failed"].includes(status);
+      const contactDigits = approvalContactDigits(item);
+      const contactName = customerDisplayNameFromApproval(item, contactNames);
       const history = [
         {
           type: status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : status === "handoff_done" ? "handoff_done" : status === "sending" ? "reply_sending" : "ai_decision",
@@ -3449,8 +3581,8 @@
         project_key: item.project_key || projectKeyEl.value.trim() || "beyoute",
         status,
         contact: {
-          id: customer.chat_id || customer.phone || item.id,
-          name: customer.name || "WhatsApp Customer",
+          id: customer.chat_id || customer.phone || contactDigits || item.id,
+          name: contactName,
           phone: customer.phone || "",
         },
         last_message: inbound.text || "",
@@ -4421,7 +4553,7 @@
       const decision = item.latest_decision || {};
       const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
       const words = (item.word_cloud || decision.keywords || []).slice(0, 4);
-      const initials = (item.contact?.name || "C").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+      const initials = initialsFor(item.contact?.name || "顾客");
       const selected = state.selected.has(item.id);
       const sla = slaInfo(item);
       const stage = stageLabel(decision.stage);
@@ -4505,7 +4637,9 @@
     }
 
     function initialsFor(name) {
-      return String(name || "顾客")
+      const text = String(name || "顾客").trim();
+      if (!text || /^顾客(\s+\d+)?$/.test(text) || /^whatsapp customer$/i.test(text)) return "客";
+      return text
         .split(/\s+/)
         .map((part) => part[0])
         .join("")
