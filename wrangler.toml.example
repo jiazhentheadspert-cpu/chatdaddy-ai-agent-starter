@@ -21,6 +21,11 @@ GOOGLE_SHEET_WEB_APP_URL = ""
 binding = "AGENT_KV"
 id = "replace_with_your_kv_namespace_id"
 
+[[d1_databases]]
+binding = "APPROVAL_DB"
+database_name = "replace_with_your_replypilot_db_name"
+database_id = "replace_with_your_d1_database_id"
+
 # Set secrets with:
 # wrangler secret put OPENAI_API_KEY
 # wrangler secret put CHATDADDY_API_KEY
