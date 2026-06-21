@@ -2338,6 +2338,10 @@
       min-width: 0;
     }
 
+    body.staff-mode .status-strip {
+      display: none;
+    }
+
     @media (max-width: 1180px) and (min-width: 821px) {
       body.staff-mode .app-shell {
         grid-template-columns: 220px minmax(0, 1fr);
@@ -2548,7 +2552,7 @@
             <div class="box-title">聊天 <span>最新在下</span></div>
             <div class="chat" id="chatBox"></div>
           </div>
-          <div class="box reply-card">
+          <div class="box reply-card" id="replyCard">
             <div class="box-title">回复 <span id="replyModeLabel">可修改</span></div>
             <textarea id="replyBox"></textarea>
             <div class="reply-tools" id="replyTools" aria-label="回复快捷调整">
@@ -2935,7 +2939,13 @@
 
     $("gridView").addEventListener("click", () => setView("grid"));
     $("listView").addEventListener("click", () => setView("list"));
-    $("closePanel").addEventListener("click", () => $("panel").classList.remove("open"));
+    $("closePanel").addEventListener("click", closePanel);
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (!$("panel").classList.contains("open")) return;
+      event.preventDefault();
+      closePanel();
+    });
     $("approveBtn").addEventListener("click", approveActive);
     $("learnBtn").addEventListener("click", learnActive);
     $("handoffBtn").addEventListener("click", handoffActive);
@@ -3241,7 +3251,8 @@
       $("sideConnection").textContent = state.demoMode ? "演示" : "真实";
       $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
-      $("statusStrip").innerHTML = statusStripHtml();
+      $("statusStrip").classList.toggle("hidden", state.role === "staff");
+      $("statusStrip").innerHTML = state.role === "staff" ? "" : statusStripHtml();
       $("setupPanel").classList.toggle("hidden", view !== "operations" || state.role === "staff");
 
       $("demoBar").classList.toggle("hidden", !isCases || !canUseDemoMode());
@@ -3867,6 +3878,11 @@
         state.deepLinkOpened = true;
         requestAnimationFrame(() => openCase(state.pendingCaseId));
       }
+    }
+
+    function closePanel() {
+      $("panel").classList.remove("open");
+      state.active = null;
     }
 
     function renderNavigationBadges(counts, learned) {
@@ -4693,10 +4709,13 @@
       const isFlowOnly = decision.action === "trigger_flow";
       const readOnly = isCaseReadOnly(item);
       const statusTone = riskTone(item);
+      const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound");
+      const hideReplyCard = item.status === "handoff_done" && !hasOutbound;
       $("panelName").textContent = item.contact?.name || "顾客";
       $("panelAvatar").textContent = initialsFor(item.contact?.name || "顾客");
       $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
-      $("replyBox").value = decision.reply_message || "";
+      $("replyCard").classList.toggle("hidden", hideReplyCard);
+      $("replyBox").value = hideReplyCard ? "" : decision.reply_message || "";
       $("replyBox").readOnly = readOnly;
       $("replyModeLabel").textContent = item.status === "handoff_done" ? "已转人工，只读" : readOnly ? "已记录，只读" : "可修改";
       $("replyTools").classList.toggle("hidden", readOnly);
@@ -4710,7 +4729,6 @@
       $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
       $("caseDetails").innerHTML = caseDetailsHtml(item);
 
-      const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound");
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
         const klass = msg.direction === "outbound" ? "out" : "in";
         return `<div class="bubble ${klass}">${escapeHtml(msg.text || "")}</div>`;
