@@ -2004,8 +2004,17 @@
       font-weight: 700;
     }
 
-    .bubble.in { justify-self: end; border-right: 4px solid var(--green); }
-    .bubble.out { justify-self: start; border-left: 4px solid var(--blue); }
+    .bubble.in {
+      justify-self: start;
+      border-left: 4px solid var(--line);
+      background: rgba(255,255,255,.96);
+    }
+
+    .bubble.out {
+      justify-self: end;
+      border-right: 4px solid var(--green);
+      background: linear-gradient(180deg, rgba(231,255,248,.98), rgba(244,255,252,.96));
+    }
 
     textarea {
       width: 100%;
