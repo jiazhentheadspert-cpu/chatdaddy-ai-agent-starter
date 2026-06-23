@@ -212,5 +212,6 @@ examples/*.json               测试 payload 和 runtime config
 - Pilot 阶段先保持 Flow 自动触发关闭，确认稳定后再逐步开放。
 - 全自动客服接管必须走 Hermas autonomous gate；复制项目时先保持客服批准优先。
 - Meta Purchase 必须用稳定 `order_id + currency + amount/order_value` 去重，同一成交不能重复回流 Ads Manager。
+- 已经记录成交但当时 Meta 未接好时，只能在同一张 Case 按「补回流 Meta」；不要新建第二笔成交。
 
 详细看 [docs/SECURITY_ZH.md](docs/SECURITY_ZH.md)。

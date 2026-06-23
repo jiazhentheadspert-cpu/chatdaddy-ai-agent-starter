@@ -51,6 +51,8 @@ Worker 会做：
 
 如果 Meta credentials 不齐，Worker 只记录成交，不会假装已经回流。
 
+如果这张 Case 已经记录成交，但当时 Meta credentials 还没接好，接好后回到同一张 Case 按「补回流 Meta」。Dashboard 会用同一个 `order_id + currency + amount` 补送，不会建立第二笔成交。
+
 ## 去重规则
 
 Dashboard 手动「记录成交」和 ChatDaddy paid/COD webhook 都可能触发 `Purchase`。Worker 必须用这组字段去重：

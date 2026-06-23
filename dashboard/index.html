@@ -5338,10 +5338,13 @@
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly;
       $("handoffBtn").disabled = state.actionBusy || readOnly;
       $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
-      $("purchasePanel").classList.toggle("hidden", isFlowOnly || readOnly);
-      $("purchaseAmountInput").value = "";
+      const canResendPurchase = canResendPurchaseMeta(item);
+      const existingPurchaseAmount = casePurchaseAmount(item);
+      $("purchasePanel").classList.toggle("hidden", isFlowOnly || (readOnly && !canResendPurchase));
+      $("purchaseAmountInput").value = existingPurchaseAmount ? String(existingPurchaseAmount) : "";
       updatePurchaseNote(item);
-      $("markPurchaseBtn").disabled = state.actionBusy || isFlowOnly || readOnly;
+      $("markPurchaseBtn").disabled = state.actionBusy || isFlowOnly || (readOnly && !canResendPurchase);
+      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流 Meta" : "记录成交";
       $("caseDetails").innerHTML = caseDetailsHtml(item);
 
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
@@ -5370,7 +5373,8 @@
 
     function purchaseMetaStatusForCase(item = {}) {
       if (item.status === "purchase_confirmed") {
-        return { text: "这张 Case 已记录成交。", tone: "ok" };
+        if (casePurchaseMetaDone(item)) return { text: "这张 Case 已回流或已去重。", tone: "ok" };
+        return { text: "已成交，Meta 接好后可补回流。", tone: "warn" };
       }
       if (state.demoMode) {
         return { text: "演示模式只记录画面，不会回流广告。", tone: "warn" };
@@ -5602,15 +5606,54 @@
       return Math.round(amount * 100) / 100;
     }
 
-    function confirmPurchaseAction(amount, item) {
+    function casePurchaseRecord(item = {}) {
+      return item.purchase || {};
+    }
+
+    function casePurchaseAmount(item = {}) {
+      return normalizedPurchaseAmount(
+        item.amount_rm ||
+        item.order_value ||
+        item.purchase_amount ||
+        casePurchaseRecord(item).amount_rm ||
+        casePurchaseRecord(item).value
+      );
+    }
+
+    function casePurchaseOrderId(item = {}) {
+      return String(item.order_id || casePurchaseRecord(item).order_id || "").trim();
+    }
+
+    function caseMetaPurchaseResult(item = {}) {
+      return item.meta_capi_purchase_result || casePurchaseRecord(item).meta_capi || {};
+    }
+
+    function casePurchaseMetaDone(item = {}) {
+      const meta = caseMetaPurchaseResult(item);
+      return meta.sent === true ||
+        meta.deduped === true ||
+        meta.already_sent === true ||
+        meta.result?.sent === true ||
+        meta.result?.deduped === true;
+    }
+
+    function canResendPurchaseMeta(item = {}) {
+      return item.status === "purchase_confirmed" && !casePurchaseMetaDone(item);
+    }
+
+    function confirmPurchaseAction(amount, item, isResend = false) {
       if (state.demoMode) return true;
       const name = item?.contact?.name || "这位顾客";
+      if (isResend) {
+        return window.confirm(`补回流 ${name} 这笔已成交订单 RM ${amount.toFixed(2)} 到 Ads Manager？\n\n这不会重新确认一笔新成交；后端会用 order_id 去重。`);
+      }
       return window.confirm(`确认 ${name} 已成交 RM ${amount.toFixed(2)}？\n\n只有收到付款，或 COD 订单已经确认，才可以按。`);
     }
 
     async function markPurchaseActive() {
       if (!state.active) return;
-      if (isCaseReadOnly(state.active)) return;
+      const isResend = canResendPurchaseMeta(state.active);
+      if (isCaseReadOnly(state.active) && !isResend) return;
       if (state.actionBusy) return;
       const amount = normalizedPurchaseAmount($("purchaseAmountInput").value);
       if (!amount) {
@@ -5618,17 +5661,22 @@
         $("purchaseAmountInput").focus();
         return;
       }
-      if (!confirmPurchaseAction(amount, state.active)) return;
+      if (!confirmPurchaseAction(amount, state.active, isResend)) return;
       const result = await postCaseAction(state.active.id, "mark_purchase", {
         amount_rm: amount,
         currency: "MYR",
+        order_id: casePurchaseOrderId(state.active),
         confirmMetaSend: true,
+        resendMetaCapi: isResend,
         confirmedBy: state.session.displayName || roleName(state.role),
-        source: "staff_dashboard_mark_purchase",
+        source: isResend ? "staff_dashboard_resend_meta_purchase" : "staff_dashboard_mark_purchase",
       });
       const meta = result?.meta_capi;
+      const metaDone = meta?.sent || meta?.deduped || meta?.already_sent || meta?.result?.deduped;
       if (meta?.sent) {
         showToast(`已记录成交，并已回流 Meta RM ${amount.toFixed(2)}。`);
+      } else if (metaDone) {
+        showToast(`这笔成交已处理过，系统已防重复回流 RM ${amount.toFixed(2)}。`);
       } else if (meta?.configured === false || state.metaCapiStatus?.configured === false) {
         showToast(`已记录成交 RM ${amount.toFixed(2)}；Meta 未接，未回流广告。`);
       } else {
@@ -5879,19 +5927,20 @@
       const decision = state.active.latest_decision || {};
       const readOnly = isCaseReadOnly(state.active);
       const isFlowOnly = decision.action === "trigger_flow";
+      const canResendPurchase = canResendPurchaseMeta(state.active);
       $("approveBtn").disabled = isBusy || isFlowOnly || readOnly;
       $("handoffBtn").disabled = isBusy || readOnly;
       $("learnBtn").disabled = isBusy || readOnly;
       $("caseOptimizerDraftBtn").disabled = isBusy;
       $("caseOptimizerRecordBtn").disabled = isBusy;
-      $("markPurchaseBtn").disabled = isBusy || isFlowOnly || readOnly;
+      $("markPurchaseBtn").disabled = isBusy || isFlowOnly || (readOnly && !canResendPurchase);
       if (isBusy) {
         $("approveBtn").textContent = label;
         $("markPurchaseBtn").textContent = label;
         return;
       }
       $("approveBtn").textContent = readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : state.active.status === "order" ? "确认处理" : "批准发送";
-      $("markPurchaseBtn").textContent = readOnly ? "已成交" : "记录成交";
+      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流 Meta" : readOnly ? "已成交" : "记录成交";
     }
 
     function approvalActionEndpoint(api, caseId, action, project) {
@@ -5924,6 +5973,7 @@
           currency: body.currency || "MYR",
           order_id: body.order_id || "",
           confirmMetaSend: body.confirmMetaSend !== false,
+          resendMetaCapi: body.resendMetaCapi === true,
           confirmedBy: body.confirmedBy || state.session.displayName || roleName(state.role),
           source: body.source || "dashboard_mark_purchase",
         };

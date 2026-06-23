@@ -99,6 +99,8 @@ order_id = PROJECT_20260623_001
 
 Dashboard 的「记录成交」会把 Case 标成已成交，并在 Meta 凭证齐全时发送 `Purchase + value + currency`。
 
+如果成交先记录、Meta 后来才接好，在同一张 Case 按「补回流 Meta」。这只补送广告 Purchase，不会新建第二笔成交。
+
 去重靠 `order_id + currency + amount/order_value`。同一笔订单的 `order_id` 必须稳定；不要 Dashboard 一个 ID、ChatDaddy webhook 又另一个 ID，否则 Meta 可能收到重复 Purchase。
 
 测试 ChatDaddy paid webhook 是否会被 Worker 识别成 Purchase：
