@@ -197,6 +197,7 @@ docs/CHATDADDY_SETUP_ZH.md    ChatDaddy 设置步骤
 docs/META_CAPI_PURCHASE_ZH.md Meta Purchase + RM 金额回流
 docs/AI_REPLY_RULES_ZH.md     AI 回复规则设计
 setup/check_ads_manager_purchase_go_live.command  Ads Manager 回流验收
+setup/set_meta_capi_purchase_auto_track.command   只开启 ChatDaddy paid -> Purchase 自动回流
 examples/*.json               测试 payload 和 runtime config
 ```
 

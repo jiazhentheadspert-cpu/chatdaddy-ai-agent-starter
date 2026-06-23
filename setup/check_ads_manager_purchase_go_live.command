@@ -70,6 +70,7 @@ checks.append(("Worker reachable", status_code == 200 and status.get("ok") is Tr
 checks.append(("Meta Pixel ID", bool(meta.get("pixel_id")), "set" if meta.get("pixel_id") else "missing"))
 checks.append(("Meta CAPI Access Token", bool(meta.get("access_token_configured")), "set" if meta.get("access_token_configured") else "missing"))
 checks.append(("Auto tracking", True, "ON" if meta.get("auto_track_enabled") else "OFF"))
+checks.append(("Purchase webhook auto tracking", True, "ON" if meta.get("purchase_auto_track_enabled") else "OFF"))
 
 if dashboard_url:
     try:
@@ -120,6 +121,7 @@ else:
 print("")
 print("SAFETY")
 print("- Purchase only after payment received or COD order confirmed.")
+print("- ChatDaddy paid webhook also needs amount_rm/order_value.")
 print("- Customer saying '我要 / 有 / interested' is not a Purchase.")
 print("- Auto Lead / Receipt / Flow tracking stays separate from manual Purchase.")
 PY

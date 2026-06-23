@@ -105,6 +105,14 @@ order_id = PROJECT_20260623_001
 
 Test Event 在 Meta Events Manager 看到后，才考虑开启自动追踪。
 
+如果只要 ChatDaddy `payment_status / purchase_status` 已确认后自动送 `Purchase`，先开 Purchase-only 开关：
+
+```bash
+./setup/set_meta_capi_purchase_auto_track.command
+```
+
+这个开关只处理 paid / COD confirmed + `amount_rm` 或 `order_value` 的 webhook，不会打开 Lead、Receipt、Flow Step 自动追踪。
+
 ```bash
 ./set_meta_capi_auto_track.command
 ```
@@ -112,6 +120,7 @@ Test Event 在 Meta Events Manager 看到后，才考虑开启自动追踪。
 ## 自动事件和手动成交的区别
 
 - 手动成交：客服按「记录成交」，只送 `Purchase`，要求金额。
+- ChatDaddy paid webhook：字段显示已付款 / COD confirmed 且有金额时，才可以自动送 `Purchase`。
 - 自动追踪：ChatDaddy webhook 触发 Lead、ViewContent、AddPaymentInfo 等事件。
 
 Pilot 期间建议：
