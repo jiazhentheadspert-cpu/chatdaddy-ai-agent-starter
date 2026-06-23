@@ -194,6 +194,7 @@ dashboard/index.html          客服 / Admin Dashboard
 google-sheets/Code.gs         Google Sheet Apps Script 记录表
 docs/ONBOARDING_ZH.md         项目 onboarding 方式
 docs/CHATDADDY_SETUP_ZH.md    ChatDaddy 设置步骤
+docs/META_CAPI_PURCHASE_ZH.md Meta Purchase + RM 金额回流
 docs/AI_REPLY_RULES_ZH.md     AI 回复规则设计
 examples/*.json               测试 payload 和 runtime config
 ```

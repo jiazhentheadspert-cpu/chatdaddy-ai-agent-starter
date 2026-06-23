@@ -92,6 +92,23 @@ SaaS Ready：陌生客户可以自己注册、连接、上线和排错。
 老板可以回看：谁批准了什么、AI 为什么这样判断、下次会不会自动处理。
 ```
 
+## 5.1 广告成交回流
+
+必须完成：
+
+- ChatDaddy 有 `payment_status`, `purchase_status`, `amount_rm`, `order_value`, `currency`, `order_id` 字段。
+- Dashboard 只有在已付款或 COD 已确认时才允许按「记录成交」。
+- `Purchase` 事件必须带 `value` 和 `currency=MYR`。
+- Meta Pixel ID 和 CAPI Access Token 已经放进 Worker secrets。
+- Test Event 已经在 Meta Events Manager 看到。
+- 自动追踪默认关闭，测试通过后才开。
+
+验收标准：
+
+```text
+客服按「记录成交」后，Case 变成已成交；Meta Test Events 能看到 Purchase 和 RM 金额。
+```
+
 ## 6. 客服工作边界
 
 必须完成：
@@ -144,4 +161,3 @@ SaaS Ready：陌生客户可以自己注册、连接、上线和排错。
 ```text
 客户无需任何设置，马上像成熟 SaaS 一样自助上线。
 ```
-
