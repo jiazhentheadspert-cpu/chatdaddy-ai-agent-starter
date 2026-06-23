@@ -109,6 +109,14 @@ SaaS Ready：陌生客户可以自己注册、连接、上线和排错。
 客服按「记录成交」后，Case 变成已成交；Meta Test Events 能看到 Purchase 和 RM 金额。
 ```
 
+技术验收命令：
+
+```bash
+API_BASE=https://your-worker.workers.dev \
+DASHBOARD_URL=https://your-dashboard-url \
+./setup/check_ads_manager_purchase_go_live.command
+```
+
 ## 6. 客服工作边界
 
 必须完成：
