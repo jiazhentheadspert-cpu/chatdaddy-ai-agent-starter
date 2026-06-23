@@ -99,6 +99,13 @@ order_id = PROJECT_20260623_001
 
 Dashboard 的「记录成交」会把 Case 标成已成交，并在 Meta 凭证齐全时发送 `Purchase + value + currency`。
 
+当前已实测：ChatDaddy contact PATCH 可以写成交 tag，但不接受任意 custom fields 写入。因此：
+
+- Dashboard 会保存 `amount_rm / order_value / order_id`。
+- Meta CAPI 会使用 Dashboard 保存的金额回流 Purchase。
+- ChatDaddy 里默认只会被打成交 tag，例如 `WON`。
+- 如果要把 RM 金额也写回 ChatDaddy custom fields，需要 ChatDaddy 提供专门的 custom field update endpoint，再配置 `CHATDADDY_CUSTOM_FIELDS_URL`。
+
 如果成交先记录、Meta 后来才接好，在同一张 Case 按「补回流 Meta」。这只补送广告 Purchase，不会新建第二笔成交。
 
 去重靠 `order_id + currency + amount/order_value`。同一笔订单的 `order_id` 必须稳定；不要 Dashboard 一个 ID、ChatDaddy webhook 又另一个 ID，否则 Meta 可能收到重复 Purchase。

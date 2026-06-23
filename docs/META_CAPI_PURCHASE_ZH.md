@@ -46,7 +46,7 @@ Body:
 Worker 会做：
 
 1. 把 Case 标成 `purchase_confirmed`。
-2. 同步 ChatDaddy tag / custom fields。
+2. 同步 ChatDaddy 成交 tag；金额字段需要 ChatDaddy 额外提供 custom field update endpoint。
 3. Meta credentials 齐全时发送 `Purchase`。
 
 如果 Meta credentials 不齐，Worker 只记录成交，不会假装已经回流。
@@ -98,6 +98,16 @@ order_id = PROJECT_20260623_001
 ```
 
 `amount_rm` 和 `order_value` 用数字，不要写 `RM378`。
+
+这些字段一定要能从 ChatDaddy webhook 传进 Worker，才可以自动判断 paid / COD confirmed。Dashboard 手动「记录成交」会自己保存金额，所以不依赖 ChatDaddy 先有金额。
+
+当前 ChatDaddy contact PATCH 已实测可以写 tag，但不接受任意 custom fields 写入。要把 Dashboard 记录的 `amount_rm/order_value/order_id` 写回 ChatDaddy，需要 ChatDaddy 提供专门 endpoint，并在 Worker 配：
+
+```bash
+wrangler secret put CHATDADDY_CUSTOM_FIELDS_URL
+```
+
+没有这个 endpoint 时，Dashboard 仍然可以记录成交并回流 Meta；只是 ChatDaddy 那边只会看到成交 tag，不会看到 RM 金额字段。
 
 ## Meta 设置
 
