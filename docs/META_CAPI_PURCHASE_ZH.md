@@ -113,6 +113,16 @@ Test Event 在 Meta Events Manager 看到后，才考虑开启自动追踪。
 
 这个开关只处理 paid / COD confirmed + `amount_rm` 或 `order_value` 的 webhook，不会打开 Lead、Receipt、Flow Step 自动追踪。
 
+上线前先用示例 payload 测一次：
+
+```bash
+API_BASE=https://your-worker.workers.dev \
+PROJECT_KEY=demo \
+./setup/test_chatdaddy_paid_webhook_purchase.command
+```
+
+示例 payload 在 `examples/chatdaddy-paid-purchase-webhook.json`。
+
 ```bash
 ./set_meta_capi_auto_track.command
 ```

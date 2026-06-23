@@ -1,0 +1,31 @@
+{
+  "event": "custom-field-update",
+  "data": {
+    "event_id": "chatdaddy_paid_purchase_20260623_001",
+    "event_type": "payment_confirmed",
+    "contact": {
+      "id": "contact_12345",
+      "name": "Demo Customer",
+      "phone": "+60123456789",
+      "custom_fields": {
+        "payment_status": "paid",
+        "purchase_status": "confirmed",
+        "amount_rm": 378,
+        "order_value": 378,
+        "currency": "MYR",
+        "order_id": "PROJECT_20260623_001",
+        "ctwa_clid": "optional_ctwa_clid",
+        "source_id": "optional_source_id",
+        "ad_id": "optional_meta_ad_id",
+        "campaign_id": "optional_meta_campaign_id",
+        "adset_id": "optional_meta_adset_id"
+      }
+    },
+    "conversation": {
+      "id": "chat_12345"
+    },
+    "message": {
+      "text": ""
+    }
+  }
+}

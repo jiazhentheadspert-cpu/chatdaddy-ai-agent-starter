@@ -99,4 +99,12 @@ order_id = PROJECT_20260623_001
 
 Dashboard 的「记录成交」会把 Case 标成已成交，并在 Meta 凭证齐全时发送 `Purchase + value + currency`。
 
+测试 ChatDaddy paid webhook 是否会被 Worker 识别成 Purchase：
+
+```bash
+API_BASE=https://your-worker.workers.dev \
+PROJECT_KEY=demo \
+./setup/test_chatdaddy_paid_webhook_purchase.command
+```
+
 详细看 [META_CAPI_PURCHASE_ZH.md](META_CAPI_PURCHASE_ZH.md)。
