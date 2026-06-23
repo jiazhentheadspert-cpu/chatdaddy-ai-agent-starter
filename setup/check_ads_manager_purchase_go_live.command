@@ -122,6 +122,7 @@ print("")
 print("SAFETY")
 print("- Purchase only after payment received or COD order confirmed.")
 print("- ChatDaddy paid webhook also needs amount_rm/order_value.")
+print("- Duplicate Purchase is blocked by order_id + currency + amount/order_value.")
 print("- Customer saying '我要 / 有 / interested' is not a Purchase.")
 print("- Auto Lead / Receipt / Flow tracking stays separate from manual Purchase.")
 PY
