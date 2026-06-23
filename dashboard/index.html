@@ -1167,6 +1167,84 @@
       margin-bottom: 2px;
     }
 
+    .case-optimizer-card {
+      display: grid;
+      gap: 10px;
+      border: 1px solid rgba(0, 183, 160, .22);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(238, 255, 250, .96), rgba(255, 255, 255, .94));
+      padding: 14px;
+      box-shadow: 0 14px 30px rgba(0, 60, 55, .08);
+    }
+
+    .case-optimizer-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .case-optimizer-head b {
+      display: block;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .case-optimizer-head span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 840;
+    }
+
+    .case-optimizer-pill {
+      flex: 0 0 auto;
+      border: 1px solid rgba(0, 183, 160, .25);
+      border-radius: 999px;
+      background: var(--soft-green);
+      color: var(--green);
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 920;
+    }
+
+    .case-optimizer-input {
+      width: 100%;
+      min-height: 86px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--ink);
+      padding: 12px 13px;
+      outline: none;
+      resize: vertical;
+      font: inherit;
+      font-weight: 780;
+      line-height: 1.45;
+    }
+
+    .case-optimizer-input:focus {
+      border-color: rgba(0,183,216,.36);
+      box-shadow: 0 0 0 4px rgba(0,183,216,.10);
+    }
+
+    .case-optimizer-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .case-optimizer-output {
+      min-height: 42px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .78);
+      color: var(--muted);
+      padding: 10px 11px;
+      font-size: 13px;
+      font-weight: 760;
+      line-height: 1.42;
+      white-space: pre-line;
+    }
+
     .toggle {
       width: 44px;
       height: 26px;
@@ -2183,6 +2261,70 @@
       gap: 10px;
     }
 
+    .purchase-panel {
+      border: 1px solid rgba(16,185,157,.28);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(233,251,246,.88), rgba(255,255,255,.92));
+      padding: 12px;
+      display: grid;
+      gap: 9px;
+      box-shadow: 0 16px 36px rgba(8, 23, 29, .06);
+    }
+
+    .purchase-panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--green-deep);
+      font-weight: 950;
+    }
+
+    .purchase-panel-head small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 860;
+    }
+
+    .purchase-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .purchase-input-wrap {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 6px;
+      min-height: 42px;
+      border: 1px solid rgba(16,185,157,.30);
+      border-radius: 13px;
+      background: #fff;
+      padding: 0 10px;
+      font-weight: 950;
+    }
+
+    .purchase-input-wrap span {
+      color: var(--muted);
+    }
+
+    .purchase-input-wrap input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-weight: 950;
+    }
+
+    .purchase-note {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 820;
+      line-height: 1.35;
+    }
+
     .history {
       display: grid;
       gap: 8px;
@@ -2681,6 +2823,21 @@
               <button class="reply-chip" data-reply-template="shorten" type="button">缩短</button>
             </div>
           </div>
+          <div class="case-optimizer-card hidden" id="caseOptimizerCard">
+            <div class="case-optimizer-head">
+              <div>
+                <b>优化 AI</b>
+                <span>只做复盘，不会发送给顾客</span>
+              </div>
+              <span class="case-optimizer-pill">Owner / Admin</span>
+            </div>
+            <textarea id="caseOptimizerInput" class="case-optimizer-input" placeholder="例：顾客回“有”是在回答上一句，不要重新问；应该接着 Step 1 回答。"></textarea>
+            <div class="case-optimizer-actions">
+              <button class="btn" id="caseOptimizerDraftBtn" type="button">整理规则</button>
+              <button class="btn primary" id="caseOptimizerRecordBtn" type="button">记录优化</button>
+            </div>
+            <div class="case-optimizer-output" id="caseOptimizerOutput">写下这个 Case 哪里错了，我会整理成可学习规则。</div>
+          </div>
         </div>
         <aside class="action-stack">
           <div class="action-card">
@@ -2692,6 +2849,20 @@
           <div class="side-actions">
             <button class="btn" id="learnBtn">同类少审</button>
             <button class="btn danger" id="handoffBtn">转人工</button>
+          </div>
+          <div class="purchase-panel" id="purchasePanel">
+            <div class="purchase-panel-head">
+              <span>确认成交</span>
+              <small>收到钱才按</small>
+            </div>
+            <div class="purchase-row">
+              <label class="purchase-input-wrap">
+                <span>RM</span>
+                <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="378" />
+              </label>
+              <button class="btn primary" id="markPurchaseBtn" type="button">记录成交</button>
+            </div>
+            <div class="purchase-note" id="purchaseNote">记录成交后，广告数据会自动更新。</div>
           </div>
           <div class="box">
             <h3>重点词</h3>
@@ -3072,6 +3243,9 @@
     $("approveBtn").addEventListener("click", approveActive);
     $("learnBtn").addEventListener("click", learnActive);
     $("handoffBtn").addEventListener("click", handoffActive);
+    $("markPurchaseBtn").addEventListener("click", markPurchaseActive);
+    $("caseOptimizerDraftBtn").addEventListener("click", draftCaseOptimizerRule);
+    $("caseOptimizerRecordBtn").addEventListener("click", recordCaseOptimizerFeedback);
     $("bulkMarkSeen").addEventListener("click", () => bulkCaseAction("mark_seen"));
     $("bulkHandoff").addEventListener("click", () => bulkCaseAction("handoff"));
     $("bulkClear").addEventListener("click", clearSelection);
@@ -3595,7 +3769,7 @@
 
     function casesForRole(cases) {
       if (state.role !== "staff") return cases;
-      return cases.filter((item) => ["approval_required", "human_required", "handoff_done", "order", "send_failed", "auto_sent", "sent", "sending"].includes(item.status));
+      return cases.filter((item) => ["approval_required", "human_required", "handoff_done", "order", "send_failed", "auto_sent", "sent", "sending", "purchase_confirmed"].includes(item.status));
     }
 
     function setView(view) {
@@ -3710,7 +3884,7 @@
 
       try {
         setLoadingQueue("正在读取顾客讯息，请等几秒。");
-        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=0&real_only=1&limit=100&scan_limit=1000`;
+        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=0&real_only=1&limit=30&scan_limit=300`;
         let res = await fetch(approvalUrl, { headers: authHeaders(token) });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -3847,7 +4021,7 @@
 
     function isDashboardVisibleApproval(item = {}) {
       const status = String(item.status || "").toLowerCase();
-      return ["pending", "sent", "send_failed", "sending", "rejected"].includes(status);
+      return ["pending", "sent", "send_failed", "sending", "rejected", "purchase_confirmed"].includes(status);
     }
 
     function approvalToCase(item, contactNames = {}) {
@@ -3867,7 +4041,7 @@
       const contactName = customerDisplayNameFromApproval(item, contactNames);
       const history = [
         {
-          type: status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : status === "handoff_done" ? "handoff_done" : status === "sending" ? "reply_sending" : "ai_decision",
+          type: status === "purchase_confirmed" ? "case_purchase_confirmed" : status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : status === "handoff_done" ? "handoff_done" : status === "sending" ? "reply_sending" : "ai_decision",
           at,
           note: approvalReason(item, status, action),
         },
@@ -3937,6 +4111,7 @@
     }
 
     function approvalStatus(item) {
+      if (item.status === "purchase_confirmed") return "purchase_confirmed";
       if (item.status === "rejected") return "handoff_done";
       if (item.status === "sending") return "sending";
       if (item.status === "sent" && (item.auto_reply || item.category === "auto" || item.decision?.delivery?.mode === "auto_send" || item.approved_by === "agent_auto_send")) return "auto_sent";
@@ -3949,6 +4124,7 @@
 
     function approvalAction(item) {
       const type = item.action?.type || "";
+      if (item.status === "purchase_confirmed") return "mark_purchase";
       if (item.status === "rejected") return "handoff_done";
       if (item.status === "sent" || item.category === "auto") return "auto_reply";
       if (item.category === "handoff" || item.category === "human" || type === "ask_team") return "ask_human";
@@ -3959,6 +4135,7 @@
     function approvalReason(item, status, action) {
       if (status === "auto_sent") return "AI 已自动回复顾客；这里保留已发送内容，方便客服追踪。";
       if (status === "sent") return "这条回复已发送给顾客。";
+      if (status === "purchase_confirmed") return `已确认成交${item.amount_rm || item.purchase?.amount_rm ? ` RM ${item.amount_rm || item.purchase?.amount_rm}` : ""}。`;
       if (status === "send_failed") return item.send_result?.reason || item.send_result?.error || "自动/批准发送失败，需要检查。";
       if (status === "handoff_done") return handoffSummary(item);
       if (status === "sending") return "这条回复正在发送中，先不要重复操作。";
@@ -4284,7 +4461,7 @@
     function filterCases(cases, filter) {
       if (filter === "all") return cases;
       if (filter === "auto") return cases.filter((item) => ["auto", "auto_sent"].includes(item.status));
-      if (filter === "records") return cases.filter((item) => ["auto_sent", "sent", "handoff_done", "send_failed"].includes(item.status));
+      if (filter === "records") return cases.filter((item) => ["auto_sent", "sent", "handoff_done", "send_failed", "purchase_confirmed"].includes(item.status));
       if (filter === "human_required") return cases.filter((item) => ["human_required", "handoff_done"].includes(item.status));
       if (filter === "needs_attention") {
         return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
@@ -4331,6 +4508,7 @@
         approval_required: 72,
         order: 68,
         auto: 18,
+        purchase_confirmed: 6,
         sent: 8,
       }[item.status] || 20;
       const riskScore = { high: 25, medium: 12, low: 0 }[risk] || 0;
@@ -5120,6 +5298,10 @@
       $("replyBox").readOnly = readOnly;
       $("replyModeLabel").textContent = item.status === "handoff_done" ? "已转人工，只读" : readOnly ? "已记录，只读" : "可修改";
       $("replyTools").classList.toggle("hidden", readOnly);
+      const canOptimizeCase = state.role !== "staff";
+      $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
+      $("caseOptimizerInput").value = "";
+      $("caseOptimizerOutput").textContent = "写下这个 Case 哪里错了，我会整理成可学习规则。";
       $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = actionHint(item);
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
@@ -5128,6 +5310,10 @@
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly;
       $("handoffBtn").disabled = state.actionBusy || readOnly;
       $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
+      $("purchasePanel").classList.toggle("hidden", isFlowOnly || readOnly);
+      $("purchaseAmountInput").value = "";
+      $("purchaseNote").textContent = item.status === "purchase_confirmed" ? "这张 Case 已记录成交。" : "记录成交后，广告数据会自动更新。";
+      $("markPurchaseBtn").disabled = state.actionBusy || isFlowOnly || readOnly;
       $("caseDetails").innerHTML = caseDetailsHtml(item);
 
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
@@ -5183,8 +5369,9 @@
 
     function slaInfo(item) {
       const status = item.status;
-      if (status === "auto" || status === "auto_sent" || status === "sent" || status === "handoff_done") {
+      if (status === "auto" || status === "auto_sent" || status === "sent" || status === "handoff_done" || status === "purchase_confirmed") {
         if (status === "handoff_done") return { text: "已转人工", tone: "", note: "已留处理记录。" };
+        if (status === "purchase_confirmed") return { text: "已成交", tone: "", note: "已记录成交金额。" };
         return { text: status === "auto_sent" ? "已自动回" : status === "auto" ? "自动中" : "已处理", tone: "", note: "已留记录。" };
       }
       if (status === "sending") return { text: "发送中", tone: "warn", note: "等待系统完成发送。" };
@@ -5218,6 +5405,7 @@
       const decision = item.latest_decision || {};
       if (item.status === "auto_sent") return "AI 已自动回复";
       if (item.status === "sent") return "已发送";
+      if (item.status === "purchase_confirmed") return "已成交";
       if (item.status === "handoff_done") return "已转人工";
       if (item.status === "sending") return "发送中";
       if (item.status === "send_failed") return "发送失败";
@@ -5232,6 +5420,7 @@
       const decision = item.latest_decision || {};
       if (item.status === "auto_sent") return "下面显示的回复已经自动发送给顾客。";
       if (item.status === "sent") return "这条回复已发送，保留给团队追踪。";
+      if (item.status === "purchase_confirmed") return "成交金额已记录，广告数据按配置回流。";
       if (item.status === "handoff_done") return "这条没有发送 AI 建议，已留下转人工记录。";
       if (item.status === "sending") return "系统正在发送这条回复，先不要重复点击。";
       if (item.status === "send_failed") return "这条没有成功发送，需要检查错误或人工处理。";
@@ -5251,6 +5440,10 @@
         marked_handoff_demo: "转人工处理",
         operator_seen_demo: "已标记查看",
         bulk_handoff_demo: "批量转人工",
+        case_purchase_confirmed: "确认成交",
+        case_mark_purchase: "确认成交",
+        case_mark_purchase_demo: "演示确认成交",
+        purchase_confirmed: "确认成交",
         project_settings_saved: "保存项目设置",
         copied_access_link: "复制团队入口",
         case_approve: "真实批准发送",
@@ -5259,6 +5452,7 @@
         case_approve_demo: "演示批准发送",
         case_learn_demo: "演示建立规则",
         case_handoff_demo: "演示转人工",
+        case_learning_note: "优化 AI 记录",
         auto_reply_sent: "AI 自动回复",
         auto_reply_failed: "自动回复失败",
         reply_sent: "回复已发送",
@@ -5274,7 +5468,7 @@
     }
 
     function isCaseReadOnly(item) {
-      return ["auto", "auto_sent", "sent", "sending", "handoff_done"].includes(item.status);
+      return ["auto", "auto_sent", "sent", "sending", "handoff_done", "purchase_confirmed"].includes(item.status);
     }
 
     async function handleCardAction(button) {
@@ -5348,6 +5542,212 @@
       await postCaseAction(state.active.id, "handoff", { note: "客服在中控台转人工。" });
     }
 
+    function normalizedPurchaseAmount(value) {
+      const cleaned = String(value || "").replace(/[^\d.]/g, "");
+      const amount = Number(cleaned);
+      if (!Number.isFinite(amount) || amount <= 0) return null;
+      return Math.round(amount * 100) / 100;
+    }
+
+    function confirmPurchaseAction(amount, item) {
+      if (state.demoMode) return true;
+      const name = item?.contact?.name || "这位顾客";
+      return window.confirm(`确认 ${name} 已成交 RM ${amount.toFixed(2)}？\n\n只有收到付款，或 COD 订单已经确认，才可以按。`);
+    }
+
+    async function markPurchaseActive() {
+      if (!state.active) return;
+      if (isCaseReadOnly(state.active)) return;
+      if (state.actionBusy) return;
+      const amount = normalizedPurchaseAmount($("purchaseAmountInput").value);
+      if (!amount) {
+        showToast("先输入成交金额，例如 RM 378。");
+        $("purchaseAmountInput").focus();
+        return;
+      }
+      if (!confirmPurchaseAction(amount, state.active)) return;
+      await postCaseAction(state.active.id, "mark_purchase", {
+        amount_rm: amount,
+        currency: "MYR",
+        confirmMetaSend: true,
+        confirmedBy: state.session.displayName || roleName(state.role),
+        source: "staff_dashboard_mark_purchase",
+      });
+      showToast(`已记录成交 RM ${amount.toFixed(2)}。`);
+    }
+
+    function caseOptimizerContextLine(item = {}) {
+      const decision = item.latest_decision || {};
+      return [
+        `顾客：${item.contact?.name || "顾客"}`,
+        `阶段：${stageLabel(decision.stage)}`,
+        `意图：${intentLabel(decision.intent)}`,
+        `顾客最后一句：${item.last_message || customerPreviewText(item) || "[看不到原文]"}`,
+        `AI 建议：${decision.reply_message || "[没有建议]"}`
+      ].join("\n");
+    }
+
+    function inferCaseOptimizerRules(feedback = "", item = {}) {
+      const decision = item.latest_decision || {};
+      const text = `${feedback || ""} ${item.last_message || ""} ${decision.intent || ""} ${decision.action || ""}`;
+      const rules = [];
+      if (/上一句|上一轮|上.?一轮|有|以上全部|step\s*1|选项|option|keyword|回复/i.test(text)) {
+        rules.push("短回复/选项回复必须读取上一轮 AI 问题；顾客回“有 / 1 / 2 / 3 / 以上全部”时，不当成新问题。");
+        rules.push("如果能确认是 Step 1 选项，就直接回答对应主题；“以上全部”要一次回答用法、效果、成分、配套。");
+      }
+      if (/看不到|原文|截图|receipt|收据|付款|订单|下单|confirm|确定|确认订单/i.test(text)) {
+        rules.push("订单/Receipt 看不到顾客原文或附件时，只能转人工/审核，不能写“确认订单、已安排、已提交”。");
+      }
+      if (/不会|不懂|转人工|敷衍|乱回|低.?信心|low confidence/i.test(text)) {
+        rules.push("低信心或资料不足时，动作必须是转人工；不要发安抚式模板给顾客。");
+      }
+      if (/重叠|同顾客|重复|卡片|case/i.test(text)) {
+        rules.push("同顾客多个 Case 要用会话/电话/有效名字分组，前台只显示最新主卡，后卡重叠提示数量。");
+      }
+      if (!rules.length) {
+        rules.push("把顾客最后一句、上一轮 AI 问题、建议回复三者一起判断；回复必须回答当前语境，不重新开新话题。");
+      }
+      return rules;
+    }
+
+    function buildCaseOptimizerDraft(item = {}, feedback = "") {
+      const cleanFeedback = String(feedback || "").trim();
+      if (!cleanFeedback) {
+        return "先写一句这次哪里错，例如：顾客回答“有”是在接上一句，AI 不应该重新问。";
+      }
+      const rules = inferCaseOptimizerRules(cleanFeedback, item);
+      const reason = cleanFeedback.length > 180 ? `${cleanFeedback.slice(0, 180)}...` : cleanFeedback;
+      return [
+        "复盘原因",
+        reason,
+        "",
+        "可沉淀规则",
+        ...rules.map((rule, index) => `${index + 1}. ${rule}`),
+        "",
+        "当前 Case",
+        caseOptimizerContextLine(item)
+      ].join("\n");
+    }
+
+    function draftCaseOptimizerRule() {
+      if (!state.active || state.role === "staff") return;
+      const feedback = $("caseOptimizerInput").value.trim();
+      $("caseOptimizerOutput").textContent = buildCaseOptimizerDraft(state.active, feedback);
+    }
+
+    function caseOptimizerLearningPayload(item = {}, feedback = "", generatedRule = "") {
+      const decision = item.latest_decision || {};
+      return {
+        case_id: item.id || "",
+        customer_name: item.contact?.name || "顾客",
+        stage: decision.stage || "",
+        intent: decision.intent || "",
+        feedback: feedback || "Case 内优化：AI 回复不符合上下文。",
+        generated_rule: generatedRule || "",
+        customer_message: item.last_message || customerPreviewText(item) || "",
+        suggested_reply: decision.reply_message || "",
+        source: "dashboard_case_optimizer",
+        context: {
+          status: item.status || "",
+          action: decision.action || "",
+          risk: decision.risk || "",
+          project_key: item.project_key || projectKeyEl.value.trim() || "beyoute",
+          dashboard_role: state.role,
+          sends_messages: false
+        }
+      };
+    }
+
+    function storeLocalCaseOptimizerLearning(payload = {}) {
+      const key = `agent_case_optimizer_notes_${projectKeyEl.value.trim() || "demo"}`;
+      let list = [];
+      try {
+        list = JSON.parse(localStorage.getItem(key) || "[]");
+        if (!Array.isArray(list)) list = [];
+      } catch (_error) {
+        list = [];
+      }
+      const record = {
+        ...payload,
+        note_id: `local_${Date.now().toString(36)}`,
+        local_only: true,
+        created_at: new Date().toISOString()
+      };
+      localStorage.setItem(key, JSON.stringify([record, ...list].slice(0, 50)));
+      return record;
+    }
+
+    async function writeCaseOptimizerLearning(item = {}, feedback = "", generatedRule = "") {
+      const payload = caseOptimizerLearningPayload(item, feedback, generatedRule);
+      if (state.demoMode || !apiUrlEl.value.trim() || !adminTokenEl.value.trim()) {
+        const localRecord = storeLocalCaseOptimizerLearning(payload);
+        return { ok: true, recorded: true, storage: "local", learning_note: localRecord };
+      }
+
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = item.project_key || projectKeyEl.value.trim() || "beyoute";
+      try {
+        const response = await fetch(`${api}/api/hermas/projects/${encodeURIComponent(project)}/learning-notes`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...authHeaders(adminTokenEl.value.trim()),
+          },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.ok === false) {
+          const localRecord = storeLocalCaseOptimizerLearning(payload);
+          return { ok: false, recorded: true, storage: "local", learning_note: localRecord, error: result.error || `HTTP ${response.status}` };
+        }
+        return result;
+      } catch (error) {
+        const localRecord = storeLocalCaseOptimizerLearning(payload);
+        return { ok: false, recorded: true, storage: "local", learning_note: localRecord, error: error.message || String(error) };
+      }
+    }
+
+    function learningRecordStatusText(result = {}) {
+      if (result?.recorded && result.storage === "d1") return "已写入 Hermas D1 学习记录";
+      if (result?.recorded && result.storage === "kv") return "已写入 Hermas KV 学习记录";
+      if (result?.recorded && result.storage === "local") return "已先存到本机浏览器";
+      if (result?.ok) return "已记录";
+      return "记录失败";
+    }
+
+    async function recordCaseOptimizerFeedback() {
+      if (!state.active || state.role === "staff" || state.actionBusy) return;
+      const feedback = $("caseOptimizerInput").value.trim();
+      const draft = buildCaseOptimizerDraft(state.active, feedback);
+      $("caseOptimizerOutput").textContent = draft;
+      if (!feedback) {
+        showToast("先写这个 Case 哪里错了。");
+        return;
+      }
+      const shouldRecord = state.demoMode || window.confirm("确认记录这个优化？\n\n只写学习记录，不会发送给顾客，也不会批准这个 Case。");
+      if (!shouldRecord) return;
+
+      setPanelBusy(true, "记录中...");
+      try {
+        const result = await writeCaseOptimizerLearning(state.active, feedback, draft);
+        const statusText = learningRecordStatusText(result);
+        state.active.history.push({
+          type: "case_learning_note",
+          at: new Date().toISOString(),
+          note: `${feedback}｜${statusText}`,
+        });
+        addAuditEvent("case_learning_note", `${state.active.contact?.name || "顾客"}：${statusText}`);
+        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：${statusText}${result.error ? `\n原因：${result.error}` : ""}`;
+        $("historyBox").innerHTML = (state.active.history || []).slice().reverse().map((event) => {
+          return `<div class="history-item">${escapeHtml(formatDate(event.at))} · ${escapeHtml(historyTypeLabel(event.type))}<br>${escapeHtml(event.decision?.reason || event.note || event.rule_id || "")}</div>`;
+        }).join("");
+        showToast(statusText);
+        render();
+      } finally {
+        setPanelBusy(false);
+      }
+    }
+
     async function postCaseAction(caseId, action, body, options = {}) {
       if (state.demoMode) {
         handleDemoAction(caseId, action, body);
@@ -5363,10 +5763,12 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "mark_seen" ? "标记中..." : "发送中...");
+          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录成交中..." : "发送中...");
         }
         const isApproval = active?.source === "approval";
-        const endpoint = isApproval
+        const endpoint = action === "mark_purchase"
+          ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`
+          : isApproval
           ? approvalActionEndpoint(api, caseId, action, project)
           : `${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`;
         const payload = isApproval ? approvalActionPayload(action, body) : body;
@@ -5420,14 +5822,22 @@
       $("approveBtn").disabled = isBusy || isFlowOnly || readOnly;
       $("handoffBtn").disabled = isBusy || readOnly;
       $("learnBtn").disabled = isBusy || readOnly;
+      $("caseOptimizerDraftBtn").disabled = isBusy;
+      $("caseOptimizerRecordBtn").disabled = isBusy;
+      $("markPurchaseBtn").disabled = isBusy || isFlowOnly || readOnly;
       if (isBusy) {
         $("approveBtn").textContent = label;
+        $("markPurchaseBtn").textContent = label;
         return;
       }
       $("approveBtn").textContent = readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : state.active.status === "order" ? "确认处理" : "批准发送";
+      $("markPurchaseBtn").textContent = readOnly ? "已成交" : "记录成交";
     }
 
     function approvalActionEndpoint(api, caseId, action, project) {
+      if (action === "mark_purchase") {
+        return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`;
+      }
       if (action === "mark_seen") {
         return `${api}/api/approvals/${encodeURIComponent(caseId)}/mark-seen?project_key=${encodeURIComponent(project)}`;
       }
@@ -5446,6 +5856,16 @@
         return {
           reason: body.note || "客服选择转人工，不发送 AI 建议。",
           user: state.session.displayName || roleName(state.role),
+        };
+      }
+      if (action === "mark_purchase") {
+        return {
+          amount_rm: body.amount_rm,
+          currency: body.currency || "MYR",
+          order_id: body.order_id || "",
+          confirmMetaSend: body.confirmMetaSend !== false,
+          confirmedBy: body.confirmedBy || state.session.displayName || roleName(state.role),
+          source: body.source || "dashboard_mark_purchase",
         };
       }
       return {
@@ -5494,6 +5914,26 @@
           note: "演示：已转人工。",
         });
         showToast("演示：已转人工。");
+      }
+
+      if (action === "mark_purchase") {
+        const amount = normalizedPurchaseAmount(body.amount_rm);
+        record.status = "purchase_confirmed";
+        record.purchase = {
+          amount_rm: amount,
+          currency: body.currency || "MYR",
+          confirmed_by: body.confirmedBy || roleName(state.role),
+          confirmed_at: now,
+          demo: true,
+        };
+        record.latest_decision = record.latest_decision || {};
+        record.latest_decision.action = "mark_purchase";
+        record.history.push({
+          type: "case_purchase_confirmed",
+          at: now,
+          note: `演示：已记录成交${amount ? ` RM ${amount.toFixed(2)}` : ""}。`,
+        });
+        showToast(amount ? `演示：已记录成交 RM ${amount.toFixed(2)}。` : "演示：已记录成交。");
       }
 
       record.updated_at = now;
@@ -5597,6 +6037,7 @@
       if (status === "approval_required") return "待批准";
       if (status === "human_required") return "要人工";
       if (status === "handoff_done") return "已转人工";
+      if (status === "purchase_confirmed") return "已成交";
       if (status === "order") return "订单";
       if (status === "auto") return "自动";
       if (status === "auto_sent") return "已自动回复";
@@ -5617,10 +6058,12 @@
         handoff_done: "已转人工",
         collect_order: "收订单",
         review_receipt: "审付款",
+        mark_purchase: "确认成交",
         trigger_flow: "进 Step 1",
         approve: "批准发送",
         learn: "建立自动规则",
         handoff: "转人工",
+        mark_purchase_action: "确认成交",
         mark_seen: "标记已看",
         wait: "等待",
       };

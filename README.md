@@ -66,6 +66,22 @@ Staff: dashboard/?project_key=beyoute&role=staff&view=cases
 
 正式上线后，这些会换成真实账号登录；现在的公开版先用来确认操作流程和权限体验。
 
+Owner/admin 新公司设置入口：
+
+```text
+setup/index.html
+```
+
+这个页面只问业务问题：公司、品牌大脑、客服回复资料、审批边界、AI 成本保护。它不收 API key、provider token、webhook secret、database credentials、ChatDaddy Flow ID 或 Manychat credentials。创建出来的项目仍然是 approval-first，不会直接让 AI 接管发送。
+
+Owner/admin 渠道连接入口：
+
+```text
+channel-setup/index.html
+```
+
+这个页面只登记 channel metadata，并给技术人员安全存放凭证的 checklist。真实 credentials 必须放在 Cloudflare secrets 或 provider vault，不进入 Dashboard、不进入 project package。
+
 上线成熟度清单看：
 
 ```text
@@ -190,5 +206,6 @@ examples/*.json               测试 payload 和 runtime config
 - 真实顾客资料只存在你的 Worker/KV/Sheet，不进 GitHub。
 - Staff 入口不应该显示 API URL、Admin Token、Webhook Secret 或 runtime 设置。
 - Pilot 阶段先保持 Flow 自动触发关闭，确认稳定后再逐步开放。
+- 全自动客服接管必须走 Hermas autonomous gate；复制项目时先保持客服批准优先。
 
 详细看 [docs/SECURITY_ZH.md](docs/SECURITY_ZH.md)。
