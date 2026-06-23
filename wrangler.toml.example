@@ -18,6 +18,9 @@ OPENAI_SALES_BRAIN_INPUT_USD_PER_MTOK = "1"
 OPENAI_SALES_BRAIN_OUTPUT_USD_PER_MTOK = "8"
 OPERATING_TIMEZONE_OFFSET_HOURS = "8"
 CHATDADDY_BOTS_FIRE_BASE = "https://api-bots.chatdaddy.tech"
+META_CAPI_AUTO_TRACK = "false"
+META_CAPI_PURCHASE_AUTO_TRACK = "false"
+META_CAPI_GRAPH_VERSION = "v23.0"
 
 # Optional, but recommended after ChatDaddy is connected.
 CHATDADDY_ACCOUNT_ID = ""
@@ -42,3 +45,6 @@ database_id = "replace_with_your_d1_database_id"
 # wrangler secret put ADMIN_TOKEN
 # wrangler secret put STAFF_TOKEN
 # wrangler secret put GOOGLE_SHEET_SECRET
+# wrangler secret put META_CAPI_PIXEL_ID
+# wrangler secret put META_CAPI_ACCESS_TOKEN
+# wrangler secret put META_CAPI_TEST_EVENT_CODE
