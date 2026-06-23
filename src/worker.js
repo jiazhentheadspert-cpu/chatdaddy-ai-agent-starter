@@ -32,6 +32,15 @@ export default {
         return listCases(env, projectKey);
       }
 
+      if (url.pathname === "/api/approvals/pending" && request.method === "GET") {
+        requireOperator(request, env);
+        return listApprovalItems(env, projectKey, url);
+      }
+
+      if (url.pathname === "/api/meta-capi/status" && request.method === "GET") {
+        return metaCapiStatus(env);
+      }
+
       if (url.pathname === "/api/usage/summary" && request.method === "GET") {
         requireOperator(request, env);
         return usageSummary(env, projectKey);
@@ -53,6 +62,12 @@ export default {
       if (handoffMatch && request.method === "POST") {
         requireAdmin(request, env);
         return markHandoff(request, env, projectKey, decodeURIComponent(handoffMatch[1]));
+      }
+
+      const markPurchaseMatch = url.pathname.match(/^\/api\/hermas\/projects\/([^/]+)\/cases\/([^/]+)\/mark-purchase$/);
+      if (markPurchaseMatch && request.method === "POST") {
+        requireOperator(request, env);
+        return markPurchaseCase(request, env, decodeURIComponent(markPurchaseMatch[1]), decodeURIComponent(markPurchaseMatch[2]));
       }
 
       return json({ ok: false, error: "not_found" }, 404);
@@ -434,6 +449,27 @@ async function listCases(env, projectKey) {
   });
 }
 
+async function listApprovalItems(env, projectKey, url) {
+  const kv = getKV(env);
+  const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit") || 30), 100));
+  const listed = await kv.list({ prefix: `case:${projectKey}:`, limit: 1000 });
+  const items = [];
+
+  for (const item of listed.keys) {
+    const record = safeJsonParse(await kv.get(item.name), null);
+    if (record) items.push(caseToApprovalItem(record));
+  }
+
+  items.sort((a, b) => String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
+
+  return json({
+    ok: true,
+    project_key: projectKey,
+    count: items.length,
+    items: items.slice(0, limit),
+  });
+}
+
 async function approveCase(request, env, projectKey, caseId) {
   const kv = getKV(env);
   const key = caseKey(projectKey, caseId);
@@ -518,6 +554,345 @@ async function markHandoff(request, env, projectKey, caseId) {
 
   await kv.put(key, JSON.stringify(updated), { expirationTtl: 60 * 60 * 24 * 90 });
   return json({ ok: true, case: updated });
+}
+
+async function markPurchaseCase(request, env, projectKey, caseId) {
+  const kv = getKV(env);
+  const key = caseKey(projectKey, caseId);
+  const record = safeJsonParse(await kv.get(key), null);
+  if (!record) return json({ ok: false, error: "case_not_found" }, 404);
+
+  const body = await readJson(request);
+  const amount = purchaseAmountFromBody(body);
+  if (!amount) {
+    return json({ ok: false, error: "purchase_amount_required", next: "Enter amount_rm, for example 378." }, 400);
+  }
+
+  const now = new Date().toISOString();
+  const currency = normalizeCurrency(body.currency || record.currency || record.purchase?.currency || "MYR");
+  const orderId = String(body.order_id || body.orderId || record.order_id || record.purchase?.order_id || `${projectKey}_${caseId}`).replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 120);
+  const purchase = {
+    amount_rm: amount,
+    value: amount,
+    currency,
+    order_id: orderId,
+    payment_status: "paid",
+    purchase_status: "confirmed",
+    order_status: "confirmed",
+    confirmed_at: now,
+    confirmed_by: body.confirmedBy || "operator",
+    source: body.source || "dashboard_mark_purchase",
+  };
+
+  const baseUpdated = {
+    ...record,
+    status: "purchase_confirmed",
+    updated_at: now,
+    amount_rm: amount,
+    order_value: amount,
+    currency,
+    order_id: orderId,
+    purchase_status: purchase.purchase_status,
+    payment_status: purchase.payment_status,
+    order_status: purchase.order_status,
+    purchase,
+    history: [...(record.history || []), {
+      type: "case_purchase_confirmed",
+      at: now,
+      amount_rm: amount,
+      currency,
+      order_id: orderId,
+    }].slice(-50),
+  };
+
+  await kv.put(key, JSON.stringify(baseUpdated), { expirationTtl: 60 * 60 * 24 * 90 });
+
+  const metaCapi = await sendPurchaseToMetaCapi(env, baseUpdated, purchase, body);
+  const updated = {
+    ...baseUpdated,
+    meta_capi_purchase_result: metaCapi,
+  };
+
+  await kv.put(key, JSON.stringify(updated), { expirationTtl: 60 * 60 * 24 * 90 });
+
+  return json({
+    ok: true,
+    item: caseToApprovalItem(updated),
+    case: updated,
+    purchase,
+    meta_capi: metaCapi,
+    next: metaCapi.sent
+      ? "Purchase and amount were recorded and sent to Meta CAPI."
+      : metaCapi.deduped
+        ? "Purchase was recorded. Meta CAPI duplicate was blocked."
+        : metaCapi.configured
+          ? "Purchase was recorded, but Meta CAPI did not confirm send."
+          : "Purchase was recorded. Add Meta Pixel ID and CAPI Access Token, then resend Meta CAPI if needed.",
+  });
+}
+
+function caseToApprovalItem(record = {}) {
+  const decision = record.latest_decision || {};
+  const contact = record.contact || {};
+  const status = approvalStatusFromCase(record);
+  const category = approvalCategoryFromCase(record);
+  return {
+    id: record.id,
+    project_key: record.project_key,
+    status,
+    category,
+    created_at: record.created_at,
+    updated_at: record.updated_at,
+    customer: {
+      name: contact.name || "Customer",
+      phone: contact.phone || "",
+      chat_id: contact.id || contact.phone || record.id,
+    },
+    inbound: {
+      text: record.last_message || record.messages?.find((msg) => msg.direction === "inbound")?.text || "",
+      message_at: record.last_message_at || record.created_at,
+      event_id: record.id,
+      provider_message_id: record.messages?.[0]?.id || record.id,
+    },
+    reply: {
+      text: record.latest_reply_sent || decision.reply_message || "",
+      stage_after: decision.stage || "S1",
+      model: decision.source || "starter",
+    },
+    action: {
+      type: decision.action || "approve_reply",
+      label: actionLabel(decision.action),
+      headline: actionLabel(decision.action),
+      badges: record.word_cloud || decision.keywords || [],
+    },
+    decision: {
+      signals: {
+        intent: decision.intent || "unclear",
+        stage: decision.stage || "S1",
+        risk_level: decision.risk || "medium",
+        needs_approval: status === "pending",
+      },
+      delivery: {
+        mode: decision.send_now ? "auto_send" : "approval",
+        will_send_now: false,
+        will_trigger_flow_now: false,
+      },
+      ui: {
+        headline: actionLabel(decision.action),
+        operator_instruction: decision.reason || "",
+      },
+    },
+    final_text: record.latest_reply_sent || "",
+    approved_at: record.approved_at || null,
+    approved_by: record.approved_by || null,
+    send_result: record.send_result || null,
+    purchase: record.purchase || null,
+    amount_rm: record.amount_rm || record.purchase?.amount_rm || null,
+    order_value: record.order_value || record.purchase?.value || null,
+    currency: record.currency || record.purchase?.currency || null,
+    order_id: record.order_id || record.purchase?.order_id || null,
+    purchase_status: record.purchase_status || record.purchase?.purchase_status || null,
+    payment_status: record.payment_status || record.purchase?.payment_status || null,
+    order_status: record.order_status || record.purchase?.order_status || null,
+    meta_capi_purchase_result: record.meta_capi_purchase_result || null,
+  };
+}
+
+function approvalStatusFromCase(record = {}) {
+  if (record.status === "purchase_confirmed") return "purchase_confirmed";
+  if (record.status === "sent") return "sent";
+  if (record.status === "send_failed") return "send_failed";
+  if (record.status === "sending") return "sending";
+  if (record.status === "human_required") return "pending";
+  if (record.status === "order") return "pending";
+  if (record.status === "auto") return "sent";
+  return "pending";
+}
+
+function approvalCategoryFromCase(record = {}) {
+  if (record.status === "human_required") return "human";
+  if (record.status === "order" || /order|receipt|payment/i.test(record.latest_decision?.action || "")) return "order";
+  if (record.status === "auto") return "auto";
+  if (record.status === "purchase_confirmed") return "order";
+  return "approval";
+}
+
+function actionLabel(action) {
+  if (action === "ask_human") return "转人工";
+  if (action === "collect_order") return "收资料";
+  if (action === "review_receipt") return "审核收据";
+  if (action === "trigger_flow") return "接 Flow";
+  if (action === "send_reply") return "AI 自动回复";
+  return "批准发送";
+}
+
+function purchaseAmountFromBody(body = {}) {
+  const candidates = [body.amount_rm, body.amount, body.order_value, body.value];
+  for (const candidate of candidates) {
+    const value = Number(String(candidate ?? "").replace(/rm/ig, "").replace(/,/g, "").trim());
+    if (Number.isFinite(value) && value > 0) return Math.round(value * 100) / 100;
+  }
+  return null;
+}
+
+function normalizeCurrency(value) {
+  return String(value || "MYR").trim().toUpperCase().replace(/[^A-Z]/g, "") || "MYR";
+}
+
+function metaCapiConfig(env) {
+  const pixelId = String(env.META_CAPI_PIXEL_ID || "").trim();
+  const accessToken = String(env.META_CAPI_ACCESS_TOKEN || "").trim();
+  const graphVersion = String(env.META_CAPI_GRAPH_VERSION || "v23.0").trim() || "v23.0";
+  return {
+    configured: Boolean(pixelId && accessToken),
+    pixelId,
+    accessToken,
+    graphVersion,
+    endpoint: `https://graph.facebook.com/${graphVersion}/${encodeURIComponent(pixelId)}/events`,
+    autoTrack: env.META_CAPI_AUTO_TRACK === "true",
+    purchaseAutoTrack: env.META_CAPI_PURCHASE_AUTO_TRACK === "true",
+  };
+}
+
+function metaCapiStatus(env) {
+  const config = metaCapiConfig(env);
+  return json({
+    ok: true,
+    meta_capi: {
+      configured: config.configured,
+      auto_track_enabled: config.autoTrack,
+      purchase_auto_track_enabled: config.purchaseAutoTrack,
+      pixel_id_present: Boolean(config.pixelId),
+      access_token_present: Boolean(config.accessToken),
+      graph_version: config.graphVersion,
+    },
+  });
+}
+
+async function sendPurchaseToMetaCapi(env, record, purchase, body = {}) {
+  const config = metaCapiConfig(env);
+  const wantsLiveSend = body.confirmMetaSend !== false;
+  const event = await buildPurchaseCapiEvent(record, purchase);
+  const capiPayload = { data: [event] };
+
+  if (!wantsLiveSend || !config.configured) {
+    return {
+      configured: config.configured,
+      sent: false,
+      preview_only: true,
+      event_name: "Purchase",
+      event_id: event.event_id,
+      reason: wantsLiveSend
+        ? "META_CAPI_PIXEL_ID and META_CAPI_ACCESS_TOKEN are required."
+        : "confirmMetaSend=true is required to send Purchase to Meta.",
+    };
+  }
+
+  const dedupe = await claimPurchaseDedupe(env, purchase);
+  if (dedupe.duplicate) {
+    return {
+      configured: true,
+      sent: false,
+      skipped: true,
+      deduped: true,
+      already_sent: dedupe.existing?.status === "sent",
+      dedupe_key: dedupe.key,
+      reason: "Duplicate Purchase blocked: this order_id + amount + currency was already queued or sent.",
+      event_name: "Purchase",
+      event_id: event.event_id,
+    };
+  }
+
+  const endpoint = new URL(config.endpoint);
+  endpoint.searchParams.set("access_token", config.accessToken);
+  try {
+    const response = await fetch(endpoint.toString(), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(capiPayload),
+    });
+    const result = {
+      configured: true,
+      sent: response.ok,
+      status: response.status,
+      body: (await response.text()).slice(0, 1000),
+      event_name: "Purchase",
+      event_id: event.event_id,
+      dedupe_key: dedupe.key || undefined,
+    };
+    await finalizePurchaseDedupe(env, dedupe, result);
+    return result;
+  } catch (error) {
+    await finalizePurchaseDedupe(env, dedupe, { sent: false });
+    throw error;
+  }
+}
+
+async function buildPurchaseCapiEvent(record = {}, purchase = {}) {
+  const phone = String(record.contact?.phone || "").replace(/\D/g, "");
+  const userData = {};
+  if (phone) userData.ph = [await sha256Hex(phone)];
+  if (record.contact?.id || record.id) userData.external_id = [await sha256Hex(String(record.contact?.id || record.id))];
+
+  return {
+    event_name: "Purchase",
+    event_time: Math.floor(Date.now() / 1000),
+    event_id: `purchase_${record.id}_${purchase.order_id}`,
+    action_source: "business_messaging",
+    user_data: userData,
+    custom_data: {
+      currency: purchase.currency,
+      value: purchase.value,
+      order_id: purchase.order_id,
+      content_name: record.project_key || "WhatsApp Purchase",
+      source: "chatdaddy_ai_agent_starter",
+    },
+  };
+}
+
+async function claimPurchaseDedupe(env, purchase = {}) {
+  const key = purchaseDedupeKey(purchase);
+  const kv = getKV(env);
+  const existing = safeJsonParse(await kv.get(key), null);
+  if (existing?.status === "pending" || existing?.status === "sent") {
+    return { key, duplicate: true, existing };
+  }
+  await kv.put(key, JSON.stringify({
+    status: "pending",
+    order_id: purchase.order_id,
+    value: purchase.value,
+    currency: purchase.currency,
+    claimed_at: new Date().toISOString(),
+  }), { expirationTtl: 60 * 60 * 24 * 3 });
+  return { key, claimed: true };
+}
+
+async function finalizePurchaseDedupe(env, claim, result) {
+  if (!claim?.claimed || !claim.key) return;
+  const kv = getKV(env);
+  if (result?.sent) {
+    await kv.put(claim.key, JSON.stringify({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+    }), { expirationTtl: 60 * 60 * 24 * 90 });
+    return;
+  }
+  await kv.delete(claim.key);
+}
+
+function purchaseDedupeKey(purchase = {}) {
+  return [
+    "meta_capi_purchase_dedupe",
+    normalizeCurrency(purchase.currency),
+    String(purchase.order_id || "").replace(/[^a-zA-Z0-9_-]+/g, "_"),
+    Number(purchase.value || purchase.amount_rm || 0).toFixed(2),
+  ].join(":");
+}
+
+async function sha256Hex(value) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function appendHistory(env, projectKey, caseId, event) {

@@ -4133,6 +4133,16 @@
         },
         messages,
         history,
+        purchase: item.purchase || null,
+        amount_rm: item.amount_rm || item.purchase?.amount_rm || item.purchase?.value || null,
+        order_value: item.order_value || item.purchase?.value || item.purchase?.amount_rm || null,
+        currency: item.currency || item.purchase?.currency || null,
+        order_id: item.order_id || item.purchase?.order_id || null,
+        purchase_status: item.purchase_status || item.purchase?.purchase_status || null,
+        payment_status: item.payment_status || item.purchase?.payment_status || null,
+        order_status: item.order_status || item.purchase?.order_status || null,
+        meta_capi_purchase_result: item.meta_capi_purchase_result || item.purchase?.meta_capi || null,
+        purchase_sync_result: item.purchase_sync_result || null,
         raw_approval: item,
       };
     }
