@@ -51,6 +51,16 @@ Worker 会做：
 
 如果 Meta credentials 不齐，Worker 只记录成交，不会假装已经回流。
 
+## 去重规则
+
+Dashboard 手动「记录成交」和 ChatDaddy paid/COD webhook 都可能触发 `Purchase`。Worker 必须用这组字段去重：
+
+```text
+Purchase + order_id + currency + amount/order_value
+```
+
+同一笔订单只送一次。Dashboard 先送、ChatDaddy 后触发，或 ChatDaddy 先触发、Dashboard 后再按，第二次都应该标成 `deduped`，不能重复送 Ads Manager。
+
 ## ChatDaddy Custom Fields
 
 建议每个项目都建同一组字段：
