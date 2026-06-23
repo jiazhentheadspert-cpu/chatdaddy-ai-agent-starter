@@ -2325,6 +2325,14 @@
       line-height: 1.35;
     }
 
+    .purchase-note.ok {
+      color: var(--teal-dark);
+    }
+
+    .purchase-note.warn {
+      color: #a16207;
+    }
+
     .history {
       display: grid;
       gap: 8px;
@@ -2904,6 +2912,7 @@
       sidebarKey: "ai_reply",
       contactStats: {},
       usageSummary: null,
+      metaCapiStatus: null,
     };
 
     const DEFAULT_SETTINGS = {
@@ -3898,6 +3907,7 @@
         const contactNames = await loadContactNameMap(liveItems, token);
         state.cases = liveItems.map((item) => approvalToCase(item, contactNames));
         if (state.role !== "staff") await loadRuntimeSettings({ silent: true });
+        await loadMetaCapiStatus();
         await loadUsageSummary(token);
         if (state.role !== "staff") await loadOwnerAdminSummaries(token);
         else {
@@ -3930,6 +3940,22 @@
       } catch (_error) {
         state.usageSummary = null;
         renderSideUsage();
+        return null;
+      }
+    }
+
+    async function loadMetaCapiStatus() {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      if (!api) {
+        state.metaCapiStatus = null;
+        return null;
+      }
+      try {
+        const data = await fetchJsonSafe(`${api}/api/meta-capi/status`);
+        state.metaCapiStatus = data?.ok ? data.meta_capi || null : null;
+        return state.metaCapiStatus;
+      } catch (_error) {
+        state.metaCapiStatus = null;
         return null;
       }
     }
@@ -4006,6 +4032,7 @@
       state.loading = false;
       state.selected.clear();
       state.usageSummary = null;
+      state.metaCapiStatus = null;
       state.projectVersions = null;
       state.qualityReview = null;
       $("modeTag").textContent = activeModeLabel();
@@ -4246,6 +4273,7 @@
       state.scenario = demoScenarioEl.value || "ecommerce";
       state.selected.clear();
       state.usageSummary = null;
+      state.metaCapiStatus = null;
       state.projectVersions = null;
       state.qualityReview = null;
       $("modeTag").textContent = "公开演示";
@@ -5312,7 +5340,7 @@
       $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
       $("purchasePanel").classList.toggle("hidden", isFlowOnly || readOnly);
       $("purchaseAmountInput").value = "";
-      $("purchaseNote").textContent = item.status === "purchase_confirmed" ? "这张 Case 已记录成交。" : "记录成交后，广告数据会自动更新。";
+      updatePurchaseNote(item);
       $("markPurchaseBtn").disabled = state.actionBusy || isFlowOnly || readOnly;
       $("caseDetails").innerHTML = caseDetailsHtml(item);
 
@@ -5330,6 +5358,31 @@
       }).join("");
 
       $("panel").classList.add("open");
+    }
+
+    function updatePurchaseNote(item = state.active) {
+      const note = $("purchaseNote");
+      if (!note) return;
+      const status = purchaseMetaStatusForCase(item);
+      note.textContent = status.text;
+      note.className = `purchase-note ${status.tone || ""}`.trim();
+    }
+
+    function purchaseMetaStatusForCase(item = {}) {
+      if (item.status === "purchase_confirmed") {
+        return { text: "这张 Case 已记录成交。", tone: "ok" };
+      }
+      if (state.demoMode) {
+        return { text: "演示模式只记录画面，不会回流广告。", tone: "warn" };
+      }
+      const meta = state.metaCapiStatus;
+      if (meta?.configured) {
+        return { text: "记录成交后会发送 Purchase + RM 到 Meta。", tone: "ok" };
+      }
+      if (meta && !meta.configured) {
+        return { text: "只会记录成交；广告回流未接 Meta Pixel/CAPI。", tone: "warn" };
+      }
+      return { text: "先记录成交；广告回流状态读取中。", tone: "warn" };
     }
 
     function initialsFor(name) {
@@ -5566,14 +5619,21 @@
         return;
       }
       if (!confirmPurchaseAction(amount, state.active)) return;
-      await postCaseAction(state.active.id, "mark_purchase", {
+      const result = await postCaseAction(state.active.id, "mark_purchase", {
         amount_rm: amount,
         currency: "MYR",
         confirmMetaSend: true,
         confirmedBy: state.session.displayName || roleName(state.role),
         source: "staff_dashboard_mark_purchase",
       });
-      showToast(`已记录成交 RM ${amount.toFixed(2)}。`);
+      const meta = result?.meta_capi;
+      if (meta?.sent) {
+        showToast(`已记录成交，并已回流 Meta RM ${amount.toFixed(2)}。`);
+      } else if (meta?.configured === false || state.metaCapiStatus?.configured === false) {
+        showToast(`已记录成交 RM ${amount.toFixed(2)}；Meta 未接，未回流广告。`);
+      } else {
+        showToast(`已记录成交 RM ${amount.toFixed(2)}；请检查 Meta 回流状态。`);
+      }
     }
 
     function caseOptimizerContextLine(item = {}) {
