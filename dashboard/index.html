@@ -54,7 +54,7 @@
       min-height: 100vh;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: 248px minmax(0, 1fr);
+      grid-template-columns: 300px minmax(0, 1fr);
       gap: 0;
       overflow-x: hidden;
     }
@@ -109,16 +109,26 @@
 
     .side-nav {
       display: grid;
-      gap: 8px;
+      gap: 7px;
       align-content: start;
+      overflow-y: auto;
+      padding-right: 2px;
     }
 
     .side-section {
-      margin: 16px 0 2px;
+      margin: 10px 0 0;
       color: rgba(255,255,255,.42);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 950;
       letter-spacing: .08em;
+    }
+
+    .side-note {
+      color: rgba(255,255,255,.48);
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1.35;
+      padding: 0 2px 2px;
     }
 
     .side-label {
@@ -138,9 +148,10 @@
 
     .side-label em {
       min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      line-height: 1.15;
       font-style: normal;
     }
 
@@ -152,7 +163,7 @@
       border-radius: 13px;
       background: rgba(255,255,255,.045);
       color: rgba(255,255,255,.72);
-      padding: 11px 12px;
+      padding: 9px 10px;
       font-weight: 850;
     }
 
@@ -165,9 +176,9 @@
     }
 
     .side-nav button span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
     }
 
     .side-nav small {
@@ -200,6 +211,21 @@
       background: rgba(255,255,255,.035);
     }
 
+    .side-nav button[data-step-nav] {
+      min-height: 48px;
+    }
+
+    .side-nav button[data-step-nav] .side-code {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: rgba(255,255,255,.82);
+      background: rgba(255,255,255,.045);
+    }
+
     .side-nav button[data-channel-nav].active {
       background: linear-gradient(135deg, rgba(16,185,157,.14), rgba(0,183,216,.08));
       border-color: rgba(16,185,157,.34);
@@ -218,7 +244,7 @@
 
     .side-card {
       display: grid;
-      gap: 8px;
+      gap: 6px;
       color: rgba(255,255,255,.76);
       line-height: 1.45;
     }
@@ -230,7 +256,7 @@
 
     .side-card span {
       color: rgba(255,255,255,.55);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 760;
     }
 
@@ -2571,7 +2597,7 @@
     body.staff-mode .app-shell {
       width: 100%;
       max-width: none;
-      grid-template-columns: 248px minmax(0, 1fr);
+      grid-template-columns: 300px minmax(0, 1fr);
     }
 
     body.staff-mode .sidebar {
@@ -2579,7 +2605,7 @@
       position: sticky;
       top: 0;
       height: 100vh;
-      min-width: 248px;
+      min-width: 300px;
     }
 
     body.staff-mode .workspace {
@@ -2598,13 +2624,13 @@
 
     @media (max-width: 1180px) and (min-width: 821px) {
       body.staff-mode .app-shell {
-        grid-template-columns: 220px minmax(0, 1fr);
+        grid-template-columns: 260px minmax(0, 1fr);
       }
 
       body.staff-mode .sidebar {
         position: sticky;
         height: 100vh;
-        min-width: 220px;
+        min-width: 260px;
       }
 
       body.staff-mode .side-nav {
@@ -2637,46 +2663,47 @@
       </div>
 
       <nav class="side-nav" aria-label="主导航">
-        <div class="side-section" data-owner-section>AGENT 岗位</div>
-        <button class="active" data-side-key="ai_reply" data-side-filter="all">
-          <span class="side-label"><b class="side-code">AI</b><em>回复 Agent</em></span>
+        <div class="side-section">AI AGENT 板块</div>
+        <button data-side-key="configure" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
+          <span class="side-label"><b class="side-code">CF</b><em>Configure</em></span>
+          <small id="navConfigureBadge">✅</small>
+        </button>
+        <button class="active" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
+          <span class="side-label"><b class="side-code">CD</b><em>Chat Window Decision</em></span>
           <small id="navCasesBadge">0</small>
         </button>
-        <button data-side-key="content" data-side-filter="all" data-owner-nav>
-          <span class="side-label"><b class="side-code">CO</b><em>内容 Agent</em></span>
-          <small>内容</small>
-        </button>
-        <button data-side-key="customer_service" data-side-filter="human_required" data-owner-nav>
-          <span class="side-label"><b class="side-code">CS</b><em>客服 Agent</em></span>
-          <small id="navCsBadge">0</small>
-        </button>
 
-        <div class="side-section">渠道</div>
-        <button data-side-key="channel_whatsapp" data-side-filter="all" data-channel-nav>
-          <span class="side-label"><b class="side-code">WA</b><em>WhatsApp</em></span>
-          <small class="channel-live" id="navWhatsAppBadge">真实</small>
-        </button>
-        <button data-side-key="channel_line" data-side-filter="all" data-channel-nav>
-          <span class="side-label"><b class="side-code">LN</b><em>LINE</em></span>
-          <small class="channel-pending" id="navLineBadge">待接</small>
-        </button>
+        <div class="side-section">AS USER · CHATDADDY</div>
+        <div class="side-note">客服日常只需要看第 4 项；一次性设置完成后左边会打勾。</div>
 
-        <div class="side-section" data-owner-section>工作区</div>
-        <button data-side-key="brand_brain" data-side-filter="all" data-owner-nav>
-          <span class="side-label"><b class="side-code">BR</b><em>品牌大脑</em></span>
-          <small>Brain</small>
+        <div class="side-section">一次性设置</div>
+        <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
+          <span class="side-label"><b class="side-code">1</b><em>ChatDaddy Connect</em></span>
+          <small id="navStep1Badge">✅</small>
         </button>
-        <button data-side-key="automation" data-side-filter="auto" data-owner-nav>
-          <span class="side-label"><b class="side-code">AU</b><em>自动回复</em></span>
-          <small id="navAutoBadge">0</small>
+        <button data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
+          <span class="side-label"><b class="side-code">2</b><em>Reply SOP</em></span>
+          <small id="navStep2Badge">✅</small>
         </button>
-        <button data-side-key="orders" data-side-filter="order" data-owner-nav>
-          <span class="side-label"><b class="side-code">OR</b><em>订单</em></span>
-          <small id="navOrderBadge">0</small>
+        <button data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
+          <span class="side-label"><b class="side-code">3</b><em>FAQ Upload</em></span>
+          <small id="navStep3Badge">✅</small>
         </button>
-        <button data-side-key="logs" data-side-filter="records" data-owner-nav>
-          <span class="side-label"><b class="side-code">LG</b><em>记录</em></span>
-          <small id="navLogBadge">记录</small>
+        <button data-side-key="step_4" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
+          <span class="side-label"><b class="side-code">4</b><em>Customer Queue</em></span>
+          <small id="navStep4Badge">0</small>
+        </button>
+        <button data-side-key="step_5" data-side-filter="records" data-workspace-target="learning" data-step-nav data-step-view="5">
+          <span class="side-label"><b class="side-code">5</b><em>Summary Panel</em></span>
+          <small id="navStep5Badge">中</small>
+        </button>
+        <button data-side-key="step_6" data-side-filter="records" data-workspace-target="learning" data-step-nav data-step-view="6">
+          <span class="side-label"><b class="side-code">6</b><em>Recommendation</em></span>
+          <small id="navStep6Badge">中</small>
+        </button>
+        <button data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
+          <span class="side-label"><b class="side-code">7</b><em>Default Segment</em></span>
+          <small id="navStep7Badge">待</small>
         </button>
       </nav>
 
@@ -2716,6 +2743,7 @@
           <div class="session-subtitle" id="sessionSubtitle">客服只看待处理顾客。</div>
         </div>
         <div class="session-actions">
+          <button class="btn danger" id="pauseAgentBtn" type="button">Pause Agent</button>
           <a class="btn" href="../login.html">切换账号</a>
           <button class="btn ghost" id="logoutBtn">退出</button>
         </div>
@@ -2870,7 +2898,7 @@
               </label>
               <button class="btn primary" id="markPurchaseBtn" type="button">记录成交</button>
             </div>
-            <div class="purchase-note" id="purchaseNote">记录成交后，广告数据会自动更新。</div>
+            <div class="purchase-note" id="purchaseNote">收到付款或 COD 确认才按；Meta 接好后才会回流广告。</div>
           </div>
           <div class="box">
             <h3>重点词</h3>
@@ -2910,6 +2938,8 @@
       actionBusy: false,
       bulkBusy: false,
       sidebarKey: "ai_reply",
+      activeSetupStep: "4",
+      agentPaused: false,
       contactStats: {},
       usageSummary: null,
       metaCapiStatus: null,
@@ -2922,9 +2952,16 @@
         s1: "bot_b420c7c1986ebbce",
         s2: "bot_5ce201ce96116e07",
         s3: "bot_29650314b584a2ee",
+        s4: "bot_29650314b584a2ee",
         order: "",
-        payment: "bot_39325bf252acbd0f",
+        payment: "bot_75cf1a1139688a88",
         follow_up_1: "",
+        follow_up_2: "",
+        follow_up_3: "",
+        follow_up_4: "",
+        follow_up_5: "",
+        follow_up_6: "",
+        follow_up_7: "",
       },
       rules: {
         complaint: true,
@@ -3223,6 +3260,10 @@
       window.location.href = "../login.html";
     });
 
+    $("pauseAgentBtn").addEventListener("click", () => {
+      togglePauseAgent();
+    });
+
     $("loadDemo").addEventListener("click", () => {
       if (!canUseDemoMode()) {
         setRealQueueEmpty("客服入口只读取真实讯息，不能载入演示数据。");
@@ -3274,8 +3315,9 @@
     document.querySelectorAll("[data-side-key]").forEach((button) => {
       button.addEventListener("click", () => {
         state.sidebarKey = button.dataset.sideKey || "ai_reply";
-        state.filter = button.dataset.sideFilter || "all";
-        setWorkspaceView(workspaceViewForSidebarKey(state.sidebarKey));
+        if (button.dataset.stepView) state.activeSetupStep = button.dataset.stepView;
+        state.filter = button.dataset.sideFilter || (state.activeSetupStep === "4" ? "needs_attention" : "all");
+        setWorkspaceView(button.dataset.workspaceTarget || workspaceViewForSidebarKey(state.sidebarKey));
       });
     });
 
@@ -3430,9 +3472,16 @@
           s1: $("flowS1")?.value.trim() || "",
           s2: $("flowS2")?.value.trim() || "",
           s3: $("flowS3")?.value.trim() || "",
+          s4: $("flowS4")?.value.trim() || "",
           order: $("flowOrder")?.value.trim() || "",
           payment: $("flowPayment")?.value.trim() || "",
           follow_up_1: $("flowFollowup1")?.value.trim() || "",
+          follow_up_2: $("flowFollowup2")?.value.trim() || "",
+          follow_up_3: $("flowFollowup3")?.value.trim() || "",
+          follow_up_4: $("flowFollowup4")?.value.trim() || "",
+          follow_up_5: $("flowFollowup5")?.value.trim() || "",
+          follow_up_6: $("flowFollowup6")?.value.trim() || "",
+          follow_up_7: $("flowFollowup7")?.value.trim() || "",
         },
         rules: { ...state.settings.rules },
       };
@@ -3495,7 +3544,7 @@
       $("sideRole").textContent = roleLabel;
       $("sideWorkspace").textContent = workspaceLabel;
       $("sideConnection").textContent = connectionStatusLabel();
-      $("modeTag").textContent = canUseDemoMode() ? "演示" : state.role === "staff" ? "顾客队列" : "读取中";
+      $("modeTag").textContent = canUseDemoMode() ? "演示" : state.role === "staff" ? "Chat Window Decision" : "读取中";
       $("sideHint").textContent = state.role === "staff"
         ? "看待处理和自动记录。"
         : "总览、连接、复盘。";
@@ -3513,7 +3562,8 @@
       if (state.role === "staff") {
         state.workspaceView = "cases";
         state.sidebarKey = "ai_reply";
-        state.filter = "all";
+        state.activeSetupStep = "4";
+        state.filter = "needs_attention";
       }
     }
 
@@ -3522,29 +3572,21 @@
       const label = mainButton?.querySelector(".side-label em");
       const code = mainButton?.querySelector(".side-code");
       if (!label || !code) return;
-      if (state.role === "staff") {
-        code.textContent = "";
-        code.style.display = "none";
-        label.textContent = "顾客队列";
-      } else {
-        code.textContent = "AI";
-        code.style.display = "";
-        label.textContent = "回复 Agent";
-      }
+      code.textContent = "CD";
+      code.style.display = "";
+      label.textContent = "Chat Window Decision";
     }
 
     function setFilter(filter) {
       state.filter = filter || "all";
       state.sidebarKey = sidebarKeyForFilter(state.filter);
+      state.activeSetupStep = "4";
       syncFilterControls();
       render();
     }
 
     function setWorkspaceView(view) {
       state.workspaceView = view || "overview";
-      if (state.role === "staff" && ["overview", "operations", "learning"].includes(state.workspaceView)) {
-        state.workspaceView = "cases";
-      }
       render();
     }
 
@@ -3557,17 +3599,28 @@
 
     function sidebarKeyForFilter(filter) {
       const map = {
-        auto: "automation",
-        order: "orders",
-        records: "logs",
-        human_required: "customer_service",
-        handoff_done: "customer_service",
+        auto: "step_5",
+        order: "step_4",
+        records: "step_5",
+        human_required: "step_4",
+        handoff_done: "step_4",
+        approval_required: "step_4",
+        needs_attention: "ai_reply",
       };
       return map[filter] || "ai_reply";
     }
 
     function workspaceViewForSidebarKey(key) {
       const map = {
+        configure: "operations",
+        step_1: "operations",
+        step_2: "operations",
+        step_3: "operations",
+        step_4: "cases",
+        step_5: "learning",
+        step_6: "learning",
+        step_7: "operations",
+        ai_reply: "cases",
         brand_brain: "operations",
         content: "overview",
         channel_whatsapp: "cases",
@@ -3705,29 +3758,41 @@
     function handleDashboardAction(action) {
       if (action === "approval") {
         state.filter = "approval_required";
+        state.sidebarKey = "step_4";
+        state.activeSetupStep = "4";
         setWorkspaceView("cases");
         return;
       }
       if (action === "orders") {
         state.filter = "order";
+        state.sidebarKey = "step_4";
+        state.activeSetupStep = "4";
         setWorkspaceView("cases");
         return;
       }
       if (action === "human") {
         state.filter = "human_required";
+        state.sidebarKey = "step_4";
+        state.activeSetupStep = "4";
         setWorkspaceView("cases");
         return;
       }
       if (action === "connect") {
+        state.sidebarKey = "step_1";
+        state.activeSetupStep = "1";
         setWorkspaceView("operations");
         return;
       }
       if (action === "learning") {
+        state.sidebarKey = "step_5";
+        state.activeSetupStep = "5";
         setWorkspaceView("learning");
         return;
       }
       if (action === "cases") {
         state.filter = "needs_attention";
+        state.sidebarKey = "ai_reply";
+        state.activeSetupStep = "4";
         setWorkspaceView("cases");
       }
     }
@@ -3998,6 +4063,7 @@
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.settings = settingsFromRuntimeConfig(data.runtime_config, state.settings || readProjectSettings(project));
+        syncPauseAgentStateFromRuntime(data.runtime_config);
         localStorage.setItem(settingsKey(project), JSON.stringify(state.settings));
         if (!options.silent) showToast("已读取真实项目设置。");
         return data.runtime_config;
@@ -4044,6 +4110,58 @@
     function authHeaders(token) {
       if (state.role === "staff") return { "x-staff-token": token };
       return { "x-admin-token": token, "x-staff-token": token };
+    }
+
+    function syncPauseAgentStateFromRuntime(runtimeConfig = {}) {
+      const safety = runtimeConfig.safety_mode || runtimeConfig.safety || {};
+      const autoSend = Boolean(safety.auto_send_enabled);
+      const autoFlow = Boolean(safety.auto_trigger_flows_enabled);
+      updatePauseAgentUi(!(autoSend || autoFlow));
+    }
+
+    function updatePauseAgentUi(isPaused) {
+      state.agentPaused = Boolean(isPaused);
+      const button = $("pauseAgentBtn");
+      if (!button) return;
+      button.textContent = state.agentPaused ? "Resume Agent" : "Pause Agent";
+      button.classList.toggle("danger", !state.agentPaused);
+      button.classList.toggle("primary", state.agentPaused);
+    }
+
+    async function togglePauseAgent() {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
+      const token = state.role === "staff"
+        ? localStorage.getItem("agent_admin_token") || ""
+        : adminTokenEl.value.trim();
+      const targetPaused = !state.agentPaused;
+      if (!api || !token) {
+        showToast("Pause Agent 需要管理者安全码。客服入口不会显示后台密钥。");
+        return;
+      }
+      const button = $("pauseAgentBtn");
+      button.disabled = true;
+      try {
+        const endpoint = `${api}/api/agent-runtime/config?project_key=${encodeURIComponent(project)}`;
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-admin-token": token },
+          body: JSON.stringify({
+            project_key: project,
+            auto_send_enabled: !targetPaused,
+            auto_trigger_flows_enabled: !targetPaused,
+            updated_by: targetPaused ? "dashboard_pause_agent" : "dashboard_resume_agent",
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || data.next || `HTTP ${res.status}`);
+        updatePauseAgentUi(targetPaused);
+        showToast(targetPaused ? "AI 自动回复和 Flow 已暂停。" : "AI 自动回复和 Flow 已恢复。");
+      } catch (error) {
+        alert(`Pause Agent 失败：${error.message || error}`);
+      } finally {
+        button.disabled = false;
+      }
     }
 
     function isDashboardVisibleApproval(item = {}) {
@@ -4378,6 +4496,14 @@
       setBadge("navLogBadge", learned || "记录");
       setBadge("navWhatsAppBadge", state.connected ? "真实" : "待接");
       setBadge("navLineBadge", "待接");
+      setBadge("navConfigureBadge", "✅");
+      setBadge("navStep1Badge", state.demoMode ? "待" : "✅");
+      setBadge("navStep2Badge", "✅");
+      setBadge("navStep3Badge", "✅");
+      setBadge("navStep4Badge", casesLabel);
+      setBadge("navStep5Badge", learned || "中");
+      setBadge("navStep6Badge", learned ? "看" : "中");
+      setBadge("navStep7Badge", "待");
     }
 
     function pruneSelection(cases) {
@@ -4602,7 +4728,8 @@
         </div>
       `;
 
-      $("operationsView").innerHTML = `
+      const setupStep = String(state.activeSetupStep || "4");
+      $("operationsView").innerHTML = setupStepScreenHtml(setupStep, cases, counts, learned) || `
         ${readinessCardHtml()}
         ${productionBoundaryHtml()}
         ${ownerAdminSnapshotHtml()}
@@ -4647,7 +4774,7 @@
         ${projectSettingsHtml()}
       `;
 
-      $("learningView").innerHTML = `
+      $("learningView").innerHTML = setupStepScreenHtml(setupStep, cases, counts, learned) || `
         <div class="command-grid">
           <section class="command-panel accent">
             <div class="command-kicker">复盘</div>
@@ -4672,6 +4799,113 @@
             </div>
           </section>
         </div>
+      `;
+    }
+
+    function setupStepScreenHtml(step, cases, counts, learned) {
+      const total = counts.total || 0;
+      const pending = counts.needs || 0;
+      const auto = counts.auto || 0;
+      const orders = counts.orders || 0;
+      const panels = {
+        "1": {
+          kicker: "STEP 1",
+          title: "ChatDaddy Connect",
+          body: "把 ChatDaddy 的 Webhook / 顾客资料接进 Dashboard。设置好一次，后面每个项目只换品牌资料和 Flow ID。",
+          rows: [
+            ["Webhook", "新讯息可以进 Dashboard", "✅"],
+            ["Contact / Chat ID", "同一个顾客可以合并成一叠", "✅"],
+            ["Name / Phone", "列表先看名字，电话点开才看", "✅"],
+            ["Flow / Button", "顾客点到哪一步，AI 才知道下一步", "✅"],
+          ],
+          footer: "客服不用碰 Token；断线时只看这里是不是 OK。",
+        },
+        "2": {
+          kicker: "STEP 2",
+          title: "Reply SOP",
+          body: "AI 回复要像真人客服：先看顾客上一句在回答什么，再回答问题，价格前接下一步，价格后做成交。",
+          rows: [
+            ["Step 1", "精简自我介绍 + USP + 定位，问顾客想解决什么", "开场"],
+            ["Step 2", "成分 / USP / End result，讲重点，不背书", "理解"],
+            ["Step 3", "Testi、公司背景、线下店、推荐，让顾客放心", "信心"],
+            ["Step 4", "价格、Promotion、End Result、CTA", "成交"],
+            ["Follow Up", "价格后按顾虑追单；不懂或敏感直接转人工", "跟进"],
+          ],
+          footer: "客服只需要看建议回复，改顺后按批准；不要让 AI 乱确认订单。",
+        },
+        "3": {
+          kicker: "STEP 3",
+          title: "FAQ Upload",
+          body: "AI 只用项目方给过的资料回答。资料不够就问清楚或转人工，不要硬编。",
+          rows: [
+            ["产品", "用法、效果、成分、适合谁", "FAQ"],
+            ["信任", "Testi、公司背景、线下店、认证、推荐", "Proof"],
+            ["订单", "价格、配套、付款、Receipt、配送", "Order"],
+            ["边界", "疾病、投诉、敏感问题、夸大效果", "人工"],
+          ],
+          footer: "以后每个项目都用同一张 FAQ 表，只换项目资料。",
+        },
+        "5": {
+          kicker: "STEP 5",
+          title: "Summary Panel",
+          body: "每天看一眼：谁有回复、谁成交、谁没回、谁需要 Follow Up。",
+          rows: [
+            ["待处理", `${pending} 位今天需要看`, "Today"],
+            ["自动", `${auto} 条已自动处理`, "Auto"],
+            ["订单", `${orders} 个订单相关`, "Order"],
+            ["学习", `${learned || 0} 条规则记录`, "Learn"],
+          ],
+          footer: "明天要同步到 Google Sheet：Purchase、No Reply、Follow Up、No Reply。",
+        },
+        "6": {
+          kicker: "STEP 6",
+          title: "Recommendation",
+          body: "从重复问题和客服修改里找出底层问题，反过来优化 FAQ、SOP、广告回流和 Flow。",
+          rows: [
+            ["重复疑问", "同一个问题一直出现，就补 FAQ", "资料"],
+            ["回复被改", "客服常改哪里，就改 SOP", "语气"],
+            ["没有成交", "看卡在价格、信任还是付款", "成交"],
+            ["广告回流", "成交金额用 Purchase + RM 回 Meta", "CAPI"],
+          ],
+          footer: "这里不是给客服硬看数据，是告诉项目方下一步要改什么。",
+        },
+        "7": {
+          kicker: "STEP 7",
+          title: "Default Segment",
+          body: "每个项目默认要有统一标签，后面才可以复盘和复制到其他公司。",
+          rows: [
+            ["Purchase", "确认成交才打购买标签", "成交"],
+            ["Date", "按今天 / 昨天 / Follow Up 日期分", "时间"],
+            ["Location", "有地区才记录，不乱猜", "地区"],
+            ["Stage", "Step 1 / Step 2 / Step 3 / Price / Follow Up", "阶段"],
+          ],
+          footer: "分类不是为了好看，是为了让 AI 后面知道怎么优化。",
+        },
+      };
+      const panel = panels[step];
+      if (!panel) return "";
+      return `
+        <section class="command-panel accent">
+          <div class="command-kicker">${escapeHtml(panel.kicker)}</div>
+          <strong class="command-title">${escapeHtml(panel.title)}</strong>
+          <p class="command-copy">${escapeHtml(panel.body)}</p>
+          <div class="compact-list">
+            ${panel.rows.map((row) => compactRow(row[0], row[1], row[2])).join("")}
+          </div>
+          <div class="quick-actions">
+            <button class="quick-action primary" data-dashboard-action="cases" type="button">打开顾客队列</button>
+            <button class="quick-action" data-dashboard-action="learning" type="button">看复盘</button>
+          </div>
+        </section>
+        <section class="command-panel">
+          <div class="command-kicker">怎么用</div>
+          <strong class="command-title">${escapeHtml(panel.footer)}</strong>
+          <div class="steps">
+            ${stepHtml("一次性", "项目上线前由管理者设置好。")}
+            ${stepHtml("日常", "客服主要看第 4 项 Customer Queue。")}
+            ${stepHtml("优化", "出错的 Case 在复盘里改规则。")}
+          </div>
+        </section>
       `;
     }
 
@@ -4978,9 +5212,16 @@
                 ${flowRow("流程 1", "flowS1", flows.s1)}
                 ${flowRow("流程 2", "flowS2", flows.s2)}
                 ${flowRow("流程 3", "flowS3", flows.s3)}
+                ${flowRow("流程 4 / 价格", "flowS4", flows.s4)}
                 ${flowRow("订单资料流程", "flowOrder", flows.order)}
                 ${flowRow("付款 / Receipt", "flowPayment", flows.payment)}
                 ${flowRow("跟进 1", "flowFollowup1", flows.follow_up_1)}
+                ${flowRow("跟进 2", "flowFollowup2", flows.follow_up_2)}
+                ${flowRow("跟进 3", "flowFollowup3", flows.follow_up_3)}
+                ${flowRow("跟进 4", "flowFollowup4", flows.follow_up_4)}
+                ${flowRow("跟进 5", "flowFollowup5", flows.follow_up_5)}
+                ${flowRow("跟进 6", "flowFollowup6", flows.follow_up_6)}
+                ${flowRow("跟进 7", "flowFollowup7", flows.follow_up_7)}
               </div>
             </div>
             <div class="settings-box">
@@ -5654,10 +5895,17 @@
     function confirmPurchaseAction(amount, item, isResend = false) {
       if (state.demoMode) return true;
       const name = item?.contact?.name || "这位顾客";
+      const metaConfigured = state.metaCapiStatus?.configured === true;
       if (isResend) {
-        return window.confirm(`补回流 ${name} 这笔已成交订单 RM ${amount.toFixed(2)} 到 Ads Manager？\n\n这不会重新确认一笔新成交；后端会用 order_id 去重。`);
+        const resendMetaLine = metaConfigured
+          ? "会尝试补送 Purchase + RM 到 Ads Manager。"
+          : "现在还没接 Meta Pixel/CAPI，只会保留补回流入口。";
+        return window.confirm(`补回流 ${name} 这笔已成交订单 RM ${amount.toFixed(2)}？\n\n${resendMetaLine}\n这不会重新确认一笔新成交；后端会用 order_id 去重。`);
       }
-      return window.confirm(`确认 ${name} 已成交 RM ${amount.toFixed(2)}？\n\n只有收到付款，或 COD 订单已经确认，才可以按。`);
+      const metaLine = metaConfigured
+        ? "确认后会发送 Purchase + RM 到 Ads Manager。"
+        : "现在还没接 Meta Pixel/CAPI，只会记录成交和金额，不会回流广告。";
+      return window.confirm(`确认 ${name} 已成交 RM ${amount.toFixed(2)}？\n\n只有收到付款，或 COD 订单已经确认，才可以按。\n${metaLine}`);
     }
 
     async function markPurchaseActive() {
