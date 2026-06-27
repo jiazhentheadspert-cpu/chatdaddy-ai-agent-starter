@@ -6839,7 +6839,7 @@
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
       if (!confirmLiveAction("approve", state.active)) return;
-      await postCaseAction(state.active.id, "approve", { reply_message: $("replyBox").value });
+      await postCaseAction(state.active.id, "approve", { reply_message: $("replyBox").value.trim() });
     }
 
     async function learnActive() {
@@ -6847,7 +6847,7 @@
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
       if (!confirmLiveAction("learn", state.active)) return;
-      await postCaseAction(state.active.id, "learn", { reply_message: $("replyBox").value });
+      await postCaseAction(state.active.id, "learn", { reply_message: $("replyBox").value.trim() });
     }
 
     async function handoffActive() {
@@ -7430,12 +7430,17 @@
 
     function confirmLiveAction(action, item) {
       const name = item.contact?.name || "这位顾客";
-      const reply = $("replyBox").value.trim() || item.latest_decision?.reply_message || "";
+      const reply = $("replyBox").value.trim();
       if (action === "approve" || action === "learn") {
         const closer = closerVerdict(item);
         const approvalGuard = approvalGuardForVerdict(closer);
         if (approvalGuard.blocked) {
           alert(`这张 Case 不能直接批准：${closer.title}\n\n${closer.reason}\n\n请先转人工、记录人工回复，或退回 AI。`);
+          return false;
+        }
+        if (!reply) {
+          alert("回复框是空的，不能发送。请先把要发给顾客的内容放在回复框。");
+          $("replyBox").focus();
           return false;
         }
       }
@@ -7465,12 +7470,8 @@
           : "系统不会发送 AI 建议，只会留下处理记录。";
         return window.confirm(`确认 ${name} 已经由客服人工处理？\n\n${actionLine}${preview}${learningLine}`);
       }
-      if (!reply.trim()) {
-        alert("建议回复是空的，不能发送。");
-        return false;
-      }
       const actionText = action === "learn" ? "发送并建立同类少审规则" : "发送给真实顾客";
-      const preview = reply.trim().slice(0, 180);
+      const preview = reply.slice(0, 180);
       return window.confirm(`确认${actionText}：${name}？\n\n将发送内容：\n${preview}${reply.length > 180 ? "..." : ""}`);
     }
 
