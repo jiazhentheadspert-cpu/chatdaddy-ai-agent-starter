@@ -4958,7 +4958,7 @@
       if (filter === "all") return cases;
       if (filter === "auto") return cases.filter((item) => ["auto", "auto_sent"].includes(item.status));
       if (filter === "records") return cases.filter((item) => ["auto_sent", "sent", "handoff_done", "returned_to_ai", "manual_resolved", "send_failed", "purchase_confirmed"].includes(item.status));
-      if (filter === "human_required") return cases.filter((item) => ["human_required", "handoff_done", "manual_resolved"].includes(item.status));
+      if (filter === "human_required") return cases.filter(isOpenHumanCase);
       if (filter === "return_ai") return cases.filter(needsReturnAiBeforeApproval);
       if (filter === "approval_required") return cases.filter(isApprovalReadyCase);
       if (filter === "pending_manual_reply") return cases.filter(needsManualReplyAfterHandoff);
@@ -5849,10 +5849,10 @@
       const approvalTotal = cases.filter((item) => item.status === "approval_required").length;
       const approval = cases.filter(isApprovalReadyCase).length;
       const returnAi = cases.filter(needsReturnAiBeforeApproval).length;
-      const humanOpen = cases.filter((item) => item.status === "human_required").length;
+      const humanOpen = cases.filter(isOpenHumanCase).length;
       const handoffDone = cases.filter((item) => item.status === "handoff_done").length;
       const pendingManualReplies = cases.filter(needsManualReplyAfterHandoff).length;
-      const human = humanOpen + handoffDone;
+      const human = humanOpen;
       const orders = cases.filter((item) => item.status === "order").length;
       const auto = cases.filter((item) => ["auto", "auto_sent"].includes(item.status)).length;
       const failed = cases.filter((item) => item.status === "send_failed").length;
@@ -5885,7 +5885,7 @@
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
-          body: "只显示可批准、需人工、要退回 AI、待补人工回复、订单和发送失败。",
+          body: "只显示可批准、要人工、退回 AI、待补人工回复、订单和发送失败。",
         },
         approval_required: {
           title: `${counts.approval} 条回复可审核批准`,
@@ -5897,7 +5897,7 @@
         },
         human_required: {
           title: `${counts.human} 位顾客需人工接手`,
-          body: "投诉、敏感问题、低信心判断会停掉自动流程。",
+          body: "只显示还没接手的人工 case；已转人工但缺最终回复的 case 在待补回复。",
         },
         pending_manual_reply: {
           title: `${counts.pendingManualReplies || 0} 位顾客待补人工回复`,
@@ -6388,6 +6388,10 @@
 
     function isApprovalReadyCase(item = {}) {
       return String(item.status || "") === "approval_required" && !needsReturnAiBeforeApproval(item);
+    }
+
+    function isOpenHumanCase(item = {}) {
+      return String(item.status || "") === "human_required";
     }
 
     function closerVerdict(item = {}) {
