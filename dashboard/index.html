@@ -1824,13 +1824,22 @@
       min-height: 44px;
     }
 
-    .case-insight {
-      margin-top: 10px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: linear-gradient(135deg, rgba(255,255,255,.92), rgba(246,250,251,.74));
-      padding: 10px;
-    }
+	    .case-insight {
+	      margin-top: 10px;
+	      border: 1px solid var(--line);
+	      border-radius: 16px;
+	      background: linear-gradient(135deg, rgba(255,255,255,.92), rgba(246,250,251,.74));
+	      padding: 10px;
+	    }
+
+	    .case-insight.needs-learning {
+	      border-color: rgba(183,121,31,.30);
+	      background: linear-gradient(135deg, rgba(255,248,232,.96), rgba(255,255,255,.86));
+	    }
+
+	    .case-insight.needs-learning strong {
+	      color: var(--amber);
+	    }
 
     .case-insight span {
       display: none;
@@ -2129,13 +2138,22 @@
       margin-bottom: 10px;
     }
 
-    .detail-tile {
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: linear-gradient(135deg, #fff, #f6fafb);
-      padding: 11px;
-      min-height: 72px;
-    }
+	    .detail-tile {
+	      border: 1px solid var(--line);
+	      border-radius: 14px;
+	      background: linear-gradient(135deg, #fff, #f6fafb);
+	      padding: 11px;
+	      min-height: 72px;
+	    }
+
+	    .detail-tile.learning-needed {
+	      border-color: rgba(183,121,31,.30);
+	      background: linear-gradient(135deg, rgba(255,248,232,.96), rgba(255,255,255,.88));
+	    }
+
+	    .detail-tile.learning-needed b {
+	      color: var(--amber);
+	    }
 
     .detail-tile.wide {
       grid-column: span 2;
@@ -5744,18 +5762,22 @@
       `;
     }
 
-    function cardHtml(item) {
-      const decision = item.latest_decision || {};
-      const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
-      const initials = initialsFor(item.contact?.name || "顾客");
-      const selected = state.selected.has(item.id);
-      const sla = slaInfo(item);
-      const stage = stageLabel(decision.stage);
-      const preview = customerPreviewText(item);
-      const tags = caseMiniTags(item, decision);
+	    function cardHtml(item) {
+	      const decision = item.latest_decision || {};
+	      const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
+	      const initials = initialsFor(item.contact?.name || "顾客");
+	      const selected = state.selected.has(item.id);
+	      const sla = slaInfo(item);
+	      const learningFollowup = caseLearningFollowup(item);
+	      const stage = stageLabel(decision.stage);
+	      const preview = customerPreviewText(item);
+	      const tags = caseMiniTags(item, decision);
+	      const statusText = caseStatusLabel(item, decision.risk);
+	      const footPillText = learningFollowup ? learningFollowup.pill : item.seen_by_operator ? "已看" : sla.text;
+	      const footPillTone = learningFollowup ? learningFollowup.tone : sla.tone;
 
-      return `
-        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}">
+	      return `
+	        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}">
           <div class="case-head">
             <div class="case-name">
               <label class="case-select" title="选择这个顾客">
@@ -5769,8 +5791,8 @@
                 ${duplicateSummaryHtml(item)}
               </div>
             </div>
-            <span class="badge ${riskClass}">${escapeHtml(statusLabel(item.status, decision.risk))}</span>
-          </div>
+	            <span class="badge ${riskClass}">${escapeHtml(statusText)}</span>
+	          </div>
           <div class="case-word-block">
             <span class="case-block-label">顾客最后一句</span>
             <strong>${escapeHtml(preview)}</strong>
@@ -5778,17 +5800,18 @@
               ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
             </div>
           </div>
-          <div class="case-insight">
-            <strong>${escapeHtml(actionLabel(decision.action))}</strong>
-          </div>
-          ${cardQuickActionsHtml(item)}
-          <div class="case-foot">
-            <span>${escapeHtml(formatDate(item.updated_at))}</span>
-            <span class="sla-pill ${escapeHtml(sla.tone)}">${escapeHtml(item.seen_by_operator ? "已看" : sla.text)}</span>
-          </div>
-        </article>
-      `;
-    }
+	          <div class="case-insight ${learningFollowup ? "needs-learning" : ""}">
+	            <strong>${escapeHtml(learningFollowup?.title || actionLabel(decision.action))}</strong>
+	            ${learningFollowup ? `<small>${escapeHtml(learningFollowup.body)}</small>` : ""}
+	          </div>
+	          ${cardQuickActionsHtml(item)}
+	          <div class="case-foot">
+	            <span>${escapeHtml(formatDate(item.updated_at))}</span>
+	            <span class="sla-pill ${escapeHtml(footPillTone)}">${escapeHtml(footPillText)}</span>
+	          </div>
+	        </article>
+	      `;
+	    }
 
     function openCase(caseId) {
       const item = state.cases.find((record) => record.id === caseId);
@@ -5805,7 +5828,7 @@
       const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve;
       $("panelName").textContent = item.contact?.name || "顾客";
       $("panelAvatar").textContent = initialsFor(item.contact?.name || "顾客");
-      $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
+	      $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
       $("replyCard").classList.toggle("hidden", hideReplyCard);
       $("replyBox").value = hideReplyCard || isManualFollowUp ? "" : decision.reply_message || "";
       $("replyBox").placeholder = isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : "";
@@ -5833,7 +5856,7 @@
         $("actionReason").textContent = approvalGuard.reason;
       }
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
-      $("panelStatusPill").textContent = statusLabel(item.status, decision.risk);
+	      $("panelStatusPill").textContent = caseStatusLabel(item, decision.risk);
       $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : decision.action === "review_receipt" ? "已审核付款" : item.status === "order" ? "确认处理" : "批准发送";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
       $("manualResolveBtn").disabled = state.actionBusy || !canManualResolve;
@@ -5904,15 +5927,16 @@
         .toUpperCase() || "客";
     }
 
-    function caseDetailsHtml(item) {
-      const decision = item.latest_decision || {};
-      const sla = slaInfo(item);
-      const previousAgentText = String(decision.previous_agent_text || "").trim();
+	    function caseDetailsHtml(item) {
+	      const decision = item.latest_decision || {};
+	      const sla = slaInfo(item);
+	      const previousAgentText = String(decision.previous_agent_text || "").trim();
+	      const learningFollowup = caseLearningFollowup(item);
 
-      return `
-        <div class="detail-tile">
-          <span>状态</span>
-          <b>${escapeHtml(statusLabel(item.status, decision.risk))}</b>
+	      return `
+	        <div class="detail-tile">
+	          <span>状态</span>
+	          <b>${escapeHtml(caseStatusLabel(item, decision.risk))}</b>
         </div>
         <div class="detail-tile">
           <span>阶段</span>
@@ -5926,17 +5950,26 @@
           <span>等待</span>
           <b>${escapeHtml(sla.text)}</b>
         </div>
-        ${previousAgentText ? `
-        <div class="detail-tile">
-          <span>上一句 Agent</span>
-          <b>${escapeHtml(previousAgentText)}</b>
-        </div>
-        ` : ""}
-      `;
-    }
+	        ${previousAgentText ? `
+	        <div class="detail-tile">
+	          <span>上一句 Agent</span>
+	          <b>${escapeHtml(previousAgentText)}</b>
+	        </div>
+	        ` : ""}
+	        ${learningFollowup ? `
+	        <div class="detail-tile wide learning-needed">
+	          <span>复盘</span>
+	          <b>${escapeHtml(learningFollowup.title)}</b>
+	          <small>${escapeHtml(learningFollowup.body)}</small>
+	        </div>
+	        ` : ""}
+	      `;
+	    }
 
-    function slaInfo(item) {
-      const status = item.status;
+	    function slaInfo(item) {
+	      const learningFollowup = caseLearningFollowup(item);
+	      if (learningFollowup) return { text: learningFollowup.pill, tone: learningFollowup.tone, note: learningFollowup.body };
+	      const status = item.status;
       if (status === "auto" || status === "auto_sent" || status === "sent" || status === "handoff_done" || status === "returned_to_ai" || status === "manual_resolved" || status === "purchase_confirmed") {
         if (status === "handoff_done") return { text: "已转人工", tone: "", note: "已留处理记录。" };
         if (status === "returned_to_ai") return { text: "已退回 AI", tone: "", note: "等待重写或复盘。" };
@@ -5971,9 +6004,11 @@
       return map[key] || "当前阶段";
     }
 
-    function actionTitle(item) {
-      const decision = item.latest_decision || {};
-      if (item.status === "auto_sent") return "AI 已自动回复";
+	    function actionTitle(item) {
+	      const decision = item.latest_decision || {};
+	      const learningFollowup = caseLearningFollowup(item);
+	      if (learningFollowup) return learningFollowup.title;
+	      if (item.status === "auto_sent") return "AI 已自动回复";
       if (item.status === "sent") return "已发送";
       if (item.status === "purchase_confirmed") return "已成交";
       if (item.status === "manual_resolved") return "已手动回复";
@@ -5988,9 +6023,11 @@
       return "按「批准发送」";
     }
 
-    function actionHint(item) {
-      const decision = item.latest_decision || {};
-      if (item.status === "auto_sent") return "下面显示的回复已经自动发送给顾客。";
+	    function actionHint(item) {
+	      const decision = item.latest_decision || {};
+	      const learningFollowup = caseLearningFollowup(item);
+	      if (learningFollowup) return learningFollowup.body;
+	      if (item.status === "auto_sent") return "下面显示的回复已经自动发送给顾客。";
       if (item.status === "sent") return "这条回复已发送，保留给团队追踪。";
       if (item.status === "purchase_confirmed") return "成交金额已记录，广告数据按配置回流。";
       if (item.status === "manual_resolved") return "客服已手动回复，系统保留最终回复做复盘。";
@@ -6092,11 +6129,14 @@
       if (status === "manual_resolved") {
         return { tone: "review", title: "客服已教 AI 一次", reason: "把最终人工回复拿去复盘，Owner 批准后才写进业务脑。" };
       }
-      if (status === "returned_to_ai") {
-        return { tone: "review", title: "已退回 AI，等重写", reason: "当前建议没有发送给顾客；这类样本要复盘为什么原草稿不能过。" };
-      }
-      if (status === "handoff_done") {
-        return { tone: "handoff", title: "不能直接过", reason: "已转人工；这类样本要总结为什么 AI 当时不该回。" };
+	      if (status === "returned_to_ai") {
+		return { tone: "review", title: "已退回 AI，等重写", reason: "当前建议没有发送给顾客；这类样本要复盘为什么原草稿不能过。" };
+	      }
+	      if (needsManualReplyAfterHandoff(item)) {
+		return { tone: "handoff", title: "待补人工回复", reason: "客服处理完后，把最后真正发给顾客的回复贴回来，AI 才能学到正确答案。" };
+	      }
+	      if (status === "handoff_done") {
+		return { tone: "handoff", title: "不能直接过", reason: "已转人工；这类样本要总结为什么 AI 当时不该回。" };
       }
       if (status === "send_failed") {
         return { tone: "fix", title: "不能过，先修发送", reason: "发送失败不代表话术通过；先检查渠道或改人工处理。" };
@@ -6197,14 +6237,47 @@
       return ["auto", "auto_sent", "sent", "sending", "handoff_done", "returned_to_ai", "manual_resolved", "purchase_confirmed", "rejected"].includes(item.status);
     }
 
-    function canManualResolveCase(item = {}) {
-      if (!item) return false;
-      return !["auto", "auto_sent", "sent", "sending", "manual_resolved", "purchase_confirmed"].includes(item.status);
-    }
+	    function canManualResolveCase(item = {}) {
+	      if (!item) return false;
+	      return !["auto", "auto_sent", "sent", "sending", "manual_resolved", "purchase_confirmed"].includes(item.status);
+	    }
 
-    function requiresManualReplyForManualResolve(item = {}) {
-      return ["handoff_done", "returned_to_ai", "rejected"].includes(item.status);
-    }
+	    function requiresManualReplyForManualResolve(item = {}) {
+	      return ["handoff_done", "returned_to_ai", "rejected"].includes(item.status);
+	    }
+
+	    function hasManualFinalReply(item = {}) {
+	      const manualText = [
+		item.manual_reply_text,
+		item.manual_resolution?.reply_text,
+		item.manual_resolution?.final_reply,
+		item.manual_resolution?.manual_reply_text,
+		item.final_manual_reply
+	      ].filter(Boolean).join(" ");
+	      return Boolean(String(manualText || "").trim());
+	    }
+
+	    function needsManualReplyAfterHandoff(item = {}) {
+	      const status = String(item.status || "").toLowerCase();
+	      const isHandoffStatus = status === "handoff_done" || (status === "rejected" && !isReturnedToAiApproval(item));
+	      return isHandoffStatus && !hasManualFinalReply(item);
+	    }
+
+	    function caseLearningFollowup(item = {}) {
+	      if (!needsManualReplyAfterHandoff(item)) return null;
+	      return {
+		title: "待补人工回复",
+		pill: "待补人工回复",
+		tone: "warn",
+		body: "客服处理完后，把最后真正发给顾客的回复贴回来，AI 才能学到正确答案。"
+	      };
+	    }
+
+	    function caseStatusLabel(item = {}, risk = "") {
+	      const learningFollowup = caseLearningFollowup(item);
+	      if (learningFollowup) return learningFollowup.pill;
+	      return statusLabel(item.status, risk);
+	    }
 
     async function handleCardAction(button) {
       if (state.actionBusy) return;
