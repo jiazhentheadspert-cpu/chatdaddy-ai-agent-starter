@@ -6044,10 +6044,10 @@
         `;
       }
       const canApprove = decision.action !== "trigger_flow" && item.status !== "sending";
-      const approveText = item.status === "order" ? "确认" : "批准";
+      const reviewText = item.status === "order" ? "打开订单" : "打开审核";
       return `
         <div class="case-action-row">
-          ${canApprove ? `<button class="card-action primary" type="button" data-card-action="approve" data-case-id="${escapeHtml(item.id)}">${escapeHtml(approveText)}</button>` : ""}
+          ${canApprove ? `<button class="card-action primary" type="button" data-card-action="open_review" data-case-id="${escapeHtml(item.id)}">${escapeHtml(reviewText)}</button>` : ""}
           <button class="card-action danger" type="button" data-card-action="handoff" data-case-id="${escapeHtml(item.id)}">人工</button>
         </div>
       `;
@@ -6774,6 +6774,11 @@
         showToast("这条记录已经处理，不能重复操作。");
         return;
       }
+      if (action === "open_review" || action === "approve") {
+        openCase(item.id);
+        showToast("先检查完整回复，再在详情里批准发送。");
+        return;
+      }
       if (!confirmCardAction(action, item)) return;
 
       const originalText = button.textContent;
@@ -6792,8 +6797,7 @@
           showToast("已退回 AI 重写。");
           return;
         }
-        await postCaseAction(item.id, "approve", { reply_message: item.latest_decision?.reply_message || "" }, { reopen: false, lock: false });
-        showToast("已批准发送。");
+        showToast("请打开详情检查完整回复后再批准。");
       } catch (error) {
         alert(`操作失败：${error.message}`);
         button.disabled = false;
