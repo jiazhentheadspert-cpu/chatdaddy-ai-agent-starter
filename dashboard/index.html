@@ -6206,6 +6206,7 @@
       const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
       const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
       const noFollowUpComplaint = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerSignalText);
+      const referralBulkOrder = ((/(介绍|介紹|推荐|推薦|refer|referral|introduced|recommend)/i.test(customerSignalText) && /(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText)) || (/(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText) && /(?:[4-9]|四|五|六|七|八|九)\s*(?:盒|box|boxes)|(?:多|几|幾)\s*(?:盒|box|boxes)/i.test(customerSignalText)));
       const promoGiftExplicitQuestion = /(赠品|贈品|free\s*gift|gift|送什么|送什麼|有什么送|有什麼送|送哪些|送什麼东西|送什么东西)/i.test(customerSignalText);
       const promoCampaignListQuestion = /(promotion|promo|优惠|優惠|活动|活動)/i.test(customerSignalText) && /(有什么|有什麼|有哪些|哪一些|哪些|what|any|which|list|write|一次过|一次過|全部|all|送什么|送什麼)/i.test(customerSignalText);
       const promoGiftQuestion = promoGiftExplicitQuestion || promoCampaignListQuestion;
@@ -6340,6 +6341,9 @@
       }
       if (noFollowUpComplaint) {
         return { tone: "handoff", title: "没人跟进先人工", reason: "顾客在投诉没人 follow up；不要回产品介绍或继续 Flow，先让客服查记录并真人接手。" };
+      }
+      if (referralBulkOrder) {
+        return { tone: "handoff", title: "亲友购买先查记录", reason: "顾客提到介绍妹妹/亲友购买或一次买多盒；不要回新人产品介绍或接 Flow，先让客服查订单、优惠资格和售后记录。" };
       }
       if ((afterSalesReceivedAck || gratitudeAck) && salesPushDraft) {
         return { tone: "fix", title: "不能过：售后勿继续卖", reason: "顾客已经收到货或只是感谢，草稿却在推价格/配套；只回用法、关怀或礼貌收尾，不接销售 Flow。" };
