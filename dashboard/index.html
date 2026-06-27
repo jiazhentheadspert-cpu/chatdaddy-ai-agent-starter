@@ -3029,6 +3029,7 @@
           <div class="bulk-summary"><b id="bulkCount">0</b><span>已选</span></div>
           <div class="bulk-actions">
             <button class="btn" id="bulkMarkSeen" type="button">标记已看</button>
+            <button class="btn danger" id="bulkReturnAi" type="button">批量退回 AI</button>
             <button class="btn danger" id="bulkHandoff" type="button">批量转人工</button>
             <button class="btn ghost" id="bulkClear" type="button">清除选择</button>
           </div>
@@ -3539,6 +3540,7 @@
     $("caseOptimizerRecordBtn").addEventListener("click", recordCaseOptimizerFeedback);
     $("caseOptimizerApplyBtn").addEventListener("click", applyCaseOptimizerCandidate);
     $("bulkMarkSeen").addEventListener("click", () => bulkCaseAction("mark_seen"));
+    $("bulkReturnAi").addEventListener("click", () => bulkCaseAction("return_ai"));
     $("bulkHandoff").addEventListener("click", () => bulkCaseAction("handoff"));
     $("bulkClear").addEventListener("click", clearSelection);
 
@@ -4864,6 +4866,7 @@
       $("bulkCount").textContent = count;
       $("bulkBar").classList.toggle("hidden", count === 0);
       $("bulkMarkSeen").disabled = state.bulkBusy || !hasActionable;
+      $("bulkReturnAi").disabled = state.bulkBusy || selectedReturnAiCases().length === 0;
       $("bulkHandoff").disabled = state.bulkBusy || !hasActionable;
     }
 
@@ -4871,6 +4874,10 @@
       return [...state.selected]
         .map((id) => state.cases.find((item) => item.id === id))
         .filter((item) => item && !isCaseReadOnly(item));
+    }
+
+    function selectedReturnAiCases() {
+      return selectedActionableCases().filter(needsReturnAiBeforeApproval);
     }
 
     async function bulkCaseAction(action) {
@@ -4881,12 +4888,19 @@
         return;
       }
 
-      const items = selectedActionableCases();
+      const items = action === "return_ai" ? selectedReturnAiCases() : selectedActionableCases();
       if (!items.length) {
-        showToast("已发送/自动记录是只读，不能批量操作。");
+        showToast(action === "return_ai" ? "选中的 case 没有需要退回 AI 的草稿。" : "已发送/自动记录是只读，不能批量操作。");
         return;
       }
       if (state.bulkBusy) return;
+      if (action === "return_ai") {
+        const skipped = ids.length - items.length;
+        const skippedText = skipped > 0 ? `\n\n已自动跳过 ${skipped} 条不适合退回 AI 的记录。` : "";
+        if (!window.confirm(`确认把 ${items.length} 条不能过的草稿退回 AI 重写？\n\n不会发送当前 AI 建议。${skippedText}`)) {
+          return;
+        }
+      }
       if (action === "handoff" && !window.confirm(`确认把 ${items.length} 条真实顾客记录转人工？这不会发送 AI 建议给顾客。`)) {
         return;
       }
@@ -4899,11 +4913,14 @@
             await postCaseAction(item.id, "mark_seen", { note: "客服已看过。" }, { reload: false, reopen: false, silent: true, lock: false });
           } else if (action === "handoff") {
             await postCaseAction(item.id, "handoff", { note: "客服批量转人工，不发送 AI 建议。" }, { reload: false, reopen: false, silent: true, lock: false });
+          } else if (action === "return_ai") {
+            const closer = closerVerdict(item);
+            await postCaseAction(item.id, "return_ai", { note: closer.reason || "客服批量退回 AI，不发送当前建议。" }, { reload: false, reopen: false, silent: true, lock: false });
           }
         }
         state.selected.clear();
         await loadCases();
-        showToast(action === "handoff" ? `已转人工 ${items.length} 条。` : `已标记 ${items.length} 条。`);
+        showToast(action === "return_ai" ? `已退回 AI ${items.length} 条。` : action === "handoff" ? `已转人工 ${items.length} 条。` : `已标记 ${items.length} 条。`);
       } catch (error) {
         alert(`批量操作失败：${error.message}`);
       } finally {
@@ -4913,7 +4930,7 @@
     }
 
     function bulkDemoAction(action) {
-      const ids = [...state.selected];
+      const ids = (action === "return_ai" ? selectedReturnAiCases() : selectedActionableCases()).map((item) => item.id);
       if (!ids.length) return;
 
       const now = new Date().toISOString();
@@ -4944,11 +4961,30 @@
           });
         }
 
+        if (action === "return_ai") {
+          const closer = closerVerdict(record);
+          record.status = "rejected";
+          record.rejection_reason = closer.reason || "演示：批量退回 AI 重新生成。";
+          record.latest_decision = record.latest_decision || {};
+          record.latest_decision.action = "ask_human";
+          record.handoff_result = {
+            attempted: false,
+            sent: false,
+            mode: "internal_return_ai",
+            reason: "Bulk returned to AI without external handoff.",
+          };
+          record.history.push({
+            type: "bulk_return_ai_demo",
+            at: now,
+            note: record.rejection_reason,
+          });
+        }
+
         record.updated_at = now;
       });
 
-      const message = action === "handoff" ? `演示：已把 ${ids.length} 位顾客转人工。` : `演示：已标记 ${ids.length} 位顾客。`;
-      addAuditEvent(action === "handoff" ? "bulk_handoff_demo" : "bulk_seen_demo", message);
+      const message = action === "return_ai" ? `演示：已退回 AI ${ids.length} 条。` : action === "handoff" ? `演示：已把 ${ids.length} 位顾客转人工。` : `演示：已标记 ${ids.length} 位顾客。`;
+      addAuditEvent(action === "return_ai" ? "bulk_return_ai_demo" : action === "handoff" ? "bulk_handoff_demo" : "bulk_seen_demo", message);
       state.selected.clear();
       render();
       showToast(message);
@@ -6648,6 +6684,7 @@
         marked_handoff_demo: "转人工处理",
         operator_seen_demo: "已标记查看",
         bulk_handoff_demo: "批量转人工",
+        bulk_return_ai_demo: "批量退回 AI",
         case_purchase_confirmed: "确认成交",
         case_mark_purchase: "确认成交",
         case_mark_purchase_demo: "演示确认成交",
