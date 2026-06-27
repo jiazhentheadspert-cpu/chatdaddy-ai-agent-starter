@@ -1960,6 +1960,38 @@
 	      color: var(--amber);
 	    }
 
+	    .case-insight.staff-verdict span,
+	    .case-insight.staff-verdict small {
+	      display: block;
+	    }
+
+	    .case-insight.verdict-fix {
+	      border-color: rgba(201,74,85,.30);
+	      background: var(--soft-red);
+	    }
+
+	    .case-insight.verdict-fix strong {
+	      color: var(--red);
+	    }
+
+	    .case-insight.verdict-handoff {
+	      border-color: rgba(183,121,31,.30);
+	      background: linear-gradient(135deg, rgba(255,248,232,.96), rgba(255,255,255,.86));
+	    }
+
+	    .case-insight.verdict-handoff strong,
+	    .case-insight.verdict-review strong {
+	      color: var(--amber);
+	    }
+
+	    .case-insight.verdict-pass strong {
+	      color: var(--green);
+	    }
+
+	    .case-insight.verdict-order strong {
+	      color: var(--blue);
+	    }
+
     .case-insight span {
       display: none;
       color: var(--muted);
@@ -6018,6 +6050,25 @@
       `;
     }
 
+    function cardVerdictSummary(item = {}, learningFollowup = null) {
+      if (learningFollowup) {
+        return {
+          className: "needs-learning",
+          label: "复盘",
+          title: learningFollowup.title,
+          body: learningFollowup.body,
+        };
+      }
+      const closer = closerVerdict(item);
+      const tone = closer.tone || "review";
+      return {
+        className: `staff-verdict verdict-${tone}`,
+        label: "成交判断",
+        title: closer.title || actionLabel(item.latest_decision?.action),
+        body: closer.reason || actionHint(item),
+      };
+    }
+
 	    function cardHtml(item) {
 	      const decision = item.latest_decision || {};
 	      const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
@@ -6031,6 +6082,7 @@
 	      const statusText = caseStatusLabel(item, decision.risk);
 	      const footPillText = learningFollowup ? learningFollowup.pill : item.seen_by_operator ? "已看" : sla.text;
 	      const footPillTone = learningFollowup ? learningFollowup.tone : sla.tone;
+	      const verdictSummary = cardVerdictSummary(item, learningFollowup);
 
 	      return `
 	        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}">
@@ -6056,9 +6108,10 @@
               ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
             </div>
           </div>
-	          <div class="case-insight ${learningFollowup ? "needs-learning" : ""}">
-	            <strong>${escapeHtml(learningFollowup?.title || actionLabel(decision.action))}</strong>
-	            ${learningFollowup ? `<small>${escapeHtml(learningFollowup.body)}</small>` : ""}
+	          <div class="case-insight ${escapeHtml(verdictSummary.className)}">
+	            <span>${escapeHtml(verdictSummary.label)}</span>
+	            <strong>${escapeHtml(verdictSummary.title)}</strong>
+	            <small>${escapeHtml(verdictSummary.body)}</small>
 	          </div>
 	          ${cardQuickActionsHtml(item)}
 	          <div class="case-foot">
