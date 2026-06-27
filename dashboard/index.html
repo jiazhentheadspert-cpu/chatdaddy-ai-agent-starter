@@ -6396,7 +6396,7 @@
         return { tone: "review", title: "赠品/活动可审", reason: "已回答当前三档价和赠品边界；最后按当天活动和库存确认，不乱保证。" };
       }
       if (afterSalesReceivedAck) {
-        return { tone: "pass", title: "售后收货：只回关怀", reason: "收到货/货已收到类只回复用法、关怀或让客服看售后问题；不要再推价格或接销售 Flow。" };
+        return { tone: "pass", title: "售后收货：只回用法/关怀", reason: "收到货/货已收到类只回复用法、关怀或让客服看售后问题；不要再推价格或接销售 Flow。" };
       }
       if (gratitudeAck) {
         return { tone: "pass", title: "礼貌收尾：不继续卖", reason: "顾客只是感谢或收尾，短回即可；不要推价格、不要接普通 Flow。" };
