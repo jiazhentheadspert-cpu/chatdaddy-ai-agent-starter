@@ -6548,6 +6548,7 @@
       const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
       const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
       const noFollowUpComplaint = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerSignalText);
+      const orderDenialComplaint = intent.includes("order_denial") || intent.includes("not_ordered") || /(?:我)?(?:没|沒|没有|沒有).{0,8}(?:订购|訂購|下单|下單|买|買|order|ordered|purchase|purchased)|(?:didn['’]?t|did\s+not|never).{0,20}(?:order|buy|purchase)/i.test(customerSignalText);
       const referralBulkOrder = ((/(介绍|介紹|推荐|推薦|refer|referral|introduced|recommend)/i.test(customerSignalText) && /(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText)) || (/(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText) && /(?:[4-9]|四|五|六|七|八|九)\s*(?:盒|box|boxes)|(?:多|几|幾)\s*(?:盒|box|boxes)/i.test(customerSignalText)));
       const afterSalesSellerNoReply = /(我)?(买了|買了|购买了|購買了|已经买|已經買|收到货|收到貨|刚收到|剛收到|货到了|貨到了|卖给我|賣給我|seller|bought|ordered|purchased)/i.test(customerSignalText) && /(no\s*reply|not\s+reply|didn['’]?t\s+reply|never\s+reply|没回|沒回|没有回复|沒有回覆|没回复|沒回覆|不回复|不回覆|没有回应|沒有回應|没回应|沒回應)/i.test(customerSignalText) && (/(怎么喝|怎麼喝|怎样喝|怎樣喝|如何喝|喝法|用法|怎么吃|怎麼吃|怎样吃|怎樣吃|how\s+(?:to\s+)?(?:drink|take|use))/i.test(customerSignalText) || /(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b|卖给我|賣給我|seller|那人|那個人|那个人|agent|staff|salesperson)/i.test(customerSignalText));
       const promoGiftExplicitQuestion = /(赠品|贈品|free\s*gift|gift|送什么|送什麼|有什么送|有什麼送|送哪些|送什麼东西|送什么东西)/i.test(customerSignalText);
@@ -6569,6 +6570,11 @@
       ].filter(Boolean).join(" ");
       const specialPromoAddon = Boolean(decision.special_promo_addon || decision.signals?.special_promo_addon || /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|加购|加購)/i.test(specialPromoText));
       const legacyPromo = Boolean(decision.legacy_package_promo || decision.signals?.legacy_package_promo || /(配套\s*[bc]\b|package\s*[bc]\b|4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|年中优惠|年中優惠|直接瘦\s*(?:10|15)|旧活动|舊活動|旧图|舊圖)/i.test(specialPromoText));
+      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(rawCustomerText);
+      const currentPriceLadderAnswered = /(?:1\s*盒|一盒|1\s*box).{0,24}RM\s*150|RM\s*150.{0,24}(?:1\s*盒|一盒|1\s*box)/i.test(draftText)
+        && /(?:2\s*盒|二盒|2\s*boxes?).{0,24}RM\s*258|RM\s*258.{0,24}(?:2\s*盒|二盒|2\s*boxes?)/i.test(draftText)
+        && /(?:3\s*盒|三盒|3\s*boxes?).{0,24}RM\s*378|RM\s*378.{0,24}(?:3\s*盒|三盒|3\s*boxes?)/i.test(draftText);
+      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
       const gratitudeText = [
         intent,
         decision.reply_message,
@@ -6684,6 +6690,15 @@
       }
       if (promoGiftMissingDraft) {
         return { tone: "fix", title: "不能过：没回答赠品", reason: "顾客问还有送什么、赠品或 free gift；草稿必须列当前 RM150/RM258/RM378 和当天赠品确认口径，不要回产品介绍或接普通 Flow。" };
+      }
+      if (orderDenialComplaint) {
+        return { tone: "handoff", title: "否认订购先查记录", reason: "顾客说没有订购，通常是 Broadcast/订单提醒语境；不要继续销售或重复下单，先人工查记录并安抚。" };
+      }
+      if (directPriceQuestion && !specialPromoAddon && !legacyPromo && !currentPriceLadderAnswered) {
+        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，必须给当前 RM150/RM258/RM378 价梯和下一步 CTA。" };
+      }
+      if (directPriceQuestion && currentPriceLadderAnswered) {
+        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? "问价可审：价梯 + CTA" : "不能过：问价缺 CTA", reason: priceCtaAnswered ? "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。" : "顾客问价时，草稿除了当前价梯，还要给明确下一步，例如问她要安排哪个配套。" };
       }
       if (noFollowUpComplaint) {
         return { tone: "handoff", title: "没人跟进先人工", reason: "顾客在投诉没人 follow up；不要回产品介绍或继续 Flow，先让客服查记录并真人接手。" };
