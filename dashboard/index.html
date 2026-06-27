@@ -5432,6 +5432,7 @@
 	                <div class="audit-item">
 	                  <b>${escapeHtml(item.title || id || "学习建议")}</b>
 	                  <span>${escapeHtml(item.improvement || candidate.proposed_rule || "先记录成学习候选，之后再审核。")}</span>
+	                  <span>${escapeHtml(learningRecommendationOwnerAction(item, candidate))}</span>
 	                  <small>${escapeHtml(candidate.artifact_label || learningSeverityLabel(item.severity))}｜${Number(item.count || 0)} 次｜不会发送 WhatsApp</small>
 	                  ${id ? `<button class="quick-action" type="button" data-record-learning-recommendation="${escapeHtml(id)}">记录建议</button>` : ""}
 	                </div>
@@ -7477,13 +7478,29 @@
       return recommendations.find((item) => String(item.id || item.title || "").trim() === id) || null;
     }
 
-    function learningRecommendationCandidate(item = {}) {
+    function learningRecommendationArtifactType(item = {}) {
       const combined = [item.id, item.title, item.improvement, item.severity].join("\n").toLowerCase();
-      let artifactType = "reply_rule";
-      if (/price|promo|gift|旧价|价格|赠品|活动|信心|cta|objection/.test(combined)) artifactType = "closer_script";
-      else if (/payment|delivery|marketplace|follow|referral|seller|order|receipt|付款|送货|物流|官方|没人|亲友|售后/.test(combined)) artifactType = "ops_sop";
-      else if (/english|usage|faq|用法|英文|喝法|成分/.test(combined)) artifactType = "faq";
-      else if (/handoff|low_context|flow|上下文|转人工/.test(combined)) artifactType = "flow_context_rule";
+      if (/price|promo|gift|旧价|价格|赠品|活动|信心|cta|objection/.test(combined)) return "closer_script";
+      if (/payment|delivery|marketplace|follow|referral|seller|order|receipt|付款|送货|物流|官方|没人|亲友|售后/.test(combined)) return "ops_sop";
+      if (/english|usage|faq|用法|英文|喝法|成分/.test(combined)) return "faq";
+      if (/handoff|low_context|flow|上下文|转人工/.test(combined)) return "flow_context_rule";
+      return "reply_rule";
+    }
+
+    function learningRecommendationOwnerAction(item = {}, candidate = null) {
+      const artifactType = String(candidate?.artifact_type || learningRecommendationArtifactType(item));
+      const map = {
+        faq: "Owner 要补：FAQ 标准答案，补英文/用法/物流等安全口径后回放同类问题。",
+        closer_script: "Owner 要补：成交话术、当前价格、赠品/活动边界和 CTA，不清楚就先人工确认。",
+        ops_sop: "Owner 要补：客服 SOP，写清楚查订单、审款、送货、付款和售后接手边界。",
+        flow_context_rule: "Owner 要补：Flow/上下文规则，定义上一句、短回复和接回 Flow 的条件。",
+        reply_rule: "Owner 要补：可重复回复规则和测试用例，确认后才写入业务脑。",
+      };
+      return map[artifactType] || map.reply_rule;
+    }
+
+    function learningRecommendationCandidate(item = {}) {
+      const artifactType = learningRecommendationArtifactType(item);
       const labels = {
         faq: "FAQ",
         closer_script: "成交话术",
@@ -7500,7 +7517,7 @@
         ai_gap: `AI 自检发现 ${Number(item.count || 0)} 次类似问题；severity=${item.severity || "review"}.`,
         better_reply: "",
         status: "owner_review_required",
-        next_owner_action: "Owner 审核后决定是否批准进业务脑，并回放同类 case。",
+        next_owner_action: learningRecommendationOwnerAction(item, { artifact_type: artifactType }),
         safety: "只记录学习候选；不会发送 WhatsApp，也不会开启自动 Flow。",
       };
     }
