@@ -2883,6 +2883,7 @@
             <button class="pill" data-filter="needs_attention">待处理</button>
             <button class="pill" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_required">要人工</button>
+            <button class="pill" data-filter="pending_manual_reply">待补回复</button>
             <button class="pill" data-filter="order">订单/付款</button>
             <button class="pill" data-filter="auto" id="autoFilterBtn">自动记录</button>
           </div>
@@ -3716,6 +3717,7 @@
         order: "step_4",
         records: "step_5",
         human_required: "step_4",
+        pending_manual_reply: "step_4",
         handoff_done: "step_4",
         returned_to_ai: "step_5",
         approval_required: "step_4",
@@ -4683,6 +4685,7 @@
         needs_attention: ["待处理", counts.needs],
         approval_required: ["待批准", counts.approval],
         human_required: ["要人工", counts.human],
+        pending_manual_reply: ["待补回复", counts.pendingManualReplies],
         order: ["订单/付款", counts.orders],
         auto: ["自动记录", counts.auto],
       };
@@ -4813,8 +4816,9 @@
       if (filter === "auto") return cases.filter((item) => ["auto", "auto_sent"].includes(item.status));
       if (filter === "records") return cases.filter((item) => ["auto_sent", "sent", "handoff_done", "returned_to_ai", "manual_resolved", "send_failed", "purchase_confirmed"].includes(item.status));
       if (filter === "human_required") return cases.filter((item) => ["human_required", "handoff_done", "manual_resolved"].includes(item.status));
+      if (filter === "pending_manual_reply") return cases.filter(needsManualReplyAfterHandoff);
       if (filter === "needs_attention") {
-        return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
+        return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status) || needsManualReplyAfterHandoff(item));
       }
       return cases.filter((item) => item.status === filter);
     }
@@ -4873,7 +4877,7 @@
       const queryText = state.query ? ` · 搜索「${state.query}」` : "";
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新" : "名字";
       const staffGuide = state.role === "staff"
-        ? ` · 先人工 ${counts.human || 0}，再批准 ${counts.approval || 0}，再订单 ${counts.orders || 0}`
+        ? ` · 先人工 ${counts.human || 0}，补回复 ${counts.pendingManualReplies || 0}，再批准 ${counts.approval || 0}，再订单 ${counts.orders || 0}`
         : "";
       $("queueSummary").textContent = `${visibleCount}/${filteredCount} 位${queryText} · ${sortText}${staffGuide}`;
     }
@@ -5657,6 +5661,7 @@
       const approval = cases.filter((item) => item.status === "approval_required").length;
       const humanOpen = cases.filter((item) => item.status === "human_required").length;
       const handoffDone = cases.filter((item) => item.status === "handoff_done").length;
+      const pendingManualReplies = cases.filter(needsManualReplyAfterHandoff).length;
       const human = humanOpen + handoffDone;
       const orders = cases.filter((item) => item.status === "order").length;
       const auto = cases.filter((item) => ["auto", "auto_sent"].includes(item.status)).length;
@@ -5669,7 +5674,8 @@
         auto,
         failed,
         handoffDone,
-        needs: approval + humanOpen + orders + failed,
+        pendingManualReplies,
+        needs: approval + humanOpen + pendingManualReplies + orders + failed,
       };
     }
 
@@ -5687,7 +5693,7 @@
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
-          body: "只显示待批准、需人工、订单和发送失败。",
+          body: "只显示待批准、需人工、待补人工回复、订单和发送失败。",
         },
         approval_required: {
           title: `${counts.approval} 条回复待批准`,
@@ -5696,6 +5702,10 @@
         human_required: {
           title: `${counts.human} 位顾客需人工接手`,
           body: "投诉、敏感问题、低信心判断会停掉自动流程。",
+        },
+        pending_manual_reply: {
+          title: `${counts.pendingManualReplies || 0} 位顾客待补人工回复`,
+          body: "客服处理完后，把最后真正发给顾客的回复贴回 Dashboard，AI 才能复盘学习。",
         },
         order: {
           title: `${counts.orders} 个订单待处理`,
