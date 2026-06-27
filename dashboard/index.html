@@ -6238,6 +6238,18 @@
         item.manual_reply_text
       ].filter(Boolean).join(" ");
       const paymentMethodIssue = intent.includes("payment_method") || /(没有货到付款|沒有貨到付款|不能\s*cod|可以\s*cod|有\s*cod|cash\s+on\s+delivery|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card))/i.test(paymentMethodText);
+      const deliveryPaymentText = [
+        intent,
+        action,
+        decision.reply_message,
+        decision.operator_instruction,
+        decision.headline,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const deliveryPaymentArrangement = intent.includes("delivery_payment") || /(?:安排|arrange|how|如何|怎样|怎樣|怎么|怎麼)?[^。？?\n]{0,30}(?:送货|送貨|配送|寄送|邮寄|郵寄|delivery|shipping|courier)[^。？?\n]{0,50}(?:付款|付钱|付錢|payment|pay|cod|货到付款|貨到付款)|(?:付款|付钱|付錢|payment|pay|cod|货到付款|貨到付款)[^。？?\n]{0,50}(?:送货|送貨|配送|寄送|邮寄|郵寄|delivery|shipping|courier)/i.test(deliveryPaymentText);
       const orderUpdateText = [
         intent,
         action,
@@ -6313,6 +6325,9 @@
       }
       if ((afterSalesReceivedAck || gratitudeAck) && salesPushDraft) {
         return { tone: "fix", title: "不能过：售后勿继续卖", reason: "顾客已经收到货或只是感谢，草稿却在推价格/配套；只回用法、关怀或礼貌收尾，不接销售 Flow。" };
+      }
+      if (deliveryPaymentArrangement) {
+        return { tone: "handoff", title: "送货/付款先确认", reason: "顾客问送货和付款怎样安排；要看地区、配套、付款方式和订单资料，不要回产品介绍或接 Flow，先人工确认。" };
       }
       if (paymentMethodIssue) {
         return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡或线上付款要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
