@@ -6237,7 +6237,8 @@
         item.final_text,
         item.manual_reply_text
       ].filter(Boolean).join(" ");
-      const paymentMethodIssue = intent.includes("payment_method") || /(没有货到付款|沒有貨到付款|不能\s*cod|可以\s*cod|有\s*cod|cash\s+on\s+delivery|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card))/i.test(paymentMethodText);
+      const cardPaymentQuestion = /(银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment|card).{0,40}(付款|付钱|付錢|支付|如何|怎样|怎樣|怎么|怎麼|用|方式|method|pay|payment|use)|(付款|付钱|付錢|支付|如何|怎样|怎樣|怎么|怎麼|用|方式|method|pay|payment|use).{0,40}(银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment|card)/i.test(paymentMethodText);
+      const paymentMethodIssue = intent.includes("payment_method") || cardPaymentQuestion || /(没有货到付款|沒有貨到付款|不能\s*cod|可以\s*cod|有\s*cod|cash\s+on\s+delivery|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card))/i.test(paymentMethodText);
       const deliveryPaymentText = [
         intent,
         action,
