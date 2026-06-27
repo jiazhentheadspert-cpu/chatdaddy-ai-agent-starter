@@ -1553,6 +1553,25 @@
       box-shadow: 0 10px 24px rgba(0,183,216,.10);
     }
 
+    .pill-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 20px;
+      margin-left: 7px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, .08);
+      color: var(--ink);
+      font-size: .74rem;
+      line-height: 1;
+    }
+
+    .pill.active .pill-count {
+      background: rgba(0, 183, 216, .18);
+    }
+
     .view-toggle {
       display: flex;
       background: rgba(255,255,255,.90);
@@ -2861,11 +2880,11 @@
         <div class="toolbar">
           <div class="filters">
             <button class="pill active" data-filter="all">全部</button>
-            <button class="pill" data-filter="needs_attention">处理</button>
-            <button class="pill" data-filter="approval_required">批准</button>
-            <button class="pill" data-filter="human_required">人工</button>
-            <button class="pill" data-filter="order">订单</button>
-            <button class="pill" data-filter="auto" id="autoFilterBtn">自动</button>
+            <button class="pill" data-filter="needs_attention">待处理</button>
+            <button class="pill" data-filter="approval_required">待批准</button>
+            <button class="pill" data-filter="human_required">要人工</button>
+            <button class="pill" data-filter="order">订单/付款</button>
+            <button class="pill" data-filter="auto" id="autoFilterBtn">自动记录</button>
           </div>
           <div class="view-toggle" aria-label="切换视图">
             <button class="active" id="gridView">卡片</button>
@@ -4571,6 +4590,7 @@
       $("statHuman").textContent = counts.human;
       $("statOrder").textContent = counts.orders;
       $("statAuto").textContent = counts.auto;
+      renderFilterCounts(counts);
       renderNavigationBadges(counts, learned);
 
       syncFilterControls();
@@ -4581,7 +4601,7 @@
       const filtered = filterCases(all, state.filter);
       const searched = searchCases(filtered, state.query);
       const visible = sortCases(searched, state.sort);
-      renderQueueSummary(visible.length, filtered.length, all.length);
+      renderQueueSummary(visible.length, filtered.length, all.length, counts);
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
       renderBulkBar();
 
@@ -4655,6 +4675,21 @@
       setBadge("navStep5Badge", learned || "中");
       setBadge("navStep6Badge", learned ? "看" : "中");
       setBadge("navStep7Badge", "待");
+    }
+
+    function renderFilterCounts(counts = {}) {
+      const labels = {
+        all: ["全部", counts.total],
+        needs_attention: ["待处理", counts.needs],
+        approval_required: ["待批准", counts.approval],
+        human_required: ["要人工", counts.human],
+        order: ["订单/付款", counts.orders],
+        auto: ["自动记录", counts.auto],
+      };
+      document.querySelectorAll("[data-filter]").forEach((button) => {
+        const [label, value] = labels[button.dataset.filter] || [button.textContent || "", ""];
+        button.innerHTML = `${escapeHtml(label)}<span class="pill-count">${escapeHtml(value ?? 0)}</span>`;
+      });
     }
 
     function pruneSelection(cases) {
@@ -4834,10 +4869,13 @@
       return statusScore + riskScore + ageScore;
     }
 
-    function renderQueueSummary(visibleCount, filteredCount, totalCount) {
+    function renderQueueSummary(visibleCount, filteredCount, totalCount, counts = {}) {
       const queryText = state.query ? ` · 搜索「${state.query}」` : "";
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新" : "名字";
-      $("queueSummary").textContent = `${visibleCount}/${filteredCount} 位${queryText} · ${sortText}`;
+      const staffGuide = state.role === "staff"
+        ? ` · 先人工 ${counts.human || 0}，再批准 ${counts.approval || 0}，再订单 ${counts.orders || 0}`
+        : "";
+      $("queueSummary").textContent = `${visibleCount}/${filteredCount} 位${queryText} · ${sortText}${staffGuide}`;
     }
 
     function renderWorkspaceViews(cases, counts, learned) {
