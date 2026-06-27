@@ -6329,7 +6329,7 @@
         return { tone: "fix", title: "不能过，先修发送", reason: "发送失败不代表话术通过；先检查渠道或改人工处理。" };
       }
       if (outdatedPriceDraft) {
-        return { tone: "fix", title: "不能过：草稿含旧价", reason: "草稿仍有 RM368、加 RM10、3送1 或旧送盒说法；退回 AI 重新生成，或手动改成当前三档价后再处理。" };
+        return { tone: "fix", title: "不能过：草稿含旧价", reason: "草稿仍有 RM368、加 RM10、3送1 或旧送盒说法；旧 pending 不要批准。退回 AI 重新生成，或手动改成当前可用价：1盒 RM150 / 2盒 RM258 / 3盒 RM378【新人疗程配套】后再处理。" };
       }
       if (englishMixedDraft) {
         return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
