@@ -3911,15 +3911,17 @@
       return "全局管理。";
     }
 
-    function connectionStatusLabel() {
-      if (state.demoMode) return "演示";
-      return state.role === "staff" ? "已连接" : "真实";
-    }
+	    function connectionStatusLabel() {
+	      if (state.demoMode) return "演示";
+	      if (canUseQaMode()) return "QA";
+	      return state.role === "staff" ? "已连接" : "真实";
+	    }
 
-    function activeModeLabel() {
-      if (state.demoMode || canUseDemoMode()) return "演示";
-      return state.role === "staff" ? "顾客队列" : "真实系统";
-    }
+	    function activeModeLabel() {
+	      if (state.demoMode || canUseDemoMode()) return "演示";
+	      if (canUseQaMode()) return "QA 测试";
+	      return state.role === "staff" ? "顾客队列" : "真实系统";
+	    }
 
     function casesForRole(cases) {
       if (state.role !== "staff") return cases;
@@ -4036,19 +4038,21 @@
         return;
       }
 
-      try {
-        setLoadingQueue("正在读取顾客讯息，请等几秒。");
-        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=0&real_only=1&limit=30&scan_limit=300`;
-        let res = await fetch(approvalUrl, { headers: authHeaders(token) });
-        const data = await res.json();
+	      try {
+	        const qaMode = canUseQaMode();
+	        setLoadingQueue(qaMode ? "正在读取 QA / 训练 Case，请等几秒。" : "正在读取顾客讯息，请等几秒。");
+	        const visibility = dashboardApprovalVisibilityParams();
+	        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=${visibility.includeTests ? "1" : "0"}&real_only=${visibility.realOnly ? "1" : "0"}&limit=30&scan_limit=300`;
+	        let res = await fetch(approvalUrl, { headers: authHeaders(token) });
+	        const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
         state.loading = false;
         state.selected.clear();
-        $("modeTag").textContent = activeModeLabel();
-        const liveItems = Array.isArray(data.items)
-          ? data.items.filter((item) => isDashboardVisibleApproval(item) && !isDemoLikeApprovalItem(item))
-          : [];
+	        $("modeTag").textContent = activeModeLabel();
+	        const liveItems = Array.isArray(data.items)
+	          ? data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
+	          : [];
         const contactNames = await loadContactNameMap(liveItems, token);
         state.cases = liveItems.map((item) => approvalToCase(item, contactNames));
         if (state.role !== "staff") await loadRuntimeSettings({ silent: true });
@@ -4170,14 +4174,28 @@
       render();
     }
 
-    function canUseDemoMode() {
-      const project = String(projectKeyEl.value || "").trim().toLowerCase();
-      const explicitDemo = ["1", "true", "yes"].includes(String(params.get("demo") || "").toLowerCase());
-      if (state.role === "staff") return false;
-      if (explicitDemo) return true;
-      if (apiUrlEl.value.trim()) return false;
-      return project === "demo" || !project;
-    }
+	    function canUseDemoMode() {
+	      const project = String(projectKeyEl.value || "").trim().toLowerCase();
+	      const explicitDemo = ["1", "true", "yes"].includes(String(params.get("demo") || "").toLowerCase());
+	      if (state.role === "staff") return false;
+	      if (explicitDemo) return true;
+	      if (apiUrlEl.value.trim()) return false;
+	      return project === "demo" || !project;
+	    }
+
+	    function canUseQaMode() {
+	      const qaParam = String(params.get("qa") || params.get("training") || params.get("include_tests") || "").toLowerCase();
+	      const explicitQa = ["1", "true", "yes"].includes(qaParam);
+	      return state.role !== "staff" && explicitQa && Boolean(apiUrlEl.value.trim());
+	    }
+
+	    function dashboardApprovalVisibilityParams() {
+	      const qaMode = canUseQaMode();
+	      return {
+		includeTests: qaMode,
+		realOnly: !qaMode,
+	      };
+	    }
 
     function setRealQueueEmpty(message = "") {
       state.demoMode = false;
