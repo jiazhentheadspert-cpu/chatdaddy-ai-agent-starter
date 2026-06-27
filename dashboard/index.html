@@ -5433,6 +5433,7 @@
 	                  <b>${escapeHtml(item.title || id || "学习建议")}</b>
 	                  <span>${escapeHtml(item.improvement || candidate.proposed_rule || "先记录成学习候选，之后再审核。")}</span>
 	                  <span>${escapeHtml(learningRecommendationOwnerAction(item, candidate))}</span>
+	                  <span>${escapeHtml(learningRecommendationReplayTest(item, candidate))}</span>
 	                  <small>${escapeHtml(candidate.artifact_label || learningSeverityLabel(item.severity))}｜${Number(item.count || 0)} 次｜不会发送 WhatsApp</small>
 	                  ${id ? `<button class="quick-action" type="button" data-record-learning-recommendation="${escapeHtml(id)}">记录建议</button>` : ""}
 	                </div>
@@ -7499,6 +7500,45 @@
       return map[artifactType] || map.reply_rule;
     }
 
+    function learningRecommendationReplayTest(item = {}, candidate = null) {
+      const artifactType = String(candidate?.artifact_type || learningRecommendationArtifactType(item));
+      const combined = [item.id, item.title, item.improvement, item.reason, item.severity].join("\n").toLowerCase();
+      if (/旧价|旧价格|3送1|price|promo/.test(combined) && artifactType === "closer_script") {
+        return "回放测试：顾客问当前价格/活动时，只能用 RM150 / RM258 / RM378 和当天赠品确认口径。";
+      }
+      if (/收到货|谢谢|after.?sales|received|gratitude/.test(combined)) {
+        return "回放测试：顾客说收到货/谢谢时，只回用法、关怀或礼貌收尾，不接销售 Flow。";
+      }
+      if (/英文|english|promo/.test(combined)) {
+        return "回放测试：英文顾客问 promotion/free gift 时，整段英文回答；中文草稿必须退回。";
+      }
+      if (/赠品|gift|活动/.test(combined)) {
+        return "回放测试：顾客问赠品/活动时，列当前价梯和赠品确认边界，不回产品介绍。";
+      }
+      if (/打招呼|hi|hello|greeting/.test(combined)) {
+        return "回放测试：顾客只打招呼时，只短欢迎并问想了解什么，不硬卖、不接 Flow。";
+      }
+      if (/付款|payment|银行|card|cod/.test(combined)) {
+        return "回放测试：顾客问付款方式时，先人工确认订单/地区/渠道，不承诺可用付款方式。";
+      }
+      if (/送货|物流|delivery|shipping/.test(combined)) {
+        return "回放测试：顾客问送货/物流时，回答时效和确认边界，不硬推价格。";
+      }
+      if (/官方|shopee|lazada|marketplace/.test(combined)) {
+        return "回放测试：顾客问官方平台/链接时，先让客服确认官方链接，不乱给链接。";
+      }
+      if (/follow|没人|no.?reply|seller|售后/.test(combined)) {
+        return "回放测试：顾客投诉没人跟进或卖家没回时，真人查记录接手，不继续普通销售 Flow。";
+      }
+      if (/亲友|妹妹|家人|referral|bulk/.test(combined)) {
+        return "回放测试：顾客提到亲友/多盒购买时，查订单、优惠资格和售后记录，不当新顾客教育。";
+      }
+      if (artifactType === "faq") return "回放测试：用同一句顾客问题验证 FAQ 能回答完整；资料不足时转人工。";
+      if (artifactType === "ops_sop") return "回放测试：用同类订单/付款/售后句子验证只能查记录或审款，不能承诺已安排。";
+      if (artifactType === "flow_context_rule") return "回放测试：用短回复/上一句/emoji 验证 AI 会读上下文，不能脑补。";
+      return "回放测试：用同类真实顾客句子重跑，确认 verdict 和下一步动作都正确。";
+    }
+
     function learningRecommendationCandidate(item = {}) {
       const artifactType = learningRecommendationArtifactType(item);
       const labels = {
@@ -7518,6 +7558,7 @@
         better_reply: "",
         status: "owner_review_required",
         next_owner_action: learningRecommendationOwnerAction(item, { artifact_type: artifactType }),
+        replay_test: learningRecommendationReplayTest(item, { artifact_type: artifactType }),
         safety: "只记录学习候选；不会发送 WhatsApp，也不会开启自动 Flow。",
       };
     }
