@@ -6205,6 +6205,11 @@
       const salesPushDraft = /(RM\s*\d+|1\s*盒\s*RM|2\s*盒\s*RM|3\s*盒\s*RM|1\s*box\s*RM|2\s*boxes?\s*RM|3\s*boxes?\s*RM|哪个配套|哪一个配套|安排.*配套|抢购|搶購|主推|promotion|promo|which\s+package|arrange.*package|buy\s+now|order\s+now)/i.test(draftText);
       const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
       const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
+      const promoGiftExplicitQuestion = /(赠品|贈品|free\s*gift|gift|送什么|送什麼|有什么送|有什麼送|送哪些|送什麼东西|送什么东西)/i.test(customerSignalText);
+      const promoCampaignListQuestion = /(promotion|promo|优惠|優惠|活动|活動)/i.test(customerSignalText) && /(有什么|有什麼|有哪些|哪一些|哪些|what|any|which|list|write|一次过|一次過|全部|all|送什么|送什麼)/i.test(customerSignalText);
+      const promoGiftQuestion = promoGiftExplicitQuestion || promoCampaignListQuestion;
+      const promoGiftAnswered = /RM\s*150/i.test(draftText) && /RM\s*258/i.test(draftText) && /RM\s*378/i.test(draftText) && /(赠品|贈品|free\s*gift|gift|promotion|promo|优惠|優惠|活动|活動|当天|當天|客服|确认|確認|库存|庫存)/i.test(draftText);
+      const promoGiftMissingDraft = promoGiftQuestion && !promoGiftAnswered;
       const specialPromoText = [
         decision.reply_message,
         decision.previous_agent_text,
@@ -6324,6 +6329,9 @@
       if (englishMixedDraft) {
         return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
       }
+      if (promoGiftMissingDraft) {
+        return { tone: "fix", title: "不能过：没回答赠品", reason: "顾客问还有送什么、赠品或 free gift；草稿必须列当前 RM150/RM258/RM378 和当天赠品确认口径，不要回产品介绍或接普通 Flow。" };
+      }
       if ((afterSalesReceivedAck || gratitudeAck) && salesPushDraft) {
         return { tone: "fix", title: "不能过：售后勿继续卖", reason: "顾客已经收到货或只是感谢，草稿却在推价格/配套；只回用法、关怀或礼貌收尾，不接销售 Flow。" };
       }
@@ -6366,6 +6374,9 @@
       }
       if (legacyPromo) {
         return { tone: "review", title: "旧活动/旧图：先确认", reason: "配套B/C、4+2、年中优惠或直接瘦kg 可能来自旧活动图；不要承诺 kg，不要接普通 Flow，先按当前三档价并确认当天活动。" };
+      }
+      if (promoGiftQuestion) {
+        return { tone: "review", title: "赠品/活动可审", reason: "已回答当前三档价和赠品边界；最后按当天活动和库存确认，不乱保证。" };
       }
       if (afterSalesReceivedAck) {
         return { tone: "pass", title: "售后收货：只回关怀", reason: "收到货/货已收到类只回复用法、关怀或让客服看售后问题；不要再推价格或接销售 Flow。" };
