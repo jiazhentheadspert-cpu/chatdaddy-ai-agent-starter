@@ -3611,6 +3611,14 @@
         return;
       }
 
+      const learningRecommendation = event.target.closest("[data-record-learning-recommendation]");
+      if (learningRecommendation) {
+        event.preventDefault();
+        event.stopPropagation();
+        recordLearningRecommendation(learningRecommendation.dataset.recordLearningRecommendation);
+        return;
+      }
+
       const replyTarget = event.target.closest("[data-reply-template]");
       if (replyTarget) {
         applyReplyTemplate(replyTarget.dataset.replyTemplate);
@@ -5395,7 +5403,32 @@
 	            </div>
 	          </section>
 	        </div>
+	        ${handoffLearningRecommendationListHtml(recommendations)}
 	        ${handoffLearningCaseListHtml(needsFix)}
+	      `;
+	    }
+
+	    function handoffLearningRecommendationListHtml(recommendations = []) {
+	      if (!recommendations.length || state.role === "staff") return "";
+	      return `
+	        <section class="command-panel" data-owner-nav>
+	          <div class="command-kicker">学习建议草稿</div>
+	          <strong class="command-title">Owner 先记录，再决定是否进业务脑</strong>
+	          <div class="audit-list">
+	            ${recommendations.slice(0, 6).map((item) => {
+	              const id = String(item.id || item.title || "").trim();
+	              const candidate = learningRecommendationCandidate(item);
+	              return `
+	                <div class="audit-item">
+	                  <b>${escapeHtml(item.title || id || "学习建议")}</b>
+	                  <span>${escapeHtml(item.improvement || candidate.proposed_rule || "先记录成学习候选，之后再审核。")}</span>
+	                  <small>${escapeHtml(candidate.artifact_label || learningSeverityLabel(item.severity))}｜${Number(item.count || 0)} 次｜不会发送 WhatsApp</small>
+	                  ${id ? `<button class="quick-action" type="button" data-record-learning-recommendation="${escapeHtml(id)}">记录建议</button>` : ""}
+	                </div>
+	              `;
+	            }).join("")}
+	          </div>
+	        </section>
 	      `;
 	    }
 
@@ -7362,6 +7395,128 @@
       if (result?.recorded && result.storage === "local") return "已先存到本机浏览器";
       if (result?.ok) return "已记录";
       return "记录失败";
+    }
+
+    function learningRecommendationById(recommendationId = "") {
+      const id = String(recommendationId || "").trim();
+      const recommendations = Array.isArray(state.handoffLearningReview?.recommendations) ? state.handoffLearningReview.recommendations : [];
+      return recommendations.find((item) => String(item.id || item.title || "").trim() === id) || null;
+    }
+
+    function learningRecommendationCandidate(item = {}) {
+      const combined = [item.id, item.title, item.improvement, item.severity].join("\n").toLowerCase();
+      let artifactType = "reply_rule";
+      if (/price|promo|gift|旧价|价格|赠品|活动|信心|cta|objection/.test(combined)) artifactType = "closer_script";
+      else if (/payment|delivery|marketplace|follow|referral|seller|order|receipt|付款|送货|物流|官方|没人|亲友|售后/.test(combined)) artifactType = "ops_sop";
+      else if (/english|usage|faq|用法|英文|喝法|成分/.test(combined)) artifactType = "faq";
+      else if (/handoff|low_context|flow|上下文|转人工/.test(combined)) artifactType = "flow_context_rule";
+      const labels = {
+        faq: "FAQ",
+        closer_script: "成交话术",
+        ops_sop: "客服 SOP",
+        flow_context_rule: "Flow/上下文规则",
+        reply_rule: "回复规则",
+      };
+      return {
+        artifact_type: artifactType,
+        artifact_label: labels[artifactType] || "回复规则",
+        title: item.title || item.id || "复盘建议",
+        proposed_rule: item.improvement || "把这个重复问题整理成可审核的 FAQ/SOP/成交话术候选。",
+        customer_pattern: item.title || item.id || "复盘建议",
+        ai_gap: `AI 自检发现 ${Number(item.count || 0)} 次类似问题；severity=${item.severity || "review"}.`,
+        better_reply: "",
+        status: "owner_review_required",
+        next_owner_action: "Owner 审核后决定是否批准进业务脑，并回放同类 case。",
+        safety: "只记录学习候选；不会发送 WhatsApp，也不会开启自动 Flow。",
+      };
+    }
+
+    function learningRecommendationPayload(item = {}) {
+      const candidate = learningRecommendationCandidate(item);
+      return {
+        case_id: "",
+        customer_name: "Beyoute 复盘建议",
+        stage: "HANDOFF_LEARNING_REVIEW",
+        intent: item.id || item.title || "handoff_learning_recommendation",
+        status: "reviewed",
+        source: "dashboard_handoff_learning_review",
+        feedback: `复盘建议：${item.title || item.id || "学习建议"}`,
+        generated_rule: candidate.proposed_rule,
+        customer_message: Array.isArray(item.example_case_ids) && item.example_case_ids.length
+          ? `样本 Case：${item.example_case_ids.slice(0, 6).join(", ")}`
+          : "",
+        suggested_reply: "",
+        learning_candidate: candidate,
+        recorded_from: "dashboard_handoff_learning_review",
+        context: {
+          recommendation_id: item.id || "",
+          count: Number(item.count || 0),
+          severity: item.severity || "",
+          example_case_ids: Array.isArray(item.example_case_ids) ? item.example_case_ids.slice(0, 12) : [],
+          dashboard_role: state.role,
+          sends_messages: false,
+          uses_openai: false,
+        },
+      };
+    }
+
+    async function writeLearningRecommendation(item = {}) {
+      const payload = learningRecommendationPayload(item);
+      if (state.demoMode || !apiUrlEl.value.trim() || !adminTokenEl.value.trim()) {
+        const localRecord = storeLocalCaseOptimizerLearning(payload);
+        return { ok: true, recorded: true, storage: "local", learning_note: localRecord };
+      }
+
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      try {
+        const response = await fetch(`${api}/api/hermas/projects/${encodeURIComponent(project)}/learning-notes`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...authHeaders(adminTokenEl.value.trim()),
+          },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.ok === false) {
+          const localRecord = storeLocalCaseOptimizerLearning(payload);
+          return { ok: false, recorded: true, storage: "local", learning_note: localRecord, error: result.error || `HTTP ${response.status}` };
+        }
+        return result;
+      } catch (error) {
+        const localRecord = storeLocalCaseOptimizerLearning(payload);
+        return { ok: false, recorded: true, storage: "local", learning_note: localRecord, error: error.message || String(error) };
+      }
+    }
+
+    async function recordLearningRecommendation(recommendationId = "") {
+      if (state.role === "staff" || state.actionBusy) return;
+      const recommendation = learningRecommendationById(recommendationId);
+      if (!recommendation) {
+        showToast("找不到这条学习建议。");
+        return;
+      }
+      const candidate = learningRecommendationCandidate(recommendation);
+      const confirmed = state.demoMode || window.confirm(
+        `确认把这条复盘建议记录成学习候选？\n\n类型：${candidate.artifact_label}\n\n只写学习记录，不会发送 WhatsApp，也不会批准进业务脑。`
+      );
+      if (!confirmed) return;
+
+      try {
+        const result = await writeLearningRecommendation(recommendation);
+        const statusText = learningRecordStatusText(result);
+        if (result.learning_note) {
+          state.learningNotes = state.learningNotes || { ok: true, learning_notes: [] };
+          const current = Array.isArray(state.learningNotes.learning_notes) ? state.learningNotes.learning_notes : [];
+          state.learningNotes.learning_notes = [result.learning_note, ...current].slice(0, 6);
+        }
+        addAuditEvent("case_learning_note", `${recommendation.title || recommendation.id || "复盘建议"}：${statusText}`);
+        showToast(`学习候选：${statusText}`);
+        render();
+      } catch (error) {
+        alert(`记录学习建议失败：${error.message || error}`);
+      }
     }
 
     async function recordCaseOptimizerFeedback() {
