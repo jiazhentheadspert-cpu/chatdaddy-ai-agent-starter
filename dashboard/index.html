@@ -6203,6 +6203,18 @@
         item.manual_reply_text
       ].filter(Boolean).join(" ");
       const paymentMethodIssue = intent.includes("payment_method") || /(没有货到付款|沒有貨到付款|不能\s*cod|可以\s*cod|有\s*cod|cash\s+on\s+delivery|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card))/i.test(paymentMethodText);
+      const orderUpdateText = [
+        intent,
+        action,
+        decision.reply_message,
+        decision.operator_instruction,
+        decision.headline,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const orderUpdateRequest = intent.includes("order_update") || /(地址写错|地址寫錯|电话写错|電話寫錯|号码写错|號碼寫錯|换地址|換地址|改地址|换电话|換電話|改电话|改電話|change\s+(?:my\s+)?address|update\s+(?:my\s+)?address|wrong\s+address|change\s+(?:my\s+)?phone|update\s+(?:my\s+)?phone|wrong\s+phone|wrong\s+contact)/i.test(orderUpdateText);
 
       if (status === "purchase_confirmed") {
         return { tone: "pass", title: "已成交，进复盘", reason: "收到付款或 COD 确认后只保留记录，不再推销售话术。" };
@@ -6233,6 +6245,9 @@
       }
       if (paymentMethodIssue) {
         return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡或线上付款要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
+      }
+      if (orderUpdateRequest) {
+        return { tone: "handoff", title: "改资料先查单", reason: "顾客要改地址、电话或收件资料；先查订单是否已建立或出货，不要重复下单，也不要承诺已改好。" };
       }
       if (status === "order" || action === "collect_order" || action === "review_receipt" || intent.includes("receipt") || intent.includes("order")) {
         return { tone: "order", title: "订单/审款，不确认出货", reason: "只收集资料或核对付款截图；确认无误后才继续安排，不自动承诺已付款成功或已出货。" };
