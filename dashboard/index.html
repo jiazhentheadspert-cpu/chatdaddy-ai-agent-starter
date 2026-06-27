@@ -6274,6 +6274,18 @@
         item.manual_reply_text
       ].filter(Boolean).join(" ");
       const offlineAvailabilityQuestion = intent.includes("offline_availability") || /(药店|实体店|实体門店|門市|门市|門店|门店|线下|線下|哪里买|哪裡買|哪里有卖|哪裡有賣|有卖吗|有賣嗎|现货|現貨|柔佛|古来|johor|kulai|pharmacy|store|outlet|retail|where\s+are\s+(?:you|u)\s+located|where\s+(?:are\s+)?(?:you|u)\s+based|your\s+location|location\?|located\?)/i.test(offlineAvailabilityText);
+      const marketplaceOfficialText = [
+        intent,
+        action,
+        decision.reply_message,
+        decision.operator_instruction,
+        decision.headline,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const marketplaceOfficialQuestion = intent.includes("marketplace_official") || /(?:shopee|lazada).{0,50}(?:official|official\s+page|page|link|store|shop|mall)|(?:official|official\s+page|page|link|store|shop|mall).{0,50}(?:shopee|lazada)|官方.{0,30}(?:shopee|lazada)|(?:shopee|lazada).{0,30}(?:官方|旗舰店|旗艦店|店铺|店舖|链接|連結)/i.test(marketplaceOfficialText);
 
       if (status === "purchase_confirmed") {
         return { tone: "pass", title: "已成交，进复盘", reason: "收到付款或 COD 确认后只保留记录，不再推销售话术。" };
@@ -6310,6 +6322,9 @@
       }
       if (crossChannelContactRequest) {
         return { tone: "handoff", title: "转 WhatsApp 先确认", reason: "顾客想转 WhatsApp 联系；先确认号码和同意跟进，不要继续普通教育 Flow，也不要自动联系未确认号码。" };
+      }
+      if (marketplaceOfficialQuestion) {
+        return { tone: "handoff", title: "官方平台先确认", reason: "顾客问 Shopee/Lazada 官方页、店铺或链接；没有确认官方链接时，不要回产品介绍或乱给链接，先人工确认。" };
       }
       if (offlineAvailabilityQuestion) {
         return { tone: "handoff", title: "地点/现货先确认", reason: "顾客问所在地、门店、药店或现货；没有实时门店/库存资料时，不要乱讲有卖或没卖，先人工确认。" };
