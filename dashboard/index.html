@@ -2982,7 +2982,7 @@
 
       <div class="stats" id="statsPanel">
         <div class="stat"><b id="statAll">0</b><span>全部</span></div>
-        <div class="stat"><b id="statApproval">0</b><span>批准</span></div>
+        <div class="stat"><b id="statApproval">0</b><span>可批准</span></div>
         <div class="stat"><b id="statHuman">0</b><span>人工</span></div>
         <div class="stat"><b id="statOrder">0</b><span>订单</span></div>
         <div class="stat"><b id="statAuto">0</b><span>自动</span></div>
@@ -3013,7 +3013,7 @@
           <div class="filters">
             <button class="pill active" data-filter="all">全部</button>
             <button class="pill" data-filter="needs_attention">待处理</button>
-            <button class="pill" data-filter="approval_required">待批准</button>
+            <button class="pill" data-filter="approval_required">可批准</button>
             <button class="pill" data-filter="return_ai">退回 AI</button>
             <button class="pill" data-filter="human_required">要人工</button>
             <button class="pill" data-filter="pending_manual_reply">待补回复</button>
@@ -4825,7 +4825,7 @@
       const labels = {
         all: ["全部", counts.total],
         needs_attention: ["待处理", counts.needs],
-        approval_required: ["待批准", counts.approval],
+        approval_required: ["可批准", counts.approval],
         return_ai: ["退回 AI", counts.returnAi],
         human_required: ["要人工", counts.human],
         pending_manual_reply: ["待补回复", counts.pendingManualReplies],
@@ -4960,6 +4960,7 @@
       if (filter === "records") return cases.filter((item) => ["auto_sent", "sent", "handoff_done", "returned_to_ai", "manual_resolved", "send_failed", "purchase_confirmed"].includes(item.status));
       if (filter === "human_required") return cases.filter((item) => ["human_required", "handoff_done", "manual_resolved"].includes(item.status));
       if (filter === "return_ai") return cases.filter(needsReturnAiBeforeApproval);
+      if (filter === "approval_required") return cases.filter(isApprovalReadyCase);
       if (filter === "pending_manual_reply") return cases.filter(needsManualReplyAfterHandoff);
       if (filter === "needs_attention") {
         return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status) || needsManualReplyAfterHandoff(item));
@@ -5024,7 +5025,7 @@
       const queryText = state.query ? ` · 搜索「${state.query}」` : "";
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新" : "名字";
       const staffGuide = state.role === "staff"
-        ? ` · 先人工 ${counts.human || 0}，退回 AI ${counts.returnAi || 0}，补回复 ${counts.pendingManualReplies || 0}，再批准 ${counts.approval || 0}`
+        ? ` · 先人工 ${counts.human || 0}，退回 AI ${counts.returnAi || 0}，补回复 ${counts.pendingManualReplies || 0}，可批准 ${counts.approval || 0}`
         : "";
       $("queueSummary").textContent = `${visibleCount}/${filteredCount} 位${queryText} · ${sortText}${staffGuide}`;
     }
@@ -5044,7 +5045,7 @@
               <strong class="command-title">${escapeHtml(next.title)}</strong>
               <div class="priority-lanes">
                 ${laneCard("risk", counts.human, "人工", "")}
-                ${laneCard("warn", counts.approval, "批准", "")}
+                ${laneCard("warn", counts.approval, "可批准", "")}
                 ${laneCard("blue", counts.orders, "订单", "")}
               </div>
             </div>
@@ -5507,7 +5508,7 @@
           </div>
           <div class="ops-command-grid">
             ${commandMetric(counts.needs, "处理", "")}
-            ${commandMetric(counts.approval, "批准", "")}
+            ${commandMetric(counts.approval, "可批准", "")}
             ${commandMetric(oldest.text, "等待", oldest.note)}
             ${commandMetric(learned, "学习", "")}
           </div>
@@ -5519,7 +5520,7 @@
       if (counts.failed > 0) return "先检查发送失败";
       if (counts.human > 0) return "先处理高风险顾客";
       if (counts.returnAi > 0) return "先退回不能过草稿";
-      if (counts.approval > 0) return "先审核 AI 建议";
+      if (counts.approval > 0) return "审核可批准回复";
       if (counts.orders > 0) return "先提交订单";
       return "运行正常";
     }
@@ -5845,7 +5846,8 @@
     }
 
     function countCases(cases) {
-      const approval = cases.filter((item) => item.status === "approval_required").length;
+      const approvalTotal = cases.filter((item) => item.status === "approval_required").length;
+      const approval = cases.filter(isApprovalReadyCase).length;
       const returnAi = cases.filter(needsReturnAiBeforeApproval).length;
       const humanOpen = cases.filter((item) => item.status === "human_required").length;
       const handoffDone = cases.filter((item) => item.status === "handoff_done").length;
@@ -5857,6 +5859,7 @@
       return {
         total: cases.length,
         approval,
+        approvalTotal,
         returnAi,
         human,
         orders,
@@ -5864,7 +5867,7 @@
         failed,
         handoffDone,
         pendingManualReplies,
-        needs: approval + humanOpen + pendingManualReplies + orders + failed,
+        needs: approval + returnAi + humanOpen + pendingManualReplies + orders + failed,
       };
     }
 
@@ -5882,11 +5885,11 @@
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
-          body: "只显示待批准、需人工、待补人工回复、订单和发送失败。",
+          body: "只显示可批准、需人工、要退回 AI、待补人工回复、订单和发送失败。",
         },
         approval_required: {
-          title: `${counts.approval} 条回复待批准`,
-          body: "看 AI 建议，确认没问题就批准发送。",
+          title: `${counts.approval} 条回复可审核批准`,
+          body: `不含 ${counts.returnAi || 0} 条要退回 AI 的坏草稿；打开详情看完整回复后才发送。`,
         },
         return_ai: {
           title: `${counts.returnAi || 0} 条草稿要退回 AI`,
@@ -6381,6 +6384,10 @@
       const closer = closerVerdict(item);
       const approvalGuard = approvalGuardForVerdict(closer);
       return approvalGuard.blocked && closer.tone === "fix";
+    }
+
+    function isApprovalReadyCase(item = {}) {
+      return String(item.status || "") === "approval_required" && !needsReturnAiBeforeApproval(item);
     }
 
     function closerVerdict(item = {}) {
