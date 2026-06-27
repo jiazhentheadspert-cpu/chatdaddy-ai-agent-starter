@@ -2277,6 +2277,38 @@
       line-height: 1.45;
     }
 
+    .closer-verdict {
+      display: grid;
+      gap: 3px;
+      margin-top: 12px;
+      padding-left: 10px;
+      border-left: 3px solid rgba(0,183,216,.68);
+    }
+
+    .closer-verdict span {
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .closer-verdict b {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .closer-verdict p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .closer-verdict.pass { border-left-color: rgba(16,185,129,.9); }
+    .closer-verdict.review { border-left-color: rgba(245,158,11,.9); }
+    .closer-verdict.handoff,
+    .closer-verdict.fix { border-left-color: rgba(239,68,68,.9); }
+    .closer-verdict.order { border-left-color: rgba(59,130,246,.9); }
+
     .action-card .btn {
       margin-top: 12px;
       min-height: 46px;
@@ -2616,11 +2648,14 @@
       display: none;
     }
 
-    body.staff-mode [data-owner-nav],
-    body.staff-mode [data-owner-section],
-    body.staff-mode .owner-meter-row {
-      display: none !important;
-    }
+	    body.staff-mode [data-owner-nav],
+	    body.staff-mode [data-owner-section],
+	    body.staff-mode .owner-meter-row,
+	    body.staff-mode #pauseAgentBtn,
+	    body.staff-mode #learnBtn,
+	    body.staff-mode #demoBar {
+	      display: none !important;
+	    }
 
     @media (max-width: 1180px) and (min-width: 821px) {
       body.staff-mode .app-shell {
@@ -2664,7 +2699,7 @@
 
       <nav class="side-nav" aria-label="主导航">
         <div class="side-section">AI AGENT 板块</div>
-        <button data-side-key="configure" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
+	        <button data-side-key="configure" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1" data-owner-nav>
           <span class="side-label"><b class="side-code">CF</b><em>Configure</em></span>
           <small id="navConfigureBadge">✅</small>
         </button>
@@ -2675,17 +2710,25 @@
 
         <div class="side-section">AS USER · CHATDADDY</div>
         <div class="side-note">客服日常只需要看第 4 项；一次性设置完成后左边会打勾。</div>
+        <button data-side-key="channel_whatsapp" data-side-filter="needs_attention" data-workspace-target="cases" data-channel-nav>
+          <span class="side-label"><b class="side-code">WA</b><em>WhatsApp</em></span>
+          <small id="navWhatsAppBadge" class="channel-live">待接</small>
+        </button>
+        <button data-side-key="channel_line" data-side-filter="needs_attention" data-workspace-target="cases" data-channel-nav>
+          <span class="side-label"><b class="side-code">LN</b><em>LINE</em></span>
+          <small id="navLineBadge" class="channel-pending">待接</small>
+        </button>
 
-        <div class="side-section">一次性设置</div>
-        <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
+	        <div class="side-section" data-owner-section>一次性设置</div>
+	        <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1" data-owner-nav>
           <span class="side-label"><b class="side-code">1</b><em>ChatDaddy Connect</em></span>
           <small id="navStep1Badge">✅</small>
         </button>
-        <button data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
+	        <button data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2" data-owner-nav>
           <span class="side-label"><b class="side-code">2</b><em>Reply SOP</em></span>
           <small id="navStep2Badge">✅</small>
         </button>
-        <button data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
+	        <button data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3" data-owner-nav>
           <span class="side-label"><b class="side-code">3</b><em>FAQ Upload</em></span>
           <small id="navStep3Badge">✅</small>
         </button>
@@ -2701,7 +2744,7 @@
           <span class="side-label"><b class="side-code">6</b><em>Recommendation</em></span>
           <small id="navStep6Badge">中</small>
         </button>
-        <button data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
+	        <button data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7" data-owner-nav>
           <span class="side-label"><b class="side-code">7</b><em>Default Segment</em></span>
           <small id="navStep7Badge">待</small>
         </button>
@@ -2871,6 +2914,7 @@
             <div class="case-optimizer-actions">
               <button class="btn" id="caseOptimizerDraftBtn" type="button">整理规则</button>
               <button class="btn primary" id="caseOptimizerRecordBtn" type="button">记录优化</button>
+              <button class="btn" id="caseOptimizerApplyBtn" type="button">批准进业务脑</button>
             </div>
             <div class="case-optimizer-output" id="caseOptimizerOutput">写下这个 Case 哪里错了，我会整理成可学习规则。</div>
           </div>
@@ -2880,10 +2924,17 @@
             <span>Agent Action</span>
             <b id="actionTitle">按「批准发送」</b>
             <p id="actionReason">确认回复后发送。</p>
+            <div class="closer-verdict review" id="closerVerdictBox">
+              <span id="closerVerdictLabel">成交高手判定</span>
+              <b id="closerVerdictTitle">先审再发</b>
+              <p id="closerVerdictReason">确认文案、阶段和 CTA 后再批准。</p>
+            </div>
             <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
           </div>
           <div class="side-actions">
             <button class="btn" id="learnBtn">同类少审</button>
+            <button class="btn" id="manualResolveBtn">记录人工回复</button>
+            <button class="btn" id="returnAiBtn">退回 AI</button>
             <button class="btn danger" id="handoffBtn">转人工</button>
           </div>
           <div class="purchase-panel" id="purchasePanel">
@@ -2930,9 +2981,11 @@
       selected: new Set(),
       settings: null,
       auditEvents: [],
-      projectVersions: null,
-      qualityReview: null,
-      pendingCaseId: null,
+	      projectVersions: null,
+	      qualityReview: null,
+	      handoffLearningReview: null,
+	      learningNotes: null,
+	      pendingCaseId: null,
       deepLinkOpened: false,
       loading: false,
       actionBusy: false,
@@ -3292,10 +3345,13 @@
     });
     $("approveBtn").addEventListener("click", approveActive);
     $("learnBtn").addEventListener("click", learnActive);
+    $("manualResolveBtn").addEventListener("click", manualResolveActive);
+    $("returnAiBtn").addEventListener("click", returnAiActive);
     $("handoffBtn").addEventListener("click", handoffActive);
     $("markPurchaseBtn").addEventListener("click", markPurchaseActive);
     $("caseOptimizerDraftBtn").addEventListener("click", draftCaseOptimizerRule);
     $("caseOptimizerRecordBtn").addEventListener("click", recordCaseOptimizerFeedback);
+    $("caseOptimizerApplyBtn").addEventListener("click", applyCaseOptimizerCandidate);
     $("bulkMarkSeen").addEventListener("click", () => bulkCaseAction("mark_seen"));
     $("bulkHandoff").addEventListener("click", () => bulkCaseAction("handoff"));
     $("bulkClear").addEventListener("click", clearSelection);
@@ -3572,6 +3628,11 @@
       const label = mainButton?.querySelector(".side-label em");
       const code = mainButton?.querySelector(".side-code");
       if (!label || !code) return;
+      if (state.role === "staff") {
+        code.textContent = "Q";
+        label.textContent = "顾客队列";
+        return;
+      }
       code.textContent = "CD";
       code.style.display = "";
       label.textContent = "Chat Window Decision";
@@ -3604,6 +3665,7 @@
         records: "step_5",
         human_required: "step_4",
         handoff_done: "step_4",
+        returned_to_ai: "step_5",
         approval_required: "step_4",
         needs_attention: "ai_reply",
       };
@@ -3843,7 +3905,7 @@
 
     function casesForRole(cases) {
       if (state.role !== "staff") return cases;
-      return cases.filter((item) => ["approval_required", "human_required", "handoff_done", "order", "send_failed", "auto_sent", "sent", "sending", "purchase_confirmed"].includes(item.status));
+      return cases.filter((item) => ["approval_required", "human_required", "handoff_done", "returned_to_ai", "manual_resolved", "order", "send_failed", "auto_sent", "sent", "sending", "purchase_confirmed"].includes(item.status));
     }
 
     function setView(view) {
@@ -4029,19 +4091,25 @@
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
       if (!api || !token || state.role === "staff") {
-        state.projectVersions = null;
-        state.qualityReview = null;
-        return;
-      }
-      const projectPath = `/api/hermas/projects/${encodeURIComponent(project)}`;
-      const headers = authHeaders(token);
-      const [versions, quality] = await Promise.all([
-        fetchJsonSafe(`${api}${projectPath}/package/versions?limit=5`, { headers }),
-        fetchJsonSafe(`${api}${projectPath}/quality-review?limit=5&scan_limit=500&real_only=1`, { headers }),
-      ]);
-      state.projectVersions = versions?.ok ? versions : null;
-      state.qualityReview = quality?.ok ? quality : null;
-    }
+	        state.projectVersions = null;
+	        state.qualityReview = null;
+	        state.handoffLearningReview = null;
+	        state.learningNotes = null;
+	        return;
+	      }
+	      const projectPath = `/api/hermas/projects/${encodeURIComponent(project)}`;
+	      const headers = authHeaders(token);
+	      const [versions, quality, handoffLearning, learningNotes] = await Promise.all([
+	        fetchJsonSafe(`${api}${projectPath}/package/versions?limit=5`, { headers }),
+	        fetchJsonSafe(`${api}${projectPath}/quality-review?limit=5&scan_limit=500&real_only=1`, { headers }),
+	        fetchJsonSafe(`${api}${projectPath}/handoff-learning-review?limit=8&scan_limit=500&real_only=1`, { headers }),
+	        fetchJsonSafe(`${api}${projectPath}/learning-notes?limit=6`, { headers }),
+	      ]);
+	      state.projectVersions = versions?.ok ? versions : null;
+	      state.qualityReview = quality?.ok ? quality : null;
+	      state.handoffLearningReview = handoffLearning?.ok ? handoffLearning : null;
+	      state.learningNotes = learningNotes?.ok ? learningNotes : null;
+	    }
 
     async function fetchJsonSafe(url, options = {}) {
       try {
@@ -4166,7 +4234,7 @@
 
     function isDashboardVisibleApproval(item = {}) {
       const status = String(item.status || "").toLowerCase();
-      return ["pending", "sent", "send_failed", "sending", "rejected", "purchase_confirmed"].includes(status);
+      return ["pending", "sent", "send_failed", "sending", "rejected", "manual_resolved", "purchase_confirmed"].includes(status);
     }
 
     function approvalToCase(item, contactNames = {}) {
@@ -4175,18 +4243,21 @@
       const inbound = item.inbound || {};
       const customer = item.customer || {};
       const reply = item.reply || {};
+      const previousAgentText = previousAgentTextFromApproval(item, signals);
       const risk = signals.risk_level || signals.risk || item.risk_level || "medium";
       const stage = reply.stage_after || signals.stage || signals.stage_key || "CLOSING";
       const status = approvalStatus(item);
       const words = approvalWords(item, signals, action);
       const at = item.updated_at || item.created_at || inbound.message_at || new Date().toISOString();
-      const finalReply = item.final_text || reply.text || "";
-      const sentLike = ["auto_sent", "sent", "send_failed"].includes(status);
+      const finalReply = item.final_text || item.manual_reply_text || reply.text || "";
+      const originalAiReply = (item.manual_reply_text || item.final_text) ? (reply.text || "") : "";
+      const manualLearningCandidate = item.manual_learning_candidate || item.manualLearningCandidate || item.manual_resolution?.learning_candidate || null;
+      const sentLike = ["auto_sent", "sent", "send_failed", "manual_resolved"].includes(status);
       const contactDigits = approvalContactDigits(item);
       const contactName = customerDisplayNameFromApproval(item, contactNames);
       const history = [
         {
-          type: status === "purchase_confirmed" ? "case_purchase_confirmed" : status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : status === "handoff_done" ? "handoff_done" : status === "sending" ? "reply_sending" : "ai_decision",
+          type: status === "purchase_confirmed" ? "case_purchase_confirmed" : status === "manual_resolved" ? "manual_resolved" : status === "returned_to_ai" ? "returned_to_ai" : status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : status === "handoff_done" ? "handoff_done" : status === "sending" ? "reply_sending" : "ai_decision",
           at,
           note: approvalReason(item, status, action),
         },
@@ -4207,6 +4278,12 @@
         });
       }
       const messages = [
+        ...(previousAgentText ? [{
+          id: `${item.id}-previous-agent`,
+          direction: "outbound",
+          text: previousAgentText,
+          at: item.created_at || inbound.message_at || at,
+        }] : []),
         {
           id: inbound.provider_message_id || inbound.event_id || `${item.id}-in`,
           direction: "inbound",
@@ -4238,17 +4315,19 @@
         updated_at: at,
         created_at: item.created_at || at,
         word_cloud: words,
-        latest_decision: {
-          reply_message: finalReply,
-          intent: signals.intent || signals.customer_intent || action.type || "approval",
-          stage: status === "handoff_done" ? "HUMAN" : stage,
-          risk,
-          action: approvalAction(item),
-          send_now: status === "auto_sent",
-          reason: approvalReason(item, status, action),
-          keywords: words,
-          source: reply.model || "live_agent",
-        },
+	        latest_decision: {
+	          reply_message: finalReply,
+	          intent: signals.intent || signals.customer_intent || action.type || "approval",
+	          stage: status === "handoff_done" || status === "returned_to_ai" || status === "manual_resolved" ? "HUMAN" : stage,
+	          risk,
+	          action: approvalAction(item),
+	          send_now: status === "auto_sent",
+	          reason: approvalReason(item, status, action),
+	          keywords: words,
+	          previous_agent_text: previousAgentText,
+	          original_ai_reply: originalAiReply,
+	          source: reply.model || "live_agent",
+	        },
         messages,
         history,
         purchase: item.purchase || null,
@@ -4260,14 +4339,19 @@
         payment_status: item.payment_status || item.purchase?.payment_status || null,
         order_status: item.order_status || item.purchase?.order_status || null,
         meta_capi_purchase_result: item.meta_capi_purchase_result || item.purchase?.meta_capi || null,
-        purchase_sync_result: item.purchase_sync_result || null,
-        raw_approval: item,
-      };
-    }
+	        purchase_sync_result: item.purchase_sync_result || null,
+	        manual_reply_text: item.manual_reply_text || null,
+	        manual_resolve_reason: item.manual_resolve_reason || null,
+	        manual_learning_candidate: manualLearningCandidate,
+	        original_ai_reply: originalAiReply,
+	        raw_approval: item,
+	      };
+	    }
 
-    function approvalStatus(item) {
-      if (item.status === "purchase_confirmed") return "purchase_confirmed";
-      if (item.status === "rejected") return "handoff_done";
+	    function approvalStatus(item) {
+		      if (item.status === "purchase_confirmed") return "purchase_confirmed";
+		      if (item.status === "manual_resolved") return "manual_resolved";
+		      if (item.status === "rejected") return isReturnedToAiApproval(item) ? "returned_to_ai" : "handoff_done";
       if (item.status === "sending") return "sending";
       if (item.status === "sent" && (item.auto_reply || item.category === "auto" || item.decision?.delivery?.mode === "auto_send" || item.approved_by === "agent_auto_send")) return "auto_sent";
       if (item.status === "sent") return "sent";
@@ -4280,7 +4364,7 @@
     function approvalAction(item) {
       const type = item.action?.type || "";
       if (item.status === "purchase_confirmed") return "mark_purchase";
-      if (item.status === "rejected") return "handoff_done";
+      if (item.status === "rejected") return isReturnedToAiApproval(item) ? "return_ai" : "handoff_done";
       if (item.status === "sent" || item.category === "auto") return "auto_reply";
       if (item.category === "handoff" || item.category === "human" || type === "ask_team") return "ask_human";
       if (item.category === "ops" || item.category === "order" || /order|receipt|payment/i.test(type)) return "collect_order";
@@ -4291,17 +4375,33 @@
       if (status === "auto_sent") return "AI 已自动回复顾客；这里保留已发送内容，方便客服追踪。";
       if (status === "sent") return "这条回复已发送给顾客。";
       if (status === "purchase_confirmed") return `已确认成交${item.amount_rm || item.purchase?.amount_rm ? ` RM ${item.amount_rm || item.purchase?.amount_rm}` : ""}。`;
+      if (status === "manual_resolved") return item.manual_resolve_reason || "客服已手动回复，AI 没有发送。";
       if (status === "send_failed") return item.send_result?.reason || item.send_result?.error || "自动/批准发送失败，需要检查。";
+      if (status === "returned_to_ai") return returnAiSummary(item);
       if (status === "handoff_done") return handoffSummary(item);
       if (status === "sending") return "这条回复正在发送中，先不要重复操作。";
       return item.decision?.ui?.operator_instruction || action.operator_instruction || action.label || "等待确认。";
+    }
+
+    function isReturnedToAiApproval(item = {}) {
+      const handoff = item.handoff_result || {};
+      const reason = String(item.rejection_reason || handoff.reason || "").toLowerCase();
+      return handoff.mode === "internal_return_ai" ||
+        item.return_ai === true ||
+        item.returnAi === true ||
+        /returned to ai|退回\s*ai|重新生成|重写|重寫/.test(reason);
+    }
+
+    function returnAiSummary(item = {}) {
+      const reason = item.rejection_reason || item.handoff_result?.reason || "客服已退回 AI 重新生成。";
+      return `${reason} 当前建议没有发送给顾客；等待 AI 重写或 Owner 复盘。`;
     }
 
     function handoffSummary(item = {}) {
       const handoff = item.handoff_result || {};
       const reason = item.rejection_reason || "客服已选择转人工，不发送 AI 建议。";
       if (handoff.attempted && handoff.sent) return `${reason} 已同步到外部人工处理入口。`;
-      if (handoff.attempted && !handoff.sent) return `${reason} 已留处理记录；人工入口同步失败，请在客服 Inbox 手动接手。`;
+      if (handoff.attempted && !handoff.sent) return `${reason} 已留处理记录；人工入口同步失败，请先看 Dashboard 记录，必要时再打开渠道 Inbox 查证。`;
       if (handoff.reason) return `${reason} 已留处理记录；人工入口还没配置完成。`;
       return `${reason} 已留处理记录。`;
     }
@@ -4625,8 +4725,8 @@
     function filterCases(cases, filter) {
       if (filter === "all") return cases;
       if (filter === "auto") return cases.filter((item) => ["auto", "auto_sent"].includes(item.status));
-      if (filter === "records") return cases.filter((item) => ["auto_sent", "sent", "handoff_done", "send_failed", "purchase_confirmed"].includes(item.status));
-      if (filter === "human_required") return cases.filter((item) => ["human_required", "handoff_done"].includes(item.status));
+      if (filter === "records") return cases.filter((item) => ["auto_sent", "sent", "handoff_done", "returned_to_ai", "manual_resolved", "send_failed", "purchase_confirmed"].includes(item.status));
+      if (filter === "human_required") return cases.filter((item) => ["human_required", "handoff_done", "manual_resolved"].includes(item.status));
       if (filter === "needs_attention") {
         return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status));
       }
@@ -4671,6 +4771,7 @@
         send_failed: 82,
         approval_required: 72,
         order: 68,
+        returned_to_ai: 10,
         auto: 18,
         purchase_confirmed: 6,
         sent: 8,
@@ -4774,9 +4875,9 @@
         ${projectSettingsHtml()}
       `;
 
-      $("learningView").innerHTML = setupStepScreenHtml(setupStep, cases, counts, learned) || `
-        <div class="command-grid">
-          <section class="command-panel accent">
+	      const learningBaseHtml = setupStepScreenHtml(setupStep, cases, counts, learned) || `
+	        <div class="command-grid">
+	          <section class="command-panel accent">
             <div class="command-kicker">复盘</div>
             <strong class="command-title">${learned} 条学习记录</strong>
             <div class="compact-list">
@@ -4797,12 +4898,25 @@
             <div class="audit-list">
               ${recent.map(auditHtml).join("") || `<div class="audit-item"><b>暂无记录</b></div>`}
             </div>
-          </section>
-        </div>
-      `;
-    }
+	          </section>
+	        </div>
+	      `;
+	      $("learningView").innerHTML = `${handoffLearningReviewHtml()}${learningNotesHtml()}${learningBaseHtml}`;
+	    }
 
-    function setupStepScreenHtml(step, cases, counts, learned) {
+	    function previousAgentTextFromApproval(item = {}, signals = {}) {
+	      return String(
+	        signals.previous_agent_text ||
+	        signals.previousAgentText ||
+	        item.decision?.previous_agent_text ||
+	        item.decision?.previousAgentText ||
+	        item.latest_decision?.previous_agent_text ||
+	        item.latest_decision?.previousAgentText ||
+	        ""
+	      ).trim();
+	    }
+
+	    function setupStepScreenHtml(step, cases, counts, learned) {
       const total = counts.total || 0;
       const pending = counts.needs || 0;
       const auto = counts.auto || 0;
@@ -4906,10 +5020,125 @@
             ${stepHtml("优化", "出错的 Case 在复盘里改规则。")}
           </div>
         </section>
-      `;
-    }
+	      `;
+	    }
 
-    function productionBoundaryHtml() {
+	    function handoffLearningReviewHtml() {
+	      if (state.role === "staff") return "";
+	      const review = state.handoffLearningReview;
+	      if (!review) {
+	        return `
+	          <div class="command-grid" data-owner-nav>
+	            <section class="command-panel">
+	              <div class="command-kicker">AI 复盘</div>
+	              <strong class="command-title">等待复盘资料</strong>
+	              <p class="command-copy">连接真实系统后，这里会显示 AI 从转人工、旧草稿和真实队列里抓到的不能过模式。</p>
+	            </section>
+	          </div>
+	        `;
+	      }
+	      const summary = review.summary || {};
+	      const needsFix = Array.isArray(review.needs_fix) ? review.needs_fix : [];
+	      const canPass = Array.isArray(review.can_pass) ? review.can_pass : [];
+	      const recommendations = Array.isArray(review.recommendations) ? review.recommendations : [];
+	      return `
+	        <div class="command-grid" data-owner-nav>
+	          <section class="command-panel accent">
+	            <div class="command-kicker">AI 自我复盘</div>
+	            <strong class="command-title">${Number(summary.needs_fix_count || needsFix.length)} 个不能直接过</strong>
+	            <div class="compact-list">
+	              ${compactRow("可过", `${Number(summary.can_pass_count || canPass.length)} 个判断`, "Pass")}
+	              ${compactRow("要改", `${Number(summary.needs_fix_count || needsFix.length)} 个问题`, "Fix")}
+	              ${compactRow("转人工", `${Number(summary.human_or_handoff_cases || 0)} 个样本`, "Learn")}
+	            </div>
+	          </section>
+	          <section class="command-panel">
+	            <div class="command-kicker">不能过</div>
+	            <strong class="command-title">先退回 AI 或补资料</strong>
+	            <div class="compact-list">
+	              ${needsFix.slice(0, 4).map((item) => compactRow(learningSeverityLabel(item.severity), item.title || item.id || "需要复盘", item.category || "case")).join("") || compactRow("OK", "暂时没有明显不能过模式", "Pass")}
+	            </div>
+	          </section>
+	          <section class="command-panel">
+	            <div class="command-kicker">建议批准</div>
+	            <strong class="command-title">变成 FAQ / SOP / 测试</strong>
+	            <div class="compact-list">
+	              ${recommendations.slice(0, 4).map((item) => compactRow(`${item.count || 0} 次`, item.title || item.id || "学习建议", item.artifact_label || learningSeverityLabel(item.severity))).join("") || compactRow("待观察", "还没有学习建议", "Learn")}
+	            </div>
+	          </section>
+	        </div>
+	        ${handoffLearningCaseListHtml(needsFix)}
+	      `;
+	    }
+
+	    function handoffLearningCaseListHtml(needsFix = []) {
+	      if (!needsFix.length || state.role === "staff") return "";
+	      return `
+	        <section class="command-panel" data-owner-nav>
+	          <div class="command-kicker">样本 Case</div>
+	          <strong class="command-title">这些草稿不要直接批准</strong>
+	          <div class="audit-list">
+	            ${needsFix.slice(0, 6).map((item) => `
+	              <div class="audit-item">
+	                <b>${escapeHtml(item.title || item.id || "需要复盘")}</b>
+	                <span>${escapeHtml(handoffLearningCasePreview(item))}</span>
+	                <small>${escapeHtml(handoffLearningCaseLearningHint(item))}</small>
+	              </div>
+	            `).join("")}
+	          </div>
+	        </section>
+	      `;
+	    }
+
+	    function handoffLearningCasePreview(item = {}) {
+	      const candidate = item.learning_candidate || {};
+	      const manualReply = String(item.manual_reply_text || candidate.better_reply || "").trim();
+	      const customerText = String(item.customer_text || "").trim();
+	      if (manualReply) return `人工回复：${manualReply.slice(0, 120)}`;
+	      if (customerText) return customerText.slice(0, 120);
+	      return "无顾客原文";
+	    }
+
+	    function handoffLearningCaseLearningHint(item = {}) {
+	      const candidate = item.learning_candidate || {};
+	      const label = item.artifact_label || candidate.artifact_label || learningSeverityLabel(item.severity);
+	      const improvement = item.improvement || candidate.proposed_rule || item.reason || "补 FAQ/SOP 后再回放测试。";
+	      return `${label}｜${improvement}`;
+	    }
+
+	    function learningNotesHtml() {
+	      if (state.role === "staff") return "";
+	      const notes = Array.isArray(state.learningNotes?.learning_notes) ? state.learningNotes.learning_notes : [];
+	      if (!notes.length) return "";
+	      return `
+	        <section class="command-panel" data-owner-nav>
+	          <div class="command-kicker">待审核学习记录</div>
+	          <strong class="command-title">${notes.length} 条人工复盘候选</strong>
+	          <div class="audit-list">
+	            ${notes.slice(0, 6).map((note) => {
+	              const candidate = note.data?.learning_candidate || {};
+	              const title = candidate.title || note.feedback || "人工回复学习候选";
+	              const label = candidate.artifact_label || note.status || "复盘";
+	              const preview = candidate.better_reply || note.customer_message || note.generated_rule || "等待 Owner 审核";
+	              return `
+	                <div class="audit-item">
+	                  <b>${escapeHtml(title)}</b>
+	                  <span>${escapeHtml(String(preview).slice(0, 140))}</span>
+	                  <small>${escapeHtml(label)}｜${escapeHtml(note.source || "learning")}</small>
+	                </div>
+	              `;
+	            }).join("")}
+	          </div>
+	        </section>
+	      `;
+	    }
+
+	    function learningSeverityLabel(value) {
+	      const map = { high: "高", medium: "中", low: "低", watch: "观察" };
+	      return map[String(value || "").toLowerCase()] || "复盘";
+	    }
+
+	    function productionBoundaryHtml() {
       return `
         <section class="command-panel">
           <div class="command-kicker">成熟度</div>
@@ -4931,10 +5160,11 @@
     function ownerAdminSnapshotHtml() {
       if (state.role === "staff") return "";
       const versions = Array.isArray(state.projectVersions?.versions) ? state.projectVersions.versions : [];
-      const latest = versions[0] || null;
-      const quality = state.qualityReview?.summary || {};
-      const budget = state.usageSummary?.budget_status || {};
-      const budgetState = budget.overall_state || budget.state || "not_configured";
+	      const latest = versions[0] || null;
+	      const quality = state.qualityReview?.summary || {};
+	      const handoffLearning = state.handoffLearningReview?.summary || {};
+	      const budget = state.usageSummary?.budget_status || {};
+	      const budgetState = budget.overall_state || budget.state || "not_configured";
       return `
         <div class="command-grid" data-owner-nav>
           <section class="command-panel accent">
@@ -4944,17 +5174,18 @@
               ${compactRow("最近更新", latest?.created_at ? formatDate(latest.created_at) : "未连接", latest?.source || "-")}
               ${compactRow("公司", latest?.summary?.company_name || workspaceName(projectKeyEl.value), latest?.summary?.approval_first ? "批准优先" : "待确认")}
               ${compactRow("测试", `${latest?.summary?.test_case_count ?? 0} 个案例`, latest?.summary?.send_mode || "-")}
+              ${compactRow("学习", `${latest?.summary?.learning_asset_count ?? 0} 个资产`, "Brain")}
             </div>
           </section>
-          <section class="command-panel">
-            <div class="command-kicker">复盘</div>
-            <strong class="command-title">${Number(quality.review_item_count || 0)} 个要优化</strong>
-            <div class="compact-list">
-              ${compactRow("重复问题", `${Number(quality.repeated_pattern_count || 0)} 类`, "看话术")}
-              ${compactRow("退回 AI", `${Number(quality.returned_to_ai_count || 0)} 次`, "改资料")}
-              ${compactRow("预算", budgetLabel(budgetState), budget.configured === false ? "未设" : "监控")}
-            </div>
-          </section>
+	          <section class="command-panel">
+	            <div class="command-kicker">复盘</div>
+	            <strong class="command-title">${Number(handoffLearning.needs_fix_count || quality.review_item_count || 0)} 个不能过</strong>
+	            <div class="compact-list">
+	              ${compactRow("AI 自检", `${Number(handoffLearning.needs_fix_count || 0)} 个 draft 要改`, "看复盘")}
+	              ${compactRow("可批准", `${Number(handoffLearning.can_pass_count || 0)} 个判断`, "Pass")}
+	              ${compactRow("退回 AI", `${Number(quality.returned_to_ai_count || 0)} 次`, "改资料")}
+	            </div>
+	          </section>
           <section class="command-panel">
             <div class="command-kicker">复制</div>
             <strong class="command-title">新公司设置</strong>
@@ -5081,6 +5312,7 @@
       if (risk === "high" || item.status === "human_required" || item.status === "send_failed") return "risk";
       if (risk === "medium" || item.status === "approval_required") return "warn";
       if (item.status === "order") return "blue";
+      if (item.status === "returned_to_ai") return "warn";
       return "good";
     }
 
@@ -5566,27 +5798,48 @@
       const decision = item.latest_decision || {};
       const isFlowOnly = decision.action === "trigger_flow";
       const readOnly = isCaseReadOnly(item);
+      const canManualResolve = canManualResolveCase(item);
+      const isManualFollowUp = requiresManualReplyForManualResolve(item);
       const statusTone = riskTone(item);
       const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound");
-      const hideReplyCard = item.status === "handoff_done" && !hasOutbound;
+      const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve;
       $("panelName").textContent = item.contact?.name || "顾客";
       $("panelAvatar").textContent = initialsFor(item.contact?.name || "顾客");
       $("panelMeta").textContent = `${statusLabel(item.status, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
       $("replyCard").classList.toggle("hidden", hideReplyCard);
-      $("replyBox").value = hideReplyCard ? "" : decision.reply_message || "";
-      $("replyBox").readOnly = readOnly;
-      $("replyModeLabel").textContent = item.status === "handoff_done" ? "已转人工，只读" : readOnly ? "已记录，只读" : "可修改";
-      $("replyTools").classList.toggle("hidden", readOnly);
+      $("replyBox").value = hideReplyCard || isManualFollowUp ? "" : decision.reply_message || "";
+      $("replyBox").placeholder = isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : "";
+      $("replyBox").readOnly = readOnly && !canManualResolve;
+      $("replyModeLabel").textContent = isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工，只读" : item.status === "returned_to_ai" ? "已退回 AI，只读" : readOnly ? "已记录，只读" : "可修改";
+      $("replyTools").classList.toggle("hidden", readOnly && !canManualResolve);
       const canOptimizeCase = state.role !== "staff";
       $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
       $("caseOptimizerInput").value = "";
-      $("caseOptimizerOutput").textContent = "写下这个 Case 哪里错了，我会整理成可学习规则。";
+      $("caseOptimizerInput").placeholder = caseOptimizerManualReplyText(item)
+        ? "可补充：客服为什么这样回、顾客后来有没有成交；不填也可先记录候选。"
+        : "例：顾客回“有”是在回答上一句，不要重新问；应该接着 Step 1 回答。";
+      $("caseOptimizerOutput").textContent = caseOptimizerManualReplyText(item)
+        ? buildCaseOptimizerDraft(item, "")
+        : "写下这个 Case 哪里错了，我会整理成可学习规则。";
       $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = actionHint(item);
+      const closer = closerVerdict(item);
+      const approvalGuard = approvalGuardForVerdict(closer);
+      $("closerVerdictBox").className = `closer-verdict ${closer.tone}`;
+      $("closerVerdictTitle").textContent = closer.title;
+      $("closerVerdictReason").textContent = closer.reason;
+      if (approvalGuard.blocked) {
+        $("actionTitle").textContent = approvalGuard.title;
+        $("actionReason").textContent = approvalGuard.reason;
+      }
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
       $("panelStatusPill").textContent = statusLabel(item.status, decision.risk);
-      $("approveBtn").textContent = readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : item.status === "order" ? "确认处理" : "批准发送";
-      $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly;
+      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : decision.action === "review_receipt" ? "已审核付款" : item.status === "order" ? "确认处理" : "批准发送";
+      $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
+      $("manualResolveBtn").disabled = state.actionBusy || !canManualResolve;
+      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : "记录人工回复";
+      $("returnAiBtn").disabled = state.actionBusy || readOnly;
+      $("returnAiBtn").textContent = approvalGuard.blocked && closer.tone === "fix" ? "退回 AI 重写" : "退回 AI";
       $("handoffBtn").disabled = state.actionBusy || readOnly;
       $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
       const canResendPurchase = canResendPurchaseMeta(item);
@@ -5654,6 +5907,7 @@
     function caseDetailsHtml(item) {
       const decision = item.latest_decision || {};
       const sla = slaInfo(item);
+      const previousAgentText = String(decision.previous_agent_text || "").trim();
 
       return `
         <div class="detail-tile">
@@ -5672,13 +5926,21 @@
           <span>等待</span>
           <b>${escapeHtml(sla.text)}</b>
         </div>
+        ${previousAgentText ? `
+        <div class="detail-tile">
+          <span>上一句 Agent</span>
+          <b>${escapeHtml(previousAgentText)}</b>
+        </div>
+        ` : ""}
       `;
     }
 
     function slaInfo(item) {
       const status = item.status;
-      if (status === "auto" || status === "auto_sent" || status === "sent" || status === "handoff_done" || status === "purchase_confirmed") {
+      if (status === "auto" || status === "auto_sent" || status === "sent" || status === "handoff_done" || status === "returned_to_ai" || status === "manual_resolved" || status === "purchase_confirmed") {
         if (status === "handoff_done") return { text: "已转人工", tone: "", note: "已留处理记录。" };
+        if (status === "returned_to_ai") return { text: "已退回 AI", tone: "", note: "等待重写或复盘。" };
+        if (status === "manual_resolved") return { text: "已手动回", tone: "", note: "已保存人工回复。" };
         if (status === "purchase_confirmed") return { text: "已成交", tone: "", note: "已记录成交金额。" };
         return { text: status === "auto_sent" ? "已自动回" : status === "auto" ? "自动中" : "已处理", tone: "", note: "已留记录。" };
       }
@@ -5714,6 +5976,8 @@
       if (item.status === "auto_sent") return "AI 已自动回复";
       if (item.status === "sent") return "已发送";
       if (item.status === "purchase_confirmed") return "已成交";
+      if (item.status === "manual_resolved") return "已手动回复";
+      if (item.status === "returned_to_ai") return "已退回 AI";
       if (item.status === "handoff_done") return "已转人工";
       if (item.status === "sending") return "发送中";
       if (item.status === "send_failed") return "发送失败";
@@ -5729,14 +5993,164 @@
       if (item.status === "auto_sent") return "下面显示的回复已经自动发送给顾客。";
       if (item.status === "sent") return "这条回复已发送，保留给团队追踪。";
       if (item.status === "purchase_confirmed") return "成交金额已记录，广告数据按配置回流。";
+      if (item.status === "manual_resolved") return "客服已手动回复，系统保留最终回复做复盘。";
+      if (item.status === "returned_to_ai") return "这条没有发送 AI 建议，已退回 AI 重写或等待复盘。";
       if (item.status === "handoff_done") return "这条没有发送 AI 建议，已留下转人工记录。";
       if (item.status === "sending") return "系统正在发送这条回复，先不要重复点击。";
       if (item.status === "send_failed") return "这条没有成功发送，需要检查错误或人工处理。";
       if (decision.action === "trigger_flow") return "已交给自动流程，AI 不补发文字";
+      if (decision.action === "ask_human" && decision.previous_agent_text) return "顾客只回短答案或 emoji，先看上一句 Agent 再接手";
       if (decision.action === "ask_human") return "停止自动流程，人工接手";
       if (item.status === "order") return "确认资料后再提交订单";
       if (decision.send_now) return "固定自动流程或已排程动作继续执行";
       return "顾客有疑问或成交语境，需要人确认";
+    }
+
+    function approvalGuardForVerdict(closer = {}) {
+      if (closer.tone === "fix") {
+        return {
+          blocked: true,
+          label: "不能批准",
+          title: "先退回 / 改稿",
+          reason: "成交高手判定这张草稿不能过。请退回 AI、手动改稿，或记录人工最终回复做复盘。"
+        };
+      }
+      if (closer.tone === "handoff") {
+        return {
+          blocked: true,
+          label: "先人工处理",
+          title: "转人工 / 记录回复",
+          reason: "这类 Case 需要人工确认。请转人工或记录人工最终回复，让系统生成复盘候选。"
+        };
+      }
+      return { blocked: false, label: "" };
+    }
+
+    function closerVerdict(item = {}) {
+      const decision = item.latest_decision || {};
+      const status = String(item.status || "").toLowerCase();
+      const action = String(decision.action || "").toLowerCase();
+      const stage = String(decision.stage || "").toUpperCase().replace(/[\s-]+/g, "_");
+      const intent = String(decision.intent || "").toLowerCase();
+      const risk = String(decision.risk || item.risk || "").toLowerCase();
+      const hasReply = Boolean(String(decision.reply_message || item.final_text || item.manual_reply_text || "").trim());
+      const hasPreviousAgent = Boolean(String(decision.previous_agent_text || "").trim());
+      const draftText = [
+        decision.reply_message,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const customerSignalText = [
+        intent,
+        decision.customer_text,
+        decision.inbound_text,
+        item.inbound_text,
+        item.customer_text
+      ].filter(Boolean).join(" ");
+      const outdatedPriceDraft = /RM\s*368|加\s*RM\s*10|3\s*送\s*1|3送1|送1盒\s*RM\s*378/i.test(draftText);
+      const afterSalesReceivedAck = intent.includes("after_sales") || /(收到货|收到貨|货收到了|貨收到了|货已收到|貨已收到|货到了|貨到了|刚收到|剛收到|parcel\s+received|received\s+(?:it|parcel|goods|product))/i.test(customerSignalText);
+      const salesPushDraft = /(RM\s*\d+|1\s*盒\s*RM|2\s*盒\s*RM|3\s*盒\s*RM|1\s*box\s*RM|2\s*boxes?\s*RM|3\s*boxes?\s*RM|哪个配套|哪一个配套|安排.*配套|抢购|搶購|主推|promotion|promo|which\s+package|arrange.*package|buy\s+now|order\s+now)/i.test(draftText);
+      const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
+      const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
+      const specialPromoText = [
+        decision.reply_message,
+        decision.previous_agent_text,
+        decision.operator_instruction,
+        decision.headline,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const specialPromoAddon = Boolean(decision.special_promo_addon || decision.signals?.special_promo_addon || /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|加购|加購)/i.test(specialPromoText));
+      const legacyPromo = Boolean(decision.legacy_package_promo || decision.signals?.legacy_package_promo || /(配套\s*[bc]\b|package\s*[bc]\b|4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|年中优惠|年中優惠|直接瘦\s*(?:10|15)|旧活动|舊活動|旧图|舊圖)/i.test(specialPromoText));
+      const gratitudeText = [
+        intent,
+        decision.reply_message,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const gratitudeAck = intent.includes("gratitude") || /(谢谢|謝謝|thank\s*you|thanks|tq|thx|terima\s*kasih|不客气|不客氣|welcome)/i.test(gratitudeText);
+      const paymentMethodText = [
+        intent,
+        action,
+        decision.reply_message,
+        decision.operator_instruction,
+        decision.headline,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const paymentMethodIssue = intent.includes("payment_method") || /(没有货到付款|沒有貨到付款|不能\s*cod|可以\s*cod|有\s*cod|cash\s+on\s+delivery|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card))/i.test(paymentMethodText);
+
+      if (status === "purchase_confirmed") {
+        return { tone: "pass", title: "已成交，进复盘", reason: "收到付款或 COD 确认后只保留记录，不再推销售话术。" };
+      }
+      if (status === "manual_resolved") {
+        return { tone: "review", title: "客服已教 AI 一次", reason: "把最终人工回复拿去复盘，Owner 批准后才写进业务脑。" };
+      }
+      if (status === "returned_to_ai") {
+        return { tone: "review", title: "已退回 AI，等重写", reason: "当前建议没有发送给顾客；这类样本要复盘为什么原草稿不能过。" };
+      }
+      if (status === "handoff_done") {
+        return { tone: "handoff", title: "不能直接过", reason: "已转人工；这类样本要总结为什么 AI 当时不该回。" };
+      }
+      if (status === "send_failed") {
+        return { tone: "fix", title: "不能过，先修发送", reason: "发送失败不代表话术通过；先检查渠道或改人工处理。" };
+      }
+      if (outdatedPriceDraft) {
+        return { tone: "fix", title: "不能过：草稿含旧价", reason: "草稿仍有 RM368、加 RM10、3送1 或旧送盒说法；退回 AI 重新生成，或手动改成当前三档价后再处理。" };
+      }
+      if (englishMixedDraft) {
+        return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
+      }
+      if ((afterSalesReceivedAck || gratitudeAck) && salesPushDraft) {
+        return { tone: "fix", title: "不能过：售后勿继续卖", reason: "顾客已经收到货或只是感谢，草稿却在推价格/配套；只回用法、关怀或礼貌收尾，不接销售 Flow。" };
+      }
+      if (paymentMethodIssue) {
+        return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡或线上付款要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
+      }
+      if (status === "order" || action === "collect_order" || action === "review_receipt" || intent.includes("receipt") || intent.includes("order")) {
+        return { tone: "order", title: "订单/审款，不确认出货", reason: "只收集资料或核对付款截图；确认无误后才继续安排，不自动承诺已付款成功或已出货。" };
+      }
+      if (risk === "high" || intent.includes("medical") || intent.includes("health") || intent.includes("complaint") || action === "ask_human") {
+        return {
+          tone: "handoff",
+          title: hasPreviousAgent ? "先看上一句，再人工接" : "不能直接过，要人工",
+          reason: hasPreviousAgent ? "顾客短回或语境不足，必须接着上一句判断，不能让 AI 猜。" : "高风险、投诉或健康敏感问题不让 AI 自动成交。"
+        };
+      }
+      if (!hasReply && action !== "trigger_flow") {
+        return { tone: "fix", title: "不能过，缺回复", reason: "没有可审核文案，客服必须补写或转人工。" };
+      }
+      if (action === "trigger_flow") {
+        return { tone: "review", title: "可接 Flow，但先确认阶段", reason: "AI 不补发文字；确认顾客确实在这个 Step，再让流程继续。" };
+      }
+      if (specialPromoAddon) {
+        return { tone: "review", title: "特别加购：先确认资格", reason: "PWP/RM68/add-on 不能套普通价格图；先确认活动、资格和当前订单能不能加购。" };
+      }
+      if (legacyPromo) {
+        return { tone: "review", title: "旧活动/旧图：先确认", reason: "配套B/C、4+2、年中优惠或直接瘦kg 可能来自旧活动图；不要承诺 kg，不要接普通 Flow，先按当前三档价并确认当天活动。" };
+      }
+      if (afterSalesReceivedAck) {
+        return { tone: "pass", title: "售后收货：只回关怀", reason: "收到货/货已收到类只回复用法、关怀或让客服看售后问题；不要再推价格或接销售 Flow。" };
+      }
+      if (gratitudeAck) {
+        return { tone: "pass", title: "礼貌收尾：不继续卖", reason: "顾客只是感谢或收尾，短回即可；不要推价格、不要接普通 Flow。" };
+      }
+      if (action.includes("flow") || action === "send_message_then_trigger_flow" || action === "reply_then_flow" || ["STEP_1", "STEP_2", "STEP_3", "S1", "S2", "S3"].includes(stage)) {
+        return { tone: "pass", title: "看价前可过：答完接 Flow", reason: "问题答清楚后接下一段教育/信心 Flow；approval-first 下仍要客服批准。" };
+      }
+      if (stage === "STEP_4" || stage === "S4" || intent.includes("price") || intent.includes("objection") || intent.includes("trust")) {
+        return { tone: "review", title: "看价后可过：要信心 + CTA", reason: "不要再乱接普通 Flow；回答疑虑、补证明，然后给明确下单动作。" };
+      }
+      if (decision.send_now) {
+        return { tone: "review", title: "系统动作中，仍要看记录", reason: "固定流程可继续，但客服要确认没有订单、投诉或风险语境。" };
+      }
+      return { tone: "review", title: "可审后批准", reason: "确认顾客问题已答、阶段正确、语气像 Beyoute 客服，再按批准。" };
     }
 
     function historyTypeLabel(type) {
@@ -5757,16 +6171,20 @@
         case_approve: "真实批准发送",
         case_learn: "真实建立规则",
         case_handoff: "真实转人工",
+        case_return_ai: "真实退回 AI",
         case_approve_demo: "演示批准发送",
         case_learn_demo: "演示建立规则",
         case_handoff_demo: "演示转人工",
+        case_return_ai_demo: "演示退回 AI",
         case_learning_note: "优化 AI 记录",
         auto_reply_sent: "AI 自动回复",
         auto_reply_failed: "自动回复失败",
         reply_sent: "回复已发送",
         reply_sending: "回复发送中",
         handoff_done: "已转人工",
+        returned_to_ai: "退回 AI",
         handoff_recorded: "转人工记录",
+        manual_resolved: "已手动回复",
         order_tracked: "订单已标记",
         receipt_tracked: "收据已标记",
         order_tracking_failed: "订单标记失败",
@@ -5776,7 +6194,16 @@
     }
 
     function isCaseReadOnly(item) {
-      return ["auto", "auto_sent", "sent", "sending", "handoff_done", "purchase_confirmed"].includes(item.status);
+      return ["auto", "auto_sent", "sent", "sending", "handoff_done", "returned_to_ai", "manual_resolved", "purchase_confirmed", "rejected"].includes(item.status);
+    }
+
+    function canManualResolveCase(item = {}) {
+      if (!item) return false;
+      return !["auto", "auto_sent", "sent", "sending", "manual_resolved", "purchase_confirmed"].includes(item.status);
+    }
+
+    function requiresManualReplyForManualResolve(item = {}) {
+      return ["handoff_done", "returned_to_ai", "rejected"].includes(item.status);
     }
 
     async function handleCardAction(button) {
@@ -5812,11 +6239,18 @@
     }
 
     function confirmCardAction(action, item) {
-      if (state.demoMode) return true;
       const name = item.contact?.name || "这位顾客";
       if (action === "handoff") {
+        if (state.demoMode) return true;
         return window.confirm(`确认把 ${name} 转人工？\n\n不会发送 AI 建议给顾客，只留下人工处理记录。`);
       }
+      const closer = closerVerdict(item);
+      const approvalGuard = approvalGuardForVerdict(closer);
+      if (approvalGuard.blocked) {
+        alert(`这张 Case 不能直接批准：${closer.title}\n\n${closer.reason}\n\n请先转人工、记录人工回复，或退回 AI。`);
+        return false;
+      }
+      if (state.demoMode) return true;
       const reply = String(item.latest_decision?.reply_message || "").trim();
       if (!reply) {
         alert("这条没有 AI 建议回复，不能直接批准。请打开详情检查。");
@@ -5847,7 +6281,50 @@
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
       if (!confirmLiveAction("handoff", state.active)) return;
-      await postCaseAction(state.active.id, "handoff", { note: "客服在中控台转人工。" });
+      const result = await postCaseAction(state.active.id, "handoff", { note: "客服在中控台转人工。" });
+      if (actionLearningNoteRecorded(result)) {
+        showToast("已转人工，复盘候选待审核。");
+      }
+    }
+
+    async function manualResolveActive() {
+      if (!state.active) return;
+      if (!canManualResolveCase(state.active)) return;
+      if (state.actionBusy) return;
+      if (requiresManualReplyForManualResolve(state.active) && !$("replyBox").value.trim()) {
+        showToast("先把人工最终回复贴进回复框，AI 才能学习正确答案。");
+        $("replyBox").focus();
+        return;
+      }
+      if (!confirmLiveAction("manual_resolve", state.active)) return;
+      const result = await postCaseAction(state.active.id, "manual_resolve", {
+        manualReplyText: $("replyBox").value.trim(),
+        note: $("replyBox").value.trim()
+          ? "客服已按 Dashboard 回复框内容手动回复"
+          : "客服已手动回复；未保存最终回复内容。",
+      });
+      if (actionLearningNoteRecorded(result)) {
+        showToast("已记录人工回复，学习候选待审核。");
+      }
+    }
+
+    async function returnAiActive() {
+      if (!state.active) return;
+      if (isCaseReadOnly(state.active)) return;
+      if (state.actionBusy) return;
+      if (!confirmLiveAction("return_ai", state.active)) return;
+      const closer = closerVerdict(state.active);
+      const result = await postCaseAction(state.active.id, "return_ai", {
+        note: closer.reason || "客服在中控台退回 AI，不发送当前建议。",
+      });
+      if (actionLearningNoteRecorded(result)) {
+        showToast("已退回 AI，复盘候选待审核。");
+      }
+    }
+
+    function actionLearningNoteRecorded(result = {}) {
+      return result?.auto_learning_note?.recorded === true ||
+        result?.handoff_learning_note?.recorded === true;
     }
 
     function normalizedPurchaseAmount(value) {
@@ -5944,13 +6421,132 @@
 
     function caseOptimizerContextLine(item = {}) {
       const decision = item.latest_decision || {};
+      const previousAgentText = String(decision.previous_agent_text || "").trim();
+      const originalAiReply = caseOptimizerOriginalAiReply(item);
+      const manualReplyText = caseOptimizerManualReplyText(item);
       return [
         `顾客：${item.contact?.name || "顾客"}`,
         `阶段：${stageLabel(decision.stage)}`,
         `意图：${intentLabel(decision.intent)}`,
+        ...(previousAgentText ? [`上一句 Agent：${previousAgentText}`] : []),
         `顾客最后一句：${item.last_message || customerPreviewText(item) || "[看不到原文]"}`,
-        `AI 建议：${decision.reply_message || "[没有建议]"}`
+        `AI 建议：${originalAiReply || decision.reply_message || "[没有建议]"}`,
+        ...(manualReplyText ? [`客服最终回复：${manualReplyText}`] : [])
       ].join("\n");
+    }
+
+    function caseOptimizerManualReplyText(item = {}) {
+      const status = String(item.status || "").toLowerCase();
+      return String(
+        item.manual_reply_text ||
+        item.raw_approval?.manual_reply_text ||
+        (status === "manual_resolved" ? (item.latest_decision?.reply_message || item.final_text || "") : "")
+      ).trim();
+    }
+
+    function caseOptimizerOriginalAiReply(item = {}) {
+      const manualReplyText = caseOptimizerManualReplyText(item);
+      const rawReply = String(
+        item.original_ai_reply ||
+        item.latest_decision?.original_ai_reply ||
+        item.raw_approval?.reply?.text ||
+        ""
+      ).trim();
+      if (!rawReply || rawReply === manualReplyText) return "";
+      return rawReply;
+    }
+
+    function compactCompareText(value = "") {
+      return String(value || "").toLowerCase().replace(/\s+/g, "").replace(/[^\p{L}\p{N}]+/gu, "").slice(0, 500);
+    }
+
+    function caseOptimizerLearningCandidate(item = {}, feedback = "") {
+      const existing = item.manual_learning_candidate || item.raw_approval?.manual_learning_candidate || null;
+      if (existing && typeof existing === "object") return existing;
+      const decision = item.latest_decision || {};
+      const manualReplyText = caseOptimizerManualReplyText(item);
+      const originalAiReply = caseOptimizerOriginalAiReply(item);
+      const previousAgentText = String(decision.previous_agent_text || "").trim();
+      const combined = [
+        item.last_message || customerPreviewText(item) || "",
+        manualReplyText,
+        originalAiReply,
+        previousAgentText,
+        decision.intent || "",
+        decision.stage || "",
+        feedback
+      ].join("\n").toLowerCase();
+      let artifact = {
+        artifact_type: "reply_rule",
+        artifact_label: "回复规则",
+        title: "人工最终回复要沉淀回复规则",
+        proposed_rule: "把顾客最后一句、上一句 Agent、AI 草稿和客服最终回复一起复盘，提炼可重复的正确回答。",
+        next_owner_action: "Owner 审核后决定写入 FAQ、SOP、成交话术或测试用例。"
+      };
+      if (/想吐|呕吐|嘔吐|头晕|頭暈|不舒服|副作用|反弹|反彈|怀孕|懷孕|药|藥|medical/.test(combined)) {
+        artifact = {
+          artifact_type: "safety_sop",
+          artifact_label: "安全 SOP",
+          title: "身体反应/健康敏感要沉淀安全 SOP",
+          proposed_rule: "身体反应或健康敏感问题先问清楚情况并转人工，不给医疗判断，不继续强推成交。",
+          next_owner_action: "审核后加入 risk_policy、客服 SOP 和测试用例。"
+        };
+      } else if (/price|rm|价钱|價錢|价格|贵|貴|折扣|cod|免邮|免郵|shipping|保证|保證|信心|认证|認證|trust/.test(combined)) {
+        artifact = {
+          artifact_type: "closer_script",
+          artifact_label: "成交话术",
+          title: "价格/信任/异议要沉淀成交话术",
+          proposed_rule: "价格图后问题先回答顾客疑虑，再补信心证明，最后给一个明确 CTA；价格图前则回答问题后接正确 Flow。",
+          next_owner_action: "审核后加入 objection script、FAQ、CTA map，并回放销售测试。"
+        };
+      } else if (/receipt|收据|付款|payment|银行|bank|订单|訂單|地址|电话|電話|下单|下單|order/.test(combined)) {
+        artifact = {
+          artifact_type: "ops_sop",
+          artifact_label: "客服 SOP",
+          title: "订单/付款要沉淀客服处理 SOP",
+          proposed_rule: "订单、地址、电话、付款截图只能收集和审核，不能自动确认已安排或已付款成功。",
+          next_owner_action: "审核后加入 order/receipt SOP、Dashboard 提示和测试用例。"
+        };
+      } else if (/emoji|😀|😂|👍|上一句|上一轮|有|以上全部|选项|選項|option|step|keyword|低上下文|low_context/.test(combined)) {
+        artifact = {
+          artifact_type: "flow_context_rule",
+          artifact_label: "Flow/上下文规则",
+          title: "短回复/emoji 要沉淀上下文规则",
+          proposed_rule: "顾客短回复、emoji 或选项回复必须先看上一句 Agent/Flow 问题；看不懂就转人工，不脑补。",
+          next_owner_action: "审核后加入上下文判断规则、Flow step 测试和 Dashboard 卡片提示。"
+        };
+      } else if (/怎么喝|怎样喝|一天|几次|幾次|饭前|飯前|效果|多久|成分|ingredient|english|英文|delivery|快递|物流|运输|運輸/.test(combined)) {
+        artifact = {
+          artifact_type: "faq",
+          artifact_label: "FAQ",
+          title: "重复产品问题要沉淀 FAQ",
+          proposed_rule: "用法、效果、成分、语言切换和物流问题要用固定安全口径回答；资料不足才转人工。",
+          next_owner_action: "审核后加入 FAQ、英文版 FAQ 和回放测试。"
+        };
+      }
+      const aiDifferent = originalAiReply && compactCompareText(originalAiReply) !== compactCompareText(manualReplyText);
+      return {
+        ...artifact,
+        status: "owner_review_required",
+        summary: aiDifferent
+          ? "客服最终回复和 AI 原草稿不同；这是可复盘样本，但必须审核后才进入 AI brain。"
+          : "人工最终回复已保存；可作为 FAQ / SOP / 成交话术 / 测试用例候选，审核后再应用。",
+        customer_pattern: item.last_message || customerPreviewText(item) || previousAgentText || decision.intent || "人工处理 case",
+        previous_agent_text: previousAgentText,
+        ai_gap: aiDifferent ? `AI 原草稿：${originalAiReply}` : "没有发现明显 AI 改写差异；先作为人工处理样本观察。",
+        better_reply: manualReplyText,
+        safety: "候选只用于复盘；不会发送 WhatsApp，也不会自动写入 reviewed/applied brain。"
+      };
+    }
+
+    function defaultCaseOptimizerFeedback(item = {}, feedback = "") {
+      const clean = String(feedback || "").trim();
+      if (clean) return clean;
+      const candidate = caseOptimizerLearningCandidate(item, feedback);
+      if (caseOptimizerManualReplyText(item)) {
+        return `${candidate.artifact_label}候选：${candidate.title}`;
+      }
+      return "";
     }
 
     function inferCaseOptimizerRules(feedback = "", item = {}) {
@@ -5977,18 +6573,29 @@
     }
 
     function buildCaseOptimizerDraft(item = {}, feedback = "") {
-      const cleanFeedback = String(feedback || "").trim();
-      if (!cleanFeedback) {
+      const cleanFeedback = defaultCaseOptimizerFeedback(item, feedback);
+      const manualReplyText = caseOptimizerManualReplyText(item);
+      if (!cleanFeedback && !manualReplyText) {
         return "先写一句这次哪里错，例如：顾客回答“有”是在接上一句，AI 不应该重新问。";
       }
+      const candidate = caseOptimizerLearningCandidate(item, feedback);
       const rules = inferCaseOptimizerRules(cleanFeedback, item);
       const reason = cleanFeedback.length > 180 ? `${cleanFeedback.slice(0, 180)}...` : cleanFeedback;
       return [
         "复盘原因",
         reason,
         "",
+        "学习候选",
+        `${candidate.artifact_label}｜${candidate.title}`,
+        `顾客模式：${candidate.customer_pattern || "-"}`,
+        `AI 差距：${candidate.ai_gap || "-"}`,
+        `客服正确回复：${candidate.better_reply || manualReplyText || "-"}`,
+        "",
         "可沉淀规则",
-        ...rules.map((rule, index) => `${index + 1}. ${rule}`),
+        ...[candidate.proposed_rule, ...rules].filter(Boolean).map((rule, index) => `${index + 1}. ${rule}`),
+        "",
+        "Owner 下一步",
+        candidate.next_owner_action || "审核后写入 FAQ / SOP / 成交话术 / 测试用例。",
         "",
         "当前 Case",
         caseOptimizerContextLine(item)
@@ -6011,16 +6618,20 @@
         feedback: feedback || "Case 内优化：AI 回复不符合上下文。",
         generated_rule: generatedRule || "",
         customer_message: item.last_message || customerPreviewText(item) || "",
-        suggested_reply: decision.reply_message || "",
+        suggested_reply: caseOptimizerOriginalAiReply(item) || decision.reply_message || "",
+        learning_candidate: caseOptimizerLearningCandidate(item, feedback),
         source: "dashboard_case_optimizer",
-        context: {
-          status: item.status || "",
-          action: decision.action || "",
-          risk: decision.risk || "",
-          project_key: item.project_key || projectKeyEl.value.trim() || "beyoute",
-          dashboard_role: state.role,
-          sends_messages: false
-        }
+	        context: {
+	          status: item.status || "",
+	          action: decision.action || "",
+	          risk: decision.risk || "",
+	          previous_agent_text: decision.previous_agent_text || "",
+	          original_ai_reply: caseOptimizerOriginalAiReply(item),
+	          manual_reply_text: caseOptimizerManualReplyText(item),
+	          project_key: item.project_key || projectKeyEl.value.trim() || "beyoute",
+	          dashboard_role: state.role,
+	          sends_messages: false
+	        }
       };
     }
 
@@ -6083,10 +6694,11 @@
 
     async function recordCaseOptimizerFeedback() {
       if (!state.active || state.role === "staff" || state.actionBusy) return;
-      const feedback = $("caseOptimizerInput").value.trim();
-      const draft = buildCaseOptimizerDraft(state.active, feedback);
+      const rawFeedback = $("caseOptimizerInput").value.trim();
+      const feedback = defaultCaseOptimizerFeedback(state.active, rawFeedback);
+      const draft = buildCaseOptimizerDraft(state.active, rawFeedback);
       $("caseOptimizerOutput").textContent = draft;
-      if (!feedback) {
+      if (!feedback && !caseOptimizerManualReplyText(state.active)) {
         showToast("先写这个 Case 哪里错了。");
         return;
       }
@@ -6114,6 +6726,83 @@
       }
     }
 
+    async function applyCaseOptimizerCandidate() {
+      if (!state.active || state.role === "staff" || state.actionBusy) return;
+      const rawFeedback = $("caseOptimizerInput").value.trim();
+      const feedback = defaultCaseOptimizerFeedback(state.active, rawFeedback);
+      const draft = buildCaseOptimizerDraft(state.active, rawFeedback);
+      $("caseOptimizerOutput").textContent = draft;
+      if (!feedback && !caseOptimizerManualReplyText(state.active)) {
+        showToast("先写这个 Case 哪里错了，或先保存人工最终回复。");
+        return;
+      }
+      const candidate = caseOptimizerLearningCandidate(state.active, rawFeedback);
+      const confirmed = state.demoMode || window.confirm(
+        `确认批准这个候选进业务脑？\n\n类型：${candidate.artifact_label || candidate.artifact_type}\n\n这会保存新的业务脑版本，但不会发送 WhatsApp，也不会开启自动回复。`
+      );
+      if (!confirmed) return;
+
+      const payload = {
+        ...caseOptimizerLearningPayload(state.active, feedback, draft),
+        status: "applied",
+        updated_by: state.session.displayName || roleName(state.role),
+        note: `Owner approved ${candidate.artifact_label || candidate.artifact_type} from Dashboard case review.`,
+      };
+
+      if (state.demoMode || !apiUrlEl.value.trim() || !adminTokenEl.value.trim()) {
+        const localRecord = storeLocalCaseOptimizerLearning({
+          ...payload,
+          source: "dashboard_learning_candidate_apply",
+          applied_demo: true,
+        });
+        state.active.history.push({
+          type: "case_learning_note",
+          at: new Date().toISOString(),
+          note: `${candidate.artifact_label || "学习"}候选已批准进业务脑（演示）。`,
+        });
+        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：演示已批准；真实版本化需要 Owner Dashboard 管理密钥。`;
+        showToast("演示：已批准学习候选。");
+        render();
+        return localRecord;
+      }
+
+      setPanelBusy(true, "批准学习中...");
+      try {
+        const api = apiUrlEl.value.trim().replace(/\/$/, "");
+        const project = state.active.project_key || projectKeyEl.value.trim() || "beyoute";
+        const response = await fetch(`${api}/api/hermas/projects/${encodeURIComponent(project)}/learning-candidates/apply`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...authHeaders(adminTokenEl.value.trim()),
+          },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.ok === false) {
+          throw new Error(result.error || result.message || result.next || `HTTP ${response.status}`);
+        }
+        const versionText = result.package_version_no ? `v${result.package_version_no}` : "新版本";
+        state.active.history.push({
+          type: "case_learning_note",
+          at: new Date().toISOString(),
+          note: `${candidate.artifact_label || "学习"}候选已批准进业务脑 ${versionText}。`,
+        });
+        addAuditEvent("case_learning_note", `${state.active.contact?.name || "顾客"}：已批准进业务脑 ${versionText}`);
+        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：已批准进业务脑 ${versionText}；approval-first 不变。`;
+        await loadOwnerAdminSummaries(adminTokenEl.value.trim());
+        showToast(`已批准进业务脑 ${versionText}。`);
+        render();
+        return result;
+      } catch (error) {
+        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：批准失败\n原因：${error.message || error}`;
+        alert(`批准学习候选失败：${error.message || error}`);
+        return null;
+      } finally {
+        setPanelBusy(false);
+      }
+    }
+
     async function postCaseAction(caseId, action, body, options = {}) {
       if (state.demoMode) {
         handleDemoAction(caseId, action, body);
@@ -6129,11 +6818,13 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录成交中..." : "发送中...");
+          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "退回 AI 中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录成交中..." : action === "manual_resolve" ? "记录人工回复中..." : "发送中...");
         }
         const isApproval = active?.source === "approval";
         const endpoint = action === "mark_purchase"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`
+          : action === "return_ai"
+          ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/return-ai`
           : isApproval
           ? approvalActionEndpoint(api, caseId, action, project)
           : `${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`;
@@ -6164,11 +6855,41 @@
     }
 
     function confirmLiveAction(action, item) {
-      if (state.demoMode) return true;
       const name = item.contact?.name || "这位顾客";
       const reply = $("replyBox").value.trim() || item.latest_decision?.reply_message || "";
+      if (action === "approve" || action === "learn") {
+        const closer = closerVerdict(item);
+        const approvalGuard = approvalGuardForVerdict(closer);
+        if (approvalGuard.blocked) {
+          alert(`这张 Case 不能直接批准：${closer.title}\n\n${closer.reason}\n\n请先转人工、记录人工回复，或退回 AI。`);
+          return false;
+        }
+      }
+      if (state.demoMode) return true;
       if (action === "handoff") {
         return window.confirm(`确认把 ${name} 转人工？\n\n这不会发送 AI 建议给顾客，会留下处理记录。`);
+      }
+      if (action === "return_ai") {
+        const closer = closerVerdict(item);
+        return window.confirm(`确认把 ${name} 退回 AI 重写？\n\n不会发送当前 AI 建议。\n\n原因：${closer.title}\n${closer.reason}`);
+      }
+      if (action === "manual_resolve") {
+        const manualReply = $("replyBox").value.trim();
+        const originalAiReply = caseOptimizerOriginalAiReply(item) || item.latest_decision?.reply_message || "";
+        const sameAsAi = manualReply && compactCompareText(manualReply) === compactCompareText(originalAiReply);
+        const isManualFollowUp = requiresManualReplyForManualResolve(item);
+        const preview = manualReply
+          ? `\n\n将保存人工最终回复：\n${manualReply.slice(0, 180)}${manualReply.length > 180 ? "..." : ""}`
+          : "\n\n回复框为空：只记录已处理，不保存最终回复内容。";
+        const learningLine = sameAsAi
+          ? "\n\n注意：回复框看起来还是 AI 草稿。只有客服确实照这段人工回复了，才这样记录；否则先改成真实人工回复。"
+          : manualReply
+            ? "\n\n这会同时生成一条待 Owner 审核的学习候选。"
+            : "\n\n没有人工最终回复时，不会生成可直接学习的回复候选。";
+        const actionLine = isManualFollowUp
+          ? "这会把转人工后的最终人工回复补回 Dashboard。"
+          : "系统不会发送 AI 建议，只会留下处理记录。";
+        return window.confirm(`确认 ${name} 已经由客服人工处理？\n\n${actionLine}${preview}${learningLine}`);
       }
       if (!reply.trim()) {
         alert("建议回复是空的，不能发送。");
@@ -6184,9 +6905,14 @@
       if (!state.active) return;
       const decision = state.active.latest_decision || {};
       const readOnly = isCaseReadOnly(state.active);
+      const canManualResolve = canManualResolveCase(state.active);
+      const isManualFollowUp = requiresManualReplyForManualResolve(state.active);
       const isFlowOnly = decision.action === "trigger_flow";
+      const approvalGuard = approvalGuardForVerdict(closerVerdict(state.active));
       const canResendPurchase = canResendPurchaseMeta(state.active);
-      $("approveBtn").disabled = isBusy || isFlowOnly || readOnly;
+      $("approveBtn").disabled = isBusy || isFlowOnly || readOnly || approvalGuard.blocked;
+      $("manualResolveBtn").disabled = isBusy || !canManualResolve;
+      $("returnAiBtn").disabled = isBusy || readOnly;
       $("handoffBtn").disabled = isBusy || readOnly;
       $("learnBtn").disabled = isBusy || readOnly;
       $("caseOptimizerDraftBtn").disabled = isBusy;
@@ -6194,16 +6920,26 @@
       $("markPurchaseBtn").disabled = isBusy || isFlowOnly || (readOnly && !canResendPurchase);
       if (isBusy) {
         $("approveBtn").textContent = label;
+        $("manualResolveBtn").textContent = label;
+        $("returnAiBtn").textContent = label;
         $("markPurchaseBtn").textContent = label;
         return;
       }
-      $("approveBtn").textContent = readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : state.active.status === "order" ? "确认处理" : "批准发送";
+      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : decision.action === "review_receipt" ? "已审核付款" : state.active.status === "order" ? "确认处理" : "批准发送";
+      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录人工回复";
+      $("returnAiBtn").textContent = approvalGuard.blocked ? "退回 AI 重写" : readOnly ? "已记录" : "退回 AI";
       $("markPurchaseBtn").textContent = canResendPurchase ? "补回流 Meta" : readOnly ? "已成交" : "记录成交";
     }
 
     function approvalActionEndpoint(api, caseId, action, project) {
       if (action === "mark_purchase") {
         return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`;
+      }
+      if (action === "manual_resolve") {
+        return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/manual-resolve`;
+      }
+      if (action === "return_ai") {
+        return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/return-ai`;
       }
       if (action === "mark_seen") {
         return `${api}/api/approvals/${encodeURIComponent(caseId)}/mark-seen?project_key=${encodeURIComponent(project)}`;
@@ -6225,6 +6961,14 @@
           user: state.session.displayName || roleName(state.role),
         };
       }
+      if (action === "return_ai") {
+        return {
+          reason: body.note || "客服退回 AI 重新生成，不发送当前建议。",
+          rejectedBy: state.session.displayName || roleName(state.role),
+          returnAi: true,
+          skipExternalHandoff: true,
+        };
+      }
       if (action === "mark_purchase") {
         return {
           amount_rm: body.amount_rm,
@@ -6234,6 +6978,13 @@
           resendMetaCapi: body.resendMetaCapi === true,
           confirmedBy: body.confirmedBy || state.session.displayName || roleName(state.role),
           source: body.source || "dashboard_mark_purchase",
+        };
+      }
+      if (action === "manual_resolve") {
+        return {
+          manualReplyText: body.manualReplyText || body.reply_message || "",
+          note: body.note || "客服已记录人工回复。",
+          resolvedBy: state.session.displayName || roleName(state.role),
         };
       }
       return {
@@ -6282,6 +7033,45 @@
           note: "演示：已转人工。",
         });
         showToast("演示：已转人工。");
+      }
+
+      if (action === "return_ai") {
+        record.status = "rejected";
+        record.rejection_reason = body.note || "演示：退回 AI 重新生成。";
+        record.latest_decision = record.latest_decision || {};
+        record.latest_decision.action = "ask_human";
+        record.handoff_result = {
+          attempted: false,
+          sent: false,
+          mode: "internal_return_ai",
+          reason: "Returned to AI without external handoff.",
+        };
+        record.history.push({
+          type: "returned_to_ai",
+          at: now,
+          note: record.rejection_reason,
+        });
+        showToast("演示：已退回 AI，不会发送。");
+      }
+
+      if (action === "manual_resolve") {
+        const manualReplyText = String(body.manualReplyText || "").trim();
+        record.status = "manual_resolved";
+        record.manual_reply_text = manualReplyText || null;
+        record.manual_resolve_reason = body.note || "演示：客服已记录人工回复。";
+        if (manualReplyText) {
+          record.original_ai_reply = record.latest_decision?.reply_message || "";
+          record.messages.push({ direction: "outbound", text: manualReplyText, at: now });
+          record.latest_decision.reply_message = manualReplyText;
+          record.latest_decision.original_ai_reply = record.original_ai_reply;
+          record.manual_learning_candidate = caseOptimizerLearningCandidate(record, "");
+        }
+        record.history.push({
+          type: "manual_resolved",
+          at: now,
+          note: manualReplyText ? `演示：已保存人工回复：${manualReplyText}` : "演示：已手动回复；未保存最终回复内容。",
+        });
+        showToast("演示：已记录人工回复。");
       }
 
       if (action === "mark_purchase") {
@@ -6405,6 +7195,8 @@
       if (status === "approval_required") return "待批准";
       if (status === "human_required") return "要人工";
       if (status === "handoff_done") return "已转人工";
+      if (status === "returned_to_ai") return "已退回 AI";
+      if (status === "manual_resolved") return "已手动回复";
       if (status === "purchase_confirmed") return "已成交";
       if (status === "order") return "订单";
       if (status === "auto") return "自动";
@@ -6425,12 +7217,14 @@
         ask_human: "转人工",
         handoff_done: "已转人工",
         collect_order: "收订单",
-        review_receipt: "审付款",
+        review_receipt: "审付款截图",
         mark_purchase: "确认成交",
         trigger_flow: "进 Step 1",
         approve: "批准发送",
         learn: "建立自动规则",
         handoff: "转人工",
+        return_ai: "退回 AI",
+        manual_resolve: "记录人工回复",
         mark_purchase_action: "确认成交",
         mark_seen: "标记已看",
         wait: "等待",
