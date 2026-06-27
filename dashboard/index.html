@@ -3285,8 +3285,9 @@
       ],
     };
 
-    const params = new URLSearchParams(window.location.search);
-    state.session = readSession();
+	    const params = new URLSearchParams(window.location.search);
+	    const hashParams = new URLSearchParams(String(window.location.hash || "").replace(/^#/, ""));
+	    state.session = readSession();
     state.role = params.get("role") || state.session.role || "owner";
     document.body.classList.toggle("staff-mode", state.role === "staff");
     document.body.dataset.role = state.role;
@@ -3299,14 +3300,28 @@
       || state.session.projectKey
       || localStorage.getItem("agent_project_key")
       || (apiUrlEl.value.trim() ? "beyoute" : "demo");
-    const incomingStaffToken = params.get("staff_token") || params.get("operator_token") || "";
-    if (incomingStaffToken) {
-      localStorage.setItem("agent_staff_token", incomingStaffToken);
-      params.delete("staff_token");
-      params.delete("operator_token");
-      const cleanUrl = `${window.location.pathname}?${params.toString()}`;
-      window.history.replaceState({}, "", cleanUrl);
-    }
+	    const incomingStaffToken = params.get("staff_token") || params.get("operator_token") || "";
+	    const incomingAdminToken = state.role === "staff"
+	      ? ""
+	      : params.get("admin_token") || params.get("owner_token") || hashParams.get("admin_token") || hashParams.get("owner_token") || hashParams.get("token") || "";
+	    let shouldCleanAccessTokenUrl = false;
+	    if (incomingStaffToken) {
+	      localStorage.setItem("agent_staff_token", incomingStaffToken);
+	      params.delete("staff_token");
+	      params.delete("operator_token");
+	      shouldCleanAccessTokenUrl = true;
+	    }
+	    if (incomingAdminToken) {
+	      localStorage.setItem("agent_admin_token", incomingAdminToken);
+	      params.delete("admin_token");
+	      params.delete("owner_token");
+	      shouldCleanAccessTokenUrl = true;
+	    }
+	    if (shouldCleanAccessTokenUrl && window.history?.replaceState) {
+	      const cleanQuery = params.toString();
+	      const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ""}`;
+	      window.history.replaceState({}, "", cleanUrl);
+	    }
     adminTokenEl.value = state.role === "staff"
       ? localStorage.getItem("agent_staff_token") || ""
       : localStorage.getItem("agent_admin_token") || localStorage.getItem("agent_staff_token") || "";
