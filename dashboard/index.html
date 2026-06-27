@@ -3445,6 +3445,14 @@
         return;
       }
 
+      const learningCase = event.target.closest("[data-open-learning-case]");
+      if (learningCase) {
+        event.preventDefault();
+        event.stopPropagation();
+        openLearningCase(learningCase.dataset.openLearningCase);
+        return;
+      }
+
       const replyTarget = event.target.closest("[data-reply-template]");
       if (replyTarget) {
         applyReplyTemplate(replyTarget.dataset.replyTemplate);
@@ -4830,6 +4838,7 @@
         const decision = item.latest_decision || {};
         const haystack = [
           item.contact?.name,
+          item.id,
           item.contact?.phone,
           item.last_message,
           decision.intent,
@@ -5171,13 +5180,17 @@
 	          <div class="command-kicker">样本 Case</div>
 	          <strong class="command-title">这些草稿不要直接批准</strong>
 	          <div class="audit-list">
-	            ${needsFix.slice(0, 6).map((item) => `
+	            ${needsFix.slice(0, 6).map((item) => {
+	              const caseId = String(item.case_id || item.caseId || item.id || "").trim();
+	              return `
 	              <div class="audit-item">
 	                <b>${escapeHtml(item.title || item.id || "需要复盘")}</b>
 	                <span>${escapeHtml(handoffLearningCasePreview(item))}</span>
 	                <small>${escapeHtml(handoffLearningCaseLearningHint(item))}</small>
+	                ${caseId ? `<button class="quick-action" type="button" data-open-learning-case="${escapeHtml(caseId)}">打开 Case</button>` : ""}
 	              </div>
-	            `).join("")}
+	            `;
+	            }).join("")}
 	          </div>
 	        </section>
 	      `;
@@ -5202,7 +5215,21 @@
 	    function learningNotesHtml() {
 	      if (state.role === "staff") return "";
 	      const notes = Array.isArray(state.learningNotes?.learning_notes) ? state.learningNotes.learning_notes : [];
-	      if (!notes.length) return "";
+	      if (!notes.length) {
+	        if (!hasLearningBacklog()) return "";
+	        return `
+	          <section class="command-panel" data-owner-nav>
+	            <div class="command-kicker">学习记录</div>
+	            <strong class="command-title">还没有学习记录</strong>
+	            <p class="command-copy">现在只是复盘建议，还不代表 AI 已经学会。打开样本 Case，在「优化 AI」记录优化，或转人工后补人工最终回复，Owner 再批准进业务脑。</p>
+	            <div class="compact-list">
+	              ${compactRow("客服动作", "转人工处理完后，补人工最终回复", "待补")}
+	              ${compactRow("Owner 动作", "把有用样本记录优化或批准进业务脑", "审核")}
+	              ${compactRow("安全", "不会发送 WhatsApp，也不会开启自动", "Safe")}
+	            </div>
+	          </section>
+	        `;
+	      }
 	      return `
 	        <section class="command-panel" data-owner-nav>
 	          <div class="command-kicker">待审核学习记录</div>
@@ -5224,6 +5251,14 @@
 	          </div>
 	        </section>
 	      `;
+	    }
+
+	    function hasLearningBacklog() {
+	      const review = state.handoffLearningReview || {};
+	      const summary = review.summary || {};
+	      const needsFix = Array.isArray(review.needs_fix) ? review.needs_fix : [];
+	      const recommendations = Array.isArray(review.recommendations) ? review.recommendations : [];
+	      return Number(summary.needs_fix_count || needsFix.length || 0) > 0 || recommendations.length > 0;
 	    }
 
 	    function learningSeverityLabel(value) {
@@ -6227,6 +6262,18 @@
         item.manual_reply_text
       ].filter(Boolean).join(" ");
       const crossChannelContactRequest = intent.includes("cross_channel_contact") || /(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b).{0,40}(联系|聯絡|联络|找我|pm|私讯|私訊|私信|加我|号码|號碼|电话|電話|contact|message|reach|call|text|number|phone)|(联系|聯絡|联络|找我|contact|message|reach|call|text).{0,40}(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b)/i.test(crossChannelContactText);
+      const offlineAvailabilityText = [
+        intent,
+        action,
+        decision.reply_message,
+        decision.operator_instruction,
+        decision.headline,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const offlineAvailabilityQuestion = intent.includes("offline_availability") || /(药店|实体店|实体門店|門市|门市|門店|门店|线下|線下|哪里买|哪裡買|哪里有卖|哪裡有賣|有卖吗|有賣嗎|现货|現貨|柔佛|古来|johor|kulai|pharmacy|store|outlet|retail|where\s+are\s+(?:you|u)\s+located|where\s+(?:are\s+)?(?:you|u)\s+based|your\s+location|location\?|located\?)/i.test(offlineAvailabilityText);
 
       if (status === "purchase_confirmed") {
         return { tone: "pass", title: "已成交，进复盘", reason: "收到付款或 COD 确认后只保留记录，不再推销售话术。" };
@@ -6263,6 +6310,9 @@
       }
       if (crossChannelContactRequest) {
         return { tone: "handoff", title: "转 WhatsApp 先确认", reason: "顾客想转 WhatsApp 联系；先确认号码和同意跟进，不要继续普通教育 Flow，也不要自动联系未确认号码。" };
+      }
+      if (offlineAvailabilityQuestion) {
+        return { tone: "handoff", title: "地点/现货先确认", reason: "顾客问所在地、门店、药店或现货；没有实时门店/库存资料时，不要乱讲有卖或没卖，先人工确认。" };
       }
       if (status === "order" || action === "collect_order" || action === "review_receipt" || intent.includes("receipt") || intent.includes("order")) {
         return { tone: "order", title: "订单/审款，不确认出货", reason: "只收集资料或核对付款截图；确认无误后才继续安排，不自动承诺已付款成功或已出货。" };
@@ -7282,6 +7332,23 @@
       addAuditEvent(`case_${action}_demo`, `${record.contact?.name || "顾客"} 已执行 ${actionLabel(action)}。`);
       render();
       openCase(caseId);
+    }
+
+    function openLearningCase(caseId = "") {
+      const id = String(caseId || "").trim();
+      if (!id) return;
+      const existing = state.cases.find((item) => String(item.id || "") === id);
+      state.filter = "all";
+      setWorkspaceView("cases");
+      if (existing) {
+        render();
+        openCase(id);
+        return;
+      }
+      state.query = id;
+      if (caseSearchEl) caseSearchEl.value = id;
+      render();
+      showToast("已用 Case ID 搜索队列；如果还看不到，请刷新顾客队列。");
     }
 
     function emptyHtml() {
