@@ -6569,12 +6569,26 @@
         item.manual_reply_text
       ].filter(Boolean).join(" ");
       const specialPromoAddon = Boolean(decision.special_promo_addon || decision.signals?.special_promo_addon || /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|加购|加購)/i.test(specialPromoText));
-      const legacyPromo = Boolean(decision.legacy_package_promo || decision.signals?.legacy_package_promo || /(配套\s*[bc]\b|package\s*[bc]\b|4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|年中优惠|年中優惠|直接瘦\s*(?:10|15)|旧活动|舊活動|旧图|舊圖)/i.test(specialPromoText));
+      const legacyPromo = Boolean(decision.legacy_package_promo || decision.signals?.legacy_package_promo || /(配套\s*[bc]\b|package\s*[bc]\b|4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|5\s*\+\s*3|5\s*盒\s*送\s*3\s*盒|RM\s*508|RM\s*658|8\s*盒|八\s*盒|4\s*个月|四\s*个月|年中优惠|年中優惠|直接瘦\s*(?:10|15)|旧活动|舊活動|旧图|舊圖)/i.test(specialPromoText));
       const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(rawCustomerText);
       const currentPriceLadderAnswered = /(?:1\s*盒|一盒|1\s*box).{0,24}RM\s*150|RM\s*150.{0,24}(?:1\s*盒|一盒|1\s*box)/i.test(draftText)
         && /(?:2\s*盒|二盒|2\s*boxes?).{0,24}RM\s*258|RM\s*258.{0,24}(?:2\s*盒|二盒|2\s*boxes?)/i.test(draftText)
         && /(?:3\s*盒|三盒|3\s*boxes?).{0,24}RM\s*378|RM\s*378.{0,24}(?:3\s*盒|三盒|3\s*boxes?)/i.test(draftText);
       const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
+      const paymentReceivedText = [
+        intent,
+        action,
+        decision.reply_message,
+        decision.operator_instruction,
+        decision.headline,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const paymentReceivedSignal = intent.includes("payment_received") || intent.includes("paid") || /(?:已|已经|已經|刚|剛)\s*(?:汇款|匯款|付款|付钱|付錢|转账|轉賬)|(?:汇款|匯款|转账|轉賬)(?:了|啦|咯|好了|过了|過了)|\b(?:bank\s*in|banked\s*in|transferred|paid|payment\s*done)\b|收到.{0,16}(?:汇款|匯款|付款|payment|款)/i.test(paymentReceivedText);
+      const shippingEtaQuestion = intent.includes("shipping_eta") || /(运输|運輸|快递|快遞|物流|几天|幾天|多久.{0,12}到|几时.{0,12}到|幾時.{0,12}到|delivery|shipping|courier|arrive|arrival|eta)/i.test(customerSignalText);
+      const shippingEtaAnswered = /(西马|西馬|west\s*malaysia|wm).{0,50}(2\s*[-到至]\s*3|2\s*to\s*3).{0,30}(工作天|工作日|天|days?|business\s*days?)|(?:东马|東馬|east\s*malaysia|em).{0,50}(5\s*[-到至]\s*7|5\s*to\s*7).{0,30}(工作天|工作日|天|days?|business\s*days?)|(?:2\s*[-到至]\s*3|2\s*to\s*3).{0,30}(?:工作天|工作日|days?|business\s*days?).{0,80}(?:5\s*[-到至]\s*7|5\s*to\s*7)/i.test(draftText);
       const gratitudeText = [
         intent,
         decision.reply_message,
@@ -6700,6 +6714,15 @@
       if (directPriceQuestion && currentPriceLadderAnswered) {
         return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? "问价可审：价梯 + CTA" : "不能过：问价缺 CTA", reason: priceCtaAnswered ? "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。" : "顾客问价时，草稿除了当前价梯，还要给明确下一步，例如问她要安排哪个配套。" };
       }
+      if (paymentReceivedSignal) {
+        return { tone: "order", title: "付款/汇款先审款", reason: "顾客说已付款/已汇款，或草稿确认收到款；先核对金额、截图和订单资料，不继续销售，也不要直接承诺已出货。" };
+      }
+      if (shippingEtaQuestion && !shippingEtaAnswered) {
+        return { tone: "fix", title: "不能过：没回答运输时效", reason: "顾客问运输/快递/几天到；草稿必须回答西马/东马预计时效，不要回产品介绍或继续成交。" };
+      }
+      if (shippingEtaQuestion && shippingEtaAnswered) {
+        return { tone: "pass", title: "运输时效可过", reason: "已回答西马/东马预计送达时间；客服确认没有订单异常后可以批准。" };
+      }
       if (noFollowUpComplaint) {
         return { tone: "handoff", title: "没人跟进先人工", reason: "顾客在投诉没人 follow up；不要回产品介绍或继续 Flow，先让客服查记录并真人接手。" };
       }
@@ -6750,7 +6773,7 @@
         return { tone: "review", title: "特别加购：先确认资格", reason: "PWP/RM68/add-on 不能套普通价格图；先确认活动、资格和当前订单能不能加购。" };
       }
       if (legacyPromo) {
-        return { tone: "review", title: "旧活动/旧图：先确认", reason: "配套B/C、4+2、年中优惠或直接瘦kg 可能来自旧活动图；不要承诺 kg，不要接普通 Flow，先按当前三档价并确认当天活动。" };
+        return { tone: "review", title: "活动配套先确认", reason: "配套B/C、4+2、5+3、RM508/RM658 或 8盒/4个月这类活动价，要先确认当前活动、库存和赠品边界；不要套普通价梯，也不要编价格。" };
       }
       if (promoGiftQuestion) {
         return { tone: "review", title: "赠品/活动可审", reason: "已回答当前三档价和赠品边界；最后按当天活动和库存确认，不乱保证。" };
