@@ -6205,6 +6205,7 @@
       const salesPushDraft = /(RM\s*\d+|1\s*盒\s*RM|2\s*盒\s*RM|3\s*盒\s*RM|1\s*box\s*RM|2\s*boxes?\s*RM|3\s*boxes?\s*RM|哪个配套|哪一个配套|安排.*配套|抢购|搶購|主推|promotion|promo|which\s+package|arrange.*package|buy\s+now|order\s+now)/i.test(draftText);
       const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
       const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
+      const noFollowUpComplaint = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerSignalText);
       const promoGiftExplicitQuestion = /(赠品|贈品|free\s*gift|gift|送什么|送什麼|有什么送|有什麼送|送哪些|送什麼东西|送什么东西)/i.test(customerSignalText);
       const promoCampaignListQuestion = /(promotion|promo|优惠|優惠|活动|活動)/i.test(customerSignalText) && /(有什么|有什麼|有哪些|哪一些|哪些|what|any|which|list|write|一次过|一次過|全部|all|送什么|送什麼)/i.test(customerSignalText);
       const promoGiftQuestion = promoGiftExplicitQuestion || promoCampaignListQuestion;
@@ -6336,6 +6337,9 @@
       }
       if (promoGiftMissingDraft) {
         return { tone: "fix", title: "不能过：没回答赠品", reason: "顾客问还有送什么、赠品或 free gift；草稿必须列当前 RM150/RM258/RM378 和当天赠品确认口径，不要回产品介绍或接普通 Flow。" };
+      }
+      if (noFollowUpComplaint) {
+        return { tone: "handoff", title: "没人跟进先人工", reason: "顾客在投诉没人 follow up；不要回产品介绍或继续 Flow，先让客服查记录并真人接手。" };
       }
       if ((afterSalesReceivedAck || gratitudeAck) && salesPushDraft) {
         return { tone: "fix", title: "不能过：售后勿继续卖", reason: "顾客已经收到货或只是感谢，草稿却在推价格/配套；只回用法、关怀或礼貌收尾，不接销售 Flow。" };
