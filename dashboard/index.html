@@ -5251,6 +5251,7 @@
 	            <div class="compact-list">
 	              ${compactRow("可过", `${Number(summary.can_pass_count || canPass.length)} 个判断`, "Pass")}
 	              ${compactRow("要改", `${Number(summary.needs_fix_count || needsFix.length)} 个问题`, "Fix")}
+	              ${compactRow("旧草稿", `${Number(summary.open_draft_return_count || 0)} 个要退回`, "退回 AI")}
 	              ${compactRow("转人工", `${Number(summary.human_or_handoff_cases || 0)} 个样本`, "Learn")}
 	            </div>
 	          </section>
@@ -5309,7 +5310,19 @@
 	      const candidate = item.learning_candidate || {};
 	      const label = item.artifact_label || candidate.artifact_label || learningSeverityLabel(item.severity);
 	      const improvement = item.improvement || candidate.proposed_rule || item.reason || "补 FAQ/SOP 后再回放测试。";
-	      return `${label}｜${improvement}`;
+	      const action = item.queue_action ? `｜队列动作：${learningQueueActionLabel(item.queue_action)}` : "";
+	      return `${label}｜${improvement}${action}`;
+	    }
+
+	    function learningQueueActionLabel(value = "") {
+	      const map = {
+	        return_ai_before_approval: "退回 AI 重写，不能批准旧草稿",
+	        human_followup_then_learning_note: "人工处理后补 learning note",
+	        owner_review_manual_reply: "Owner 审核人工最终回复",
+	        already_returned_or_handoff: "已退回/已转人工，等待复盘",
+	        record_learning_from_sent_case: "已发送样本，只做复盘",
+	      };
+	      return map[value] || value;
 	    }
 
 	    function learningNotesHtml() {
