@@ -1636,6 +1636,21 @@
       gap: 10px;
     }
 
+    .selection-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .selection-tools .btn {
+      padding: 8px 11px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 880;
+      white-space: nowrap;
+    }
+
     .pill {
       border: 1px solid var(--line);
       background: rgba(255,255,255,.90);
@@ -2788,6 +2803,7 @@
       .ops-command-main { min-height: 0; padding: 18px; }
       .ops-command-grid { grid-template-columns: 1fr; }
       .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
+      .selection-tools { justify-content: flex-start; }
       .view-toggle { align-self: flex-start; }
       .member-row { grid-template-columns: 38px minmax(0, 1fr); }
       .member-row .ops-mini { grid-column: 1 / -1; justify-content: center; }
@@ -3020,6 +3036,10 @@
             <button class="pill" data-filter="order">订单/付款</button>
             <button class="pill" data-filter="auto" id="autoFilterBtn">自动记录</button>
           </div>
+          <div class="selection-tools" aria-label="快速选择">
+            <button class="btn" id="selectVisibleBtn" type="button">选择当前</button>
+            <button class="btn danger" id="selectReturnAiVisibleBtn" type="button">选择退回 AI</button>
+          </div>
           <div class="view-toggle" aria-label="切换视图">
             <button class="active" id="gridView">卡片</button>
             <button id="listView">列表</button>
@@ -3151,6 +3171,7 @@
       sort: "priority",
       workspaceView: "overview",
       selected: new Set(),
+      visibleCases: [],
       settings: null,
       auditEvents: [],
 	      projectVersions: null,
@@ -3539,6 +3560,8 @@
     $("caseOptimizerDraftBtn").addEventListener("click", draftCaseOptimizerRule);
     $("caseOptimizerRecordBtn").addEventListener("click", recordCaseOptimizerFeedback);
     $("caseOptimizerApplyBtn").addEventListener("click", applyCaseOptimizerCandidate);
+    $("selectVisibleBtn").addEventListener("click", () => selectVisibleCases("actionable"));
+    $("selectReturnAiVisibleBtn").addEventListener("click", () => selectVisibleCases("return_ai"));
     $("bulkMarkSeen").addEventListener("click", () => bulkCaseAction("mark_seen"));
     $("bulkReturnAi").addEventListener("click", () => bulkCaseAction("return_ai"));
     $("bulkHandoff").addEventListener("click", () => bulkCaseAction("handoff"));
@@ -4747,8 +4770,10 @@
       const filtered = filterCases(all, state.filter);
       const searched = searchCases(filtered, state.query);
       const visible = sortCases(searched, state.sort);
+      state.visibleCases = visible;
       renderQueueSummary(visible.length, filtered.length, all.length, counts);
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
+      renderSelectionTools();
       renderBulkBar();
 
       casesEl.querySelectorAll(".case-card[data-case-id]").forEach((card) => {
@@ -4857,6 +4882,31 @@
     function clearSelection() {
       state.selected.clear();
       render();
+    }
+
+    function visibleActionableCases() {
+      return (state.visibleCases || []).filter((item) => item && !isCaseReadOnly(item));
+    }
+
+    function visibleReturnAiCases() {
+      return visibleActionableCases().filter(needsReturnAiBeforeApproval);
+    }
+
+    function renderSelectionTools() {
+      $("selectVisibleBtn").disabled = state.bulkBusy || visibleActionableCases().length === 0;
+      $("selectReturnAiVisibleBtn").disabled = state.bulkBusy || visibleReturnAiCases().length === 0;
+    }
+
+    function selectVisibleCases(mode = "actionable") {
+      const items = mode === "return_ai" ? visibleReturnAiCases() : visibleActionableCases();
+      if (!items.length) {
+        showToast(mode === "return_ai" ? "当前列表没有可退回 AI 的草稿。" : "当前列表没有可选择的 case。");
+        return;
+      }
+      state.selected.clear();
+      items.forEach((item) => state.selected.add(item.id));
+      render();
+      showToast(mode === "return_ai" ? `已选择 ${items.length} 条退回 AI 草稿。` : `已选择当前 ${items.length} 条。`);
     }
 
     function renderBulkBar() {
