@@ -1271,6 +1271,106 @@
       white-space: pre-line;
     }
 
+    .case-learning-loop {
+      grid-column: span 2;
+      display: grid;
+      gap: 10px;
+      border: 1px solid rgba(0, 183, 160, .22);
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(238, 255, 250, .96), rgba(255, 255, 255, .92));
+      padding: 12px;
+      box-shadow: 0 10px 24px rgba(0, 60, 55, .06);
+    }
+
+    .case-learning-loop.needs-input {
+      border-color: rgba(183, 121, 31, .28);
+      background: linear-gradient(135deg, rgba(255, 248, 232, .96), rgba(255, 255, 255, .92));
+    }
+
+    .case-learning-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .case-learning-head span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .case-learning-head b {
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .case-learning-pill {
+      flex: 0 0 auto;
+      border: 1px solid rgba(0, 183, 160, .25);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--green);
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 920;
+    }
+
+    .case-learning-loop.needs-input .case-learning-pill {
+      color: var(--amber);
+      border-color: rgba(183, 121, 31, .30);
+    }
+
+    .case-learning-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .case-learning-step {
+      border: 1px solid rgba(214, 224, 223, .92);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .82);
+      padding: 9px;
+      min-width: 0;
+    }
+
+    .case-learning-step strong {
+      display: block;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 950;
+      margin-bottom: 4px;
+    }
+
+    .case-learning-step span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.35;
+    }
+
+    .case-learning-loop small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 720px) {
+      .case-learning-loop {
+        grid-column: span 1;
+      }
+
+      .case-learning-steps {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .toggle {
       width: 44px;
       height: 26px;
@@ -6079,6 +6179,7 @@
 	          <small>${escapeHtml(learningFollowup.body)}</small>
 	        </div>
 	        ` : ""}
+	        ${caseLearningLoopHtml(item)}
 	      `;
 	    }
 
@@ -6502,6 +6603,57 @@
 		tone: "warn",
 		body: "客服处理完后，把最后真正发给顾客的回复贴回来，AI 才能学到正确答案。"
 	      };
+	    }
+
+	    function shouldShowCaseLearningLoop(item = {}) {
+	      const status = String(item.status || "").toLowerCase();
+	      return needsManualReplyAfterHandoff(item) ||
+	        hasManualFinalReply(item) ||
+	        Boolean(item.manual_learning_candidate || item.handoff_learning_candidate || item.raw_approval?.manual_learning_candidate || item.raw_approval?.handoff_learning_candidate) ||
+	        ["handoff_done", "returned_to_ai", "manual_resolved"].includes(status);
+	    }
+
+	    function caseLearningLoopCandidate(item = {}) {
+	      const existing = item.manual_learning_candidate ||
+	        item.handoff_learning_candidate ||
+	        item.raw_approval?.manual_learning_candidate ||
+	        item.raw_approval?.handoff_learning_candidate;
+	      if (existing && typeof existing === "object") return existing;
+	      return caseOptimizerLearningCandidate(item, "");
+	    }
+
+	    function caseLearningLoopHtml(item = {}) {
+	      if (!shouldShowCaseLearningLoop(item)) return "";
+	      const pendingReply = needsManualReplyAfterHandoff(item);
+	      const manualReply = caseOptimizerManualReplyText(item);
+	      const candidate = caseLearningLoopCandidate(item);
+	      const label = candidate.artifact_label || "学习候选";
+	      const title = pendingReply ? "先补人工最终回复" : (candidate.title || "人工处理样本待复盘");
+	      const stepOne = pendingReply
+	        ? "客服处理完，把最后发给顾客的回复贴回来。"
+	        : manualReply
+	          ? "已保存人工最终回复，可以做复盘样本。"
+	          : "已记录转人工/退回原因，等人工结果补齐。";
+	      const stepTwo = `${label}：${candidate.proposed_rule || candidate.summary || "整理成 FAQ / SOP / 成交话术 / 测试用例候选。"}`;
+	      const stepThree = "Owner 批准后才进业务脑；不会发送 WhatsApp，也不会开启自动。";
+	      const tone = pendingReply ? "needs-input" : "ready";
+	      return `
+	        <div class="case-learning-loop ${tone}">
+	          <div class="case-learning-head">
+	            <div>
+	              <span>AI 复盘闭环</span>
+	              <b>${escapeHtml(title)}</b>
+	            </div>
+	            <em class="case-learning-pill">${escapeHtml(pendingReply ? "待客服补" : label)}</em>
+	          </div>
+	          <div class="case-learning-steps">
+	            <div class="case-learning-step"><strong>客服</strong><span>${escapeHtml(stepOne)}</span></div>
+	            <div class="case-learning-step"><strong>Hermas</strong><span>${escapeHtml(stepTwo)}</span></div>
+	            <div class="case-learning-step"><strong>Owner</strong><span>${escapeHtml(stepThree)}</span></div>
+	          </div>
+	          <small>${escapeHtml(candidate.next_owner_action || "老板审核后，才决定写入 FAQ、SOP、成交话术、Flow 规则或测试用例。")}</small>
+	        </div>
+	      `;
 	    }
 
 	    function caseStatusLabel(item = {}, risk = "") {
