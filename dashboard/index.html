@@ -2487,6 +2487,15 @@
       line-height: 1.45;
     }
 
+    .closer-verdict .verdict-next-action {
+      margin-top: 4px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      font-weight: 820;
+    }
+
     .closer-verdict.pass { border-left-color: rgba(16,185,129,.9); }
     .closer-verdict.review { border-left-color: rgba(245,158,11,.9); }
     .closer-verdict.handoff,
@@ -3120,6 +3129,7 @@
               <span id="closerVerdictLabel">成交高手判定</span>
               <b id="closerVerdictTitle">先审再发</b>
               <p id="closerVerdictReason">确认文案、阶段和 CTA 后再批准。</p>
+              <p class="verdict-next-action" id="closerVerdictNextAction">客服下一步：确认后批准；不能确定就转人工。</p>
             </div>
             <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
           </div>
@@ -6285,6 +6295,7 @@
       $("closerVerdictBox").className = `closer-verdict ${closer.tone}`;
       $("closerVerdictTitle").textContent = closer.title;
       $("closerVerdictReason").textContent = closer.reason;
+      $("closerVerdictNextAction").textContent = closerVerdictNextAction(closer, item);
       if (approvalGuard.blocked) {
         $("actionTitle").textContent = approvalGuard.title;
         $("actionReason").textContent = approvalGuard.reason;
@@ -6496,6 +6507,31 @@
         };
       }
       return { blocked: false, label: "" };
+    }
+
+    function closerVerdictNextAction(closer = {}, item = {}) {
+      const tone = String(closer.tone || "").toLowerCase();
+      const decision = item.latest_decision || {};
+      const action = String(decision.action || "").toLowerCase();
+      if (tone === "fix") {
+        return "客服下一步：点「退回 AI 重写」，或手动改好后记录人工回复；不要批准旧草稿。";
+      }
+      if (tone === "handoff") {
+        if (needsManualReplyAfterHandoff(item)) {
+          return "客服下一步：把真正发给顾客的人工回复贴进回复框，再点「补人工回复」。";
+        }
+        return "客服下一步：点「转人工」接手；处理完后回 Dashboard 补人工最终回复。";
+      }
+      if (tone === "order") {
+        return "客服下一步：先审款 / 查订单 / 核对资料；确认无误才记录成交或继续处理。";
+      }
+      if (action === "trigger_flow") {
+        return "客服下一步：确认顾客确实在这个 Step；确认后才让 Flow 继续。";
+      }
+      if (tone === "pass") {
+        return "客服下一步：检查语气、阶段和禁区；没问题就点「批准发送」。";
+      }
+      return "客服下一步：确认活动、赠品、CTA 和当前阶段；没问题才批准。";
     }
 
     function needsReturnAiBeforeApproval(item = {}) {
