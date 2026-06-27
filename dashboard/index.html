@@ -6215,6 +6215,18 @@
         item.manual_reply_text
       ].filter(Boolean).join(" ");
       const orderUpdateRequest = intent.includes("order_update") || /(地址写错|地址寫錯|电话写错|電話寫錯|号码写错|號碼寫錯|换地址|換地址|改地址|换电话|換電話|改电话|改電話|change\s+(?:my\s+)?address|update\s+(?:my\s+)?address|wrong\s+address|change\s+(?:my\s+)?phone|update\s+(?:my\s+)?phone|wrong\s+phone|wrong\s+contact)/i.test(orderUpdateText);
+      const crossChannelContactText = [
+        intent,
+        action,
+        decision.reply_message,
+        decision.operator_instruction,
+        decision.headline,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text
+      ].filter(Boolean).join(" ");
+      const crossChannelContactRequest = intent.includes("cross_channel_contact") || /(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b).{0,40}(联系|聯絡|联络|找我|pm|私讯|私訊|私信|加我|号码|號碼|电话|電話|contact|message|reach|call|text|number|phone)|(联系|聯絡|联络|找我|contact|message|reach|call|text).{0,40}(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b)/i.test(crossChannelContactText);
 
       if (status === "purchase_confirmed") {
         return { tone: "pass", title: "已成交，进复盘", reason: "收到付款或 COD 确认后只保留记录，不再推销售话术。" };
@@ -6248,6 +6260,9 @@
       }
       if (orderUpdateRequest) {
         return { tone: "handoff", title: "改资料先查单", reason: "顾客要改地址、电话或收件资料；先查订单是否已建立或出货，不要重复下单，也不要承诺已改好。" };
+      }
+      if (crossChannelContactRequest) {
+        return { tone: "handoff", title: "转 WhatsApp 先确认", reason: "顾客想转 WhatsApp 联系；先确认号码和同意跟进，不要继续普通教育 Flow，也不要自动联系未确认号码。" };
       }
       if (status === "order" || action === "collect_order" || action === "review_receipt" || intent.includes("receipt") || intent.includes("order")) {
         return { tone: "order", title: "订单/审款，不确认出货", reason: "只收集资料或核对付款截图；确认无误后才继续安排，不自动承诺已付款成功或已出货。" };
