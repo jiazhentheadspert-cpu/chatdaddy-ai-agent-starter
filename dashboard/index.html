@@ -6207,6 +6207,7 @@
       const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
       const noFollowUpComplaint = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerSignalText);
       const referralBulkOrder = ((/(介绍|介紹|推荐|推薦|refer|referral|introduced|recommend)/i.test(customerSignalText) && /(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText)) || (/(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText) && /(?:[4-9]|四|五|六|七|八|九)\s*(?:盒|box|boxes)|(?:多|几|幾)\s*(?:盒|box|boxes)/i.test(customerSignalText)));
+      const afterSalesSellerNoReply = /(我)?(买了|買了|购买了|購買了|已经买|已經買|收到货|收到貨|刚收到|剛收到|货到了|貨到了|卖给我|賣給我|seller|bought|ordered|purchased)/i.test(customerSignalText) && /(no\s*reply|not\s+reply|didn['’]?t\s+reply|never\s+reply|没回|沒回|没有回复|沒有回覆|没回复|沒回覆|不回复|不回覆|没有回应|沒有回應|没回应|沒回應)/i.test(customerSignalText) && (/(怎么喝|怎麼喝|怎样喝|怎樣喝|如何喝|喝法|用法|怎么吃|怎麼吃|怎样吃|怎樣吃|how\s+(?:to\s+)?(?:drink|take|use))/i.test(customerSignalText) || /(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b|卖给我|賣給我|seller|那人|那個人|那个人|agent|staff|salesperson)/i.test(customerSignalText));
       const promoGiftExplicitQuestion = /(赠品|贈品|free\s*gift|gift|送什么|送什麼|有什么送|有什麼送|送哪些|送什麼东西|送什么东西)/i.test(customerSignalText);
       const promoCampaignListQuestion = /(promotion|promo|优惠|優惠|活动|活動)/i.test(customerSignalText) && /(有什么|有什麼|有哪些|哪一些|哪些|what|any|which|list|write|一次过|一次過|全部|all|送什么|送什麼)/i.test(customerSignalText);
       const promoGiftQuestion = promoGiftExplicitQuestion || promoCampaignListQuestion;
@@ -6344,6 +6345,9 @@
       }
       if (referralBulkOrder) {
         return { tone: "handoff", title: "亲友购买先查记录", reason: "顾客提到介绍妹妹/亲友购买或一次买多盒；不要回新人产品介绍或接 Flow，先让客服查订单、优惠资格和售后记录。" };
+      }
+      if (afterSalesSellerNoReply) {
+        return { tone: "handoff", title: "售后没回复先接手", reason: "顾客已买并问用法，同时说原卖家/WhatsApp 没回复；草稿要给基本喝法并让客服查订单/聊天记录，不要当普通 FAQ 自动发。" };
       }
       if ((afterSalesReceivedAck || gratitudeAck) && salesPushDraft) {
         return { tone: "fix", title: "不能过：售后勿继续卖", reason: "顾客已经收到货或只是感谢，草稿却在推价格/配套；只回用法、关怀或礼貌收尾，不接销售 Flow。" };
