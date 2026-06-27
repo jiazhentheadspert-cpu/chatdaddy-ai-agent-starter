@@ -5001,6 +5001,7 @@
 
     function priorityScore(item) {
       const risk = item.latest_decision?.risk || item.risk || "low";
+      const returnAiScore = needsReturnAiBeforeApproval(item) ? 86 : null;
       const statusScore = {
         human_required: 90,
         send_failed: 82,
@@ -5011,18 +5012,19 @@
         purchase_confirmed: 6,
         sent: 8,
       }[item.status] || 20;
+      const baseScore = returnAiScore ?? statusScore;
       const riskScore = { high: 25, medium: 12, low: 0 }[risk] || 0;
       const time = new Date(item.updated_at || Date.now()).getTime();
       const minutes = Number.isFinite(time) ? Math.floor((Date.now() - time) / 60000) : 0;
       const ageScore = Math.max(0, 12 - Math.floor(minutes / 10));
-      return statusScore + riskScore + ageScore;
+      return baseScore + riskScore + ageScore;
     }
 
     function renderQueueSummary(visibleCount, filteredCount, totalCount, counts = {}) {
       const queryText = state.query ? ` · 搜索「${state.query}」` : "";
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新" : "名字";
       const staffGuide = state.role === "staff"
-        ? ` · 先人工 ${counts.human || 0}，补回复 ${counts.pendingManualReplies || 0}，再批准 ${counts.approval || 0}，再订单 ${counts.orders || 0}`
+        ? ` · 先人工 ${counts.human || 0}，退回 AI ${counts.returnAi || 0}，补回复 ${counts.pendingManualReplies || 0}，再批准 ${counts.approval || 0}`
         : "";
       $("queueSummary").textContent = `${visibleCount}/${filteredCount} 位${queryText} · ${sortText}${staffGuide}`;
     }
@@ -5516,6 +5518,7 @@
     function commandTitle(counts) {
       if (counts.failed > 0) return "先检查发送失败";
       if (counts.human > 0) return "先处理高风险顾客";
+      if (counts.returnAi > 0) return "先退回不能过草稿";
       if (counts.approval > 0) return "先审核 AI 建议";
       if (counts.orders > 0) return "先提交订单";
       return "运行正常";
@@ -5810,13 +5813,13 @@
       const staffCards = `
         ${opsCard("今日重点", view.title, "按系统建议逐个处理。", [
           opsMini(`${counts.needs} 个需处理`, counts.needs > 0 ? "warn" : "good"),
+          opsMini(`${counts.returnAi || 0} 个退回 AI`, counts.returnAi > 0 ? "risk" : "good"),
           opsMini(`${counts.orders} 个订单`, "blue"),
-          opsMini(`${counts.human} 个要人工`, counts.human > 0 ? "risk" : "good"),
         ], "focus")}
-        ${opsCard("处理规则", "先看动作，再看回复", "自动中的顾客不会打扰你。", [
+        ${opsCard("处理规则", "先看成交判断", "红色退回 AI，黄色人工确认，绿色才批准。", [
+          opsMini("退回 AI", counts.returnAi > 0 ? "risk" : "warn"),
           opsMini("批准发送", "good"),
           opsMini("转人工", "warn"),
-          opsMini("提交订单", "blue"),
         ])}
         ${opsCard("交接记录", "动作全部留痕", "审批、转人工、学习都能追踪。", [
           opsMini(`${learned} 条学习`, "good"),
