@@ -2481,6 +2481,17 @@
       line-height: 1.2;
     }
 
+    .closer-verdict .verdict-approval-signal {
+      display: inline-flex;
+      width: fit-content;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
     .closer-verdict p {
       margin: 0;
       font-size: 12px;
@@ -3128,6 +3139,7 @@
             <div class="closer-verdict review" id="closerVerdictBox">
               <span id="closerVerdictLabel">成交高手判定</span>
               <b id="closerVerdictTitle">先审再发</b>
+              <small class="verdict-approval-signal" id="closerVerdictApprovalSignal">批准信号：可批准但先确认</small>
               <p id="closerVerdictReason">确认文案、阶段和 CTA 后再批准。</p>
               <p class="verdict-next-action" id="closerVerdictNextAction">客服下一步：确认后批准；不能确定就转人工。</p>
             </div>
@@ -6296,6 +6308,7 @@
       const approvalGuard = approvalGuardForVerdict(closer);
       $("closerVerdictBox").className = `closer-verdict ${closer.tone}`;
       $("closerVerdictTitle").textContent = closer.title;
+      $("closerVerdictApprovalSignal").textContent = closerVerdictApprovalSignal(closer, item);
       $("closerVerdictReason").textContent = closer.reason;
       $("closerVerdictNextAction").textContent = closerVerdictNextAction(closer, item);
       if (approvalGuard.blocked) {
@@ -6509,6 +6522,17 @@
         };
       }
       return { blocked: false, label: "" };
+    }
+
+    function closerVerdictApprovalSignal(closer = {}, item = {}) {
+      const tone = String(closer.tone || "").toLowerCase();
+      const action = String(item.latest_decision?.action || "").toLowerCase();
+      if (tone === "fix") return "批准信号：不能批准，先退回 AI / 改稿";
+      if (tone === "handoff") return "批准信号：不能批准，先人工接手";
+      if (tone === "order") return "批准信号：先审款 / 查订单";
+      if (action === "trigger_flow") return "批准信号：可接 Flow，先确认 Step";
+      if (tone === "pass") return "批准信号：可批准";
+      return "批准信号：可批准但先确认";
     }
 
     function closerVerdictNextAction(closer = {}, item = {}) {
