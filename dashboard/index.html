@@ -2982,6 +2982,7 @@
             <button class="pill active" data-filter="all">全部</button>
             <button class="pill" data-filter="needs_attention">待处理</button>
             <button class="pill" data-filter="approval_required">待批准</button>
+            <button class="pill" data-filter="return_ai">退回 AI</button>
             <button class="pill" data-filter="human_required">要人工</button>
             <button class="pill" data-filter="pending_manual_reply">待补回复</button>
             <button class="pill" data-filter="order">订单/付款</button>
@@ -3825,6 +3826,7 @@
         order: "step_4",
         records: "step_5",
         human_required: "step_4",
+        return_ai: "step_4",
         pending_manual_reply: "step_4",
         handoff_done: "step_4",
         returned_to_ai: "step_5",
@@ -4792,6 +4794,7 @@
         all: ["全部", counts.total],
         needs_attention: ["待处理", counts.needs],
         approval_required: ["待批准", counts.approval],
+        return_ai: ["退回 AI", counts.returnAi],
         human_required: ["要人工", counts.human],
         pending_manual_reply: ["待补回复", counts.pendingManualReplies],
         order: ["订单/付款", counts.orders],
@@ -4924,6 +4927,7 @@
       if (filter === "auto") return cases.filter((item) => ["auto", "auto_sent"].includes(item.status));
       if (filter === "records") return cases.filter((item) => ["auto_sent", "sent", "handoff_done", "returned_to_ai", "manual_resolved", "send_failed", "purchase_confirmed"].includes(item.status));
       if (filter === "human_required") return cases.filter((item) => ["human_required", "handoff_done", "manual_resolved"].includes(item.status));
+      if (filter === "return_ai") return cases.filter(needsReturnAiBeforeApproval);
       if (filter === "pending_manual_reply") return cases.filter(needsManualReplyAfterHandoff);
       if (filter === "needs_attention") {
         return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status) || needsManualReplyAfterHandoff(item));
@@ -5807,6 +5811,7 @@
 
     function countCases(cases) {
       const approval = cases.filter((item) => item.status === "approval_required").length;
+      const returnAi = cases.filter(needsReturnAiBeforeApproval).length;
       const humanOpen = cases.filter((item) => item.status === "human_required").length;
       const handoffDone = cases.filter((item) => item.status === "handoff_done").length;
       const pendingManualReplies = cases.filter(needsManualReplyAfterHandoff).length;
@@ -5817,6 +5822,7 @@
       return {
         total: cases.length,
         approval,
+        returnAi,
         human,
         orders,
         auto,
@@ -5846,6 +5852,10 @@
         approval_required: {
           title: `${counts.approval} 条回复待批准`,
           body: "看 AI 建议，确认没问题就批准发送。",
+        },
+        return_ai: {
+          title: `${counts.returnAi || 0} 条草稿要退回 AI`,
+          body: "这些草稿不能批准；打开后按退回 AI，或人工改完再记录最终回复。",
         },
         human_required: {
           title: `${counts.human} 位顾客需人工接手`,
@@ -5981,6 +5991,23 @@
     function cardQuickActionsHtml(item) {
       if (isCaseReadOnly(item)) return "";
       const decision = item.latest_decision || {};
+      const closer = closerVerdict(item);
+      const approvalGuard = approvalGuardForVerdict(closer);
+      if (approvalGuard.blocked && closer.tone === "fix") {
+        return `
+          <div class="case-action-row">
+            <button class="card-action danger" type="button" data-card-action="return_ai" data-case-id="${escapeHtml(item.id)}">退回 AI</button>
+            <button class="card-action" type="button" data-card-action="handoff" data-case-id="${escapeHtml(item.id)}">人工</button>
+          </div>
+        `;
+      }
+      if (approvalGuard.blocked && closer.tone === "handoff") {
+        return `
+          <div class="case-action-row">
+            <button class="card-action danger" type="button" data-card-action="handoff" data-case-id="${escapeHtml(item.id)}">人工</button>
+          </div>
+        `;
+      }
       const canApprove = decision.action !== "trigger_flow" && item.status !== "sending";
       const approveText = item.status === "order" ? "确认" : "批准";
       return `
@@ -6291,6 +6318,13 @@
         };
       }
       return { blocked: false, label: "" };
+    }
+
+    function needsReturnAiBeforeApproval(item = {}) {
+      if (!item || isCaseReadOnly(item)) return false;
+      const closer = closerVerdict(item);
+      const approvalGuard = approvalGuardForVerdict(closer);
+      return approvalGuard.blocked && closer.tone === "fix";
     }
 
     function closerVerdict(item = {}) {
@@ -6689,11 +6723,17 @@
       const originalText = button.textContent;
       state.actionBusy = true;
       button.disabled = true;
-      button.textContent = action === "handoff" ? "处理中" : "发送中";
+      button.textContent = action === "return_ai" ? "退回中" : action === "handoff" ? "处理中" : "发送中";
       try {
         if (action === "handoff") {
           await postCaseAction(item.id, "handoff", { note: "客服在卡片上转人工，不发送 AI 建议。" }, { reopen: false, lock: false });
           showToast("已转人工。");
+          return;
+        }
+        if (action === "return_ai") {
+          const closer = closerVerdict(item);
+          await postCaseAction(item.id, "return_ai", { note: closer.reason || "客服在卡片上退回 AI，不发送当前建议。" }, { reopen: false, lock: false });
+          showToast("已退回 AI 重写。");
           return;
         }
         await postCaseAction(item.id, "approve", { reply_message: item.latest_decision?.reply_message || "" }, { reopen: false, lock: false });
@@ -6712,6 +6752,11 @@
       if (action === "handoff") {
         if (state.demoMode) return true;
         return window.confirm(`确认把 ${name} 转人工？\n\n不会发送 AI 建议给顾客，只留下人工处理记录。`);
+      }
+      if (action === "return_ai") {
+        const closer = closerVerdict(item);
+        if (state.demoMode) return true;
+        return window.confirm(`确认把 ${name} 退回 AI 重写？\n\n不会发送当前 AI 建议。\n\n原因：${closer.title}\n${closer.reason}`);
       }
       const closer = closerVerdict(item);
       const approvalGuard = approvalGuardForVerdict(closer);
