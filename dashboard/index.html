@@ -6904,6 +6904,9 @@
       if (/加购已拒绝|不加购|add-on declined/i.test(titleReason)) {
         return "改稿方向：尊重顾客拒绝加购；不要再推 RM68 / top up，直接回到付款、资料或订单确认。";
       }
+      if (/身体适合度强承诺|健康敏感|更年期|跟年期|特殊身体状态/i.test(titleReason)) {
+        return "改稿方向：特殊身体状态先用安全边界回复；不要说更适合、加速燃烧脂肪或保证效果。不确定就转人工确认。";
+      }
       if (/多问没答完|几盒|幾盒|几个月|幾个月|几包|幾包|经期|經期|年期|100KG|100\s*kg/i.test(titleReason)) {
         return "改稿方向：逐条答：RM658=8盒=4个月；1盒15小包；经期/100kg这类适用问题按安全口径回答或转人工确认。全部答完再接信心 CTA / FAQ Flow。";
       }
@@ -7049,6 +7052,8 @@
       const sachetCountQuestion = /(?:一|1)\s*盒.{0,12}(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)|(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)/i.test(customerSignalText);
       const cycleSuitabilityQuestion = /(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期).{0,12}(?:可以|能|可不可以|喝|take|drink)|(?:可以|能).{0,12}(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期)/i.test(customerSignalText);
       const weightSuitabilityQuestion = /(?:体重|體重|weight|kg|KG).{0,16}(?:100|一百).{0,16}(?:可以|能|适合|適合|喝|take|drink)|(?:100\s*kg|100KG|100\s*KG).{0,20}(?:可以|能|适合|適合|喝|take|drink)/i.test(customerSignalText);
+      const specialBodySuitabilityQuestion = cycleSuitabilityQuestion || weightSuitabilityQuestion || /(?:更年期|跟年期|停经|停經|menopause|menopausal|中年).{0,16}(?:可以|能|适合|適合|喝|服用|take|drink)|(?:可以|能|适合|適合).{0,16}(?:更年期|跟年期|停经|停經|menopause|menopausal|中年)/i.test(customerSignalText);
+      const strongSuitabilityOverclaimDraft = specialBodySuitabilityQuestion && /(?:更适合|更適合|适合服用|適合服用|加速.{0,16}(?:新陈代谢|新陳代謝|代谢|代謝|燃烧|燃燒|脂肪)|燃烧脂肪|燃燒脂肪|达到.{0,10}(?:减肥|減肥|瘦|效果)|24\s*小时.{0,12}燃脂|阻断.{0,16}(?:碳水|糖分|吸收)|改善.{0,16}(?:更年期|跟年期|月经|月經|经期|經期))/i.test(draftText);
       const packageBoxCountAnswered = /8\s*盒|八\s*盒|一共\s*8|total\s*8|5\s*盒\s*送\s*3/i.test(draftText);
       const packageDurationAnswered = /4\s*个?月|四\s*个?月|4\s*months?|four\s*months?/i.test(draftText);
       const sachetCountAnswered = /15\s*(?:小包|包|sachets?|packs?)|75\s*g|5\s*g/i.test(draftText);
@@ -7240,6 +7245,9 @@
       }
       if (usageFlowWithoutAnswer) {
         return { tone: "fix", title: "不能过：没回答就接 Flow", reason: "顾客问怎么喝/一天几次；接下一段 Flow 前必须先回答用法。不要只说继续下一步或直接丢 Flow。" };
+      }
+      if (strongSuitabilityOverclaimDraft) {
+        return { tone: "fix", title: "不能过：身体适合度强承诺", reason: "顾客问更年期、经期或体重这类特殊身体状态；草稿不能说更适合、加速燃烧脂肪或保证达到减肥效果。改成安全边界回复，必要时转人工确认。" };
       }
       if (multiProductQuestionMissingAnswer) {
         return { tone: "fix", title: "不能过：顾客多问没答完", reason: "顾客连续问几盒、几个月、几包、经期/体重适不适合等；草稿必须逐条答完，再接 FAQ Flow、信心 CTA 或人工确认。不要只答 RM658/8盒就催下单。" };
@@ -7895,7 +7903,7 @@
         proposed_rule: "把顾客最后一句、上一句 Agent、AI 草稿和客服最终回复一起复盘，提炼可重复的正确回答。",
         next_owner_action: "Owner 审核后决定写入 FAQ、SOP、成交话术或测试用例。"
       };
-      if (/想吐|呕吐|嘔吐|头晕|頭暈|不舒服|副作用|反弹|反彈|怀孕|懷孕|药|藥|medical/.test(combined)) {
+      if (/想吐|呕吐|嘔吐|头晕|頭暈|不舒服|副作用|反弹|反彈|怀孕|懷孕|药|藥|medical|更年期|跟年期|停经|停經|经期|經期|月经|月經|体重|體重|100\s*kg|100KG|适合|適合|更适合|更適合|燃烧脂肪|燃燒脂肪/.test(combined)) {
         artifact = {
           artifact_type: "safety_sop",
           artifact_label: "安全 SOP",
