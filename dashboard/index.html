@@ -7165,8 +7165,25 @@
       const packageChoiceAmbiguousBadDraft = packageChoicePrompt && shortAmbiguousChoiceReply && !packageChoiceClarifyDraft && (salesPushDraft || longMessageDraft || action.includes("flow") || /STEP_[1-4]|S[1-4]/.test(stage) || /Beyoute|阻碳水|燃脂|排宿便|Kombucha/i.test(draftText));
       const addOnDeclined = /(先)?不(?:要|用)?\s*(?:加购|加購|加|top\s*up|add[\s-]?on)|(?:先)?不\s*加购|(?:先)?不\s*加購|no\s*(?:add[\s-]?on|top\s*up)|not\s+(?:add|top\s*up)/i.test(customerSignalText);
       const addOnUpsellDraft = /(top\s*up|add[\s-]?on|加购|加購|RM\s*68|原价\s*RM\s*188|原價\s*RM\s*188|省下\s*RM\s*100|加购一盒|加購一盒)/i.test(draftText);
-      const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
-      const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
+	      const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
+	      const customerLanguageText = [
+	        decision.customer_language,
+	        decision.contact_language,
+	        decision.profile_language,
+	        decision.language,
+	        item.customer_language,
+	        item.contact_language,
+	        item.profile_language,
+	        item.language,
+	        item.contact?.language,
+	      ].filter(Boolean).join(" ");
+	      const englishProfileCustomer = /\benglish\b|英文|英语|英語/i.test(customerLanguageText);
+	      const englishNaturalCustomerText = Boolean(rawCustomerText) &&
+	        /[a-z]/i.test(rawCustomerText) &&
+	        !/[\u4e00-\u9fff]/.test(rawCustomerText) &&
+	        (englishProfileCustomer || /\b(?:i|you|u|price|how\s+much|don['’]?t|dont|do\s+not|need|send|many|patience|sorry|delivery|payment|order|voucher|discount|can|could|please|yes|no|ok|okay)\b/i.test(rawCustomerText));
+	      const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
+	      const englishCustomerChineseDraft = !englishRequest && englishNaturalCustomerText && /[\u4e00-\u9fff]/.test(draftText);
       const flowAction = action.includes("flow") || action === "send_message_then_trigger_flow" || action === "reply_then_flow";
       const flowContextText = [
         decision.flow_key,
@@ -7380,17 +7397,14 @@
         item.manual_reply_text
       ].filter(Boolean).join(" ");
       const crossChannelContactRequest = intent.includes("cross_channel_contact") || /(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b).{0,40}(联系|聯絡|联络|找我|pm|私讯|私訊|私信|加我|号码|號碼|电话|電話|contact|message|reach|call|text|number|phone)|(联系|聯絡|联络|找我|contact|message|reach|call|text).{0,40}(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b)/i.test(crossChannelContactText);
-      const offlineAvailabilityText = [
-        intent,
-        action,
-        decision.reply_message,
-        decision.operator_instruction,
-        decision.headline,
-        item.inbound_text,
-        item.customer_text,
-        item.final_text,
-        item.manual_reply_text
-      ].filter(Boolean).join(" ");
+	      const offlineAvailabilityText = [
+	        intent,
+	        action,
+	        decision.operator_instruction,
+	        decision.headline,
+	        item.inbound_text,
+	        item.customer_text
+	      ].filter(Boolean).join(" ");
       const offlineAvailabilityQuestion = intent.includes("offline_availability") || /(药店|实体店|实体門店|門市|门市|門店|门店|线下|線下|哪里买|哪裡買|哪里有卖|哪裡有賣|有卖吗|有賣嗎|现货|現貨|柔佛|古来|johor|kulai|pharmacy|store|outlet|retail|where\s+are\s+(?:you|u)\s+located|where\s+(?:are\s+)?(?:you|u)\s+based|your\s+location|location\?|located\?)/i.test(offlineAvailabilityText);
       const marketplaceOfficialText = [
         intent,
@@ -7432,21 +7446,48 @@
       if (greetingHardSellDraft) {
         return { tone: "fix", title: "不能过：只打招呼别硬卖", reason: "顾客只发 Hi/Hello/你好，还没有问产品；草稿不要长篇讲卖点或接 Flow。改成短欢迎，问她想了解产品、优惠、用法还是订单/售后。" };
       }
-      if (priceOnlyAfterLongFlow && longMessageDraft) {
-        return { tone: "fix", title: "不能过：问价嫌长别接长 Flow", reason: "顾客已经说明只是要价格，或说不要再收到那么多内容；不要继续 Step 4、产品教育、信心长文或多段 Flow。先用同语言短承接，直接给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再给一个下单 CTA。" };
-      }
+	      if (priceOnlyAfterLongFlow && longMessageDraft) {
+	        return { tone: "fix", title: "不能过：问价嫌长别接长 Flow", reason: "顾客已经说明只是要价格，或说不要再收到那么多内容；不要继续 Step 4、产品教育、信心长文或多段 Flow。先用同语言短承接，英文顾客就短英文，直接给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再给一个下单 CTA。" };
+	      }
       if (longMessageFatigue && longMessageDraft) {
         return { tone: "fix", title: "不能过：顾客嫌太长", reason: "顾客已经说没耐心读或嫌内容太长；不要继续 Step 长文、产品教育或长链接解释。改成 1-2 句短版重点，再给一个选择题 CTA。" };
       }
-      if (packageChoiceAmbiguousBadDraft) {
-        return { tone: "fix", title: "不能过：表情/短答不是下单", reason: "上一句已经在问 A/B/C 或哪个配套，顾客只回 👍、emoji、sticker 或短答不等于确认购买，也不等于允许继续 Flow；不要继续长文、Flow 或默认她要某配套。改成短追问她要 A/B/C 哪个配套，必要时人工看上下文。" };
-      }
-      if (addOnDeclined && addOnUpsellDraft) {
-        return { tone: "fix", title: "不能过：加购已拒绝", reason: "顾客已经说先不加购/不要 add-on；草稿不要继续推 RM68/top up/加购一盒。尊重拒绝，回到付款方式、收件资料或订单确认。" };
-      }
-      if (englishMixedDraft) {
-        return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
-      }
+	      if (packageChoiceAmbiguousBadDraft) {
+	        return { tone: "fix", title: "不能过：表情/短答不是下单", reason: "上一句已经在问 A/B/C 或哪个配套，顾客只回 👍、emoji、sticker 或短答不等于确认购买，也不等于允许继续 Flow；不要继续长文、Flow 或默认她要某配套。改成短追问她要 A/B/C 哪个配套，必要时人工看上下文。" };
+	      }
+	      if (addOnDeclined && addOnUpsellDraft) {
+	        return { tone: "fix", title: "不能过：加购已拒绝", reason: "顾客已经说先不加购/不要 add-on；草稿不要继续推 RM68/top up/加购一盒。尊重拒绝，回到付款方式、收件资料或订单确认。" };
+	      }
+	      if (deliveryPaymentArrangement) {
+	        return { tone: "handoff", title: "送货/付款先确认", reason: "顾客问送货和付款怎样安排；要看地区、配套、付款方式和订单资料，不要回产品介绍或接 Flow，先人工确认。" };
+	      }
+	      if (paymentLinkAmountMismatch) {
+	        return { tone: "handoff", title: "付款链接金额先确认", reason: "付款链接、PayEx、GrabPay Later 或金额出现不一致；客服要核对配套、金额、差额补偿和付款截图，不要让 AI 自动承诺链接正确或继续销售 Flow。" };
+	      }
+	      if (walletPaymentQuestion) {
+	        return { tone: "handoff", title: "电子钱包/GrabPay 先确认", reason: "顾客问电子钱包、GrabPay/eWallet 或付款链接；参考 ManyChat：先暂停 automation，人工确认当前订单/渠道可用，再短答可以/对的、发付款链接，并提醒付款后截图给我。不要继续产品 Flow。" };
+	      }
+	      if (paymentMethodIssue) {
+	        return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡、GrabPay/eWallet 或付款链接要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
+	      }
+	      if (orderUpdateRequest) {
+	        return { tone: "handoff", title: "改资料先查单", reason: "顾客要改地址、电话或收件资料；先查订单是否已建立或出货，不要重复下单，也不要承诺已改好。" };
+	      }
+	      if (crossChannelContactRequest) {
+	        return { tone: "handoff", title: "转 WhatsApp 先确认", reason: "顾客想转 WhatsApp 联系；先确认号码和同意跟进，不要继续普通教育 Flow，也不要自动联系未确认号码。" };
+	      }
+	      if (marketplaceOfficialQuestion) {
+	        return { tone: "handoff", title: "官方平台先确认", reason: "顾客问 Shopee/Lazada 官方页、店铺或链接；没有确认官方链接时，不要回产品介绍或乱给链接，先人工确认。" };
+	      }
+	      if (offlineAvailabilityQuestion) {
+	        return { tone: "handoff", title: "地点/现货先确认", reason: "顾客问所在地、门店、药店或现货；没有实时门店/库存资料时，不要乱讲有卖或没卖，先人工确认。" };
+	      }
+		      if (englishMixedDraft) {
+		        return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
+		      }
+	      if (englishCustomerChineseDraft) {
+	        return { tone: "fix", title: "不能过：英文顾客中文草稿", reason: "顾客正在用英文沟通，或资料显示英文顾客；草稿不要继续中文 Step、中文价格图或中文促销长文。改成短英文，先回答她最后一句，再给一个明确 CTA。" };
+	      }
       if (englishFlowMismatch) {
         return { tone: "fix", title: "不能过：英文请求接错 Flow", reason: "顾客要求 English 或看不懂中文；如果要接 Flow，必须明确接英文 Flow。没有英文 Flow 证据时，不要把顾客送回中文 Step。" };
       }
