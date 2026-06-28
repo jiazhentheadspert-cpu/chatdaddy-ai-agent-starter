@@ -6590,6 +6590,10 @@
       if ((englishBusinessQuestion || englishMixedVerdictContext) && /[\u4e00-\u9fff]/.test(sourceText)) {
         return "英文问题：整段英文回复；中文草稿退回";
       }
+      const promoGiftQuestionContext = /(?:赠品|贈品|free\s*gift|gift|送什么|送什麼|有什么送|有什麼送|送哪些|送什麼东西|送什么东西|promotion|promo|what(?:'s|s|\s+is)?\s+(?:the\s+)?(?:promo|promotion)|what.{0,20}(?:gift|free\s*gift))/i.test(`${customerText} ${titleReason}`) || /(?:什么|什麼|有什麼|有什么|现在|現在).{0,10}(?:活动|活動)/i.test(customerText);
+      if (promoGiftQuestionContext) {
+        return "赠品/活动：列当前价梯；赠品按当天确认";
+      }
 	      if (priceAndSachetQuestion) {
 	        return "价钱+包数：先答当前价 + 1盒15小包；再接价格图/Promo Flow + CTA";
 	      }
