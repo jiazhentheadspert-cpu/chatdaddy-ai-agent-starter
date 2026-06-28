@@ -6329,6 +6329,51 @@
       `;
     }
 
+    function cardOneGlanceContextHint(item = {}, closer = {}) {
+      const decision = item.latest_decision || {};
+      const raw = item.raw_approval || {};
+      const customerText = customerPreviewText(item);
+      const sourceText = [
+        item.raw_context,
+        item.rawContext,
+        item.context_text,
+        item.customer_history_text,
+        raw.raw_context,
+        raw.customer_history_text,
+        raw.previous_agent_text,
+        raw.operator_instruction,
+        decision.previous_agent_text,
+        decision.operator_instruction,
+        decision.flow_key,
+        decision.flow_name,
+        decision.next_flow_key,
+        decision.next_flow_name,
+        decision.target_flow_key,
+        decision.target_flow_name,
+        decision.reply_message,
+        closer.title,
+        closer.reason
+      ].filter(Boolean).join(" ");
+      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(customerText);
+      const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(customerText);
+      const orderRetentionContext = /(624|Broadcast|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|保留状态|保留狀態|已安排出货|已安排出貨)/i.test(sourceText);
+      if (directPriceQuestion && orderRetentionContext) {
+        return oneBoxQuestion
+          ? "订单提醒不是订单；先答 1盒 RM150 + 一盒 CTA"
+          : "订单提醒不是订单；先答当前价梯 + CTA";
+      }
+      const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
+      if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`)) {
+        return "电子钱包/GrabPay：先确认渠道；发链接后要截图";
+      }
+      const englishRequest = /(?:idont|i\s+don['’]?t|dont|do\s+not|can\s+you|can\s+u|please).{0,48}(?:english|write\s+english|understand)|\benglish\b|英文/i.test(customerText);
+      const broadcastContext = /(Broadcast|Smart delay|Automation sent|订单资料|訂單資料|通知|提醒|SHOPEE|LAST\s*CALL|META\s*DAY|PAYDAY)/i.test(sourceText);
+      if (englishRequest && broadcastContext) {
+        return "英文请求：先英文承接上一条，不直接丢 Step 1";
+      }
+      return "";
+    }
+
     function cardVerdictSummary(item = {}, learningFollowup = null) {
       if (learningFollowup) {
         return {
@@ -6340,11 +6385,12 @@
       }
       const closer = closerVerdict(item);
       const tone = closer.tone || "review";
+      const oneGlanceHint = cardOneGlanceContextHint(item, closer);
       return {
         className: `staff-verdict verdict-${tone}`,
         label: "成交判断",
         title: closer.title || actionLabel(item.latest_decision?.action),
-        body: closer.reason || actionHint(item),
+        body: oneGlanceHint || closer.reason || actionHint(item),
       };
     }
 
