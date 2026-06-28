@@ -5663,6 +5663,7 @@
 	      const needsFix = Array.isArray(review.needs_fix) ? review.needs_fix : [];
 	      const canPass = Array.isArray(review.can_pass) ? review.can_pass : [];
 	      const recommendations = Array.isArray(review.recommendations) ? review.recommendations : [];
+	      const rankedRecommendations = sortedHandoffLearningRecommendations(recommendations);
 	      return `
 	        <div class="command-grid" data-owner-nav>
 	          <section class="command-panel accent">
@@ -5686,24 +5687,50 @@
 	            <div class="command-kicker">建议批准</div>
 	            <strong class="command-title">变成 FAQ / SOP / 测试</strong>
 	            <div class="compact-list">
-	              ${recommendations.slice(0, 4).map((item) => compactRow(`${item.count || 0} 次`, item.title || item.id || "学习建议", item.artifact_label || learningSeverityLabel(item.severity))).join("") || compactRow("待观察", "还没有学习建议", "Learn")}
+	              ${rankedRecommendations.slice(0, 4).map((item) => compactRow(`${item.count || 0} 次`, item.title || item.id || "学习建议", item.artifact_label || learningSeverityLabel(item.severity))).join("") || compactRow("待观察", "还没有学习建议", "Learn")}
 	            </div>
 	          </section>
 	        </div>
+	        ${handoffLearningPrioritySummaryHtml(recommendations)}
 	        ${handoffLearningRecommendationListHtml(recommendations)}
 	        ${handoffLearningCaseListHtml(needsFix)}
 	      `;
 	    }
 
+	    function sortedHandoffLearningRecommendations(recommendations = []) {
+	      const severityScore = { high: 3, medium: 2, low: 1, watch: 0 };
+	      return [...recommendations].sort((a, b) => {
+	        const countDiff = Number(b?.count || 0) - Number(a?.count || 0);
+	        if (countDiff) return countDiff;
+	        return (severityScore[String(b?.severity || "").toLowerCase()] || 0) - (severityScore[String(a?.severity || "").toLowerCase()] || 0);
+	      });
+	    }
+
+	    function handoffLearningPrioritySummaryHtml(recommendations = []) {
+	      if (!recommendations.length || state.role === "staff") return "";
+	      const ranked = sortedHandoffLearningRecommendations(recommendations).slice(0, 3);
+	      return `
+	        <section class="command-panel" data-owner-nav>
+	          <div class="command-kicker">复盘优先级</div>
+	          <strong class="command-title">今天先补这 3 类</strong>
+	          <p class="command-copy">按次数和误批风险排序；先补最高频 FAQ/SOP/成交话术，再回放同类句子。</p>
+	          <div class="compact-list">
+	            ${ranked.map((item, index) => compactRow(`No.${index + 1}`, `${Number(item.count || 0)} 次 · ${item.title || item.id || "学习建议"}`, item.artifact_label || learningSeverityLabel(item.severity))).join("")}
+	          </div>
+	        </section>
+	      `;
+	    }
+
 	    function handoffLearningRecommendationListHtml(recommendations = []) {
 	      if (!recommendations.length || state.role === "staff") return "";
+	      const rankedRecommendations = sortedHandoffLearningRecommendations(recommendations);
 	      return `
 	        <section class="command-panel" data-owner-nav>
 	          <div class="command-kicker">学习建议草稿</div>
 	          <strong class="command-title">Owner 先记录，再决定是否进业务脑</strong>
 	          <p class="command-copy">人工样本也要判：可学 / 要修 / 不学。Owner 只把可学或修正后的版本批准进业务脑。</p>
 	          <div class="audit-list">
-	            ${recommendations.slice(0, 6).map((item) => {
+	            ${rankedRecommendations.slice(0, 6).map((item) => {
 	              const id = String(item.id || item.title || "").trim();
 	              const candidate = learningRecommendationCandidate(item);
 	              return `
@@ -7147,9 +7174,9 @@
 	        const directNewPriceQuestion = !oneBoxQuestion && !priceStageSeen && !/(Broadcast|Smart delay|Automation sent|订单资料|訂單資料|通知|提醒|SHOPEE|LAST\s*CALL|META\s*DAY|PAYDAY|user_current_step.{0,12}step_4)/i.test(signalText);
 	        if (directNewPriceQuestion) {
 	          return {
-	            answer: "Direct 新客只问“多少钱”时，先短桥接：我先让你了解产品/喝法和想改善的问题，再给你优惠价。",
-	            after: `接 Step 3 产品信任/喝法/线下证明 + 需求按钮：${nextFlow || "优先接产品+喝法 Flow；不要直接收单"}`,
-	            learning: "可学：Direct 问价前桥接 + 问痛点 + Flow；不要和已看价后的成交 CTA 混在一起。"
+            answer: "Direct 新客只问“多少钱”时，先短桥接：欢迎/产品定位，说明先让她了解产品和想改善的问题，再给优惠价。",
+            after: `接 ManyChat 产品 Flow：产品定位 -> 需求按钮 -> 认证/反馈 -> Step4 问肥胖多久：${nextFlow || "优先接产品+喝法 Flow；不要直接收单"}`,
+            learning: "可学：顾客问价 -> 短回答/桥接 -> 接 Flow；Flow 是下一步动作，不能代替回答顾客问题。"
 	          };
 	        }
 	        if (priceAndSachetQuestion) {
@@ -7335,7 +7362,7 @@
       const decision = item.latest_decision || {};
       const action = String(decision.action || item.action || "").toLowerCase();
       if (/Direct问价可审|Direct问价缺(?:产品|Step3)\s*Flow|Direct问价没桥接Flow/.test(titleReason)) {
-        return "改稿方向：Direct 新客只问多少钱时，先短桥接“我先让你了解产品/喝法，再给优惠价”，然后必须接 Step 3 背景/认证/线下店/喝法 Flow；Step 3 后才进入 Step 4 问肥胖多久、给价格和成交 CTA。不要只丢一句话卡住。";
+        return "改稿方向：Direct 新客只问多少钱时，先短桥接“我先让你了解产品/喝法，再给优惠价”，然后接 ManyChat 产品 Flow：欢迎/产品定位、需求按钮、认证/反馈，最后才到 Step 4 问肥胖多久、给价格和成交 CTA。不要只丢一句话卡住。";
       }
 	      if (/具体问价别接教育 Flow/.test(titleReason)) {
 	        return "改稿方向：顾客问一盒/1 box 多少钱，要先答 1盒 RM150 + 15小包/15天，再问要不要先安排一盒试喝；如她问运费/COD，才顺带补全马免邮/COD无额外费。不要只说先了解产品。";
@@ -8054,7 +8081,7 @@
 	        return { tone: "fix", title: "不能过：看价后别接教育 Flow", reason: "顾客已经在 Step 4、Broadcast/624/Shopee 或活动语境里问价；这时不要只说先了解产品，也不要倒回 Step 1/2/3。先正面回答当前价，再接成交 CTA。" };
 	      }
 	      if (directPriceBridgeSafe) {
-	        return { tone: "review", title: "Direct问价可审：桥接后接Step3 Flow", reason: "Direct 新客只问“多少钱”且还没看产品；ManyChat 对标李秀芬是先短桥接“先让你了解产品再给优惠价”，然后接 Step 3 背景/认证/线下店/喝法 Flow。Step 3 后才进入 Step 4 问肥胖多久、给价格和成交 CTA。" };
+        return { tone: "review", title: "Direct问价可审：桥接后接Step3 Flow", reason: "Direct 新客只问“多少钱”且还没看产品；ManyChat Fei Ying / Chai Sim 对标是先欢迎和短桥接“先让你了解产品再给优惠价”，再接产品定位、需求按钮、认证/反馈 Flow。Step 3 后才进入 Step 4 问肥胖多久、给价格和成交 CTA。" };
 	      }
 	      if (directPriceBridgeMissingFlow) {
 	        return { tone: "fix", title: "不能过：Direct问价缺Step3 Flow", reason: "Direct 新客问价时可以短桥接，但必须接 Step 3 背景/认证/线下店/喝法 Flow。只丢一句“先了解产品”没有下一步，客服会卡住。" };
