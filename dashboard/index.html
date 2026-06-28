@@ -6388,6 +6388,10 @@
       if (adverseReactionContext) {
         return "不适/想吐：先停销售；问喝法+症状";
       }
+      const annoyedStopContext = /(煩死人|烦死人|煩死|烦死|很煩|很烦|太煩|太烦|不要再(?:发|發|send|message)|别再(?:发|發)|不要再打扰|不要再打擾|别打扰|別打擾|一直(?:发|發|send)|不要买|不要買|不想买|不想買|not\s+interested|stop\s+(?:messaging|message|sending|send)|don['’]?t\s+(?:send|message|disturb)|do\s+not\s+(?:send|message|disturb)|annoying|disturbing|unsubscribe|退订|退訂)/i.test(combined);
+      if (annoyedStopContext) {
+        return "嫌烦/别打扰：停止跟进；不接 Flow";
+      }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
           ? "订单提醒不是订单；先答 1盒 RM150 + 一盒 CTA"
@@ -7253,9 +7257,14 @@
 	      const adverseReactionText = [customerSignalText, priorCustomerIssueText, languageSwitchContextText].filter(Boolean).join(" ");
 	      const adverseReactionComplaint = intent.includes("adverse") || intent.includes("side_effect") || /(?:喝了|服用|服了|take|drink|mixed).{0,60}(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服|side\s*effect|nausea|vomit|dizzy|diarrhea|stomach)/i.test(adverseReactionText) || /(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|nausea|vomit|dizzy|diarrhea).{0,60}(?:Beyoute|喝|服用|take|drink|产品|產品|mixed|water)/i.test(adverseReactionText) || /(?:why|为什么|為什麼).{0,40}(?:想吐|呕吐|嘔吐|恶心|噁心|nausea|vomit)/i.test(adverseReactionText);
 	      const adverseReactionUnsafeDraft = adverseReactionComplaint && /(?:一定|肯定|绝对|絕對).{0,12}(?:不会|不會|没有|沒有).{0,18}(?:副作用|不舒服|想吐|呕吐|嘔吐|恶心|噁心)|(?:不会|不會).{0,16}(?:让身体产生依赖|讓身體產生依賴|副作用|想吐|头晕|頭暈|心跳加速)|(?:子宫肌瘤|子宮肌瘤|水瘤|肉瘤|三高|尿酸|心脏病|心臟病).{0,30}(?:可以|都可以|能).{0,12}(?:服用|喝|take|drink)|(?:no|without).{0,12}(?:side\s*effects?|dependency|dependen)/i.test(draftText);
-	      const adverseReactionSalesPushDraft = adverseReactionComplaint && !adverseReactionUnsafeDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|下单|下單|order\s*now|配套|package|加送|赠品|贈品)/i.test([draftText, flowContextText, languageSwitchContextText].filter(Boolean).join(" ")));
-	      const adverseReactionDiagnosticDraft = adverseReactionComplaint && !adverseReactionUnsafeDraft && !adverseReactionSalesPushDraft && /(?:不好意思|抱歉|sorry|明白|理解|understand|体验|體驗)/i.test(draftText) && /(?:怎么服用|怎麼服用|怎么喝|怎麼喝|怎么用|怎麼用|before\s*meal|餐前|150\s*ml|水量|第一次|喝了几天|喝了幾天|几天|幾天|马上|馬上|多久|呕吐|嘔吐|恶心|噁心|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服)/i.test(draftText);
-	      const packageBoxCountQuestion = /(?:有|共|一共|总共|總共|多少|几|幾|8|八)\s*(?:盒|box|boxes)|(?:几|幾|多少).{0,6}(?:盒|box|boxes)/i.test(customerSignalText);
+		      const adverseReactionSalesPushDraft = adverseReactionComplaint && !adverseReactionUnsafeDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|下单|下單|order\s*now|配套|package|加送|赠品|贈品)/i.test([draftText, flowContextText, languageSwitchContextText].filter(Boolean).join(" ")));
+		      const adverseReactionDiagnosticDraft = adverseReactionComplaint && !adverseReactionUnsafeDraft && !adverseReactionSalesPushDraft && /(?:不好意思|抱歉|sorry|明白|理解|understand|体验|體驗)/i.test(draftText) && /(?:怎么服用|怎麼服用|怎么喝|怎麼喝|怎么用|怎麼用|before\s*meal|餐前|150\s*ml|水量|第一次|喝了几天|喝了幾天|几天|幾天|马上|馬上|多久|呕吐|嘔吐|恶心|噁心|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服)/i.test(draftText);
+		      const annoyedStopText = [customerSignalText, priorCustomerIssueText, languageSwitchContextText].filter(Boolean).join(" ");
+		      const customerAnnoyedByFollowup = /(?:stop[_\s-]?follow|not[_\s-]?interested|unsubscribe)/i.test(intent) || /(煩死人|烦死人|煩死|烦死|很煩|很烦|太煩|太烦|不要再(?:发|發|send|message)|别再(?:发|發)|不要再打扰|不要再打擾|别打扰|別打擾|一直(?:发|發|send)|不要买|不要買|不想买|不想買|not\s+interested|stop\s+(?:messaging|message|sending|send)|don['’]?t\s+(?:send|message|disturb)|do\s+not\s+(?:send|message|disturb)|annoying|disturbing|unsubscribe|退订|退訂)/i.test(annoyedStopText);
+		      const stopFollowUpAction = action === "stop_follow_up" || action.includes("stop_follow");
+		      const annoyedStopSafeDraft = customerAnnoyedByFollowup && (stopFollowUpAction || (/(不好意思|抱歉|sorry|不打扰|不打擾|停止|暂停|暫停|不再|先不|won['’]?t\s+message|no\s+longer|stop)/i.test(draftText) && !/(LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|下单|下單|order\s*now|配套|package|加送|赠品|贈品)/i.test(draftText)));
+		      const annoyedSalesPushDraft = customerAnnoyedByFollowup && !annoyedStopSafeDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|下单|下單|order\s*now|配套|package|加送|赠品|贈品)/i.test([draftText, flowContextText].filter(Boolean).join(" ")) || (manychatAutomationContext && /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|下单|下單|order\s*now|配套|package|加送|赠品|贈品)/i.test(languageSwitchContextText)));
+		      const packageBoxCountQuestion = /(?:有|共|一共|总共|總共|多少|几|幾|8|八)\s*(?:盒|box|boxes)|(?:几|幾|多少).{0,6}(?:盒|box|boxes)/i.test(customerSignalText);
       const packageDurationQuestion = /(?:8|八)?\s*盒.{0,12}(?:多少|几|幾|多久).{0,8}(?:个月|個月|月|months?)|(?:喝|用).{0,12}(?:多少|几|幾|多久).{0,8}(?:个月|個月|月|months?)/i.test(customerSignalText);
       const sachetCountQuestion = /(?:一|1)\s*盒.{0,12}(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)|(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)/i.test(customerSignalText);
       const cycleSuitabilityQuestion = /(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期).{0,12}(?:可以|能|可不可以|喝|take|drink)|(?:可以|能).{0,12}(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期)/i.test(customerSignalText);
@@ -7523,12 +7532,21 @@
 		      if (adverseReactionDiagnosticDraft) {
 		        return { tone: "review", title: "不适反应可审：先问症状", reason: "已承接不舒服/想吐，并先问喝法、时间、有没有呕吐/头晕/腹痛/腹泻等；客服审核后再决定调整喝法、暂停或售后跟进。" };
 		      }
-		      if (adverseReactionComplaint) {
-		        return { tone: "handoff", title: "不适反应先人工售后", reason: "顾客说喝后不舒服/想吐；先人工问清楚喝法、时间、症状和严重程度，不接销售 Flow，不否认副作用。" };
-		      }
-		      if (postNoResultPromoFlow) {
-		        return { tone: "fix", title: "不能过：效果投诉后停促销 Flow", reason: "上文已经有没瘦、没效果或失去信心；后面不能再跑 Last Call、订单提醒、优惠促销或成交 Flow。先暂停 automation，由客服售后承接并复盘使用情况。" };
-		      }
+			      if (adverseReactionComplaint) {
+			        return { tone: "handoff", title: "不适反应先人工售后", reason: "顾客说喝后不舒服/想吐；先人工问清楚喝法、时间、症状和严重程度，不接销售 Flow，不否认副作用。" };
+			      }
+			      if (annoyedSalesPushDraft) {
+			        return { tone: "fix", title: "不能过：顾客嫌烦别继续卖", reason: "顾客已经嫌烦、要求别打扰或被标记不要买；不能继续 LAST CALL、优惠、价格 CTA 或 Flow。先道歉，暂停自动跟进/停止 follow-up，必要时转人工记录投诉。" };
+			      }
+			      if (annoyedStopSafeDraft) {
+			        return { tone: "pass", title: "停止打扰可过", reason: "已承接顾客嫌烦/不要买，并停止自动跟进；不再销售、不接 Flow。" };
+			      }
+			      if (customerAnnoyedByFollowup) {
+			        return { tone: "handoff", title: "顾客嫌烦先停跟进", reason: "顾客已经表达被打扰或不要买；先暂停 automation、人工记录原因，不继续卖。" };
+			      }
+			      if (postNoResultPromoFlow) {
+			        return { tone: "fix", title: "不能过：效果投诉后停促销 Flow", reason: "上文已经有没瘦、没效果或失去信心；后面不能再跑 Last Call、订单提醒、优惠促销或成交 Flow。先暂停 automation，由客服售后承接并复盘使用情况。" };
+			      }
 	      if (noCustomerPromoRecoveryContext) {
 	        return { tone: "review", title: "促销追单：不学问答", reason: "没有看到顾客问题；这是 ManyChat/人工在订单提醒、Smart Delay 或促销上下文里的追单动作。可以审价格、活动和 CTA 是否正确，但不要把它写进 FAQ 或顾客问答学习。" };
 	      }
