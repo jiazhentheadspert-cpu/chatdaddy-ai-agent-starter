@@ -7235,6 +7235,9 @@
       if (/问价没给当前价|问价缺 CTA|草稿含旧价/.test(titleReason)) {
         return "改稿方向：先答当前价，至少 1盒 RM150；完整价梯用 RM150 / RM258 / RM378，再补一句要不要安排。";
       }
+      if (/价格包数|多少包|15小包/i.test(titleReason)) {
+        return "改稿方向：顾客问“多少钱有多少包”要逐条答：当前价 RM150 / RM258 / RM378，1盒15小包可喝15天；答完才接配套 CTA，不要只接 Promo Flow。";
+      }
       if (/问一盒可审|一盒价优先/i.test(titleReason)) {
         return "改稿方向：先答 1盒 RM150；可以轻补 2盒/3盒更划算，但 CTA 优先问要不要安排一盒，不要从旧 Broadcast/订单提醒猜她已下单。";
       }
@@ -7572,10 +7575,12 @@
       const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(rawCustomerText);
       const oneBoxSpecificQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(rawCustomerText);
       const oneBoxPriceAnswered = /(?:1\s*盒|一盒|1\s*box).{0,24}RM\s*150|RM\s*150.{0,24}(?:1\s*盒|一盒|1\s*box)/i.test(draftText);
-      const currentPriceLadderAnswered = /(?:1\s*盒|一盒|1\s*box).{0,24}RM\s*150|RM\s*150.{0,24}(?:1\s*盒|一盒|1\s*box)/i.test(draftText)
-        && /(?:2\s*盒|二盒|2\s*boxes?).{0,24}RM\s*258|RM\s*258.{0,24}(?:2\s*盒|二盒|2\s*boxes?)/i.test(draftText)
-        && /(?:3\s*盒|三盒|3\s*boxes?).{0,24}RM\s*378|RM\s*378.{0,24}(?:3\s*盒|三盒|3\s*boxes?)/i.test(draftText);
+	      const currentPriceLadderAnswered = /(?:1\s*盒|一盒|1\s*box).{0,24}RM\s*150|RM\s*150.{0,24}(?:1\s*盒|一盒|1\s*box)/i.test(draftText)
+	        && /(?:2\s*盒|二盒|2\s*boxes?).{0,24}RM\s*258|RM\s*258.{0,24}(?:2\s*盒|二盒|2\s*boxes?)/i.test(draftText)
+	        && /(?:3\s*盒|三盒|3\s*boxes?).{0,24}RM\s*378|RM\s*378.{0,24}(?:3\s*盒|三盒|3\s*boxes?)/i.test(draftText);
 	      const directPriceAnswered = currentPriceLadderAnswered || (oneBoxSpecificQuestion && oneBoxPriceAnswered);
+	      const priceAndSachetQuestion = directPriceQuestion && sachetCountQuestion;
+	      const priceAndSachetAnswered = directPriceAnswered && sachetCountAnswered;
 	      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
 	      const oneBoxFocusedCtaAnswered = /(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,18}(?:一|1)\s*(?:盒|box)|(?:一|1)\s*(?:盒|box).{0,18}(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order)|(?:先帮你|先幫你|帮你|幫你|要我).{0,20}(?:一|1)\s*(?:盒|box)/i.test(draftText);
 	      const oneBoxGenericPackageCta = oneBoxSpecificQuestion && priceCtaAnswered && !oneBoxFocusedCtaAnswered;
@@ -7907,6 +7912,12 @@
 	      }
 	      if (directPriceQuestion && !specialPromoAddon && !legacyPromo && !directPriceAnswered) {
 	        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
+	      }
+	      if (priceAndSachetQuestion && directPriceAnswered && !sachetCountAnswered) {
+	        return { tone: "fix", title: "不能过：价格包数没答完", reason: "顾客问“多少钱有多少包”是两个问题；草稿只答价格或只接 Promo Flow 不够。必须同时答当前价 RM150 / RM258 / RM378 和 1盒15小包，可喝15天，再接 CTA。" };
+	      }
+	      if (priceAndSachetQuestion && priceAndSachetAnswered) {
+	        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? "价格+包数可审：答完再CTA" : "不能过：价格包数缺CTA", reason: priceCtaAnswered ? "已先回答当前价格和 1盒15小包，再接下单动作；客服确认没有旧价/旧赠品后可以批准。" : "顾客问价格和包数时，答完当前价与 1盒15小包后，还要给一个明确下一步，例如问她要不要安排哪一个配套。" };
 	      }
       if (directPriceQuestion && directPriceAnswered) {
         let directPriceTitle = "问价可审：价梯 + CTA";
