@@ -5444,6 +5444,7 @@
 	        <section class="command-panel" data-owner-nav>
 	          <div class="command-kicker">学习建议草稿</div>
 	          <strong class="command-title">Owner 先记录，再决定是否进业务脑</strong>
+	          <p class="command-copy">人工样本也要判：可学 / 要修 / 不学。Owner 只把可学或修正后的版本批准进业务脑。</p>
 	          <div class="audit-list">
 	            ${recommendations.slice(0, 6).map((item) => {
 	              const id = String(item.id || item.title || "").trim();
@@ -5524,7 +5525,7 @@
 	          <section class="command-panel" data-owner-nav>
 	            <div class="command-kicker">学习记录</div>
 	            <strong class="command-title">还没有学习记录</strong>
-	            <p class="command-copy">现在只是复盘建议，还不代表 AI 已经学会。打开样本 Case，在「优化 AI」记录优化，或转人工后补人工最终回复，Owner 再批准进业务脑。</p>
+	            <p class="command-copy">现在只是复盘建议，还不代表 AI 已经学会。人工样本也要判：可学 / 要修 / 不学；Owner 只把可学或修正后的版本批准进业务脑。</p>
 	            <div class="compact-list">
 	              ${compactRow("客服动作", "转人工处理完后，补人工最终回复", "待补")}
 	              ${compactRow("Owner 动作", "把有用样本记录优化或批准进业务脑", "审核")}
@@ -6591,7 +6592,7 @@
       if (tone === "pass") {
         return "复盘要留：这句为什么可过，作为以后同类少审样本。";
       }
-      return "复盘要留：顾客问题、AI 草稿、客服最终处理和 Owner 是否批准进业务脑。";
+      return "复盘要留：顾客问题、AI 草稿、客服最终处理，以及人工样本是可学 / 要修 / 不学；Owner 只批准修正后的版本进业务脑。";
     }
 
     function needsReturnAiBeforeApproval(item = {}) {
@@ -6617,7 +6618,8 @@
       const intent = String(decision.intent || "").toLowerCase();
       const risk = String(decision.risk || item.risk || "").toLowerCase();
       const hasReply = Boolean(String(decision.reply_message || item.final_text || item.manual_reply_text || "").trim());
-      const hasPreviousAgent = Boolean(String(decision.previous_agent_text || "").trim());
+      const previousAgentText = String(decision.previous_agent_text || "").trim();
+      const hasPreviousAgent = Boolean(previousAgentText);
       const draftText = [
         decision.reply_message,
         item.final_text,
@@ -6643,6 +6645,11 @@
       const greetingHardSellDraft = greetingOnly && (salesPushDraft || action.includes("flow") || /Beyoute Plus\+\s+主要是|阻碳水|燃脂|排宿便|不是普通代餐|下一步重点|我接下来|I will show you the next key point|carb control|bowel movement|skin glow/i.test(draftText));
       const longMessageFatigue = /(?:don['’]?\s*t|do\s+not|dont|no).{0,24}(?:patience|time|mood).{0,28}(?:read|go\s+through)|(?:too|so)\s+long.{0,24}(?:read|message|text)|(?:too\s+much|so\s+much).{0,20}(?:text|message|read)|(?:no\s+patience).{0,24}(?:read|those)|(?:不想|懒惰|懶惰|没耐心|沒耐心|没有耐心|沒有耐心).{0,16}(?:读|讀|看)|(?:太长|太長|很长|很長|一大段|太多字|字太多|看不完)/i.test(customerSignalText);
       const longMessageDraft = draftText.length > 220 || action.includes("flow") || /Step\s*4|Beyoute\s+瘦身|Kombucha.{0,80}(?:明星|保证|保證|世界证实|世界證實)|我们的【?Beyoute|我们肯定有信心|我可以跟你保证|一旦停用|其他产品喝了后/i.test(draftText);
+      const compactCustomerReply = rawCustomerText.toLowerCase().replace(/[\s.!！?？~～,，。…·\-—_、:：;；'"“”‘’()[\]{}<>]/g, "");
+      const shortAmbiguousChoiceReply = Boolean(rawCustomerText) && rawCustomerText.length <= 24 && (/^(ok|okay|k|yes|ya|yup|嗯+|恩+|哦+|噢+|好|好的|可以|可以的|haha|hehe|哈哈+|呵呵+|笑|smile)$/i.test(compactCustomerReply) || !/[a-z0-9\u4e00-\u9fff]/i.test(compactCustomerReply));
+      const packageChoicePrompt = /(?:哪(?:一)?个|哪(?:一)?個|which).{0,30}(?:配套|package|set|盒)|(?:配套|package)\s*[abc].{0,80}(?:配套|package)\s*[abc]|A\s*[\/／、,，]\s*B\s*[\/／、,，]\s*C/i.test(previousAgentText);
+      const packageChoiceClarifyDraft = draftText.length <= 180 && !longMessageDraft && /(?:A|B|C|配套|package).{0,50}(?:哪|哪个|哪一个|哪個|哪一個|要|拿|选|選|choose|which)|(?:哪|哪个|哪一个|哪個|哪一個|要|拿|选|選|choose|which).{0,50}(?:A|B|C|配套|package)/i.test(draftText);
+      const packageChoiceAmbiguousBadDraft = packageChoicePrompt && shortAmbiguousChoiceReply && !packageChoiceClarifyDraft && (salesPushDraft || longMessageDraft || action.includes("flow") || /STEP_[1-4]|S[1-4]/.test(stage) || /Beyoute|阻碳水|燃脂|排宿便|Kombucha/i.test(draftText));
       const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
       const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
       const noFollowUpComplaint = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerSignalText);
@@ -6796,6 +6803,9 @@
       }
       if (longMessageFatigue && longMessageDraft) {
         return { tone: "fix", title: "不能过：顾客嫌太长", reason: "顾客已经说没耐心读或嫌内容太长；不要继续 Step 长文、产品教育或长链接解释。改成 1-2 句短版重点，再给一个选择题 CTA。" };
+      }
+      if (packageChoiceAmbiguousBadDraft) {
+        return { tone: "fix", title: "不能过：笑脸不是下单", reason: "上一句已经在问 A/B/C 或哪个配套，顾客只回 emoji/短答不等于确认购买；不要继续长文、Flow 或默认她要某配套。改成短追问她要 A/B/C 哪个配套，必要时人工看上下文。" };
       }
       if (englishMixedDraft) {
         return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
