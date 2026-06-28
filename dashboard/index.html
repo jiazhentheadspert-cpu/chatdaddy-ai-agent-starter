@@ -6375,6 +6375,10 @@
       if (/(discount|折扣|便宜(?:一点|一點)?|更便宜|cheaper|best\s+price|special\s+price|扣(?:一点|一點)?|优惠(?:点|點)|優惠(?:点|點))/i.test(customerText)) {
         return "折扣/优惠：守当前价，不乱承诺；给价值 + CTA";
       }
+      const decisionDelayQuestion = /(考虑|考慮|想想|想下|想一下|迟点|遲點|迟些|遲些|下次|以后|以後|问(?:下|一下|问)?[^。？?\n]{0,8}(?:老公|老婆|家人|妈妈|媽媽|老板|老闆)|問(?:下|一下|問)?[^。？?\n]{0,8}(?:老公|老婆|家人|妈妈|媽媽|老板|老闆)|ask.{0,16}(?:husband|wife|family|mum|mom|boss)|think\s+(?:about|first|later)|consider|later)/i.test(customerText) && !/(付款|付钱|付錢|payment|pay|汇款|匯款|转账|轉賬)/i.test(customerText);
+      if (decisionDelayQuestion) {
+        return "考虑/问家人：不硬催；给简短理由 + 保留 CTA";
+      }
       const englishRequest = /(?:idont|i\s+don['’]?t|dont|do\s+not|can\s+you|can\s+u|please).{0,48}(?:english|write\s+english|understand)|\benglish\b|英文/i.test(customerText);
       const broadcastContext = /(Broadcast|Smart delay|Automation sent|订单资料|訂單資料|通知|提醒|SHOPEE|LAST\s*CALL|META\s*DAY|PAYDAY)/i.test(sourceText);
       if (englishRequest && broadcastContext) {
@@ -6980,6 +6984,9 @@
       if (/不能乱给折扣|折扣问题可审|discount|便宜/i.test(titleReason)) {
         return "改稿方向：不要私自降价；守当前 RM150 / RM258 / RM378 活动边界，用价值、服务、真实反馈和一个明确 CTA 收口。";
       }
+      if (/考虑\/问家人|问家人别硬催|輕成交|轻成交|问老公|問老公/i.test(titleReason)) {
+        return "改稿方向：先承接“你考虑/问家人是正常的”，给一句可转述的简短理由，再用低压力 CTA：要不要我先帮你保留今天优惠 / 你问了再告诉我。不要继续 Flow 或催付款。";
+      }
       if (/运输时效|物流|快递/.test(titleReason)) {
         return "改稿方向：直接回答西马预计2-3个工作天、东马预计5-7个工作天，再看是否需要查订单。";
       }
@@ -7260,6 +7267,9 @@
 	      const discountBoundaryDraft = discountRequest && (currentPriceLadderAnswered || oneBoxPriceAnswered) && /(?:目前|当前|現在|现在|今天|优惠|優惠|配套|已经|已經|现有|現有|不(?:能|会|可以)?(?:再)?(?:乱)?(?:折扣|便宜|扣价|扣價|降价|降價)|没有再扣|沒有再扣|不乱给折扣)/i.test(draftText);
 	      const unsafeDiscountPromiseDraft = discountRequest && !specialPromoAddon && !discountBoundaryDraft && (/(?:RM\s*(?:[1-9]\d|1[0-4]\d)\b)/i.test(draftText) || /(?:可以|能|帮你|幫你|给你|給你|特别|特別|私人|我这边|我這邊|老板|老闆).{0,18}(?:discount|折扣|便宜|扣价|扣價|扣|special\s+price|best\s+price)|(?:discount|折扣|便宜|扣价|扣價|扣|special\s+price|best\s+price).{0,18}(?:可以|能|给你|給你|帮你|幫你|ok|没问题|沒問題)/i.test(draftText));
 	      const discountSafeDraft = discountRequest && discountBoundaryDraft && /(安排|下单|下單|拿|试喝|試喝|confirm|order|配套|盒|package|value|值得|效果|服务|服務|售后|售後|review|feedback|反馈|反饋)/i.test(draftText);
+	      const decisionDelayQuestion = /(考虑|考慮|想想|想下|想一下|迟点|遲點|迟些|遲些|下次|以后|以後|问(?:下|一下|问)?[^。？?\n]{0,8}(?:老公|老婆|家人|妈妈|媽媽|老板|老闆)|問(?:下|一下|問)?[^。？?\n]{0,8}(?:老公|老婆|家人|妈妈|媽媽|老板|老闆)|ask.{0,16}(?:husband|wife|family|mum|mom|boss)|think\s+(?:about|first|later)|consider|later)/i.test(customerSignalText) && !/(付款|付钱|付錢|payment|pay|汇款|匯款|转账|轉賬)/i.test(customerSignalText);
+	      const delaySoftCloseDraft = decisionDelayQuestion && !flowAction && /(?:明白|理解|正常|可以|不急|不赶|不趕|慢慢|问|問|老公|老婆|家人|husband|family|think|consider|no\s+rush|跟他说|跟他說|保留|reserve|留|hold|担心|擔心|顾虑|顧慮|concern)/i.test(draftText) && /(?:保留|reserve|留|hold|要我|需要我|我可以|我先|你可以|告诉我|告訴我|担心|擔心|顾虑|顧慮|concern|效果|安全|价格|價錢|价值|價值)/i.test(draftText);
+	      const delayHardPushDraft = decisionDelayQuestion && !delaySoftCloseDraft && (flowAction || longMessageDraft || salesPushDraft || /(?:马上|馬上|立刻|现在就|現在就|一定要|必须|必須|赶快|趕快|LAST\s*CALL|付款|付钱|付錢|下单|下單|抢购|搶購|继续了解|繼續了解|下一步|Step\s*[1-4])/i.test(draftText));
 	      const membershipRebuyPrompt = /(?:回购|回購|复购|復購|会员|會員|member|membership|VIP|旧客|舊客|老顾客|老顧客).{0,24}(?:价|價|price|优惠|優惠|福利|配套|对吗|對嗎|吗|嗎)|(?:请问|請問).{0,18}(?:回购|回購|复购|復購|会员|會員|member|membership|VIP)/i.test(previousAgentText);
 	      const membershipRebuyConfirmation = membershipRebuyPrompt && /^(?:是的|对|對|对的|對的|yes|ya|yup|要|要的|好的|ok|okay)[\s.!！?？~～,，。❤️❤]*$/i.test(rawCustomerText);
 	      const membershipRebuyQuestion = membershipRebuyConfirmation || /(?:有|要|问|問|拿|看|给|給|想知道|知道)?[^。？?\n]{0,18}(?:会员|會員|member|membership|VIP|回购|回購|复购|復購|reorder|repurchase|repeat|旧客|舊客|老顾客|老顧客)[^。？?\n]{0,28}(?:吗|嗎|么|麼|价|價|price|优惠|優惠|福利|配套|discount|package)?|(?:价|價|price|优惠|優惠|discount).{0,18}(?:回购|回購|会员|會員|member|VIP|旧客|舊客)/i.test(rawCustomerText);
@@ -7446,6 +7456,12 @@
       }
       if (discountSafeDraft) {
         return { tone: "review", title: "折扣问题可审：守当前活动", reason: "草稿没有乱降价，已回到当前价梯/活动边界，并用价值或服务承接再给 CTA；客服确认当天活动后可以批准。" };
+      }
+      if (delayHardPushDraft) {
+        return { tone: "fix", title: "不能过：考虑/问家人别硬催", reason: "顾客说考虑、迟点或问老公/家人时，不要继续 Step Flow、长篇教育、催付款或强压下单。改成低压力承接，给她一句可以转述的理由，再用保留优惠/稍后跟进 CTA 收口。" };
+      }
+      if (delaySoftCloseDraft) {
+        return { tone: "review", title: "考虑/问家人可审：轻成交", reason: "草稿尊重顾客要考虑或问家人，没有硬催付款；用简短理由降低风险，并给保留优惠或稍后跟进 CTA。客服确认语气不压迫后可以批准。" };
       }
       if (promoGiftEnglishMixedDraft) {
         return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客用英文问 promotion/free gift；草稿必须整段英文，就算价格和赠品资料对，也不能夹中文。" };
