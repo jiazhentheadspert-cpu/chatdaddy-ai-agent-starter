@@ -6886,6 +6886,9 @@
       if (/问价没给当前价|问价缺 CTA|草稿含旧价/.test(titleReason)) {
         return "改稿方向：先答当前价，至少 1盒 RM150；完整价梯用 RM150 / RM258 / RM378，再补一句要不要安排。";
       }
+      if (/多问没答完|几盒|幾盒|几个月|幾个月|几包|幾包|经期|經期|年期|100KG|100\s*kg/i.test(titleReason)) {
+        return "改稿方向：逐条答：RM658=8盒=4个月；1盒15小包；经期/100kg这类适用问题按安全口径回答或转人工确认。全部答完再接信心 CTA / FAQ Flow。";
+      }
       if (/没回答就接 Flow|用法|喝法/.test(titleReason)) {
         return "改稿方向：先答喝法：一天1次，想快可2次；餐前用150-200ml常温水冲泡，15-30分钟后再吃饭。";
       }
@@ -7020,6 +7023,26 @@
       const usageQuestion = intent.includes("usage") || /(怎么喝|怎麼喝|怎样喝|怎樣喝|一天.{0,8}(几次|幾次)|喝法|用法|how\s+(?:to\s+)?(?:drink|take|use)|how\s+many\s+times)/i.test(customerSignalText);
       const usageAnswered = /(一天|每日|每天|饭前|飯前|餐前|150\s*[-到至]?\s*200\s*ml|150\s*ml|200\s*ml|温水|溫水|once\s+a\s+day|twice\s+a\s+day|before\s+(?:a\s+)?meal|150\s*[-–to]{0,4}\s*200\s*ml|room\s+temperature\s+water)/i.test(draftText);
       const usageFlowWithoutAnswer = usageQuestion && flowAction && !usageAnswered;
+      const packageBoxCountQuestion = /(?:有|共|一共|总共|總共|多少|几|幾|8|八)\s*(?:盒|box|boxes)|(?:几|幾|多少).{0,6}(?:盒|box|boxes)/i.test(customerSignalText);
+      const packageDurationQuestion = /(?:8|八)?\s*盒.{0,12}(?:多少|几|幾|多久).{0,8}(?:个月|個月|月|months?)|(?:喝|用).{0,12}(?:多少|几|幾|多久).{0,8}(?:个月|個月|月|months?)/i.test(customerSignalText);
+      const sachetCountQuestion = /(?:一|1)\s*盒.{0,12}(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)|(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)/i.test(customerSignalText);
+      const cycleSuitabilityQuestion = /(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期).{0,12}(?:可以|能|可不可以|喝|take|drink)|(?:可以|能).{0,12}(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期)/i.test(customerSignalText);
+      const weightSuitabilityQuestion = /(?:体重|體重|weight|kg|KG).{0,16}(?:100|一百).{0,16}(?:可以|能|适合|適合|喝|take|drink)|(?:100\s*kg|100KG|100\s*KG).{0,20}(?:可以|能|适合|適合|喝|take|drink)/i.test(customerSignalText);
+      const packageBoxCountAnswered = /8\s*盒|八\s*盒|一共\s*8|total\s*8|5\s*盒\s*送\s*3/i.test(draftText);
+      const packageDurationAnswered = /4\s*个?月|四\s*个?月|4\s*months?|four\s*months?/i.test(draftText);
+      const sachetCountAnswered = /15\s*(?:小包|包|sachets?|packs?)|75\s*g|5\s*g/i.test(draftText);
+      const cycleSuitabilityAnswered = /(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期)/i.test(draftText) && /(?:可以|能|建议|建議|暂停|暫停|先停|不建议|不建議|医生|醫生|doctor|consult|safe|avoid)/i.test(draftText);
+      const weightSuitabilityAnswered = /(?:100\s*kg|100KG|100\s*KG|一百|体重|體重|weight)/i.test(draftText) && /(?:可以|能|适合|適合|建议|建議|看个人|看個人|doctor|consult|医生|醫生)/i.test(draftText);
+      const productQuestionChecks = [
+        { asked: usageQuestion, answered: usageAnswered },
+        { asked: packageBoxCountQuestion, answered: packageBoxCountAnswered },
+        { asked: packageDurationQuestion, answered: packageDurationAnswered },
+        { asked: sachetCountQuestion, answered: sachetCountAnswered },
+        { asked: cycleSuitabilityQuestion, answered: cycleSuitabilityAnswered },
+        { asked: weightSuitabilityQuestion, answered: weightSuitabilityAnswered },
+      ];
+      const askedProductQuestionCount = productQuestionChecks.filter((check) => check.asked).length;
+      const multiProductQuestionMissingAnswer = askedProductQuestionCount >= 2 && productQuestionChecks.some((check) => check.asked && !check.answered);
       const noFollowUpComplaint = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerSignalText);
       const orderDenialComplaint = intent.includes("order_denial") || intent.includes("not_ordered") || /(?:我)?(?:没|沒|没有|沒有).{0,8}(?:订购|訂購|下单|下單|买|買|order|ordered|purchase|purchased)|(?:didn['’]?t|did\s+not|never).{0,20}(?:order|buy|purchase)/i.test(customerSignalText);
       const referralBulkOrder = ((/(介绍|介紹|推荐|推薦|refer|referral|introduced|recommend)/i.test(customerSignalText) && /(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText)) || (/(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText) && /(?:[4-9]|四|五|六|七|八|九)\s*(?:盒|box|boxes)|(?:多|几|幾)\s*(?:盒|box|boxes)/i.test(customerSignalText)));
@@ -7187,6 +7210,9 @@
       }
       if (usageFlowWithoutAnswer) {
         return { tone: "fix", title: "不能过：没回答就接 Flow", reason: "顾客问怎么喝/一天几次；接下一段 Flow 前必须先回答用法。不要只说继续下一步或直接丢 Flow。" };
+      }
+      if (multiProductQuestionMissingAnswer) {
+        return { tone: "fix", title: "不能过：顾客多问没答完", reason: "顾客连续问几盒、几个月、几包、经期/体重适不适合等；草稿必须逐条答完，再接 FAQ Flow、信心 CTA 或人工确认。不要只答 RM658/8盒就催下单。" };
       }
       if (promoGiftEnglishMixedDraft) {
         return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客用英文问 promotion/free gift；草稿必须整段英文，就算价格和赠品资料对，也不能夹中文。" };
