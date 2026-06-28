@@ -7135,9 +7135,14 @@
       const currentPriceLadderAnswered = /(?:1\s*盒|一盒|1\s*box).{0,24}RM\s*150|RM\s*150.{0,24}(?:1\s*盒|一盒|1\s*box)/i.test(draftText)
         && /(?:2\s*盒|二盒|2\s*boxes?).{0,24}RM\s*258|RM\s*258.{0,24}(?:2\s*盒|二盒|2\s*boxes?)/i.test(draftText)
         && /(?:3\s*盒|三盒|3\s*boxes?).{0,24}RM\s*378|RM\s*378.{0,24}(?:3\s*盒|三盒|3\s*boxes?)/i.test(draftText);
-      const directPriceAnswered = currentPriceLadderAnswered || (oneBoxSpecificQuestion && oneBoxPriceAnswered);
-      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
-      const paymentReceivedText = [
+	      const directPriceAnswered = currentPriceLadderAnswered || (oneBoxSpecificQuestion && oneBoxPriceAnswered);
+	      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
+	      const membershipRebuyPrompt = /(?:回购|回購|复购|復購|会员|會員|member|membership|VIP|旧客|舊客|老顾客|老顧客).{0,24}(?:价|價|price|优惠|優惠|福利|配套|对吗|對嗎|吗|嗎)|(?:请问|請問).{0,18}(?:回购|回購|复购|復購|会员|會員|member|membership|VIP)/i.test(previousAgentText);
+	      const membershipRebuyConfirmation = membershipRebuyPrompt && /^(?:是的|对|對|对的|對的|yes|ya|yup|要|要的|好的|ok|okay)[\s.!！?？~～,，。❤️❤]*$/i.test(rawCustomerText);
+	      const membershipRebuyQuestion = membershipRebuyConfirmation || /(?:有|要|问|問|拿|看|给|給|想知道|知道)?[^。？?\n]{0,18}(?:会员|會員|member|membership|VIP|回购|回購|复购|復購|reorder|repurchase|repeat|旧客|舊客|老顾客|老顧客)[^。？?\n]{0,28}(?:吗|嗎|么|麼|价|價|price|优惠|優惠|福利|配套|discount|package)?|(?:价|價|price|优惠|優惠|discount).{0,18}(?:回购|回購|会员|會員|member|VIP|旧客|舊客)/i.test(rawCustomerText);
+	      const membershipRebuySafeDraft = /(?:回购|回購|复购|復購|会员|會員|VIP|旧客|舊客|老顾客|老顧客|售后|售後|after[\s-]?sales|客服).{0,50}(?:确认|確認|查|联系|聯絡|价格|價格|价钱|價錢|优惠|優惠|福利|资格|資格)|(?:请问|請問).{0,24}(?:回购|回購|复购|復購|会员|會員|VIP).{0,24}(?:价格|價格|价钱|價錢|优惠|優惠|福利|对吗|對嗎)/i.test(draftText);
+	      const membershipRebuyWrongNewCustomerFlow = membershipRebuyQuestion && (flowAction || currentPriceLadderAnswered || oneBoxPriceAnswered || salesPushDraft || legacyPromo) && !membershipRebuySafeDraft;
+	      const paymentReceivedText = [
         intent,
         action,
         decision.reply_message,
@@ -7307,12 +7312,21 @@
       if (promoGiftMissingDraft) {
         return { tone: "fix", title: "不能过：没回答赠品", reason: "顾客问还有送什么、赠品或 free gift；草稿必须列当前 RM150/RM258/RM378 和当天赠品确认口径，不要回产品介绍或接普通 Flow。" };
       }
-      if (orderDenialComplaint) {
-        return { tone: "handoff", title: "否认订购先查记录", reason: "顾客说没有订购，通常是 Broadcast/订单提醒语境；不要继续销售或重复下单，先人工查记录并安抚。" };
-      }
-      if (directPriceQuestion && !specialPromoAddon && !legacyPromo && !directPriceAnswered) {
-        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
-      }
+	      if (orderDenialComplaint) {
+	        return { tone: "handoff", title: "否认订购先查记录", reason: "顾客说没有订购，通常是 Broadcast/订单提醒语境；不要继续销售或重复下单，先人工查记录并安抚。" };
+	      }
+	      if (membershipRebuyWrongNewCustomerFlow) {
+	        return { tone: "fix", title: "不能过：会员/回购别套新人 Flow", reason: "顾客问会员、VIP、回购价或旧客福利；不要直接套新人价格图、普通促销 Flow 或新客成交话术。先确认她是不是回购/旧客，再查资格、回购价或转售后。" };
+	      }
+	      if (membershipRebuyQuestion && membershipRebuySafeDraft) {
+	        return { tone: "review", title: "会员/回购可审：先确认资格", reason: "草稿有承接会员/回购意图，并把动作放在确认回购价、旧客资格或售后跟进上；客服确认身份/活动后可以批准。" };
+	      }
+	      if (membershipRebuyQuestion) {
+	        return { tone: "handoff", title: "会员/回购先查资格", reason: "顾客问会员、VIP、回购价或旧客福利；没有明确回购资格和价格时，不要套新人价，也不要接普通销售 Flow，先人工确认。" };
+	      }
+	      if (directPriceQuestion && !specialPromoAddon && !legacyPromo && !directPriceAnswered) {
+	        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
+	      }
       if (directPriceQuestion && directPriceAnswered) {
         const directPriceTitle = oneBoxSpecificQuestion ? "问一盒可审：一盒价优先" : "问价可审：价梯 + CTA";
         const directPriceReason = oneBoxSpecificQuestion
