@@ -6559,11 +6559,11 @@
 	      if (priceAndSachetQuestion) {
 	        return "价钱+包数：先答当前价 + 1盒15小包；再接价格图/Promo Flow + CTA";
 	      }
-      if (directPriceQuestion && orderRetentionContext) {
-        return oneBoxQuestion
-          ? "624后真问价：不是订单；答RM150/15小包；可接价格图/Promo Flow + 一盒CTA"
-          : "Shopee/624提醒不是订单；先答当前价梯；再问配套";
-      }
+	      if (directPriceQuestion && orderRetentionContext) {
+	        return oneBoxQuestion
+	          ? "624后顾客问价：先答RM150/15小包；答完才接价格图/一盒CTA"
+	          : "Shopee/624提醒不是订单；先答当前价梯；再问配套";
+	      }
       const postPriceContext = /(STEP_4|user_current_step.{0,16}step_4|看价后|看價後|price_objection|trust_after_price|Flow后问价|Flow後問價)/i.test(sourceText);
       if (directPriceQuestion && !oneBoxQuestion && !postPriceContext) {
         return "Direct新客问价：先短桥接 + 产品Flow；到Step4才给价";
@@ -7091,11 +7091,11 @@
 	            learning: "可学：ManyChat 价格图接法；Flow 是下一步动作，不能代替回答顾客问题。"
 	          };
 	        }
-	        return {
-	          answer: oneBoxQuestion ? "先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒，但 CTA 优先一盒试喝。" : "先答当前价 RM150 / RM258 / RM378；不要继续产品教育。",
-	          after: "看价/问价后接价格图 / Promo Flow + 成交 CTA / 收单；确认要买才收资料，不接普通教育 Flow。",
-	          learning: "可学：价格问答 + Flow/CTA；上一段 Broadcast 只当上下文，不当顾客问题。"
-	        };
+		        return {
+		          answer: oneBoxQuestion ? "顾客原句先答：1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒，但 CTA 优先一盒试喝。" : "先答当前价 RM150 / RM258 / RM378；不要继续产品教育。",
+		          after: "看价/问价后接价格图 / Promo Flow + 成交 CTA / 收单；确认要买才收资料，不接普通教育 Flow。",
+		          learning: "可学：顾客问题 -> 正确回复 -> 下一步 Flow/CTA；Flow 是下一步动作，不能代替回答。"
+		        };
 	      }
 	      if (fearNoEffectQuestion) {
 	        return {
@@ -7154,8 +7154,8 @@
 	      const plan = replyThenFlowPlan(item);
 	      const directNewPricePlan = /Direct 新客/.test(plan.answer);
 	      const pricePackContextQuestion = directPriceContextQuestion && /(?:一|1)?\s*(?:盒)?[^。？?\n]{0,12}(?:几|幾|多少|how\s+many).{0,8}(?:包|小包|sachets?|packs?)|(?:包|小包|sachets?|packs?).{0,12}(?:几|幾|多少|how\s+many)/i.test(customerText);
-	      const priceContextAdvice = oneBoxContextQuestion
-	        ? "补 1盒 RM150 + 15小包；问安排一盒；不要把 Broadcast 当订单"
+		      const priceContextAdvice = oneBoxContextQuestion
+		        ? "顾客原句先答：1盒 RM150 + 15小包；问安排一盒；不要把 Broadcast 当订单"
 	        : pricePackContextQuestion
 	          ? "补当前价梯 + 1盒15小包；答完接价格图/Promo Flow + CTA；不要把 Broadcast 当订单"
 	          : "补当前价梯；再问安排；不要把 Broadcast 当订单";
@@ -7269,20 +7269,23 @@
       if (/Direct问价可审|Direct问价缺产品Flow|Direct问价没桥接Flow/.test(titleReason)) {
         return "改稿方向：Direct 新客只问多少钱时，先短桥接“我先让你了解产品/喝法，再给优惠价”，然后接产品了解 / Step 3 Flow；不要只丢一句话卡住。";
       }
-      if (/具体问价别接教育 Flow/.test(titleReason)) {
-        return "改稿方向：顾客问一盒/1 box 多少钱，要先答 1盒 RM150 + 15小包/15天，再问要不要先安排一盒试喝；如她问运费/COD，才顺带补全马免邮/COD无额外费。不要只说先了解产品。";
-      }
-      if (/看价后别接教育 Flow/.test(titleReason)) {
-        return "改稿方向：顾客已到 Step 4 / Broadcast 后问价，要正面给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再问一盒试喝或配套下单；不要倒回教育 Flow。";
-      }
+	      if (/具体问价别接教育 Flow/.test(titleReason)) {
+	        return "改稿方向：顾客问一盒/1 box 多少钱，要先答 1盒 RM150 + 15小包/15天，再问要不要先安排一盒试喝；如她问运费/COD，才顺带补全马免邮/COD无额外费。不要只说先了解产品。";
+	      }
+	      if (/Flow后问一盒|Flow后问价/i.test(titleReason)) {
+	        return "改稿方向：先看顾客原句；这类 ManyChat/624/Broadcast 后的问题要先答 1盒 RM150 + 15小包/15天，再问“你要我先帮你安排一盒试喝吗？”。答完才接价格图 / Promo Flow / 收单；不要把上一段 Flow 当成顾客问题。";
+	      }
+	      if (/看价后别接教育 Flow/.test(titleReason)) {
+	        return "改稿方向：顾客已到 Step 4 / Broadcast 后问价，先看顾客原句并正面给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378；如果顾客只问一盒，把下一句改成“你要我先帮你安排一盒试喝吗？”。答完才接价格图 / Promo Flow / 成交 CTA，不要倒回教育 Flow。";
+	      }
       if (/问价没给当前价|问价缺(?: CTA|下一步)|草稿含旧价/.test(titleReason)) {
         return "改稿方向：先答当前价，至少 1盒 RM150；完整价梯用 RM150 / RM258 / RM378，再补一句要不要安排。";
       }
       if (/价格包数|多少包|15小包/i.test(titleReason)) {
         return "改稿方向：顾客问“多少钱有多少包”要逐条答：当前价 RM150 / RM258 / RM378，1盒15小包可喝15天；答完才问要哪个配套，不要只接 Promo Flow。";
       }
-      if (/问一盒可审|一盒价优先/i.test(titleReason)) {
-        return "改稿方向：先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒更划算，但下一句要优先问要不要安排一盒。旧 Broadcast/订单提醒不是订单；如问运费/COD，才补免邮/COD无额外费。";
+	      if (/问一盒可审|一盒价优先/i.test(titleReason)) {
+	        return "改稿方向：先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒更划算，但下一句要优先问“你要我先帮你安排一盒试喝吗？”。旧 Broadcast/订单提醒不是订单；答完才接价格图 / Promo Flow / 收单；如问运费/COD，才补免邮/COD无额外费。";
       }
       if (/旧活动 Flow|活动版本|Mother/i.test(titleReason)) {
         return "改稿方向：换成当前活动 / 当前价格 Flow；英文 Flow 也要确认月份、价钱和赠品是今天能用的，不确定就转人工确认。";
@@ -8009,12 +8012,12 @@
           ? "顾客是在 ManyChat Flow、Smart Delay 或 Broadcast 后主动问价；这是真问题，不是纯自动 Flow。先正面回答当前价格，再接一个下单问题，不要把旧订单提醒当成已下单。"
           : "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。";
         if (oneBoxSpecificQuestion) {
-          if (priceQuestionAfterFlowContext && oneBoxGenericPackageCta) {
-            directPriceTitle = "Flow后问一盒：问安排一盒";
-            directPriceReason = "顾客是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已答 1盒 RM150，可以补价梯，但“哪个配套”偏泛。更会成交的下一句是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。";
-          } else if (priceQuestionAfterFlowContext) {
-            directPriceTitle = "Flow后问一盒：先答价再成交";
-            directPriceReason = "顾客是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已先回答 1盒 RM150。价梯和赠品可以轻补充，下一句要优先问要不要安排一盒试喝，确认后才进收资料/下单。";
+	          if (priceQuestionAfterFlowContext && oneBoxGenericPackageCta) {
+	            directPriceTitle = "Flow后问一盒：问安排一盒";
+	            directPriceReason = "顾客原句是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已答 1盒 RM150，可以补价梯，但“哪个配套”偏泛。更会成交的下一句是先问要不要安排一盒试喝；Flow/收单只能在回答后作为下一步，不要把旧 Broadcast/订单提醒当成已下单。";
+	          } else if (priceQuestionAfterFlowContext) {
+	            directPriceTitle = "Flow后问一盒：先答价再成交";
+	            directPriceReason = "顾客原句是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已先回答 1盒 RM150。价梯和赠品可以轻补充，下一句要优先问“你要我先帮你安排一盒试喝吗？”，确认后才进收资料/下单。";
           } else {
             directPriceTitle = oneBoxGenericPackageCta ? "问一盒可审：问安排一盒" : "问一盒可审：一盒价优先";
             directPriceReason = oneBoxGenericPackageCta ? "顾客问一盒多少钱，草稿已回答 1盒 RM150 并有下单动作，所以可审；但“哪个配套”偏泛。更会成交的下一句是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。" : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但下一句应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。";
