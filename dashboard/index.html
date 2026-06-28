@@ -6937,6 +6937,9 @@
       if (/售后勿继续卖|售后收货|礼貌收尾|收到货|谢谢/.test(titleReason)) {
         return "改稿方向：只回用法、关怀或礼貌收尾；不要推价格，也不要接普通销售 Flow。";
       }
+      if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式/i.test(titleReason)) {
+        return "改稿方向：先人工确认当前订单/渠道可用；可短答“可以/对的，可以用 GrabPay/eWallet，我发你付款链接；付款后截图给我”。不要接产品 Flow。";
+      }
       if (/付款链接金额|付款|汇款|审款|订单|改资料|否认订购|没人跟进|亲友购买|售后没回复|官方平台|地点|现货|送货/.test(titleReason) || tone === "handoff" || tone === "order") {
         return "改稿方向：先真人查订单、付款、售后或官方资料；处理完把人工最终回复补回 Dashboard。";
       }
@@ -6956,6 +6959,10 @@
       const tone = String(closer.tone || "").toLowerCase();
       const decision = item.latest_decision || {};
       const action = String(decision.action || "").toLowerCase();
+      const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
+      if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式|付款链接/i.test(titleReason)) {
+        return "复盘要留：顾客问的付款方式、最后确认的渠道/链接/金额、是否要求付款后截图；审核后补付款 FAQ / SOP，不写进普通销售 Flow。";
+      }
       if (tone === "handoff") {
         if (needsManualReplyAfterHandoff(item)) {
           return "复盘要留：人工最后怎么回、为什么这样回、下次同类是否继续人工。";
@@ -7455,6 +7462,9 @@
       }
       if (deliveryPaymentArrangement) {
         return { tone: "handoff", title: "送货/付款先确认", reason: "顾客问送货和付款怎样安排；要看地区、配套、付款方式和订单资料，不要回产品介绍或接 Flow，先人工确认。" };
+      }
+      if (walletPaymentQuestion) {
+        return { tone: "handoff", title: "电子钱包/GrabPay 先确认", reason: "顾客问电子钱包、GrabPay/eWallet 或付款链接；参考 ManyChat：先暂停 automation，人工确认当前订单/渠道可用，再短答可以/对的、发付款链接，并提醒付款后截图给我。不要继续产品 Flow。" };
       }
       if (paymentMethodIssue) {
         return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡、GrabPay/eWallet 或付款链接要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
