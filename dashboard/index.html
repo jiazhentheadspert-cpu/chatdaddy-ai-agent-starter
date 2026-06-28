@@ -7142,6 +7142,8 @@
         && /(?:3\s*盒|三盒|3\s*boxes?).{0,24}RM\s*378|RM\s*378.{0,24}(?:3\s*盒|三盒|3\s*boxes?)/i.test(draftText);
 	      const directPriceAnswered = currentPriceLadderAnswered || (oneBoxSpecificQuestion && oneBoxPriceAnswered);
 	      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
+	      const oneBoxFocusedCtaAnswered = /(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,18}(?:一|1)\s*(?:盒|box)|(?:一|1)\s*(?:盒|box).{0,18}(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order)|(?:先帮你|先幫你|帮你|幫你|要我).{0,20}(?:一|1)\s*(?:盒|box)/i.test(draftText);
+	      const oneBoxGenericPackageCta = oneBoxSpecificQuestion && priceCtaAnswered && !oneBoxFocusedCtaAnswered;
 	      const membershipRebuyPrompt = /(?:回购|回購|复购|復購|会员|會員|member|membership|VIP|旧客|舊客|老顾客|老顧客).{0,24}(?:价|價|price|优惠|優惠|福利|配套|对吗|對嗎|吗|嗎)|(?:请问|請問).{0,18}(?:回购|回購|复购|復購|会员|會員|member|membership|VIP)/i.test(previousAgentText);
 	      const membershipRebuyConfirmation = membershipRebuyPrompt && /^(?:是的|对|對|对的|對的|yes|ya|yup|要|要的|好的|ok|okay)[\s.!！?？~～,，。❤️❤]*$/i.test(rawCustomerText);
 	      const membershipRebuyQuestion = membershipRebuyConfirmation || /(?:有|要|问|問|拿|看|给|給|想知道|知道)?[^。？?\n]{0,18}(?:会员|會員|member|membership|VIP|回购|回購|复购|復購|reorder|repurchase|repeat|旧客|舊客|老顾客|老顧客)[^。？?\n]{0,28}(?:吗|嗎|么|麼|价|價|price|优惠|優惠|福利|配套|discount|package)?|(?:价|價|price|优惠|優惠|discount).{0,18}(?:回购|回購|会员|會員|member|VIP|旧客|舊客)/i.test(rawCustomerText);
@@ -7348,9 +7350,11 @@
 	        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
 	      }
       if (directPriceQuestion && directPriceAnswered) {
-        const directPriceTitle = oneBoxSpecificQuestion ? "问一盒可审：一盒价优先" : "问价可审：价梯 + CTA";
+        const directPriceTitle = oneBoxSpecificQuestion
+          ? (oneBoxGenericPackageCta ? "问一盒可审：CTA 改成一盒" : "问一盒可审：一盒价优先")
+          : "问价可审：价梯 + CTA";
         const directPriceReason = oneBoxSpecificQuestion
-          ? "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但 CTA 应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。"
+          ? (oneBoxGenericPackageCta ? "顾客问一盒多少钱，草稿已回答 1盒 RM150 并有 CTA，所以可审；但“哪个配套”偏泛。更会成交的 CTA 是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。" : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但 CTA 应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。")
           : "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。";
         return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? directPriceTitle : "不能过：问价缺 CTA", reason: priceCtaAnswered ? directPriceReason : "顾客问价时，草稿除了当前价，还要给明确下一步，例如问她要不要安排一盒或哪个配套。" };
       }
