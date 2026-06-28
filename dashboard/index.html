@@ -7141,6 +7141,9 @@
       const promoGiftAnswered = /RM\s*150/i.test(draftText) && /RM\s*258/i.test(draftText) && /RM\s*378/i.test(draftText) && /(赠品|贈品|free\s*gift|gift|promotion|promo|优惠|優惠|活动|活動|当天|當天|客服|确认|確認|库存|庫存)/i.test(draftText);
       const promoGiftEnglishMixedDraft = promoGiftEnglishQuestion && /[\u4e00-\u9fff]/.test(draftText);
       const promoGiftMissingDraft = promoGiftQuestion && !promoGiftAnswered;
+      const orderGiftQuestion = /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerSignalText);
+      const orderGiftSafeDraft = orderGiftQuestion && /(?:查|查看|确认|確認|核对|核對|check|review).{0,40}(?:订单|訂單|order|记录|紀錄|record|配套|赠品|贈品|gift|活动|活動)|(?:订单|訂單|order|记录|紀錄|record|配套|赠品|贈品|gift|活动|活動).{0,40}(?:查|查看|确认|確認|核对|核對|check|review)|(?:不要|不敢|不能|先不).{0,18}(?:乱确认|亂確認|乱讲|亂講|承诺|承諾)/i.test(draftText);
+      const orderGiftCurrentPromoDraft = orderGiftQuestion && !orderGiftSafeDraft && (flowAction || salesPushDraft || promoGiftAnswered || /(?:今天下单|今天下單|现在下单|現在下單|当前|目前|现在|現在|LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|RM\s*150|RM\s*258|RM\s*378|加送|Beyoute\s*3\s*小包|丝柔亲肤毛巾|絲柔親膚毛巾|小粉瓶|哪个配套|哪個配套)/i.test(draftText));
       const specialPromoText = [
         decision.reply_message,
         decision.previous_agent_text,
@@ -7343,6 +7346,12 @@
       }
       if (promoGiftEnglishMixedDraft) {
         return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客用英文问 promotion/free gift；草稿必须整段英文，就算价格和赠品资料对，也不能夹中文。" };
+      }
+      if (orderGiftCurrentPromoDraft) {
+        return { tone: "fix", title: "不能过：赠品问题别套当前活动", reason: "顾客问的是上星期已订配套/截图里的赠品，不是现在有什么 promotion。不要用当前价梯、Last Call、今天赠品或成交 CTA 回答；先查订单、当时活动和截图。" };
+      }
+      if (orderGiftQuestion) {
+        return { tone: "handoff", title: "赠品/订单先查记录", reason: "顾客在问已下单配套的赠品是否少了，通常还会附截图；客服要查订单、当时活动和配套记录，AI 不确认也不否认赠品。" };
       }
       if (promoGiftMissingDraft) {
         return { tone: "fix", title: "不能过：没回答赠品", reason: "顾客问还有送什么、赠品或 free gift；草稿必须列当前 RM150/RM258/RM378 和当天赠品确认口径，不要回产品介绍或接普通 Flow。" };
