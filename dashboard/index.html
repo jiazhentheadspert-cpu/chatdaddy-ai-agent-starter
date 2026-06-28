@@ -6888,6 +6888,9 @@
       if (/问价没给当前价|问价缺 CTA|草稿含旧价/.test(titleReason)) {
         return "改稿方向：先答当前价，至少 1盒 RM150；完整价梯用 RM150 / RM258 / RM378，再补一句要不要安排。";
       }
+      if (/问一盒可审|一盒价优先/i.test(titleReason)) {
+        return "改稿方向：先答 1盒 RM150；可以轻补 2盒/3盒更划算，但 CTA 优先问要不要安排一盒，不要从旧 Broadcast/订单提醒猜她已下单。";
+      }
       if (/旧活动 Flow|活动版本|Mother/i.test(titleReason)) {
         return "改稿方向：换成当前活动 / 当前价格 Flow；英文 Flow 也要确认月份、价钱和赠品是今天能用的，不确定就转人工确认。";
       }
@@ -7247,10 +7250,10 @@
         return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
       }
       if (directPriceQuestion && directPriceAnswered) {
-        const directPriceTitle = currentPriceLadderAnswered ? "问价可审：价梯 + CTA" : "问一盒可审：一盒价 + CTA";
-        const directPriceReason = currentPriceLadderAnswered
-          ? "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。"
-          : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；客服可再确认是否要一盒，或轻轻提醒 2盒/3盒更划算。";
+        const directPriceTitle = oneBoxSpecificQuestion ? "问一盒可审：一盒价优先" : "问价可审：价梯 + CTA";
+        const directPriceReason = oneBoxSpecificQuestion
+          ? "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但 CTA 应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。"
+          : "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。";
         return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? directPriceTitle : "不能过：问价缺 CTA", reason: priceCtaAnswered ? directPriceReason : "顾客问价时，草稿除了当前价，还要给明确下一步，例如问她要不要安排一盒或哪个配套。" };
       }
       if (paymentReceivedSignal) {
