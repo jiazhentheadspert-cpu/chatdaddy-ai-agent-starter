@@ -6534,6 +6534,10 @@
           ? "Shopee/624提醒不是订单；先答 1盒 RM150 + 一盒 CTA"
           : "Shopee/624提醒不是订单；先答当前价梯 + CTA";
       }
+      const postPriceContext = /(STEP_4|user_current_step.{0,16}step_4|看价后|看價後|price_objection|trust_after_price|Flow后问价|Flow後問價)/i.test(sourceText);
+      if (directPriceQuestion && !oneBoxQuestion && !postPriceContext) {
+        return "Direct新客问价：先短桥接 + 产品Flow；到Step4才给价";
+      }
       const pwpAddonContext = /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|top\s*up|加购|加購)/i.test(sourceText);
       if (pwpAddonContext) {
         return /(?:5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|May\s+Early\s+Bird)/i.test(sourceText)
@@ -7035,14 +7039,31 @@
 	      const usageQuestion = /(一天.{0,8}(几次|幾次)|怎么喝|怎麼喝|怎样喝|怎樣喝|喝法|用法|饭前|飯前|饭后|飯後|how.{0,16}(drink|take|consume)|drink.{0,16}(how|when)|take.{0,16}(how|when))/i.test(signalText);
 	      const flavorQuestion = /(口味|味道|难喝|難喝|好喝|什么味|什麼味|flavou?r|taste)/i.test(signalText);
 	      const englishRequest = /english|英文|看不懂中文|看不懂华文|看不懂華文|don['’]?t understand.{0,20}(chinese|mandarin)|can you write english/i.test(signalText);
+	      const fearNoEffectQuestion = /(?:怕|担心|擔心|worry|afraid|scared).{0,28}(?:没效|沒效|没效果|沒效果|没有效果|沒有效果|无效|無效|浪费|浪費|waste|not\s+effective|no\s+result)|(?:浪费钱|浪費錢|waste\s+money).{0,28}(?:怕|担心|擔心|worry|afraid|买|買|buy|purchase)?/i.test(signalText);
 	      const paymentOrService = /(付款|付钱|付錢|汇款|匯款|receipt|payment|payex|grabpay|ewallet|银行卡|信用卡|送货|送貨|delivery|shipping|订单|訂單|下单|下單|refund|退款|没效果|沒效果|不舒服|想吐|售后|售後|after_sales|complaint|order|receipt|payment_method)/i.test(signalText);
 	      const flowAction = action.includes("flow");
 	      const postPriceStage = stage === "STEP_4" || stage === "S4" || /(price|early_price|objection|discount|promotion|promo|trust_after_price)/i.test(intent);
 	      if (directPriceQuestion) {
+	        const priceStageSeen = stage === "STEP_4" || stage === "S4" || /(objection|discount|promotion|promo|trust_after_price)/i.test(intent);
+	        const directNewPriceQuestion = !oneBoxQuestion && !priceStageSeen && !/(Broadcast|Smart delay|Automation sent|订单资料|訂單資料|通知|提醒|SHOPEE|LAST\s*CALL|META\s*DAY|PAYDAY|user_current_step.{0,12}step_4)/i.test(signalText);
+	        if (directNewPriceQuestion) {
+	          return {
+	            answer: "Direct 新客只问“多少钱”时，先短桥接：我先让你了解产品/喝法，再给你优惠价。",
+	            after: `答完接产品了解 / Step 3 Flow：${nextFlow || "优先接产品+喝法 Flow；不要直接收单"}`,
+	            learning: "可学：Direct 问价桥接 + Flow；不要和已看价后的成交 CTA 混在一起。"
+	          };
+	        }
 	        return {
 	          answer: oneBoxQuestion ? "先答 1盒 RM150；可以轻补 2盒/3盒，但 CTA 优先一盒试喝。" : "先答当前价 RM150 / RM258 / RM378；不要继续产品教育。",
 	          after: "看价/问价后走成交 CTA / 收单；确认要买才收资料，不接普通教育 Flow。",
 	          learning: "可学：价格问答 + CTA；上一段 Broadcast 只当上下文，不当顾客问题。"
+	        };
+	      }
+	      if (fearNoEffectQuestion) {
+	        return {
+	          answer: "先承接“怕没效 / 浪费钱”，用真实反馈、产品机制和适合度降低风险；不能保证有效。",
+	          after: "看价后走低门槛 CTA：先试一盒 / 先判断适不适合；不要回普通教育 Flow。",
+	          learning: "可学：怕没效成交话术；要学风险承接、proof、低压力 CTA。"
 	        };
 	      }
 	      if (paymentOrService || action === "ask_human") {
@@ -7093,6 +7114,7 @@
 	      const automationControl = automationControlContextName(decision, item);
 	      const nextFlow = nextFlowContextName(decision);
 	      const plan = replyThenFlowPlan(item);
+	      const directNewPricePlan = /Direct 新客/.test(plan.answer);
 	      const priceContextAdvice = oneBoxContextQuestion
 	        ? "补 1盒 RM150 + 一盒 CTA；不要把 Broadcast 当订单"
 	        : "补当前价梯 + CTA；不要把 Broadcast 当订单";
@@ -7100,13 +7122,13 @@
 	        ? "先答一盒 + CTA；确认后再接 Flow / 收单"
 	        : "先答价梯 + CTA；确认后再接 Flow / 收单";
 	      const replyText = firstContextText(
-	        directPriceContextQuestion && action === "ask_human" ? priceContextAdvice : decision.reply_message,
+	        directPriceContextQuestion && !directNewPricePlan && action === "ask_human" ? priceContextAdvice : decision.reply_message,
 	        item.final_text,
 	        item.manual_reply_text,
 	        actionLabel(decision.action)
 	      );
 		      const nextAction = directPriceContextQuestion
-		        ? priceContextNext
+		        ? (directNewPricePlan ? `短桥接后接产品 Flow：${nextFlow || "Step 3 / 产品了解 Flow"}` : priceContextNext)
 		        : action.includes("flow")
 		          ? `接 Flow：${nextFlow || "未标明 Flow，先确认 Step"}`
 		          : action === "ask_human"
@@ -7201,6 +7223,15 @@
       const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
       const decision = item.latest_decision || {};
       const action = String(decision.action || item.action || "").toLowerCase();
+      if (/Direct问价可审|Direct问价缺产品Flow|Direct问价没桥接Flow/.test(titleReason)) {
+        return "改稿方向：Direct 新客只问多少钱时，先短桥接“我先让你了解产品/喝法，再给优惠价”，然后接产品了解 / Step 3 Flow；不要只丢一句话卡住。";
+      }
+      if (/具体问价别接教育 Flow/.test(titleReason)) {
+        return "改稿方向：顾客问一盒/1 box 多少钱，要先答 1盒 RM150，再问要不要先安排一盒试喝；不要只说先了解产品。";
+      }
+      if (/看价后别接教育 Flow/.test(titleReason)) {
+        return "改稿方向：顾客已到 Step 4 / Broadcast 后问价，要正面给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再接一盒试喝或配套 CTA；不要倒回教育 Flow。";
+      }
       if (/问价没给当前价|问价缺 CTA|草稿含旧价/.test(titleReason)) {
         return "改稿方向：先答当前价，至少 1盒 RM150；完整价梯用 RM150 / RM258 / RM378，再补一句要不要安排。";
       }
@@ -7506,13 +7537,16 @@
       const afterSalesSellerNoReply = /(我)?(买了|買了|购买了|購買了|已经买|已經買|收到货|收到貨|刚收到|剛收到|货到了|貨到了|卖给我|賣給我|seller|bought|ordered|purchased)/i.test(customerSignalText) && /(no\s*reply|not\s+reply|didn['’]?t\s+reply|never\s+reply|没回|沒回|没有回复|沒有回覆|没回复|沒回覆|不回复|不回覆|没有回应|沒有回應|没回应|沒回應)/i.test(customerSignalText) && (/(怎么喝|怎麼喝|怎样喝|怎樣喝|如何喝|喝法|用法|怎么吃|怎麼吃|怎样吃|怎樣吃|how\s+(?:to\s+)?(?:drink|take|use))/i.test(customerSignalText) || /(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b|卖给我|賣給我|seller|那人|那個人|那个人|agent|staff|salesperson)/i.test(customerSignalText));
       const noResultComplaintPattern = /(?:not\s+effective|no\s+(?:effect|result)|doesn['’]?t\s+work|not\s+working|haven['’]?t\s+seen.{0,16}(?:result|effect)|so\s+far\s+no\s+lose\s+weight|no\s+lose\s+weight|lost\s+confiden(?:t|ce)|没效果|沒效果|没有效果|沒有效果|无效|無效|没看到效果|沒看到效果|不见效|不見效|没瘦|沒瘦)/i;
       const priorNoResultRawContext = /(?:so\s+far\s+no\s+lose\s+weight|no\s+lose\s+weight|lost\s+confiden(?:t|ce)|not\s+effective\s+product|should\s+ask\s+for\s+refund)/i.test(languageSwitchContextText);
-      const priorNoResultComplaint = Boolean(decision.prior_no_result_complaint || decision.signals?.prior_no_result_complaint || item.prior_no_result_complaint || item.signals?.prior_no_result_complaint) || noResultComplaintPattern.test(priorCustomerIssueText) || priorNoResultRawContext;
-      const noResultComplaint = intent.includes("no_result") || intent.includes("not_effective") || noResultComplaintPattern.test(customerSignalText) || priorNoResultComplaint;
-      const refundRequest = intent.includes("refund") || intent.includes("refund_request") || /(?:refund|money\s*back|return\s+my\s+money|退款|退钱|退錢|退货|退貨)/i.test(customerSignalText);
-      const refundAcknowledgedDraft = /(?:refund|退款|退钱|退錢|退货|退貨)/i.test(draftText) && /(?:客服|售后|售後|人工|审核|審核|policy|review|check|order|订单|訂單|确认|確認|跟进|跟進)/i.test(draftText);
-      const noResultDiagnosticDraft = /(?:how\s+long|多久|几天|幾天|几盒|幾盒|days?|boxes?|taking|服用|喝了)/i.test(draftText) && /(?:before\s+(?:your\s+)?meal|餐前|15\s*[–-]?\s*30|water|水|bowel|排便|怎么喝|怎麼喝|怎样喝|怎樣喝|喝法|用法)/i.test(draftText);
-      const noResultSalesPushDraft = noResultComplaint && (flowAction || salesPushDraft || /(?:马上安排|馬上安排|下单|下單|order\s+now|要不要安排|which\s+package|哪个配套|哪個配套)/i.test(draftText));
-      const postNoResultPromoFlow = priorNoResultComplaint && !noResultDiagnosticDraft && !refundAcknowledgedDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|配套|package|Shopee|订单资料|訂單資料|确认订单|確認訂單|加送|赠品|贈品)/i.test([draftText, flowContextText, languageSwitchContextText].filter(Boolean).join(" ")));
+	      const priorNoResultComplaint = Boolean(decision.prior_no_result_complaint || decision.signals?.prior_no_result_complaint || item.prior_no_result_complaint || item.signals?.prior_no_result_complaint) || noResultComplaintPattern.test(priorCustomerIssueText) || priorNoResultRawContext;
+	      const noResultComplaint = intent.includes("no_result") || intent.includes("not_effective") || noResultComplaintPattern.test(customerSignalText) || priorNoResultComplaint;
+	      const refundRequest = intent.includes("refund") || intent.includes("refund_request") || /(?:refund|money\s*back|return\s+my\s+money|退款|退钱|退錢|退货|退貨)/i.test(customerSignalText);
+	      const refundAcknowledgedDraft = /(?:refund|退款|退钱|退錢|退货|退貨)/i.test(draftText) && /(?:客服|售后|售後|人工|审核|審核|policy|review|check|order|订单|訂單|确认|確認|跟进|跟進)/i.test(draftText);
+	      const noResultDiagnosticDraft = /(?:how\s+long|多久|几天|幾天|几盒|幾盒|days?|boxes?|taking|服用|喝了)/i.test(draftText) && /(?:before\s+(?:your\s+)?meal|餐前|15\s*[–-]?\s*30|water|水|bowel|排便|怎么喝|怎麼喝|怎样喝|怎樣喝|喝法|用法)/i.test(draftText);
+	      const noResultSalesPushDraft = noResultComplaint && (flowAction || salesPushDraft || /(?:马上安排|馬上安排|下单|下單|order\s+now|要不要安排|which\s+package|哪个配套|哪個配套)/i.test(draftText));
+	      const postNoResultPromoFlow = priorNoResultComplaint && !noResultDiagnosticDraft && !refundAcknowledgedDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|配套|package|Shopee|订单资料|訂單資料|确认订单|確認訂單|加送|赠品|贈品)/i.test([draftText, flowContextText, languageSwitchContextText].filter(Boolean).join(" ")));
+	      const fearNoEffectObjection = !afterSalesReceivedAck && !priorNoResultComplaint && /(?:怕|担心|擔心|worry|afraid|scared).{0,32}(?:没效|沒效|没效果|沒效果|没有效果|沒有效果|无效|無效|浪费|浪費|waste|not\s+effective|no\s+result)|(?:浪费钱|浪費錢|waste\s+money).{0,32}(?:怕|担心|擔心|worry|afraid|买|買|buy|purchase)?/i.test(customerSignalText);
+	      const fearNoEffectUnsafeDraft = fearNoEffectObjection && /(?:保证|保證|一定|肯定|绝对|絕對).{0,18}(?:有效|会瘦|會瘦|看到效果|work|result)|(?:guarantee|sure).{0,20}(?:effective|work|result)/i.test(draftText);
+	      const fearNoEffectHandledDraft = fearNoEffectObjection && !fearNoEffectUnsafeDraft && /(?:怕|担心|擔心|浪费|浪費|没效|沒效|没效果|不适合|不適合|不要买错|不要買錯|先试|先試|试喝|試喝|低门槛|低門檻|真实顾客|真實顧客|真实反馈|真實反饋|review|feedback|proof|适合|適合|看预算|预算|預算|目标|目標)/i.test(draftText) && /(?:安排|下单|下單|拿|试喝|試喝|先试|先試|1\s*盒|一盒|RM\s*150|配套|package|要我|帮你|幫你|建议|建議|判断|判斷)/i.test(draftText);
       const promoGiftExplicitQuestion = /(赠品|贈品|free\s*gift|gift|送什么|送什麼|有什么送|有什麼送|送哪些|送什麼东西|送什么东西)/i.test(customerSignalText);
       const promoCampaignListQuestion = /(promotion|promo|优惠|優惠|活动|活動)/i.test(customerSignalText) && /(有什么|有什麼|有哪些|哪一些|哪些|what|any|which|list|write|一次过|一次過|全部|all|送什么|送什麼)/i.test(customerSignalText);
       const promoGiftQuestion = promoGiftExplicitQuestion || promoCampaignListQuestion;
@@ -7545,7 +7579,15 @@
 	      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
 	      const oneBoxFocusedCtaAnswered = /(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,18}(?:一|1)\s*(?:盒|box)|(?:一|1)\s*(?:盒|box).{0,18}(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order)|(?:先帮你|先幫你|帮你|幫你|要我).{0,20}(?:一|1)\s*(?:盒|box)/i.test(draftText);
 	      const oneBoxGenericPackageCta = oneBoxSpecificQuestion && priceCtaAnswered && !oneBoxFocusedCtaAnswered;
-	      const priceQuestionAfterFlowContext = Boolean(rawCustomerText) && directPriceQuestion && manychatAutomationContext;
+	      const priceStageSeen = stage === "STEP_4" || stage === "S4" || /user_current_step.{0,16}step_4/i.test(languageSwitchContextText) || /(price_objection|trust_after_price|discount|promotion|promo)/i.test(intent);
+	      const broadcastOrOrderPriceContext = /(Broadcast|624|SHOPEE|Shopee|订单资料|訂單資料|订单提醒|訂單提醒|通知|提醒|LAST\s*CALL|META\s*DAY|PAYDAY)/i.test(languageSwitchContextText);
+	      const directNewPriceContext = directPriceQuestion && !oneBoxSpecificQuestion && !priceStageSeen && !broadcastOrOrderPriceContext;
+	      const directPriceBridgeDraft = directPriceQuestion && /(?:先|first).{0,20}(?:了解|讓你了解|让你了解|看|介绍|介紹|share|show).{0,30}(?:产品|產品|Beyoute|喝法|重点|重點|价|價|price|promotion|优惠|優惠).{0,30}(?:再|才|then|after).{0,24}(?:价|價|price|优惠|優惠|promotion)|(?:先让你了解|先讓你了解).{0,24}(?:产品|產品).{0,24}(?:价|價|优惠|優惠)/i.test(draftText);
+	      const directPriceEducationFlow = flowAction && /(STEP_[1-3]|S[1-3]|step\s*[1-3]|11a|22a|33a|产品|產品|喝法|背景|认证|認證|education|intro)/i.test([flowContextText, stage].filter(Boolean).join(" "));
+	      const directPriceBridgeSafe = directNewPriceContext && directPriceBridgeDraft && directPriceEducationFlow;
+	      const directPriceBridgeMissingFlow = directNewPriceContext && directPriceBridgeDraft && !directPriceEducationFlow;
+	      const directPriceBridgeWrongStage = directPriceQuestion && directPriceBridgeDraft && !directNewPriceContext;
+	      const priceQuestionAfterFlowContext = Boolean(rawCustomerText) && directPriceQuestion && (priceStageSeen || (manychatAutomationContext && !directNewPriceContext));
 	      const discountRequest = /(discount|折扣|便宜(?:一点|一點)?|更便宜|cheaper|best\s+price|special\s+price|扣(?:一点|一點)?|优惠(?:点|點)|優惠(?:点|點)|可以(?:再)?便宜|能(?:再)?便宜)/i.test(customerSignalText);
 	      const discountBoundaryDraft = discountRequest && (currentPriceLadderAnswered || oneBoxPriceAnswered) && /(?:目前|当前|現在|现在|今天|优惠|優惠|配套|已经|已經|现有|現有|不(?:能|会|可以)?(?:再)?(?:乱)?(?:折扣|便宜|扣价|扣價|降价|降價)|没有再扣|沒有再扣|不乱给折扣)/i.test(draftText);
 	      const unsafeDiscountPromiseDraft = discountRequest && !specialPromoAddon && !discountBoundaryDraft && (/(?:RM\s*(?:[1-9]\d|1[0-4]\d)\b)/i.test(draftText) || /(?:可以|能|帮你|幫你|给你|給你|特别|特別|私人|我这边|我這邊|老板|老闆).{0,18}(?:discount|折扣|便宜|扣价|扣價|扣|special\s+price|best\s+price)|(?:discount|折扣|便宜|扣价|扣價|扣|special\s+price|best\s+price).{0,18}(?:可以|能|给你|給你|帮你|幫你|ok|没问题|沒問題)/i.test(draftText));
@@ -7815,11 +7857,20 @@
       if (refundRequest && !refundAcknowledgedDraft) {
         return { tone: "fix", title: "不能过：退款要求没承接", reason: "顾客已经说 Refund/退款；草稿不能只问使用情况或继续解释产品。必须先承接退款诉求，说明按售后/退款政策人工审核，再补问订单和使用资料。" };
       }
-      if (refundRequest) {
-        return { tone: "handoff", title: "退款先人工审核", reason: "顾客提出退款，Dashboard 只能提醒客服查订单、政策和使用资料；AI 不承诺退款、不拒绝退款，也不接销售 Flow。" };
-      }
-      if (noResultSalesPushDraft) {
-        return { tone: "fix", title: "不能过：没效果别继续卖", reason: "顾客在投诉没效果；不要继续推价格、配套、CTA 或 Flow。先问使用天数/盒数、喝法、水量和排便，再由客服判断售后动作。" };
+	      if (refundRequest) {
+	        return { tone: "handoff", title: "退款先人工审核", reason: "顾客提出退款，Dashboard 只能提醒客服查订单、政策和使用资料；AI 不承诺退款、不拒绝退款，也不接销售 Flow。" };
+	      }
+	      if (fearNoEffectUnsafeDraft) {
+	        return { tone: "fix", title: "不能过：怕没效不能保证", reason: "顾客怕买了没效或浪费钱，草稿不能保证一定有效。要先承接担心，用真实反馈/机制/适合度降低风险，再给低门槛 CTA。" };
+	      }
+	      if (fearNoEffectHandledDraft) {
+	        return { tone: "review", title: "怕没效可审：proof + 低门槛 CTA", reason: "顾客不是售后投诉，而是看价后怕没效/浪费钱。草稿已承接风险，用 proof、适合度或先试一盒降低顾虑，再回到 CTA；客服确认没有保证效果后可以批准。" };
+	      }
+	      if (fearNoEffectObjection) {
+	        return { tone: "fix", title: "不能过：怕没效没处理", reason: "顾客核心顾虑是怕没效和浪费钱；不要只回普通嫌贵或继续报价。改成：理解担心 -> proof/机制/适合度 -> 低门槛 CTA。" };
+	      }
+	      if (noResultSalesPushDraft) {
+	        return { tone: "fix", title: "不能过：没效果别继续卖", reason: "顾客在投诉没效果；不要继续推价格、配套、CTA 或 Flow。先问使用天数/盒数、喝法、水量和排便，再由客服判断售后动作。" };
       }
       if (noResultComplaint && noResultDiagnosticDraft) {
         return { tone: "review", title: "效果投诉可审：先问使用情况", reason: "顾客说没效果时，可以先礼貌承接并问使用天数/盒数、喝法、水量和排便；客服审核后再决定售后建议。" };
@@ -7838,6 +7889,21 @@
 	      }
 	      if (membershipRebuyQuestion) {
 	        return { tone: "handoff", title: "会员/回购先查资格", reason: "顾客问会员、VIP、回购价或旧客福利；没有明确回购资格和价格时，不要套新人价，也不要接普通销售 Flow，先人工确认。" };
+	      }
+	      if (oneBoxSpecificQuestion && directPriceBridgeDraft) {
+	        return { tone: "fix", title: "不能过：具体问价别接教育 Flow", reason: "顾客已经问一盒/1 box 多少钱；这不是普通 Direct 问价桥接。先答 1盒 RM150，再给一盒试喝 CTA，不能只说先了解产品。" };
+	      }
+	      if (directPriceBridgeWrongStage) {
+	        return { tone: "fix", title: "不能过：看价后别接教育 Flow", reason: "顾客已经在 Step 4、Broadcast/624/Shopee 或活动语境里问价；这时不要只说先了解产品，也不要倒回 Step 1/2/3。先正面回答当前价，再接成交 CTA。" };
+	      }
+	      if (directPriceBridgeSafe) {
+	        return { tone: "review", title: "Direct问价可审：桥接后接产品Flow", reason: "Direct 新客只问“多少钱”且还没看产品；ManyChat 对标是先短桥接“先让你了解产品再给优惠价”，然后接产品/喝法/信心 Flow。客服确认 Flow 是 Step 1-3 后可审。" };
+	      }
+	      if (directPriceBridgeMissingFlow) {
+	        return { tone: "fix", title: "不能过：Direct问价缺产品Flow", reason: "Direct 新客问价时可以短桥接，但必须接产品了解 / 喝法 / 信心 Flow。只丢一句“先了解产品”没有下一步，客服会卡住。" };
+	      }
+	      if (directNewPriceContext && !directPriceAnswered) {
+	        return { tone: "fix", title: "不能过：Direct问价没桥接Flow", reason: "Direct 新客只问多少钱时，不要只沉默、转人工或乱接旧活动。要么短桥接后接产品 Flow，要么直接给当前价并补 CTA；不能让问题悬空。" };
 	      }
 	      if (directPriceQuestion && !specialPromoAddon && !legacyPromo && !directPriceAnswered) {
 	        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
