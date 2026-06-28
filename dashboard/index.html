@@ -6360,12 +6360,27 @@
         item.rawContext,
         item.context_text,
         item.customer_history_text,
+        item.message_type,
+        item.inbound_type,
+        item.attachment_type,
+        item.media_type,
+        item.contact_language,
+        item.profile_language,
+        item.language,
         raw.raw_context,
         raw.customer_history_text,
         raw.previous_agent_text,
         raw.operator_instruction,
+        raw.message_type,
+        raw.inbound_type,
+        raw.attachment_type,
+        raw.media_type,
         decision.previous_agent_text,
         decision.operator_instruction,
+        decision.message_type,
+        decision.inbound_type,
+        decision.attachment_type,
+        decision.media_type,
         decision.flow_key,
         decision.flow_name,
         decision.next_flow_key,
@@ -6391,6 +6406,10 @@
       const annoyedStopContext = /(煩死人|烦死人|煩死|烦死|很煩|很烦|太煩|太烦|不要再(?:发|發|send|message)|别再(?:发|發)|不要再打扰|不要再打擾|别打扰|別打擾|一直(?:发|發|send)|不要买|不要買|不想买|不想買|not\s+interested|stop\s+(?:messaging|message|sending|send)|don['’]?t\s+(?:send|message|disturb)|do\s+not\s+(?:send|message|disturb)|annoying|disturbing|unsubscribe|退订|退訂)/i.test(combined);
       if (annoyedStopContext) {
         return "嫌烦/别打扰：停止跟进；不接 Flow";
+      }
+      const attachmentContext = /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText) || (/^(?:\.{3}|…)$/.test(String(customerText || "").trim()) && /(image|attachment|photo|media|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText));
+      if (attachmentContext) {
+        return "图片/附件：先打开看；不接 Flow";
       }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
@@ -7214,8 +7233,8 @@
         decision.provider_flow_id,
         decision.stage
       ].filter(Boolean).join(" ");
-      const englishFlowConfirmed = /(english|英文|英语|英語|\ben\b)/i.test(flowContextText);
-      const englishFlowMismatch = englishRequest && flowAction && !englishFlowConfirmed;
+	      const englishFlowConfirmed = /(english|英文|英语|英語|\ben\b)/i.test(flowContextText);
+	      const englishFlowMismatch = englishRequest && flowAction && !englishFlowConfirmed;
       const languageSwitchContextText = [
         decision.previous_agent_text,
         decision.operator_instruction,
@@ -7226,8 +7245,9 @@
         item.customer_text,
         item.inbound_text
       ].filter(Boolean).join(" ");
-	      const manychatAutomationContext = /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed|Send Message|META DAY|PAYDAY|LAST CALL|Shopee|订单|訂單|通知|提醒)/i.test(languageSwitchContextText);
-	      const englishStepOneFromBroadcast = englishRequest && flowAction && englishFlowConfirmed && /(?:step\s*1|STEP_1|S1|\bs1\b|11a)/i.test(flowContextText) && manychatAutomationContext;
+		      const manychatAutomationContext = /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed|Send Message|META DAY|PAYDAY|LAST CALL|Shopee|订单|訂單|通知|提醒)/i.test(languageSwitchContextText);
+		      const englishProfileChineseFlowDraft = englishProfileCustomer && !/[\u4e00-\u9fff]/.test(rawCustomerText) && !englishFlowConfirmed && /[\u4e00-\u9fff]/.test([draftText, flowContextText].filter(Boolean).join(" ")) && (flowAction || salesPushDraft || longMessageDraft || manychatAutomationContext);
+		      const englishStepOneFromBroadcast = englishRequest && flowAction && englishFlowConfirmed && /(?:step\s*1|STEP_1|S1|\bs1\b|11a)/i.test(flowContextText) && manychatAutomationContext;
 	      const automationOnlyFlowContext = flowAction && !rawCustomerText && /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed)/i.test(languageSwitchContextText);
 	      const noCustomerPromoRecoveryContext = !rawCustomerText && salesPushDraft && manychatAutomationContext && /(Smart delay started|Broadcast|订单|訂單|通知|提醒|LAST\s*CALL|Shopee|META\s*DAY|PAYDAY|优惠|優惠|活动|活動)/i.test([languageSwitchContextText, draftText, flowContextText].filter(Boolean).join(" "));
 	      const attachmentEntries = [
@@ -7514,11 +7534,14 @@
 		      if (englishMixedDraft) {
 		        return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
 		      }
-	      if (englishCustomerChineseDraft) {
-	        return { tone: "fix", title: "不能过：英文顾客中文草稿", reason: "顾客正在用英文沟通，或资料显示英文顾客；草稿不要继续中文 Step、中文价格图或中文促销长文。改成短英文，先回答她最后一句，再给一个明确 CTA。" };
+		      if (englishCustomerChineseDraft) {
+		        return { tone: "fix", title: "不能过：英文顾客中文草稿", reason: "顾客正在用英文沟通，或资料显示英文顾客；草稿不要继续中文 Step、中文价格图或中文促销长文。改成短英文，先回答她最后一句，再给一个明确 CTA。" };
+		      }
+	      if (englishProfileChineseFlowDraft) {
+	        return { tone: "fix", title: "不能过：英文资料接中文 Flow", reason: "顾客资料显示 English；不要继续中文 Step、中文价格图或中文促销 Flow。先用英文承接最后一句/附件，再只接 English Flow 或人工确认。" };
 	      }
-      if (englishFlowMismatch) {
-        return { tone: "fix", title: "不能过：英文请求接错 Flow", reason: "顾客要求 English 或看不懂中文；如果要接 Flow，必须明确接英文 Flow。没有英文 Flow 证据时，不要把顾客送回中文 Step。" };
+	      if (englishFlowMismatch) {
+	        return { tone: "fix", title: "不能过：英文请求接错 Flow", reason: "顾客要求 English 或看不懂中文；如果要接 Flow，必须明确接英文 Flow。没有英文 Flow 证据时，不要把顾客送回中文 Step。" };
       }
 	      if (englishStepOneFromBroadcast) {
 	        return { tone: "fix", title: "不能过：语言请求先承接", reason: "顾客只是说看不懂中文/要求 English，尤其是在 Broadcast 或订单提醒后；先用英文解释上一条是什么，并问她要产品、价格、优惠还是订单帮助。不要直接丢完整 Step 1 教育 Flow。" };
