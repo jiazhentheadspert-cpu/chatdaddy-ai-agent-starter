@@ -6541,7 +6541,7 @@
       }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
-          ? "Shopee/624提醒不是订单；先答 1盒 RM150 + 一盒 CTA"
+          ? "Shopee/624提醒不是订单；先答 1盒 RM150/15小包 + 一盒 CTA"
           : "Shopee/624提醒不是订单；先答当前价梯 + CTA";
       }
       const postPriceContext = /(STEP_4|user_current_step.{0,16}step_4|看价后|看價後|price_objection|trust_after_price|Flow后问价|Flow後問價)/i.test(sourceText);
@@ -7064,7 +7064,7 @@
 	          };
 	        }
 	        return {
-	          answer: oneBoxQuestion ? "先答 1盒 RM150；可以轻补 2盒/3盒，但 CTA 优先一盒试喝。" : "先答当前价 RM150 / RM258 / RM378；不要继续产品教育。",
+	          answer: oneBoxQuestion ? "先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒，但 CTA 优先一盒试喝。" : "先答当前价 RM150 / RM258 / RM378；不要继续产品教育。",
 	          after: "看价/问价后走成交 CTA / 收单；确认要买才收资料，不接普通教育 Flow。",
 	          learning: "可学：价格问答 + CTA；上一段 Broadcast 只当上下文，不当顾客问题。"
 	        };
@@ -7126,7 +7126,7 @@
 	      const plan = replyThenFlowPlan(item);
 	      const directNewPricePlan = /Direct 新客/.test(plan.answer);
 	      const priceContextAdvice = oneBoxContextQuestion
-	        ? "补 1盒 RM150 + 一盒 CTA；不要把 Broadcast 当订单"
+	        ? "补 1盒 RM150 + 15小包 + 一盒 CTA；不要把 Broadcast 当订单"
 	        : "补当前价梯 + CTA；不要把 Broadcast 当订单";
 	      const priceContextNext = oneBoxContextQuestion
 	        ? "先答一盒 + CTA；确认后再接 Flow / 收单"
@@ -7237,7 +7237,7 @@
         return "改稿方向：Direct 新客只问多少钱时，先短桥接“我先让你了解产品/喝法，再给优惠价”，然后接产品了解 / Step 3 Flow；不要只丢一句话卡住。";
       }
       if (/具体问价别接教育 Flow/.test(titleReason)) {
-        return "改稿方向：顾客问一盒/1 box 多少钱，要先答 1盒 RM150，再问要不要先安排一盒试喝；不要只说先了解产品。";
+        return "改稿方向：顾客问一盒/1 box 多少钱，要先答 1盒 RM150 + 15小包/15天，再问要不要先安排一盒试喝；如她问运费/COD，才顺带补全马免邮/COD无额外费。不要只说先了解产品。";
       }
       if (/看价后别接教育 Flow/.test(titleReason)) {
         return "改稿方向：顾客已到 Step 4 / Broadcast 后问价，要正面给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再接一盒试喝或配套 CTA；不要倒回教育 Flow。";
@@ -7249,7 +7249,7 @@
         return "改稿方向：顾客问“多少钱有多少包”要逐条答：当前价 RM150 / RM258 / RM378，1盒15小包可喝15天；答完才接配套 CTA，不要只接 Promo Flow。";
       }
       if (/问一盒可审|一盒价优先/i.test(titleReason)) {
-        return "改稿方向：先答 1盒 RM150；可以轻补 2盒/3盒更划算，但 CTA 优先问要不要安排一盒，不要从旧 Broadcast/订单提醒猜她已下单。";
+        return "改稿方向：先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒更划算，但 CTA 优先问要不要安排一盒。旧 Broadcast/订单提醒不是订单；如问运费/COD，才补免邮/COD无额外费。";
       }
       if (/旧活动 Flow|活动版本|Mother/i.test(titleReason)) {
         return "改稿方向：换成当前活动 / 当前价格 Flow；英文 Flow 也要确认月份、价钱和赠品是今天能用的，不确定就转人工确认。";
@@ -7911,7 +7911,7 @@
 	        return { tone: "handoff", title: "会员/回购先查资格", reason: "顾客问会员、VIP、回购价或旧客福利；没有明确回购资格和价格时，不要套新人价，也不要接普通销售 Flow，先人工确认。" };
 	      }
 	      if (oneBoxSpecificQuestion && directPriceBridgeDraft) {
-	        return { tone: "fix", title: "不能过：具体问价别接教育 Flow", reason: "顾客已经问一盒/1 box 多少钱；这不是普通 Direct 问价桥接。先答 1盒 RM150，再给一盒试喝 CTA，不能只说先了解产品。" };
+	        return { tone: "fix", title: "不能过：具体问价别接教育 Flow", reason: "顾客已经问一盒/1 box 多少钱；这不是普通 Direct 问价桥接。先答 1盒 RM150 + 15小包/15天，再给一盒试喝 CTA，不能只说先了解产品。" };
 	      }
 	      if (directPriceBridgeWrongStage) {
 	        return { tone: "fix", title: "不能过：看价后别接教育 Flow", reason: "顾客已经在 Step 4、Broadcast/624/Shopee 或活动语境里问价；这时不要只说先了解产品，也不要倒回 Step 1/2/3。先正面回答当前价，再接成交 CTA。" };
