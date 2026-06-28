@@ -6554,7 +6554,7 @@
 	      }
 	      const offlineAvailabilityContext = /(药店|实体店|实体門店|門市|门市|門店|门店|线下|線下|哪里买|哪裡買|哪里有卖|哪裡有賣|有卖吗|有賣嗎|现货|現貨|pharmacy|store|outlet|retail|where\s+are\s+(?:you|u)\s+located|location)/i.test(customerText);
 	      if (offlineAvailabilityContext) {
-	        return "线下店/药店：给官方地区名单；问方便哪里";
+	        return "线下店/药店：先给地区名单；等地区/查库存，不接销售Flow";
 	      }
 	      if (priceAndSachetQuestion) {
 	        return "价钱+包数：先答当前价 + 1盒15小包；再接价格图/Promo Flow + CTA";
@@ -6566,7 +6566,7 @@
 	      }
       const postPriceContext = /(STEP_4|user_current_step.{0,16}step_4|看价后|看價後|price_objection|trust_after_price|Flow后问价|Flow後問價)/i.test(sourceText);
       if (directPriceQuestion && !oneBoxQuestion && !postPriceContext) {
-        return "Direct新客问价：先短桥接 + 产品Flow；到Step4才给价";
+        return "Direct新客问价：短桥接后接Step3 Flow；Step4才给价";
       }
       const pwpAddonContext = /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|top\s*up|加购|加購)/i.test(sourceText);
       if (pwpAddonContext) {
@@ -7080,7 +7080,7 @@
 	        if (directNewPriceQuestion) {
 	          return {
 	            answer: "Direct 新客只问“多少钱”时，先短桥接：我先让你了解产品/喝法，再给你优惠价。",
-	            after: `答完接产品了解 / Step 3 Flow：${nextFlow || "优先接产品+喝法 Flow；不要直接收单"}`,
+	            after: `短桥接后必须接 Step 3 背景/认证/线下店/喝法 Flow：${nextFlow || "优先接产品+喝法 Flow；不要直接收单"}`,
 	            learning: "可学：Direct 问价桥接 + Flow；不要和已看价后的成交 CTA 混在一起。"
 	          };
 	        }
@@ -7266,8 +7266,8 @@
       const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
       const decision = item.latest_decision || {};
       const action = String(decision.action || item.action || "").toLowerCase();
-      if (/Direct问价可审|Direct问价缺产品Flow|Direct问价没桥接Flow/.test(titleReason)) {
-        return "改稿方向：Direct 新客只问多少钱时，先短桥接“我先让你了解产品/喝法，再给优惠价”，然后接产品了解 / Step 3 Flow；不要只丢一句话卡住。";
+      if (/Direct问价可审|Direct问价缺(?:产品|Step3)\s*Flow|Direct问价没桥接Flow/.test(titleReason)) {
+        return "改稿方向：Direct 新客只问多少钱时，先短桥接“我先让你了解产品/喝法，再给优惠价”，然后必须接 Step 3 背景/认证/线下店/喝法 Flow；Step 3 后才进入 Step 4 问肥胖多久、给价格和成交 CTA。不要只丢一句话卡住。";
       }
 	      if (/具体问价别接教育 Flow/.test(titleReason)) {
 	        return "改稿方向：顾客问一盒/1 box 多少钱，要先答 1盒 RM150 + 15小包/15天，再问要不要先安排一盒试喝；如她问运费/COD，才顺带补全马免邮/COD无额外费。不要只说先了解产品。";
@@ -7986,10 +7986,10 @@
 	        return { tone: "fix", title: "不能过：看价后别接教育 Flow", reason: "顾客已经在 Step 4、Broadcast/624/Shopee 或活动语境里问价；这时不要只说先了解产品，也不要倒回 Step 1/2/3。先正面回答当前价，再接成交 CTA。" };
 	      }
 	      if (directPriceBridgeSafe) {
-	        return { tone: "review", title: "Direct问价可审：桥接后接产品Flow", reason: "Direct 新客只问“多少钱”且还没看产品；ManyChat 对标是先短桥接“先让你了解产品再给优惠价”，然后接产品/喝法/信心 Flow。客服确认 Flow 是 Step 1-3 后可审。" };
+	        return { tone: "review", title: "Direct问价可审：桥接后接Step3 Flow", reason: "Direct 新客只问“多少钱”且还没看产品；ManyChat 对标李秀芬是先短桥接“先让你了解产品再给优惠价”，然后接 Step 3 背景/认证/线下店/喝法 Flow。Step 3 后才进入 Step 4 问肥胖多久、给价格和成交 CTA。" };
 	      }
 	      if (directPriceBridgeMissingFlow) {
-	        return { tone: "fix", title: "不能过：Direct问价缺产品Flow", reason: "Direct 新客问价时可以短桥接，但必须接产品了解 / 喝法 / 信心 Flow。只丢一句“先了解产品”没有下一步，客服会卡住。" };
+	        return { tone: "fix", title: "不能过：Direct问价缺Step3 Flow", reason: "Direct 新客问价时可以短桥接，但必须接 Step 3 背景/认证/线下店/喝法 Flow。只丢一句“先了解产品”没有下一步，客服会卡住。" };
 	      }
 	      if (directNewPriceContext && !directPriceAnswered) {
 	        return { tone: "fix", title: "不能过：Direct问价没桥接Flow", reason: "Direct 新客只问多少钱时，不要只沉默、转人工或乱接旧活动。要么短桥接后接产品 Flow，要么直接给当前价并补 CTA；不能让问题悬空。" };
