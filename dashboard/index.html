@@ -8683,6 +8683,7 @@
         <span>人工样本判断</span>
         <b>${escapeHtml(judgment.title)}</b>
         <small>${escapeHtml(judgment.reason)} ${escapeHtml(judgment.action || "")}</small>
+        <small>自我优化：保留顾客原话、上一段 Flow、AI 原草稿、人工最终回复；只把可学或修正后的版本进业务脑。</small>
       `;
     }
 
@@ -8855,6 +8856,7 @@
 
     function caseOptimizerLearningPayload(item = {}, feedback = "", generatedRule = "") {
       const decision = item.latest_decision || {};
+      const candidate = caseOptimizerLearningCandidate(item, feedback);
       return {
         case_id: item.id || "",
         customer_name: item.contact?.name || "顾客",
@@ -8864,8 +8866,9 @@
         generated_rule: generatedRule || "",
         customer_message: item.last_message || customerPreviewText(item) || "",
         suggested_reply: caseOptimizerOriginalAiReply(item) || decision.reply_message || "",
-        learning_candidate: caseOptimizerLearningCandidate(item, feedback),
+        learning_candidate: candidate,
         manual_sample_judgment: manualSampleLearningJudgment(item),
+        self_optimization_checklist: caseSelfOptimizationChecklist(item, candidate),
         source: "dashboard_case_optimizer",
 	        context: {
 	          status: item.status || "",
