@@ -6366,6 +6366,12 @@
       if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`)) {
         return "电子钱包/GrabPay：先确认渠道；发链接后要截图";
       }
+      const compactReply = String(customerText || "").replace(/[\s.!！?？~～,，。❤️❤]/g, "");
+      const shortAmbiguousReply = /^(ok|okay|k|yes|ya|yup|好|好的|可以|可以的|嗯+|恩+|👍|👌)$/i.test(compactReply);
+      const packageChoiceContext = /(?:哪(?:一)?个|哪(?:一)?個|which).{0,30}(?:配套|package|set|盒)|(?:配套|package)\s*[abc].{0,80}(?:配套|package)\s*[abc]|A\s*[\/／、,，]\s*B\s*[\/／、,，]\s*C/i.test(sourceText);
+      if (shortAmbiguousReply && packageChoiceContext) {
+        return "短答/表情：先看上一句；不当下单，追问配套";
+      }
       if (/(discount|折扣|便宜(?:一点|一點)?|更便宜|cheaper|best\s+price|special\s+price|扣(?:一点|一點)?|优惠(?:点|點)|優惠(?:点|點))/i.test(customerText)) {
         return "折扣/优惠：守当前价，不乱承诺；给价值 + CTA";
       }
