@@ -6788,6 +6788,7 @@
 	          : actionLabel(decision.action);
 	      return [
 	        ["判断顺序", "先看顾客最后一句；Flow 只是上下文，问题没答完不能接 Flow"],
+	        ["接 Flow 规则", "先回答顾客问题，再接对应 Flow / FAQ / 成交 CTA；不要只看上一段蓝色内容"],
 	        ["顾客最后一句", customerPreviewText(item)],
 	        ["上一段 Flow / Broadcast", currentFlow || (inferredFlow ? `推断：${inferredFlow}` : (previousAgentText ? "看上一句 Agent" : "没有 Flow 名称，先看聊天记录"))],
 	        ...(automationControl ? [["人工动作", automationControl]] : []),
