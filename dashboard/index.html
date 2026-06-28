@@ -6584,6 +6584,12 @@
 	      if (offlineAvailabilityContext) {
 	        return "线下店/药店：先给地区名单；等地区/查库存，不接销售Flow";
 	      }
+      const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
+      const englishBusinessQuestion = /[a-z]/i.test(customerText) && !/[\u4e00-\u9fff]/.test(customerText) && /\b(?:what(?:'s|s)?|promo|promotion|price|package|free\s*gift|gift|discount|offer|how\s+much|official|shopee|lazada|delivery|shipping|payment|order|available|cod|where)\b/i.test(customerText);
+      const englishMixedVerdictContext = /(英文请求混中文|英文顾客中文草稿|英文资料接中文\s*Flow)/i.test(titleReason);
+      if ((englishBusinessQuestion || englishMixedVerdictContext) && /[\u4e00-\u9fff]/.test(sourceText)) {
+        return "英文问题：整段英文回复；中文草稿退回";
+      }
 	      if (priceAndSachetQuestion) {
 	        return "价钱+包数：先答当前价 + 1盒15小包；再接价格图/Promo Flow + CTA";
 	      }
@@ -6604,7 +6610,6 @@
           ? "PWP/RM68加购：旧5月活动先挡；查当前资格"
           : "PWP/RM68加购：先查当前资格；别当普通价";
       }
-      const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
       if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`)) {
         return "电子钱包/GrabPay：先确认渠道；发链接后要截图";
       }
