@@ -6532,6 +6532,10 @@
       if (annoyedStopContext) {
         return "嫌烦/别打扰：停止跟进；不接 Flow";
       }
+      const targetWeightPackageContext = /(?:\d{2,3}\s*(?:多)?\s*(?:kg|KG|公斤)?).{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?).{0,36}(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?|(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?.{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?)/i.test(customerText);
+      if (targetWeightPackageContext) {
+        return "目标体重：建议配套；不保证瘦到Xkg";
+      }
 	      const futurePaymentContext = /(?:(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|下(?:个|個)?星期|下周|下週|月底|月尾|tomorrow|later|next\s+(?:week|month)|on\s+\w+\s+\d{1,2}).{0,24}(?:付款|付钱|付錢|支付|pay|payment)|(?:会|會|will|going\s+to|gonna).{0,24}(?:付款|付钱|付錢|支付|pay|make\s+payment).{0,24}(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|tomorrow|later|next\s+(?:week|month)|月底|月尾))/i.test(customerText);
 	      if (futurePaymentContext) {
 	        return "等付款：记录日期；提醒付款后截图";
@@ -6545,7 +6549,7 @@
 	        return "线下店/药店：给官方地区名单；问方便哪里";
 	      }
 	      if (priceAndSachetQuestion) {
-	        return "价钱+包数：先答当前价 + 1盒15小包；再问配套";
+	        return "价钱+包数：先答当前价 + 1盒15小包；再接价格图/Promo Flow + CTA";
 	      }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
@@ -7054,6 +7058,7 @@
 	      const nextFlow = nextFlowContextName(decision);
 	      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(signalText);
 	      const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(signalText);
+	      const priceAndSachetQuestion = directPriceQuestion && /(?:一|1)?\s*(?:盒)?[^。？?\n]{0,12}(?:几|幾|多少|how\s+many).{0,8}(?:包|小包|sachets?|packs?)|(?:包|小包|sachets?|packs?).{0,12}(?:几|幾|多少|how\s+many)/i.test(signalText);
 	      const usageQuestion = /(一天.{0,8}(几次|幾次)|怎么喝|怎麼喝|怎样喝|怎樣喝|喝法|用法|饭前|飯前|饭后|飯後|how.{0,16}(drink|take|consume)|drink.{0,16}(how|when)|take.{0,16}(how|when))/i.test(signalText);
 	      const flavorQuestion = /(口味|味道|难喝|難喝|好喝|什么味|什麼味|flavou?r|taste)/i.test(signalText);
 	      const englishRequest = /english|英文|看不懂中文|看不懂华文|看不懂華文|don['’]?t understand.{0,20}(chinese|mandarin)|can you write english/i.test(signalText);
@@ -7071,10 +7076,17 @@
 	            learning: "可学：Direct 问价桥接 + Flow；不要和已看价后的成交 CTA 混在一起。"
 	          };
 	        }
+	        if (priceAndSachetQuestion) {
+	          return {
+	            answer: "先答价钱+包数：当前价梯 + 1盒15小包/15天；价格/活动不确定就人工确认。",
+	            after: `答完才接价格图 / Promo Flow + CTA：${nextFlow || "当前 Promo Flow；不要接普通教育 Flow"}`,
+	            learning: "可学：ManyChat 价格图接法；Flow 是下一步动作，不能代替回答顾客问题。"
+	          };
+	        }
 	        return {
 	          answer: oneBoxQuestion ? "先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒，但 CTA 优先一盒试喝。" : "先答当前价 RM150 / RM258 / RM378；不要继续产品教育。",
-	          after: "看价/问价后走成交 CTA / 收单；确认要买才收资料，不接普通教育 Flow。",
-	          learning: "可学：价格问答 + CTA；上一段 Broadcast 只当上下文，不当顾客问题。"
+	          after: "看价/问价后接价格图 / Promo Flow + 成交 CTA / 收单；确认要买才收资料，不接普通教育 Flow。",
+	          learning: "可学：价格问答 + Flow/CTA；上一段 Broadcast 只当上下文，不当顾客问题。"
 	        };
 	      }
 	      if (fearNoEffectQuestion) {
@@ -7133,12 +7145,17 @@
 	      const nextFlow = nextFlowContextName(decision);
 	      const plan = replyThenFlowPlan(item);
 	      const directNewPricePlan = /Direct 新客/.test(plan.answer);
+	      const pricePackContextQuestion = directPriceContextQuestion && /(?:一|1)?\s*(?:盒)?[^。？?\n]{0,12}(?:几|幾|多少|how\s+many).{0,8}(?:包|小包|sachets?|packs?)|(?:包|小包|sachets?|packs?).{0,12}(?:几|幾|多少|how\s+many)/i.test(customerText);
 	      const priceContextAdvice = oneBoxContextQuestion
 	        ? "补 1盒 RM150 + 15小包；问安排一盒；不要把 Broadcast 当订单"
-	        : "补当前价梯；再问安排；不要把 Broadcast 当订单";
+	        : pricePackContextQuestion
+	          ? "补当前价梯 + 1盒15小包；答完接价格图/Promo Flow + CTA；不要把 Broadcast 当订单"
+	          : "补当前价梯；再问安排；不要把 Broadcast 当订单";
 	      const priceContextNext = oneBoxContextQuestion
 	        ? "先答一盒价；问安排一盒；确认后再接 Flow / 收单"
-	        : "先答价梯；再问安排；确认后再接 Flow / 收单";
+	        : pricePackContextQuestion
+	          ? "先答价钱+包数；再接价格图/Promo Flow + CTA；确认后收单"
+	          : "先答价梯；再问安排；确认后再接 Flow / 收单";
 	      const replyText = firstContextText(
 	        directPriceContextQuestion && !directNewPricePlan && action === "ask_human" ? priceContextAdvice : decision.reply_message,
 	        item.final_text,
@@ -7534,9 +7551,12 @@
       const sachetCountQuestion = /(?:一|1)\s*盒.{0,12}(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)|(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)/i.test(customerSignalText);
       const cycleSuitabilityQuestion = /(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期).{0,12}(?:可以|能|可不可以|喝|take|drink)|(?:可以|能).{0,12}(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期)/i.test(customerSignalText);
       const weightSuitabilityQuestion = /(?:体重|體重|weight|kg|KG).{0,16}(?:100|一百).{0,16}(?:可以|能|适合|適合|喝|take|drink)|(?:100\s*kg|100KG|100\s*KG).{0,20}(?:可以|能|适合|適合|喝|take|drink)/i.test(customerSignalText);
+      const targetWeightPackageQuestion = /(?:\d{2,3}\s*(?:多)?\s*(?:kg|KG|公斤)?).{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?).{0,36}(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?|(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?.{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?)/i.test(customerSignalText);
       const menopauseSuitabilityQuestion = /(?:更年期|跟年期|停经|停經|menopause|menopausal|中年).{0,16}(?:可以|能|适合|適合|喝|服用|take|drink)|(?:可以|能|适合|適合).{0,16}(?:更年期|跟年期|停经|停經|menopause|menopausal|中年)/i.test(customerSignalText);
       const specialBodySuitabilityQuestion = cycleSuitabilityQuestion || weightSuitabilityQuestion || menopauseSuitabilityQuestion;
       const strongSuitabilityOverclaimDraft = specialBodySuitabilityQuestion && /(?:更适合|更適合|适合服用|適合服用|加速.{0,16}(?:新陈代谢|新陳代謝|代谢|代謝|燃烧|燃燒|脂肪)|燃烧脂肪|燃燒脂肪|达到.{0,10}(?:减肥|減肥|瘦|效果)|24\s*小时.{0,12}燃脂|阻断.{0,16}(?:碳水|糖分|吸收)|改善.{0,16}(?:更年期|跟年期|月经|月經|经期|經期))/i.test(draftText);
+      const targetWeightGuaranteeDraft = targetWeightPackageQuestion && (/(?:保证|保證|一定|肯定|绝对|絕對|包瘦|包你|confirm|sure).{0,32}(?:瘦到|瘦下|减到|減到|目标|目標|\d{2,3}\s*(?:kg|KG|公斤)?)|(?:可以|能|会|會).{0,10}(?:瘦到|瘦下|减到|減到).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?/i.test(draftText) && !/(?:不保证|不保證|不能保证|不能保證|看个人|看個人|每个人|每個人|配合|目标|目標)/i.test(draftText));
+      const targetWeightPackageDraft = targetWeightPackageQuestion && !targetWeightGuaranteeDraft && /(?:建议|建議|比较适合|比較適合|可以考虑|可以考慮|大配套|最大配套|配套\s*C|RM\s*658|8\s*盒|八\s*盒|4\s*个?月|疗程|療程|盒|package|boxes?)/i.test(draftText);
       const generalSpecialBodySuitabilityQuestion = menopauseSuitabilityQuestion || (specialBodySuitabilityQuestion && !cycleSuitabilityQuestion && !weightSuitabilityQuestion);
       const specialBodySuitabilitySafeDraft = generalSpecialBodySuitabilityQuestion && !strongSuitabilityOverclaimDraft && /(?:一般|通常|可以|能|建议|建議|先少量|观察|觀察|如有|如果有|药|藥|医生|醫生|doctor|consult|孕|怀孕|懷孕|特殊|疾病|病况|病況|身体|身體|不舒服|暂停|暫停)/i.test(draftText) && /(?:医生|醫生|doctor|consult|药|藥|怀孕|懷孕|特殊|疾病|病况|病況|身体|身體|先少量|观察|觀察|不舒服|暂停|暫停|每个人|每個人)/i.test(draftText);
       const packageBoxCountAnswered = /8\s*盒|八\s*盒|一共\s*8|total\s*8|5\s*盒\s*送\s*3/i.test(draftText);
@@ -7863,6 +7883,15 @@
       if (flavorQuestion && flavorAnswered) {
         return { tone: "review", title: flavorCtaDraft ? "口味问题可审：短答再问安排" : "口味问题可审：短答已回答", reason: flavorCtaDraft ? "已先回答口味/味道，再接优惠、付款或 Flow；客服确认阶段和语气后可以批准。" : "已回答口味/味道，但更会成交的改法是补一句低压力下单问题，例如确认味道 OK 后继续保留优惠、付款或配套。" };
       }
+      if (targetWeightGuaranteeDraft) {
+        return { tone: "fix", title: "不能过：目标体重别保证", reason: "顾客问 80kg 想瘦到 60kg 要几个配套时，可以建议大配套/疗程配套，但不能承诺一定瘦到目标体重。改成：按目标建议最大配套或配套 C，并说明效果看配合和个人情况。" };
+      }
+      if (targetWeightPackageDraft) {
+        return { tone: "review", title: "目标体重可审：建议配套", reason: "顾客给了当前体重和目标体重，草稿是在建议较完整疗程/大配套，没有保证一定瘦到指定 kg；客服确认当前配套、价格和语气后可以批准。" };
+      }
+      if (targetWeightPackageQuestion) {
+        return { tone: "handoff", title: "目标体重先人工配套", reason: "顾客问从当前体重瘦到目标体重要几个配套；Dashboard 应让客服按目标、预算和当前活动建议配套，不让 AI 自己保证效果或乱配疗程。" };
+      }
       if (strongSuitabilityOverclaimDraft) {
         return { tone: "fix", title: "不能过：身体适合度强承诺", reason: "顾客问更年期、经期或体重这类特殊身体状态；草稿不能说更适合、加速燃烧脂肪或保证达到减肥效果。改成安全边界回复，必要时转人工确认。" };
       }
@@ -7959,9 +7988,9 @@
 	      if (priceAndSachetQuestion && directPriceAnswered && !sachetCountAnswered) {
 	        return { tone: "fix", title: "不能过：价格包数没答完", reason: "顾客问“多少钱有多少包”是两个问题；草稿只答价格或只接 Promo Flow 不够。必须同时答当前价 RM150 / RM258 / RM378 和 1盒15小包，可喝15天，再接 CTA。" };
 	      }
-	      if (priceAndSachetQuestion && priceAndSachetAnswered) {
-	        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? "价格+包数可审：答完再问配套" : "不能过：价格包数缺下一步", reason: priceCtaAnswered ? "已先回答当前价格和 1盒15小包，再接下单动作；客服确认没有旧价/旧赠品后可以批准。" : "顾客问价格和包数时，答完当前价与 1盒15小包后，还要给一个明确下一步，例如问她要不要安排哪一个配套。" };
-	      }
+		      if (priceAndSachetQuestion && priceAndSachetAnswered) {
+		        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? "价格+包数可审：答完接价格图" : "不能过：价格包数缺下一步", reason: priceCtaAnswered ? "已先回答当前价格和 1盒15小包，再接价格图/Promo Flow、下单动作或配套选择；客服确认没有旧价/旧赠品后可以批准。" : "顾客问价格和包数时，答完当前价与 1盒15小包后，还要给一个明确下一步，例如接价格图/Promo Flow、问她要不要安排哪一个配套。" };
+		      }
       if (directPriceQuestion && directPriceAnswered) {
         let directPriceTitle = "问价可审：价梯 + 下单动作";
         let directPriceReason = priceQuestionAfterFlowContext
