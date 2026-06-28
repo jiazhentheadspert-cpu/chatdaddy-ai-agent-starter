@@ -6515,6 +6515,13 @@
       if (orderGiftQuestion) {
         return "已下单赠品：先查订单/当时活动；别套今天赠品";
       }
+      const noCustomerTextForContext = !String(customerText || "").trim() || /^(?:顾客没有文字讯息|顾客没有文字信息|no\s+customer\s+text|no\s+customer\s+message)$/i.test(String(customerText || "").trim());
+      const noCustomerPromoRecoveryContext = noCustomerTextForContext
+        && /(?:promo_recovery|follow[_\s-]?up|Smart delay|Broadcast|Automation sent|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|保留状态|保留狀態|SHOPEE|Shopee)/i.test(sourceText)
+        && /(?:RM\s*150|RM\s*258|RM\s*378|新人限时优惠|新人限時優惠|全马免邮|全馬免郵|货到付款|貨到付款|安排哪个配套|安排哪個配套|LAST\s*CALL|优惠|優惠|活动|活動|promo|promotion)/i.test(sourceText);
+      if (noCustomerPromoRecoveryContext) {
+        return "无新顾客问题：只审追单；不学FAQ/问答";
+      }
       const adverseReactionContext = /(?:喝了|服用|服了|take|drink|mixed).{0,60}(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服|side\s*effect|nausea|vomit|dizzy|diarrhea|stomach)|(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|nausea|vomit|dizzy|diarrhea).{0,60}(?:Beyoute|喝|服用|take|drink|产品|產品|mixed|water)/i.test(combined);
       if (adverseReactionContext) {
         return "不适/想吐：先停销售；问喝法+症状";
