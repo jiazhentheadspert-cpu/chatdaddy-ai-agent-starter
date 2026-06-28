@@ -7057,10 +7057,31 @@
         item.customer_text,
         item.inbound_text
       ].filter(Boolean).join(" ");
-      const manychatAutomationContext = /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed|Send Message|META DAY|PAYDAY|LAST CALL|Shopee|订单|訂單|通知|提醒)/i.test(languageSwitchContextText);
-      const englishStepOneFromBroadcast = englishRequest && flowAction && englishFlowConfirmed && /(?:step\s*1|STEP_1|S1|\bs1\b|11a)/i.test(flowContextText) && manychatAutomationContext;
-      const automationOnlyFlowContext = flowAction && !rawCustomerText && /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed)/i.test(languageSwitchContextText);
-      const usageQuestion = intent.includes("usage") || /(怎么喝|怎麼喝|怎样喝|怎樣喝|一天.{0,8}(几次|幾次)|喝法|用法|how\s+(?:to\s+)?(?:drink|take|use)|how\s+many\s+times)/i.test(customerSignalText);
+	      const manychatAutomationContext = /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed|Send Message|META DAY|PAYDAY|LAST CALL|Shopee|订单|訂單|通知|提醒)/i.test(languageSwitchContextText);
+	      const englishStepOneFromBroadcast = englishRequest && flowAction && englishFlowConfirmed && /(?:step\s*1|STEP_1|S1|\bs1\b|11a)/i.test(flowContextText) && manychatAutomationContext;
+	      const automationOnlyFlowContext = flowAction && !rawCustomerText && /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed)/i.test(languageSwitchContextText);
+	      const attachmentEntries = [
+	        decision.attachments,
+	        decision.attachment,
+	        decision.media,
+	        item.attachments,
+	        item.attachment,
+	        item.media
+	      ].flatMap((value) => Array.isArray(value) ? value : (value ? [value] : []));
+	      const attachmentText = [
+	        decision.message_type,
+	        decision.inbound_type,
+	        decision.attachment_type,
+	        decision.media_type,
+	        item.message_type,
+	        item.inbound_type,
+	        item.attachment_type,
+	        item.media_type,
+	        ...attachmentEntries.map((entry) => typeof entry === "string" ? entry : Object.values(entry || {}).join(" "))
+	      ].filter(Boolean).join(" ");
+	      const attachmentOnlyMessage = !rawCustomerText && /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof)/i.test(attachmentText);
+	      const afterSalesPhotoReportContext = attachmentOnlyMessage && /(报平安|報平安|BPA|收到货|收到貨|收到了|review|Review|截图|截圖|回购券|回購券|VIP|After payment|订单|訂單|parcel|photo|image)/i.test([attachmentText, languageSwitchContextText, previousAgentText, draftText, flowContextText].filter(Boolean).join(" "));
+	      const usageQuestion = intent.includes("usage") || /(怎么喝|怎麼喝|怎样喝|怎樣喝|一天.{0,8}(几次|幾次)|喝法|用法|how\s+(?:to\s+)?(?:drink|take|use)|how\s+many\s+times)/i.test(customerSignalText);
       const usageAnswered = /(一天|每日|每天|饭前|飯前|餐前|150\s*[-到至]?\s*200\s*ml|150\s*ml|200\s*ml|温水|溫水|once\s+a\s+day|twice\s+a\s+day|before\s+(?:a\s+)?meal|150\s*[-–to]{0,4}\s*200\s*ml|room\s+temperature\s+water)/i.test(draftText);
       const usageFlowWithoutAnswer = usageQuestion && flowAction && !usageAnswered;
       const packageBoxCountQuestion = /(?:有|共|一共|总共|總共|多少|几|幾|8|八)\s*(?:盒|box|boxes)|(?:几|幾|多少).{0,6}(?:盒|box|boxes)/i.test(customerSignalText);
@@ -7262,12 +7283,15 @@
       if (englishFlowMismatch) {
         return { tone: "fix", title: "不能过：英文请求接错 Flow", reason: "顾客要求 English 或看不懂中文；如果要接 Flow，必须明确接英文 Flow。没有英文 Flow 证据时，不要把顾客送回中文 Step。" };
       }
-      if (englishStepOneFromBroadcast) {
-        return { tone: "fix", title: "不能过：语言请求先承接", reason: "顾客只是说看不懂中文/要求 English，尤其是在 Broadcast 或订单提醒后；先用英文解释上一条是什么，并问她要产品、价格、优惠还是订单帮助。不要直接丢完整 Step 1 教育 Flow。" };
-      }
-      if (automationOnlyFlowContext) {
-        return { tone: "review", title: "纯自动 Flow：不学问答", reason: "这条没有顾客问题，只是 ManyChat automation / Broadcast 自己推进。可以审 Flow 是否该继续，但不要把它当成顾客问答、FAQ 或成交话术样本。" };
-      }
+	      if (englishStepOneFromBroadcast) {
+	        return { tone: "fix", title: "不能过：语言请求先承接", reason: "顾客只是说看不懂中文/要求 English，尤其是在 Broadcast 或订单提醒后；先用英文解释上一条是什么，并问她要产品、价格、优惠还是订单帮助。不要直接丢完整 Step 1 教育 Flow。" };
+	      }
+	      if (attachmentOnlyMessage) {
+	        return { tone: "handoff", title: afterSalesPhotoReportContext ? "图片报平安先人工" : "图片/附件先人工看", reason: "顾客只发图片/附件，没有文字问题；客服必须先打开图片确认是报平安、Review 截图、付款证明、投诉还是问题图。确认后才接对应售后 Flow，不要让 AI 猜图意，也不要把它当 FAQ 或成交话术学习。" };
+	      }
+	      if (automationOnlyFlowContext) {
+	        return { tone: "review", title: "纯自动 Flow：不学问答", reason: "这条没有顾客问题，只是 ManyChat automation / Broadcast 自己推进。可以审 Flow 是否该继续，但不要把它当成顾客问答、FAQ 或成交话术样本。" };
+	      }
       if (usageFlowWithoutAnswer) {
         return { tone: "fix", title: "不能过：没回答就接 Flow", reason: "顾客问怎么喝/一天几次；接下一段 Flow 前必须先回答用法。不要只说继续下一步或直接丢 Flow。" };
       }
