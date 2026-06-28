@@ -2552,6 +2552,15 @@
       font-weight: 820;
     }
 
+    .closer-verdict .verdict-rewrite-hint {
+      margin-top: 4px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-weight: 820;
+    }
+
     .closer-verdict .verdict-learning-capture {
       margin-top: 4px;
       color: var(--text);
@@ -3251,6 +3260,7 @@
               <b id="closerVerdictTitle">先审再发</b>
               <small class="verdict-approval-signal" id="closerVerdictApprovalSignal">批准信号：可批准但先确认</small>
               <p id="closerVerdictReason">确认文案、阶段和 CTA 后再批准。</p>
+              <p class="verdict-rewrite-hint" id="closerVerdictRewriteHint">改稿方向：先确认顾客最后一句已被回答。</p>
               <p class="verdict-next-action" id="closerVerdictNextAction">客服下一步：确认后批准；不能确定就转人工。</p>
               <p class="verdict-learning-capture" id="closerVerdictLearningCapture">复盘要留：顾客问题、AI 草稿、客服最终处理。</p>
             </div>
@@ -6432,6 +6442,7 @@
       $("closerVerdictTitle").textContent = closer.title;
       $("closerVerdictApprovalSignal").textContent = closerVerdictApprovalSignal(closer, item);
       $("closerVerdictReason").textContent = closer.reason;
+      $("closerVerdictRewriteHint").textContent = closerVerdictRewriteHint(closer, item);
       $("closerVerdictNextAction").textContent = closerVerdictNextAction(closer, item);
       $("closerVerdictLearningCapture").textContent = closerVerdictLearningCapture(closer, item);
       $("flowContextChain").innerHTML = flowContextChainHtml(item);
@@ -6865,6 +6876,50 @@
         return "客服下一步：检查语气、阶段和禁区；没问题就点「批准发送」。";
       }
       return "客服下一步：确认活动、赠品、CTA 和当前阶段；没问题才批准。";
+    }
+
+    function closerVerdictRewriteHint(closer = {}, item = {}) {
+      const tone = String(closer.tone || "").toLowerCase();
+      const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
+      const decision = item.latest_decision || {};
+      const action = String(decision.action || item.action || "").toLowerCase();
+      if (/问价没给当前价|问价缺 CTA|草稿含旧价/.test(titleReason)) {
+        return "改稿方向：先答当前价，至少 1盒 RM150；完整价梯用 RM150 / RM258 / RM378，再补一句要不要安排。";
+      }
+      if (/没回答就接 Flow|用法|喝法/.test(titleReason)) {
+        return "改稿方向：先答喝法：一天1次，想快可2次；餐前用150-200ml常温水冲泡，15-30分钟后再吃饭。";
+      }
+      if (/英文请求|英文可过|English/i.test(titleReason)) {
+        return "改稿方向：整段英文回复；需要接 Flow 时只接 English Flow，不送回中文 Step。";
+      }
+      if (/赠品|活动可审|free gift|promotion/i.test(titleReason)) {
+        return "改稿方向：列当前价梯和当天赠品确认边界；不确定库存或旧活动就先转人工确认。";
+      }
+      if (/运输时效|物流|快递/.test(titleReason)) {
+        return "改稿方向：直接回答西马预计2-3个工作天、东马预计5-7个工作天，再看是否需要查订单。";
+      }
+      if (/顾客嫌太长/.test(titleReason)) {
+        return "改稿方向：改成1-2句短版重点，再给选择题 CTA；不要继续长篇 Step 文案。";
+      }
+      if (/笑脸不是下单|只打招呼/.test(titleReason)) {
+        return "改稿方向：短追问顾客要了解产品、优惠、用法还是订单/售后；不要默认成交或长篇硬卖。";
+      }
+      if (/售后勿继续卖|售后收货|礼貌收尾|收到货|谢谢/.test(titleReason)) {
+        return "改稿方向：只回用法、关怀或礼貌收尾；不要推价格，也不要接普通销售 Flow。";
+      }
+      if (/付款|汇款|审款|订单|改资料|否认订购|没人跟进|亲友购买|售后没回复|官方平台|地点|现货|送货/.test(titleReason) || tone === "handoff" || tone === "order") {
+        return "改稿方向：先真人查订单、付款、售后或官方资料；处理完把人工最终回复补回 Dashboard。";
+      }
+      if (/活动配套|特别加购|RM508|RM658|8盒|4个月/.test(titleReason)) {
+        return "改稿方向：先核对当天活动、赠品和库存；确认后再回答配套时长，并接信心 + CTA。";
+      }
+      if (action.includes("flow")) {
+        return "改稿方向：确认顾客当前问题已答完，Flow 语言和 Step 都匹配，再批准接 Flow。";
+      }
+      if (tone === "pass") {
+        return "改稿方向：可过；最后检查语气、禁区和是否真的回答顾客最后一句。";
+      }
+      return "改稿方向：先确认顾客最后一句已被回答，价格/赠品/CTA 和当前阶段一致。";
     }
 
     function closerVerdictLearningCapture(closer = {}, item = {}) {
