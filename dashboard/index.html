@@ -6593,8 +6593,11 @@
 	          : "Shopee/624提醒不是订单；先答当前价梯；再问配套";
 	      }
       const postPriceContext = /(STEP_4|user_current_step.{0,16}step_4|看价后|看價後|price_objection|trust_after_price|Flow后问价|Flow後問價)/i.test(sourceText);
+      if (directPriceQuestion && postPriceContext) {
+        return "看价后问价：答当前价+给信心；CTA成交/收单";
+      }
       if (directPriceQuestion && !oneBoxQuestion && !postPriceContext) {
-        return "Direct新客问价：短桥接后接Step3 Flow；Step4才给价";
+        return "问价前：短桥接+问痛点；接Step3产品信任Flow";
       }
       if (pwpAddonContext) {
         return /(?:5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|May\s+Early\s+Bird)/i.test(sourceText)
@@ -7106,9 +7109,9 @@
 	        const directNewPriceQuestion = !oneBoxQuestion && !priceStageSeen && !/(Broadcast|Smart delay|Automation sent|订单资料|訂單資料|通知|提醒|SHOPEE|LAST\s*CALL|META\s*DAY|PAYDAY|user_current_step.{0,12}step_4)/i.test(signalText);
 	        if (directNewPriceQuestion) {
 	          return {
-	            answer: "Direct 新客只问“多少钱”时，先短桥接：我先让你了解产品/喝法，再给你优惠价。",
-	            after: `短桥接后必须接 Step 3 背景/认证/线下店/喝法 Flow：${nextFlow || "优先接产品+喝法 Flow；不要直接收单"}`,
-	            learning: "可学：Direct 问价桥接 + Flow；不要和已看价后的成交 CTA 混在一起。"
+	            answer: "Direct 新客只问“多少钱”时，先短桥接：我先让你了解产品/喝法和想改善的问题，再给你优惠价。",
+	            after: `接 Step 3 产品信任/喝法/线下证明 + 需求按钮：${nextFlow || "优先接产品+喝法 Flow；不要直接收单"}`,
+	            learning: "可学：Direct 问价前桥接 + 问痛点 + Flow；不要和已看价后的成交 CTA 混在一起。"
 	          };
 	        }
 	        if (priceAndSachetQuestion) {
