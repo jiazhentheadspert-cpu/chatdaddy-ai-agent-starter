@@ -6532,6 +6532,10 @@
       if (annoyedStopContext) {
         return "嫌烦/别打扰：停止跟进；不接 Flow";
       }
+	      const futurePaymentContext = /(?:(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|下(?:个|個)?星期|下周|下週|月底|月尾|tomorrow|later|next\s+(?:week|month)|on\s+\w+\s+\d{1,2}).{0,24}(?:付款|付钱|付錢|支付|pay|payment)|(?:会|會|will|going\s+to|gonna).{0,24}(?:付款|付钱|付錢|支付|pay|make\s+payment).{0,24}(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|tomorrow|later|next\s+(?:week|month)|月底|月尾))/i.test(customerText);
+	      if (futurePaymentContext) {
+	        return "等付款：记录日期；提醒付款后截图";
+	      }
       const attachmentContext = /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText) || (/^(?:\.{3}|…)$/.test(String(customerText || "").trim()) && /(image|attachment|photo|media|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText));
 	      if (attachmentContext) {
 	        return "图片/附件：先打开看；不接 Flow";
