@@ -6388,6 +6388,12 @@
           ? "订单提醒不是订单；先答 1盒 RM150 + 一盒 CTA"
           : "订单提醒不是订单；先答当前价梯 + CTA";
       }
+      const pwpAddonContext = /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|top\s*up|加购|加購)/i.test(sourceText);
+      if (pwpAddonContext) {
+        return /(?:5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|May\s+Early\s+Bird)/i.test(sourceText)
+          ? "PWP/RM68加购：旧5月活动先挡；查当前资格"
+          : "PWP/RM68加购：先查当前资格；别当普通价";
+      }
       const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
       if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`)) {
         return "电子钱包/GrabPay：先确认渠道；发链接后要截图";
