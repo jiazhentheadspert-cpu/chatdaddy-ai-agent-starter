@@ -7830,6 +7830,13 @@
 	      return ["handoff_done", "returned_to_ai", "rejected"].includes(item.status);
 	    }
 
+	    function isPlaceholderManualReply(value = "") {
+	      const compact = String(value || "")
+	        .toLowerCase()
+	        .replace(/[\s.!！?？~～,，。:：;；'"“”‘’()\[\]{}<>《》❤️❤✅✓_-]/g, "");
+	      return /^(ok|okay|k|done|handled|replied|completed|manual|manualreply|manualresolved|staffhandled|已回复|已回|已处理|处理了|客服已回复|客服已回|客服已处理|手动回复|手动已回|人工回复|人工已回|已手动回复|已完成)$/.test(compact);
+	    }
+
 	    function hasManualFinalReply(item = {}) {
 	      const manualText = [
 		item.manual_reply_text,
@@ -7838,7 +7845,7 @@
 		item.manual_resolution?.manual_reply_text,
 		item.final_manual_reply
 	      ].filter(Boolean).join(" ");
-	      return Boolean(String(manualText || "").trim());
+	      return Boolean(String(manualText || "").trim()) && !isPlaceholderManualReply(manualText);
 	    }
 
 	    function needsManualReplyAfterHandoff(item = {}) {
@@ -7853,7 +7860,7 @@
 		title: "待补人工回复",
 		pill: "待补人工回复",
 		tone: "warn",
-		body: "客服处理完后，把最后真正发给顾客的回复贴回来，AI 才能学到正确答案。"
+		body: "客服处理完后，把最后真正发给顾客的完整回复贴回来；不要只写“已回复”或 Done，AI 才能学到正确答案。"
 	      };
 	    }
 
@@ -8038,15 +8045,21 @@
       if (!state.active) return;
       if (!canManualResolveCase(state.active)) return;
       if (state.actionBusy) return;
-      if (requiresManualReplyForManualResolve(state.active) && !$("replyBox").value.trim()) {
+      const manualReplyText = $("replyBox").value.trim();
+      if (requiresManualReplyForManualResolve(state.active) && !manualReplyText) {
         showToast("先把人工最终回复贴进回复框，AI 才能学习正确答案。");
+        $("replyBox").focus();
+        return;
+      }
+      if (requiresManualReplyForManualResolve(state.active) && isPlaceholderManualReply(manualReplyText)) {
+        showToast("不要只写“已回复/Done”；请贴真正发给顾客的完整文字。");
         $("replyBox").focus();
         return;
       }
       if (!confirmLiveAction("manual_resolve", state.active)) return;
       const result = await postCaseAction(state.active.id, "manual_resolve", {
-        manualReplyText: $("replyBox").value.trim(),
-        note: $("replyBox").value.trim()
+        manualReplyText,
+        note: manualReplyText
           ? "客服已按 Dashboard 回复框内容手动回复"
           : "客服已手动回复；未保存最终回复内容。",
       });
@@ -8216,6 +8229,14 @@
           title: "待补人工最终回复",
           reason: "没有最终人工回复时，只能记录问题，不能让 AI 学。",
           action: "客服处理完后先补人工最终回复。"
+        };
+      }
+      if (isPlaceholderManualReply(manualReplyText)) {
+        return {
+          tone: "wait",
+          title: "待补完整人工回复",
+          reason: "这看起来像处理备注，不是实际发给顾客的回复；不能让 AI 学“已回复/Done”这种空样本。",
+          action: "请贴完整顾客可见回复，再判断可学 / 要修 / 不学。"
         };
       }
       const customerText = [
