@@ -6522,6 +6522,15 @@
       if (orderGiftQuestion) {
         return "已下单赠品：先查订单/当时活动；别套今天赠品";
       }
+      const pwpAddonContext = /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|top\s*up|加购|加購)/i.test(sourceText);
+      const outdatedPriceContext = !pwpAddonContext && (
+        /草稿含旧价|旧活动\s*Flow|旧价格|旧价|old\s+price|outdated\s+price|outdated\s+promo/i.test(sourceText) ||
+        /RM\s*368|加\s*RM\s*10|3\s*送\s*1|3送1|送1盒\s*RM\s*378/i.test(sourceText) ||
+        /(?:5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|early\s*bird|188\s*sets?|59%\s*OFF|RM\s*398|RM\s*498|RM\s*538|RM\s*698).{0,80}(?:优惠|優惠|活动|活動|价|價|RM|sets?|OFF|Flow|Promo|加购|加購|配套)|(?:优惠|優惠|活动|活動|价|價|Flow|Promo|加购|加購|配套).{0,80}(?:5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|early\s*bird|188\s*sets?|59%\s*OFF|RM\s*398|RM\s*498|RM\s*538|RM\s*698)/i.test(sourceText)
+      );
+      if (outdatedPriceContext) {
+        return "旧价/旧活动：退回AI；只用当前价梯，不接旧Flow";
+      }
       const noCustomerTextForContext = !String(customerText || "").trim() || /^(?:顾客没有文字讯息|顾客没有文字信息|no\s+customer\s+text|no\s+customer\s+message)$/i.test(String(customerText || "").trim());
       const noCustomerPromoRecoveryContext = noCustomerTextForContext
         && /(?:promo_recovery|follow[_\s-]?up|Smart delay|Broadcast|Automation sent|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|保留状态|保留狀態|SHOPEE|Shopee)/i.test(sourceText)
@@ -6587,7 +6596,6 @@
       if (directPriceQuestion && !oneBoxQuestion && !postPriceContext) {
         return "Direct新客问价：短桥接后接Step3 Flow；Step4才给价";
       }
-      const pwpAddonContext = /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|top\s*up|加购|加購)/i.test(sourceText);
       if (pwpAddonContext) {
         return /(?:5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|May\s+Early\s+Bird)/i.test(sourceText)
           ? "PWP/RM68加购：旧5月活动先挡；查当前资格"
