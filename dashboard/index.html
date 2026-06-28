@@ -6555,6 +6555,18 @@
 	      if (futurePaymentContext) {
 	        return "等付款：记录日期；提醒付款后截图";
 	      }
+      const paymentReceivedContext = /(?:已|已经|已經|刚|剛)\s*(?:汇款|匯款|付款|付钱|付錢|转账|轉賬)|(?:汇款|匯款|转账|轉賬)(?:了|啦|咯|好了|过了|過了)|\b(?:bank\s*in|banked\s*in|transferred|paid|payment\s*done)\b|收到.{0,16}(?:汇款|匯款|付款|payment|款)/i.test(combined);
+      if (paymentReceivedContext) {
+        return "已付款/汇款：先审款；核对截图/金额，不接销售Flow";
+      }
+      const shippingEtaContext = /(运输|運輸|快递|快遞|物流|几天|幾天|多久.{0,12}到|几时.{0,12}到|幾時.{0,12}到|delivery|shipping|courier|arrive|arrival|eta)/i.test(customerText);
+      if (shippingEtaContext) {
+        return "运输时效：答西马2-3/东马5-7；不接产品Flow";
+      }
+      const afterSalesReceivedContext = /(收到货|收到貨|货收到了|貨收到了|货已收到|貨已收到|货到了|貨到了|刚收到|剛收到|parcel\s+received|received\s+(?:it|parcel|goods|product)|^\s*(?:谢谢|謝謝|thank\s*you|thanks|tq|thx)\s*[.!！?？~～,，。❤️❤]*\s*$)/i.test(customerText);
+      if (afterSalesReceivedContext) {
+        return "收到货/谢谢：只回用法或关怀；不接销售Flow";
+      }
       const attachmentContext = /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText) || (/^(?:\.{3}|…)$/.test(String(customerText || "").trim()) && /(image|attachment|photo|media|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText));
 	      if (attachmentContext) {
 	        return "图片/附件：先打开看；不接 Flow";
