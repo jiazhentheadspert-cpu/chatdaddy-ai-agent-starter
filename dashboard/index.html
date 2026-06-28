@@ -3287,7 +3287,7 @@
               <p class="verdict-learning-capture" id="closerVerdictLearningCapture">复盘要留：顾客问题、AI 草稿、客服最终处理。</p>
             </div>
             <div class="flow-context-chain" id="flowContextChain" aria-label="顾客问题到 Flow 接法">
-              <span>上下文链</span>
+              <span>答法链</span>
               <div class="context-chain-row">
                 <small>顾客最后一句</small>
                 <b>等待选择 Case</b>
@@ -6901,6 +6901,72 @@
 	      );
 	    }
 
+	    function replyThenFlowPlan(item = {}) {
+	      const decision = item.latest_decision || {};
+	      const action = String(decision.action || "").toLowerCase();
+	      const stage = String(decision.stage || "").toUpperCase().replace(/[\s-]+/g, "_");
+	      const intent = String(decision.intent || "").toLowerCase();
+	      const customerText = customerPreviewText(item);
+	      const signalText = [
+	        customerText,
+	        decision.customer_text,
+	        decision.inbound_text,
+	        item.customer_text,
+	        item.inbound_text,
+	        intent
+	      ].filter(Boolean).join(" ");
+	      const nextFlow = nextFlowContextName(decision);
+	      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(signalText);
+	      const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(signalText);
+	      const usageQuestion = /(一天.{0,8}(几次|幾次)|怎么喝|怎麼喝|怎样喝|怎樣喝|喝法|用法|饭前|飯前|饭后|飯後|how.{0,16}(drink|take|consume)|drink.{0,16}(how|when)|take.{0,16}(how|when))/i.test(signalText);
+	      const flavorQuestion = /(口味|味道|难喝|難喝|好喝|什么味|什麼味|flavou?r|taste)/i.test(signalText);
+	      const englishRequest = /english|英文|看不懂中文|看不懂华文|看不懂華文|don['’]?t understand.{0,20}(chinese|mandarin)|can you write english/i.test(signalText);
+	      const paymentOrService = /(付款|付钱|付錢|汇款|匯款|receipt|payment|payex|grabpay|ewallet|银行卡|信用卡|送货|送貨|delivery|shipping|订单|訂單|下单|下單|refund|退款|没效果|沒效果|不舒服|想吐|售后|售後|after_sales|complaint|order|receipt|payment_method)/i.test(signalText);
+	      const flowAction = action.includes("flow");
+	      const postPriceStage = stage === "STEP_4" || stage === "S4" || /(price|early_price|objection|discount|promotion|promo|trust_after_price)/i.test(intent);
+	      if (directPriceQuestion) {
+	        return {
+	          answer: oneBoxQuestion ? "先答 1盒 RM150；可以轻补 2盒/3盒，但 CTA 优先一盒试喝。" : "先答当前价 RM150 / RM258 / RM378；不要继续产品教育。",
+	          after: "看价/问价后走成交 CTA / 收单；确认要买才收资料，不接普通教育 Flow。",
+	          learning: "可学：价格问答 + CTA；上一段 Broadcast 只当上下文，不当顾客问题。"
+	        };
+	      }
+	      if (paymentOrService || action === "ask_human") {
+	        return {
+	          answer: "先真人确认订单、付款、售后或风险资料；不要用销售 Flow 猜。",
+	          after: "停止 Flow / 转人工；处理完把真正发给顾客的回复贴回 Dashboard。",
+	          learning: "可学：客服 SOP / 转人工边界；不写进普通 FAQ 自动回复。"
+	        };
+	      }
+	      if (postPriceStage) {
+	        return {
+	          answer: "先回答顾虑，再补信心证明、当前活动边界和一句明确 CTA。",
+	          after: "看价后接成交 CTA / 保留优惠 / 收单；不要倒回 Step 1/2 普通教育 Flow。",
+	          learning: "可学：成交话术；要保留顾客问题、AI 草稿、客服最终回复。"
+	        };
+	      }
+	      if (englishRequest) {
+	        return {
+	          answer: "先用英文承接上一句，解释顾客刚刚看不懂的内容。",
+	          after: `答完只接 English Flow：${nextFlow || "未标明 English Flow 就先人工确认"}`,
+	          learning: "可学：语言切换规则；不能把英文顾客送回中文 Flow。"
+	        };
+	      }
+	      if (usageQuestion || flavorQuestion || flowAction || ["STEP_1", "STEP_2", "STEP_3", "S1", "S2", "S3"].includes(stage)) {
+	        const questionLabel = flavorQuestion ? "口味 / 味道问题" : usageQuestion ? "用法 / 喝法问题" : "看价前问题";
+	        return {
+	          answer: `先答${questionLabel}，用一句清楚答案解决顾客最后一句。`,
+	          after: `答完可接下一段教育 / 信心 Flow：${nextFlow || "按当前 Step 选择对应 Flow"}`,
+	          learning: "可学：FAQ + Flow 接法；不要只学习我们主动发出的 Flow 文案。"
+	        };
+	      }
+	      return {
+	        answer: "先回答顾客最后一句，不确定就看上一句 Agent 和聊天记录。",
+	        after: "问题答完才决定：接 Flow、给 CTA、收单，或转人工。",
+	        learning: "可学：顾客问题 -> 正确回复 -> 下一步动作。"
+	      };
+	    }
+
 	    function flowContextChainRows(item = {}) {
 	      const decision = item.latest_decision || {};
 	      const action = String(decision.action || "").toLowerCase();
@@ -6912,6 +6978,7 @@
 	      const inferredFlow = currentFlow ? "" : inferredFlowContextName(decision, item);
 	      const automationControl = automationControlContextName(decision, item);
 	      const nextFlow = nextFlowContextName(decision);
+	      const plan = replyThenFlowPlan(item);
 	      const priceContextAdvice = oneBoxContextQuestion
 	        ? "补 1盒 RM150 + 一盒 CTA；不要把 Broadcast 当订单"
 	        : "补当前价梯 + CTA；不要把 Broadcast 当订单";
@@ -6938,15 +7005,18 @@
 	        ["上一段 Flow / Broadcast", currentFlow || (inferredFlow ? `推断：${inferredFlow}` : (previousAgentText ? "看上一句 Agent" : "没有 Flow 名称，先看聊天记录"))],
 	        ...(automationControl ? [["人工动作", automationControl]] : []),
 	        ...(previousAgentText ? [["上一句 Agent", previousAgentText]] : []),
+	        ["客服先答", plan.answer],
+	        ["答完接法", plan.after],
 	        ["AI 建议", replyText || "没有文字草稿"],
 	        ["下一步", nextAction],
+	        ["学习方向", plan.learning],
 	      ];
 	    }
 
 	    function flowContextChainHtml(item = {}) {
 	      const rows = flowContextChainRows(item);
 	      return `
-	        <span>上下文链</span>
+	        <span>答法链</span>
 	        ${rows.map(([label, value]) => `
 	          <div class="context-chain-row">
 	            <small>${escapeHtml(label)}</small>
