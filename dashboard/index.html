@@ -6888,6 +6888,9 @@
       if (/问价没给当前价|问价缺 CTA|草稿含旧价/.test(titleReason)) {
         return "改稿方向：先答当前价，至少 1盒 RM150；完整价梯用 RM150 / RM258 / RM378，再补一句要不要安排。";
       }
+      if (/旧活动 Flow|活动版本|Mother/i.test(titleReason)) {
+        return "改稿方向：换成当前活动 / 当前价格 Flow；英文 Flow 也要确认月份、价钱和赠品是今天能用的，不确定就转人工确认。";
+      }
       if (/多问没答完|几盒|幾盒|几个月|幾个月|几包|幾包|经期|經期|年期|100KG|100\s*kg/i.test(titleReason)) {
         return "改稿方向：逐条答：RM658=8盒=4个月；1盒15小包；经期/100kg这类适用问题按安全口径回答或转人工确认。全部答完再接信心 CTA / FAQ Flow。";
       }
@@ -6996,6 +6999,7 @@
         item.customer_text
       ].filter(Boolean).join(" ").trim();
       const outdatedPriceDraft = /RM\s*368|加\s*RM\s*10|3\s*送\s*1|3送1|送1盒\s*RM\s*378/i.test(draftText);
+      const outdatedCampaignDraft = /(?:\bMay\b|5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|early\s*bird|188\s*sets?|59%\s*OFF|RM\s*398|RM\s*498|RM\s*538|RM\s*698)/i.test(draftText);
       const afterSalesReceivedAck = intent.includes("after_sales") || /(收到货|收到貨|货收到了|貨收到了|货已收到|貨已收到|货到了|貨到了|刚收到|剛收到|parcel\s+received|received\s+(?:it|parcel|goods|product))/i.test(customerSignalText);
       const salesPushDraft = /(RM\s*\d+|1\s*盒\s*RM|2\s*盒\s*RM|3\s*盒\s*RM|1\s*box\s*RM|2\s*boxes?\s*RM|3\s*boxes?\s*RM|哪个配套|哪一个配套|安排.*配套|抢购|搶購|主推|promotion|promo|which\s+package|arrange.*package|buy\s+now|order\s+now)/i.test(draftText);
       const greetingOnly = /^(hi|hello|hey|halo|hallo|嗨|哈咯|哈啰|你好|您好)[\s.!！?？~～,，👋😊🙂🙏❤️❤]*$/i.test(rawCustomerText);
@@ -7194,6 +7198,9 @@
       }
       if (outdatedPriceDraft) {
         return { tone: "fix", title: "不能过：草稿含旧价", reason: "草稿仍有 RM368、加 RM10、3送1 或旧送盒说法；旧 pending 不要批准。退回 AI 重新生成，或手动改成当前可用价：1盒 RM150 / 2盒 RM258 / 3盒 RM378【新人疗程配套】后再处理。" };
+      }
+      if (outdatedCampaignDraft) {
+        return { tone: "fix", title: "不能过：旧活动 Flow", reason: "草稿或 Flow 仍在用 5月/Mother's Day/旧 early bird 活动，或 RM398/RM498/RM538/RM698 旧价；即使是英文 Flow 也不能直接批准。先换当前活动 Flow，或人工确认今天价格、赠品和库存。" };
       }
       if (greetingHardSellDraft) {
         return { tone: "fix", title: "不能过：只打招呼别硬卖", reason: "顾客只发 Hi/Hello/你好，还没有问产品；草稿不要长篇讲卖点或接 Flow。改成短欢迎，问她想了解产品、优惠、用法还是订单/售后。" };
@@ -7760,7 +7767,7 @@
       const salesPush = /(RM\s*\d+|1\s*盒\s*RM|2\s*盒\s*RM|3\s*盒\s*RM|which\s+package|哪个配套|哪一个配套|安排.*配套|抢购|promotion|promo|order\s+now|buy\s+now)/i.test(manualReplyText);
       const orderOrServiceRecovery = /order_denial|not_ordered|no_follow_up|after_sales|receipt|payment|order|delivery/i.test(String(decision.intent || "")) ||
         /(?:我)?(?:没|沒有|没有|沒).{0,8}(?:订购|訂購|下单|下單|order|buy|purchase)|没人|沒人|没有人|沒有人|no\s*one|receipt|付款|汇款|匯款|地址|电话|電話|送货|送貨/i.test(customerText);
-      const outdatedPrice = /RM\s*368|加\s*RM\s*10|3\s*送\s*1|3送1|送1盒\s*RM\s*378/i.test(manualReplyText);
+      const outdatedPrice = /RM\s*368|加\s*RM\s*10|3\s*送\s*1|3送1|送1盒\s*RM\s*378|(?:\bMay\b|5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|early\s*bird|188\s*sets?|59%\s*OFF|RM\s*398|RM\s*498|RM\s*538|RM\s*698)/i.test(manualReplyText);
       const englishRequest = /english|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|中文|华文|華文)/i.test(customerText);
       if (outdatedPrice) {
         return {
