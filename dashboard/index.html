@@ -6608,6 +6608,10 @@
       if (targetWeightPackageContext) {
         return "目标体重：建议配套；不保证瘦到Xkg";
       }
+      const bodySuitabilityContext = /(?:经期|經期|月经|月經|姨妈|姨媽|生理期|跟车期|跟車期|period|menstruat|年期|体重|體重|100\s*kg|100KG|更年期|跟年期|停经|停經).{0,18}(?:可以|能|适合|適合|喝|服用|take|drink)|(?:可以|能|适合|適合).{0,18}(?:经期|經期|月经|月經|姨妈|姨媽|生理期|跟车期|跟車期|period|menstruat|年期|体重|體重|100\s*kg|100KG|更年期|跟年期|停经|停經)/i.test(customerText);
+      if (bodySuitabilityContext) {
+        return "身体/经期/体重：先答适合度；别只丢配套Flow";
+      }
 	      const futurePaymentContext = /(?:(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|下(?:个|個)?星期|下周|下週|月底|月尾|tomorrow|later|next\s+(?:week|month)|on\s+\w+\s+\d{1,2}).{0,24}(?:付款|付钱|付錢|支付|pay|payment)|(?:会|會|will|going\s+to|gonna).{0,24}(?:付款|付钱|付錢|支付|pay|make\s+payment).{0,24}(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|tomorrow|later|next\s+(?:week|month)|月底|月尾))/i.test(customerText);
 	      if (futurePaymentContext) {
 	        return "等付款：记录日期；提醒付款后截图";
@@ -6671,7 +6675,10 @@
       }
       const walletPaymentContext = /电子钱包|電子錢包|GrabPay|eWallet/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`);
       if (walletPaymentContext) {
-        return "电子钱包：别只回有的；确认渠道/链接，不直接收单";
+        const walletOrderReadyContext = /(?:确认订单|確認訂單|请确认|請確認|安排下单|安排下單|下单|下單|订单|訂單|配套|package|RM\s*150|RM\s*258|RM\s*378|RM\s*658|5\s*盒|8\s*盒|一盒|1\s*盒)/i.test(sourceText);
+        return walletOrderReadyContext
+          ? "电子钱包：确认配套后接付款Flow；提醒截图"
+          : "电子钱包：别只回有的；先确认配套/渠道";
       }
       const paymentMethodQuestionContext = /(?:付款方式|付款方法|怎么付款|怎麼付款|如何付款|可以.{0,12}(?:付款|付钱|付錢|pay)|货到付款|貨到付款|\bcod\b|cash\s+on\s+delivery|online\s+payment|bank\s+card|银行卡|銀行卡|信用卡|credit\s+card|debit\s+card|card\s+payment|payex|payment\s+method|payment\s+option)/i.test(`${customerText} ${sourceText} ${titleReason}`);
       if (paymentMethodQuestionContext) {
@@ -7659,12 +7666,12 @@
 		      const packageBoxCountQuestion = /(?:有|共|一共|总共|總共|多少|几|幾|8|八)\s*(?:盒|box|boxes)|(?:几|幾|多少).{0,6}(?:盒|box|boxes)/i.test(customerSignalText);
       const packageDurationQuestion = /(?:8|八)?\s*盒.{0,12}(?:多少|几|幾|多久).{0,8}(?:个月|個月|月|months?)|(?:喝|用).{0,12}(?:多少|几|幾|多久).{0,8}(?:个月|個月|月|months?)/i.test(customerSignalText);
       const sachetCountQuestion = /(?:一|1)\s*盒.{0,12}(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)|(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)/i.test(customerSignalText);
-      const cycleSuitabilityQuestion = /(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期).{0,12}(?:可以|能|可不可以|喝|take|drink)|(?:可以|能).{0,12}(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期)/i.test(customerSignalText);
+      const cycleSuitabilityQuestion = /(?:经期|經期|月经|月經|姨妈|姨媽|生理期|跟车期|跟車期|period|menstruat|menses).{0,12}(?:可以|能|可不可以|喝|take|drink)|(?:可以|能).{0,12}(?:经期|經期|月经|月經|姨妈|姨媽|生理期|跟车期|跟車期|period|menstruat|menses)/i.test(customerSignalText);
       const weightSuitabilityQuestion = /(?:体重|體重|weight|kg|KG).{0,16}(?:100|一百).{0,16}(?:可以|能|适合|適合|喝|take|drink)|(?:100\s*kg|100KG|100\s*KG).{0,20}(?:可以|能|适合|適合|喝|take|drink)/i.test(customerSignalText);
       const targetWeightPackageQuestion = /(?:\d{2,3}\s*(?:多)?\s*(?:kg|KG|公斤)?).{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?).{0,36}(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?|(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?.{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?)/i.test(customerSignalText);
       const menopauseSuitabilityQuestion = /(?:更年期|跟年期|停经|停經|menopause|menopausal|中年).{0,16}(?:可以|能|适合|適合|喝|服用|take|drink)|(?:可以|能|适合|適合).{0,16}(?:更年期|跟年期|停经|停經|menopause|menopausal|中年)/i.test(customerSignalText);
       const specialBodySuitabilityQuestion = cycleSuitabilityQuestion || weightSuitabilityQuestion || menopauseSuitabilityQuestion;
-      const strongSuitabilityOverclaimDraft = specialBodySuitabilityQuestion && /(?:更适合|更適合|适合服用|適合服用|加速.{0,16}(?:新陈代谢|新陳代謝|代谢|代謝|燃烧|燃燒|脂肪)|燃烧脂肪|燃燒脂肪|达到.{0,10}(?:减肥|減肥|瘦|效果)|24\s*小时.{0,12}燃脂|阻断.{0,16}(?:碳水|糖分|吸收)|改善.{0,16}(?:更年期|跟年期|月经|月經|经期|經期))/i.test(draftText);
+      const strongSuitabilityOverclaimDraft = specialBodySuitabilityQuestion && /(?:更适合|更適合|适合服用|適合服用|加速.{0,16}(?:新陈代谢|新陳代謝|代谢|代謝|燃烧|燃燒|脂肪)|燃烧脂肪|燃燒脂肪|达到.{0,10}(?:减肥|減肥|瘦|效果)|24\s*小时.{0,12}燃脂|阻断.{0,16}(?:碳水|糖分|吸收)|改善.{0,16}(?:更年期|跟年期|月经|月經|经期|經期|生理期|跟车期|跟車期))/i.test(draftText);
       const targetWeightGuaranteeDraft = targetWeightPackageQuestion && (/(?:保证|保證|一定|肯定|绝对|絕對|包瘦|包你|confirm|sure).{0,32}(?:瘦到|瘦下|减到|減到|目标|目標|\d{2,3}\s*(?:kg|KG|公斤)?)|(?:可以|能|会|會).{0,10}(?:瘦到|瘦下|减到|減到).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?/i.test(draftText) && !/(?:不保证|不保證|不能保证|不能保證|看个人|看個人|每个人|每個人|配合|目标|目標)/i.test(draftText));
       const targetWeightPackageDraft = targetWeightPackageQuestion && !targetWeightGuaranteeDraft && /(?:建议|建議|比较适合|比較適合|可以考虑|可以考慮|大配套|最大配套|配套\s*C|RM\s*658|8\s*盒|八\s*盒|4\s*个?月|疗程|療程|盒|package|boxes?)/i.test(draftText);
       const generalSpecialBodySuitabilityQuestion = menopauseSuitabilityQuestion || (specialBodySuitabilityQuestion && !cycleSuitabilityQuestion && !weightSuitabilityQuestion);
@@ -7672,8 +7679,12 @@
       const packageBoxCountAnswered = /8\s*盒|八\s*盒|一共\s*8|total\s*8|5\s*盒\s*送\s*3/i.test(draftText);
       const packageDurationAnswered = /4\s*个?月|四\s*个?月|4\s*months?|four\s*months?/i.test(draftText);
       const sachetCountAnswered = /15\s*(?:小包|包|sachets?|packs?)|75\s*g|5\s*g/i.test(draftText);
-      const cycleSuitabilityAnswered = /(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期)/i.test(draftText) && /(?:可以|能|建议|建議|暂停|暫停|先停|不建议|不建議|医生|醫生|doctor|consult|safe|avoid)/i.test(draftText);
+      const cycleSuitabilityAnswered = /(?:经期|經期|月经|月經|姨妈|姨媽|生理期|跟车期|跟車期|period|menstruat|menses)/i.test(draftText) && /(?:可以|能|建议|建議|暂停|暫停|先停|不建议|不建議|医生|醫生|doctor|consult|safe|avoid)/i.test(draftText);
       const weightSuitabilityAnswered = /(?:100\s*kg|100KG|100\s*KG|一百|体重|體重|weight)/i.test(draftText) && /(?:可以|能|适合|適合|建议|建議|看个人|看個人|doctor|consult|医生|醫生)/i.test(draftText);
+      const unansweredSuitabilitySalesDraft = specialBodySuitabilityQuestion && !strongSuitabilityOverclaimDraft && (flowAction || salesPushDraft || /(?:RM\s*\d+|配套|package|下单|下單|订单|訂單|付款|优惠|優惠|LAST\s*CALL|赠品|贈品|安排)/i.test(draftText));
+      const cycleSuitabilityUnansweredDraft = cycleSuitabilityQuestion && !cycleSuitabilityAnswered && unansweredSuitabilitySalesDraft;
+      const weightSuitabilityUnansweredDraft = weightSuitabilityQuestion && !weightSuitabilityAnswered && unansweredSuitabilitySalesDraft;
+      const cycleOrWeightSuitabilitySafeDraft = !strongSuitabilityOverclaimDraft && ((cycleSuitabilityQuestion && cycleSuitabilityAnswered) || (weightSuitabilityQuestion && weightSuitabilityAnswered));
       const productQuestionChecks = [
         { asked: usageQuestion, answered: usageAnswered },
         { asked: packageBoxCountQuestion, answered: packageBoxCountAnswered },
@@ -7801,6 +7812,25 @@
       const walletPaymentQuestion = /(grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|online\s+banking|payment\s*link|pay\s*link|qr\s*(?:pay|code)|电子钱包|電子錢包|付款链接|付款連結|付款link|支付链接|支付連結|扫码|掃碼|二维码|二維碼).{0,40}(?:对吗|對嗎|吗|嗎|可以|能|付款|支付|pay|payment|use|correct|right|link)?|(?:这是|這是|is\s+this|this\s+is).{0,40}(?:grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|qr\s*(?:pay|code)|电子钱包|電子錢包|付款链接|付款連結|二维码|二維碼)/i.test(paymentMethodText);
       const paymentMethodIssue = intent.includes("payment_method") || cardPaymentQuestion || walletPaymentQuestion || /(没有货到付款|沒有貨到付款|不能\s*cod|可以\s*cod|有\s*cod|cash\s+on\s+delivery|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card))/i.test(paymentMethodText);
       const paymentLinkAmountMismatch = /(payex|payment\s*link|pay\s*link|付款链接|付款連結|付款link|link)/i.test(paymentMethodText) && /(错了|錯了|wrong|amount|金额|金額|RM\s*666|RM\s*658|RM\s*8|多余|多餘|多给|多給|差额|差額|extra)/i.test(paymentMethodText);
+      const walletPaymentOrderContextText = [
+        action,
+        stage,
+        decision.reply_message,
+        decision.previous_agent_text,
+        decision.operator_instruction,
+        decision.headline,
+        item.inbound_text,
+        item.customer_text,
+        item.final_text,
+        item.manual_reply_text,
+        flowContextText,
+        languageSwitchContextText
+      ].filter(Boolean).join(" ");
+      const walletPaymentHasPackageContext = walletPaymentQuestion && /(?:确认订单|確認訂單|请确认|請確認|安排下单|安排下單|下单|下單|订单|訂單|配套|package|RM\s*150|RM\s*258|RM\s*378|RM\s*658|5\s*盒|8\s*盒|一盒|1\s*盒)/i.test(walletPaymentOrderContextText);
+      const walletPaymentReplyConfirmsChannel = walletPaymentQuestion && /(?:可以|有的|对的|對的|没问题|沒問題|yes|GrabPay|e[-\s]?wallet|ewallet|电子钱包|電子錢包|DuitNow|TNG|FPX|付款链接|付款連結|QR|二维码|二維碼)/i.test(draftText);
+      const walletPaymentHasPaymentFlow = walletPaymentQuestion && (flowAction || /(?:付款链接|付款連結|payment\s*link|QR|二维码|二維碼|DuitNow|Duit\s*QR|Bank|UOB|请汇款|請匯款|请付款|請付款|付款后|付款後|截图|截圖|receipt|proof|订单|訂單|下单|下單)/i.test(`${draftText} ${flowContextText} ${languageSwitchContextText}`));
+      const walletPaymentShortOnlyNoFlowDraft = walletPaymentQuestion && /^(?:有的|可以|对的|對的|yes|ok)[🥰❤️❤!！。.\s]*$/i.test(String(draftText || "").trim()) && !walletPaymentHasPaymentFlow;
+      const walletPaymentReadyDraft = walletPaymentQuestion && walletPaymentHasPackageContext && walletPaymentReplyConfirmsChannel && walletPaymentHasPaymentFlow;
       const futurePaymentPromise = intent.includes("future_payment") || /(?:(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|下(?:个|個)?星期|下周|下週|月底|月尾|tomorrow|later|next\s+(?:week|month)|on\s+\w+\s+\d{1,2}).{0,24}(?:付款|付钱|付錢|支付|pay|payment)|(?:会|會|will|going\s+to|gonna).{0,24}(?:付款|付钱|付錢|支付|pay|make\s+payment).{0,24}(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|tomorrow|later|next\s+(?:week|month)|月底|月尾))/i.test(customerSignalText);
       const futurePaymentAckDraft = /(?:付款|付钱|付錢|支付|pay|payment).{0,24}(?:截图|截圖|receipt|proof|通知|告诉|告訴|给我知道|給我知道|send|let\s+me\s+know)|(?:截图|截圖|receipt|proof|通知|告诉|告訴|给我知道|給我知道|send|let\s+me\s+know).{0,24}(?:付款|付钱|付錢|支付|pay|payment)|(?:记录|記錄|提醒|remind|reminder).{0,20}(?:付款|pay|payment)|\d{1,2}\s*(?:号|號|日).{0,24}(?:付款|付钱|付錢|支付|pay|payment)/i.test(draftText);
       const futurePaymentBadDraft = futurePaymentPromise && (flowAction || (salesPushDraft && !futurePaymentAckDraft) || (/(继续了解|繼續了解|下一步|Step\s*[1-4]|Beyoute\s+Plus|阻碳水|燃脂|排宿便)/i.test(draftText) && !futurePaymentAckDraft));
@@ -7916,8 +7946,14 @@
 	      if (paymentLinkAmountMismatch) {
 	        return { tone: "handoff", title: "付款链接金额先确认", reason: "付款链接、PayEx、GrabPay Later 或金额出现不一致；客服要核对配套、金额、差额补偿和付款截图，不要让 AI 自动承诺链接正确或继续销售 Flow。" };
 	      }
+	      if (walletPaymentShortOnlyNoFlowDraft) {
+	        return { tone: "fix", title: "不能过：电子钱包只回有的", reason: "顾客问电子钱包/GrabPay/eWallet 时，只回“有的”不够。要确认配套/金额和可用渠道，或接订单/付款 Flow，并提醒付款后截图给我。" };
+	      }
+	      if (walletPaymentReadyDraft) {
+	        return { tone: "review", title: "电子钱包可审：确认后接付款 Flow", reason: "顾客在配套/金额上下文里问电子钱包，这是付款意向。可以先短答可以/对的，再接订单或付款 Flow；客服仍要确认配套、金额、渠道和付款截图提醒。" };
+	      }
 	      if (walletPaymentQuestion) {
-	        return { tone: "handoff", title: "电子钱包/GrabPay 先确认", reason: "顾客问电子钱包、GrabPay/eWallet 或付款链接；参考 ManyChat：先暂停 automation，人工确认当前订单/渠道可用，再短答可以/对的、发付款链接，并提醒付款后截图给我。不要继续产品 Flow。" };
+	        return { tone: "handoff", title: "电子钱包/GrabPay 先确认", reason: "顾客问电子钱包、GrabPay/eWallet 或付款链接；没有看到配套/金额确认时，先问是不是安排当前配套，再接付款/订单 Flow。不要只回有的，也不要跳回产品 Flow。" };
 	      }
 	      if (paymentMethodIssue) {
 	        return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡、GrabPay/eWallet 或付款链接要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
@@ -8006,8 +8042,14 @@
       if (strongSuitabilityOverclaimDraft) {
         return { tone: "fix", title: "不能过：身体适合度强承诺", reason: "顾客问更年期、经期或体重这类特殊身体状态；草稿不能说更适合、加速燃烧脂肪或保证达到减肥效果。改成安全边界回复，必要时转人工确认。" };
       }
+      if (cycleSuitabilityUnansweredDraft || weightSuitabilityUnansweredDraft) {
+        return { tone: "fix", title: "不能过：适合度没答完", reason: "顾客问经期/生理期、100kg 或身体状态能不能喝时，要先正面回答适合度和安全边界，再接配套、信心 CTA 或 FAQ Flow。不要只丢 RM658、赠品或下单 Flow。" };
+      }
       if (multiProductQuestionMissingAnswer) {
         return { tone: "fix", title: "不能过：顾客多问没答完", reason: "顾客连续问几盒、几个月、几包、经期/体重适不适合等；草稿必须逐条答完，再接 FAQ Flow、信心 CTA 或人工确认。不要只答 RM658/8盒就催下单。" };
+      }
+      if (cycleOrWeightSuitabilitySafeDraft) {
+        return { tone: "review", title: "适合度可审：先答再成交", reason: "草稿先回答了经期/生理期或体重适合度，再给配套、信心 CTA 或 Flow。客服确认安全边界和当天配套后可以批准。" };
       }
       if (specialBodySuitabilitySafeDraft) {
         return { tone: "review", title: "身体适合度可审：安全边界", reason: "顾客问更年期或特殊身体状态；草稿用安全边界回答，没有强承诺。客服确认没有药物、怀孕、疾病或医生禁忌后可以批准。" };
