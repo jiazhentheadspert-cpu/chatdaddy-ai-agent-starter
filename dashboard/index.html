@@ -6671,7 +6671,7 @@
       }
       const walletPaymentContext = /电子钱包|電子錢包|GrabPay|eWallet/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`);
       if (walletPaymentContext) {
-        return "电子钱包/GrabPay：先确认渠道；发链接后要截图";
+        return "电子钱包：别只回有的；确认渠道/链接，不直接收单";
       }
       const paymentMethodQuestionContext = /(?:付款方式|付款方法|怎么付款|怎麼付款|如何付款|可以.{0,12}(?:付款|付钱|付錢|pay)|货到付款|貨到付款|\bcod\b|cash\s+on\s+delivery|online\s+payment|bank\s+card|银行卡|銀行卡|信用卡|credit\s+card|debit\s+card|card\s+payment|payex|payment\s+method|payment\s+option)/i.test(`${customerText} ${sourceText} ${titleReason}`);
       if (paymentMethodQuestionContext) {
