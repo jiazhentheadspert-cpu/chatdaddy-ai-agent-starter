@@ -7953,7 +7953,7 @@
         return { tone: "handoff", title: "效果投诉先人工问清楚", reason: "顾客说没效果但草稿没有问关键使用资料；先人工承接，补问使用情况，不要直接接成交 Flow。" };
       }
 	      if (orderDenialComplaint) {
-	        return { tone: "handoff", title: "否认订购先查记录", reason: "顾客说没有订购，通常是 Broadcast/订单提醒语境；不要继续销售或重复下单，先人工查记录并安抚。" };
+	        return { tone: "handoff", title: "否认订购先停 Flow 查记录", reason: "顾客说没有订购，通常是 Broadcast/订单提醒误伤；不要继续销售、价格、Flow 或重复下单。先道歉澄清、查记录/暂停跟进，再由人工决定是否排除分群。" };
 	      }
 	      if (membershipRebuyWrongNewCustomerFlow) {
 	        return { tone: "fix", title: "不能过：会员/回购别套新人 Flow", reason: "顾客问会员、VIP、回购价或旧客福利；不要直接套新人价格图、普通促销 Flow 或新客成交话术。先确认她是不是回购/旧客，再查资格、回购价或转售后。" };
@@ -8716,7 +8716,15 @@
         proposed_rule: "把顾客最后一句、上一句 Agent、AI 草稿和客服最终回复一起复盘，提炼可重复的正确回答。",
         next_owner_action: "Owner 审核后决定写入 FAQ、SOP、成交话术或测试用例。"
       };
-      if (/想吐|呕吐|嘔吐|头晕|頭暈|不舒服|副作用|反弹|反彈|怀孕|懷孕|药|藥|medical|更年期|跟年期|停经|停經|经期|經期|月经|月經|体重|體重|100\s*kg|100KG|适合|適合|更适合|更適合|燃烧脂肪|燃燒脂肪/.test(combined)) {
+      if (/(?:没|沒|没有|沒有).{0,10}(?:订购|訂購|下单|下單|买|買|order|purchase|purchased)|(?:didn['’]?t|did\s+not|never).{0,20}(?:order|buy|purchase)/i.test(combined)) {
+        artifact = {
+          artifact_type: "ops_sop",
+          artifact_label: "Broadcast 排除 SOP",
+          title: "订单提醒反弹要沉淀排除规则",
+          proposed_rule: "顾客说没订购时，不把前面的订单提醒/Broadcast 当成购买意图；先道歉澄清、查记录或暂停跟进，不接价格、成交 CTA 或 Flow。",
+          next_owner_action: "审核后加入 Broadcast 分群排除、订单提醒文案边界、Dashboard 测试用例。"
+        };
+      } else if (/想吐|呕吐|嘔吐|头晕|頭暈|不舒服|副作用|反弹|反彈|怀孕|懷孕|药|藥|medical|更年期|跟年期|停经|停經|经期|經期|月经|月經|体重|體重|100\s*kg|100KG|适合|適合|更适合|更適合|燃烧脂肪|燃燒脂肪/.test(combined)) {
         artifact = {
           artifact_type: "safety_sop",
           artifact_label: "安全 SOP",
@@ -8975,6 +8983,9 @@
       const combined = [item.id, item.title, item.improvement, item.reason, item.severity].join("\n").toLowerCase();
       if (/(旧价|旧价格|3送1|price|promo|\brm\b|价钱|價錢|价格|價格|多少钱|多少錢|一盒|1\s*盒|价梯|價梯|优惠|優惠|活动|活動|cta)/i.test(combined) && artifactType === "closer_script") {
         return "回放测试：顾客问当前价格/活动时，只能用 RM150 / RM258 / RM378 和当天赠品确认口径。";
+      }
+      if (/(?:没|沒|没有|沒有).{0,10}(?:订购|訂購|下单|下單|买|買|order|purchase)|(?:didn['’]?t|did\s+not|never).{0,20}(?:order|buy|purchase)|order[_\s-]?denial|not[_\s-]?ordered|订单提醒|訂單提醒|订单资料|訂單資料/i.test(combined)) {
+        return "回放测试：顾客否认订购时，只能澄清、查记录或停止订单提醒，不接价格、赠品、成交 CTA 或 Flow。";
       }
       if (/收到货|谢谢|after.?sales|received|gratitude/.test(combined)) {
         return "回放测试：顾客说收到货/谢谢时，只回用法、关怀或礼貌收尾，不接销售 Flow。";
