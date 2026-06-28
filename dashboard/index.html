@@ -6512,6 +6512,9 @@
       const orderRetentionContext = /(624|Broadcast|SHOPEE|Shopee\s+voucher|平台优惠|平台優惠|平台活动|平台活動|平台折扣券|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|订单确认|訂單確認|订单相关权益|訂單相關權益|保留状态|保留狀態|已安排出货|已安排出貨)/i.test(sourceText);
       const orderGiftMissingComplaint = /(?:没|沒|没有|沒有|少|漏|缺|没收到|沒收到|没有收到|沒有收到|missing|not\s+receive).{0,24}(?:赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包)|(?:赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包).{0,24}(?:没|沒|没有|沒有|少|漏|缺|没收到|沒收到|没有收到|沒有收到|missing|not\s+receive)/i.test(customerText) && /(?:订单|訂單|配套|下单|下單|order|ordered|purchase|purchased|送|赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包|上星期|上周|上週|之前)/i.test(combined);
       const orderGiftQuestion = orderGiftMissingComplaint || /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerText);
+      if (orderGiftMissingComplaint) {
+        return "缺赠品/少货：先道歉查单；确认补寄，不接销售Flow";
+      }
       if (orderGiftQuestion) {
         return "已下单赠品：先查订单/当时活动；别套今天赠品";
       }
