@@ -6526,7 +6526,7 @@
       }
       const flavorQuestionContext = /(?:其他|其它|别的|別的|几|幾|多少|什么|什麼|哪(?:一)?个|哪(?:一)?個|一种|一種).{0,12}(?:口味|味道|flavo[u]?r|taste)|(?:口味|味道|flavo[u]?r|taste).{0,18}(?:其他|其它|别的|別的|几|幾|多少|什么|什麼|哪(?:一)?个|哪(?:一)?個|一种|一種|有吗|有嗎|难喝|難喝|好喝|药味|藥味)|(?:难喝|難喝|好喝|药味|藥味|口感|酸甜|微气泡|微氣泡)/i.test(customerText);
       if (flavorQuestionContext) {
-        return "口味/味道：先答一种石榴酸甜；再接CTA";
+        return "口味/味道：先答石榴酸甜；再问要不要安排";
       }
       const annoyedStopContext = /(煩死人|烦死人|煩死|烦死|很煩|很烦|太煩|太烦|不要再(?:发|發|send|message)|别再(?:发|發)|不要再打扰|不要再打擾|别打扰|別打擾|一直(?:发|發|send)|不要买|不要買|不想买|不想買|not\s+interested|stop\s+(?:messaging|message|sending|send)|don['’]?t\s+(?:send|message|disturb)|do\s+not\s+(?:send|message|disturb)|annoying|disturbing|unsubscribe|退订|退訂)/i.test(combined);
       if (annoyedStopContext) {
@@ -6537,12 +6537,12 @@
         return "图片/附件：先打开看；不接 Flow";
       }
       if (priceAndSachetQuestion) {
-        return "价钱+包数：先答当前价 + 1盒15小包；再CTA";
+        return "价钱+包数：先答当前价 + 1盒15小包；再问配套";
       }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
           ? "Shopee/624提醒不是订单；答RM150/15小包；问安排一盒"
-          : "Shopee/624提醒不是订单；先答当前价梯 + CTA";
+          : "Shopee/624提醒不是订单；先答当前价梯；再问配套";
       }
       const postPriceContext = /(STEP_4|user_current_step.{0,16}step_4|看价后|看價後|price_objection|trust_after_price|Flow后问价|Flow後問價)/i.test(sourceText);
       if (directPriceQuestion && !oneBoxQuestion && !postPriceContext) {
@@ -6565,11 +6565,11 @@
         return "短答/表情：先看上一句；不当下单，追问配套";
       }
       if (/(discount|折扣|便宜(?:一点|一點)?|更便宜|cheaper|best\s+price|special\s+price|扣(?:一点|一點)?|优惠(?:点|點)|優惠(?:点|點))/i.test(customerText)) {
-        return "折扣/优惠：守当前价，不乱承诺；给价值 + CTA";
+        return "折扣/优惠：守当前价，不乱承诺；给价值后问安排";
       }
       const decisionDelayQuestion = /(考虑|考慮|想想|想下|想一下|迟点|遲點|迟些|遲些|下次|以后|以後|问(?:下|一下|问)?[^。？?\n]{0,8}(?:老公|老婆|家人|妈妈|媽媽|老板|老闆)|問(?:下|一下|問)?[^。？?\n]{0,8}(?:老公|老婆|家人|妈妈|媽媽|老板|老闆)|ask.{0,16}(?:husband|wife|family|mum|mom|boss)|think\s+(?:about|first|later)|consider|later)/i.test(customerText) && !/(付款|付钱|付錢|payment|pay|汇款|匯款|转账|轉賬)/i.test(customerText);
       if (decisionDelayQuestion) {
-        return "考虑/问家人：不硬催；给简短理由 + 保留 CTA";
+        return "考虑/问家人：不硬催；给简短理由 + 轻保留";
       }
       const englishRequest = /(?:idont|i\s+don['’]?t|dont|do\s+not|can\s+you|can\s+u|please).{0,48}(?:english|write\s+english|understand)|\benglish\b|英文/i.test(customerText);
       const broadcastContext = /(Broadcast|Smart delay|Automation sent|订单资料|訂單資料|通知|提醒|SHOPEE|LAST\s*CALL|META\s*DAY|PAYDAY)/i.test(sourceText);
@@ -7072,8 +7072,8 @@
 	      if (fearNoEffectQuestion) {
 	        return {
 	          answer: "先承接“怕没效 / 浪费钱”，用真实反馈、产品机制和适合度降低风险；不能保证有效。",
-	          after: "看价后走低门槛 CTA：先试一盒 / 先判断适不适合；不要回普通教育 Flow。",
-	          learning: "可学：怕没效成交话术；要学风险承接、proof、低压力 CTA。"
+	          after: "看价后走低门槛下单：先试一盒 / 先判断适不适合；不要回普通教育 Flow。",
+	          learning: "可学：怕没效成交话术；要学风险承接、真实证明、低压力问法。"
 	        };
 	      }
 	      if (paymentOrService || action === "ask_human") {
@@ -7085,7 +7085,7 @@
 	      }
 	      if (postPriceStage) {
 	        return {
-	          answer: "先回答顾虑，再补信心证明、当前活动边界和一句明确 CTA。",
+	          answer: "先回答顾虑，再补信心证明、当前活动边界和一句明确下单问题。",
 	          after: "看价后接成交 CTA / 保留优惠 / 收单；不要倒回 Step 1/2 普通教育 Flow。",
 	          learning: "可学：成交话术；要保留顾客问题、AI 草稿、客服最终回复。"
 	        };
@@ -7127,10 +7127,10 @@
 	      const directNewPricePlan = /Direct 新客/.test(plan.answer);
 	      const priceContextAdvice = oneBoxContextQuestion
 	        ? "补 1盒 RM150 + 15小包；问安排一盒；不要把 Broadcast 当订单"
-	        : "补当前价梯 + CTA；不要把 Broadcast 当订单";
+	        : "补当前价梯；再问安排；不要把 Broadcast 当订单";
 	      const priceContextNext = oneBoxContextQuestion
 	        ? "先答一盒价；问安排一盒；确认后再接 Flow / 收单"
-	        : "先答价梯 + CTA；确认后再接 Flow / 收单";
+	        : "先答价梯；再问安排；确认后再接 Flow / 收单";
 	      const replyText = firstContextText(
 	        directPriceContextQuestion && !directNewPricePlan && action === "ask_human" ? priceContextAdvice : decision.reply_message,
 	        item.final_text,
@@ -7225,7 +7225,7 @@
       if (tone === "pass") {
         return "客服下一步：检查语气、阶段和禁区；没问题就点「批准发送」。";
       }
-      return "客服下一步：确认活动、赠品、CTA 和当前阶段；没问题才批准。";
+      return "客服下一步：确认活动、赠品、下一步和当前阶段；没问题才批准。";
     }
 
     function closerVerdictRewriteHint(closer = {}, item = {}) {
@@ -7240,13 +7240,13 @@
         return "改稿方向：顾客问一盒/1 box 多少钱，要先答 1盒 RM150 + 15小包/15天，再问要不要先安排一盒试喝；如她问运费/COD，才顺带补全马免邮/COD无额外费。不要只说先了解产品。";
       }
       if (/看价后别接教育 Flow/.test(titleReason)) {
-        return "改稿方向：顾客已到 Step 4 / Broadcast 后问价，要正面给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再接一盒试喝或配套 CTA；不要倒回教育 Flow。";
+        return "改稿方向：顾客已到 Step 4 / Broadcast 后问价，要正面给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再问一盒试喝或配套下单；不要倒回教育 Flow。";
       }
-      if (/问价没给当前价|问价缺 CTA|草稿含旧价/.test(titleReason)) {
+      if (/问价没给当前价|问价缺(?: CTA|下一步)|草稿含旧价/.test(titleReason)) {
         return "改稿方向：先答当前价，至少 1盒 RM150；完整价梯用 RM150 / RM258 / RM378，再补一句要不要安排。";
       }
       if (/价格包数|多少包|15小包/i.test(titleReason)) {
-        return "改稿方向：顾客问“多少钱有多少包”要逐条答：当前价 RM150 / RM258 / RM378，1盒15小包可喝15天；答完才接配套 CTA，不要只接 Promo Flow。";
+        return "改稿方向：顾客问“多少钱有多少包”要逐条答：当前价 RM150 / RM258 / RM378，1盒15小包可喝15天；答完才问要哪个配套，不要只接 Promo Flow。";
       }
       if (/问一盒可审|一盒价优先/i.test(titleReason)) {
         return "改稿方向：先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒更划算，但下一句要优先问要不要安排一盒。旧 Broadcast/订单提醒不是订单；如问运费/COD，才补免邮/COD无额外费。";
@@ -7276,16 +7276,16 @@
         return "改稿方向：列当前价梯和当天赠品确认边界；不确定库存或旧活动就先转人工确认。";
       }
       if (/不能乱给折扣|折扣问题可审|discount|便宜/i.test(titleReason)) {
-        return "改稿方向：不要私自降价；守当前 RM150 / RM258 / RM378 活动边界，用价值、服务、真实反馈和一个明确 CTA 收口。";
+        return "改稿方向：不要私自降价；守当前 RM150 / RM258 / RM378 活动边界，用价值、服务、真实反馈和一个明确下单问题收口。";
       }
       if (/考虑\/问家人|问家人别硬催|輕成交|轻成交|问老公|問老公/i.test(titleReason)) {
-        return "改稿方向：先承接“你考虑/问家人是正常的”，给一句可转述的简短理由，再用低压力 CTA：要不要我先帮你保留今天优惠 / 你问了再告诉我。不要继续 Flow 或催付款。";
+        return "改稿方向：先承接“你考虑/问家人是正常的”，给一句可转述的简短理由，再用低压力问法：要不要我先帮你保留今天优惠 / 你问了再告诉我。不要继续 Flow 或催付款。";
       }
       if (/运输时效|物流|快递/.test(titleReason)) {
         return "改稿方向：直接回答西马预计2-3个工作天、东马预计5-7个工作天，再看是否需要查订单。";
       }
       if (/问价嫌长/.test(titleReason)) {
-        return "改稿方向：先承接刚刚太长，用同语言直接给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再给一个下单 CTA；不要再接 Step 长 Flow。";
+        return "改稿方向：先承接刚刚太长，用同语言直接给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再给一个下单问题；不要再接 Step 长 Flow。";
       }
       if (/顾客嫌太长/.test(titleReason)) {
         return "改稿方向：改成1-2句短版重点，再给选择题 CTA；不要继续长篇 Step 文案。";
@@ -7303,7 +7303,7 @@
         return "改稿方向：先真人查订单、付款、售后或官方资料；处理完把人工最终回复补回 Dashboard。";
       }
       if (/活动配套|特别加购|RM508|RM658|8盒|4个月/.test(titleReason)) {
-        return "改稿方向：先核对当天活动、赠品和库存；确认后再回答配套时长，并接信心 + CTA。";
+        return "改稿方向：先核对当天活动、赠品和库存；确认后再回答配套时长，并接信心证明和下单动作。";
       }
       if (action.includes("flow")) {
         return "改稿方向：确认顾客当前问题已答完，Flow 语言和 Step 都匹配，再批准接 Flow。";
@@ -7311,7 +7311,7 @@
       if (tone === "pass") {
         return "改稿方向：可过；最后检查语气、禁区和是否真的回答顾客最后一句。";
       }
-      return "改稿方向：先确认顾客最后一句已被回答，价格/赠品/CTA 和当前阶段一致。";
+      return "改稿方向：先确认顾客最后一句已被回答，价格/赠品/下一步和当前阶段一致。";
     }
 
     function closerVerdictLearningCapture(closer = {}, item = {}) {
@@ -7746,7 +7746,7 @@
         return { tone: "fix", title: "不能过：只打招呼别硬卖", reason: "顾客只发 Hi/Hello/你好，还没有问产品；草稿不要长篇讲卖点或接 Flow。改成短欢迎，问她想了解产品、优惠、用法还是订单/售后。" };
       }
 	      if (priceOnlyAfterLongFlow && longMessageDraft) {
-	        return { tone: "fix", title: "不能过：问价嫌长别接长 Flow", reason: "顾客已经说明只是要价格，或说不要再收到那么多内容；不要继续 Step 4、产品教育、信心长文或多段 Flow。先用同语言短承接，英文顾客就短英文，直接给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再给一个下单 CTA。" };
+	        return { tone: "fix", title: "不能过：问价嫌长别接长 Flow", reason: "顾客已经说明只是要价格，或说不要再收到那么多内容；不要继续 Step 4、产品教育、信心长文或多段 Flow。先用同语言短承接，英文顾客就短英文，直接给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再给一个下单问题。" };
 	      }
       if (longMessageFatigue && longMessageDraft) {
         return { tone: "fix", title: "不能过：顾客嫌太长", reason: "顾客已经说没耐心读或嫌内容太长；不要继续 Step 长文、产品教育或长链接解释。改成 1-2 句短版重点，再给一个选择题 CTA。" };
@@ -7788,7 +7788,7 @@
 		        return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
 		      }
 		      if (englishCustomerChineseDraft) {
-		        return { tone: "fix", title: "不能过：英文顾客中文草稿", reason: "顾客正在用英文沟通，或资料显示英文顾客；草稿不要继续中文 Step、中文价格图或中文促销长文。改成短英文，先回答她最后一句，再给一个明确 CTA。" };
+		        return { tone: "fix", title: "不能过：英文顾客中文草稿", reason: "顾客正在用英文沟通，或资料显示英文顾客；草稿不要继续中文 Step、中文价格图或中文促销长文。改成短英文，先回答她最后一句，再给一个明确下单问题。" };
 		      }
 	      if (englishProfileChineseFlowDraft) {
 	        return { tone: "fix", title: "不能过：英文资料接中文 Flow", reason: "顾客资料显示 English；不要继续中文 Step、中文价格图或中文促销 Flow。先用英文承接最后一句/附件，再只接 English Flow 或人工确认。" };
@@ -7836,7 +7836,7 @@
         return { tone: "fix", title: "不能过：没回答口味", reason: "顾客问有几种口味、什么味道或会不会难喝；接 Flow/价格/优惠前必须先正面回答：目前一种石榴口味，酸甜微气泡、不是药味。不要只丢产品介绍或 LAST CALL。" };
       }
       if (flavorQuestion && flavorAnswered) {
-        return { tone: "review", title: flavorCtaDraft ? "口味问题可审：短答再接 CTA" : "口味问题可审：短答已回答", reason: flavorCtaDraft ? "已先回答口味/味道，再接优惠、付款或 Flow；客服确认阶段和语气后可以批准。" : "已回答口味/味道，但更会成交的改法是补一句低压力 CTA，例如确认味道 OK 后继续保留优惠、付款或配套。" };
+        return { tone: "review", title: flavorCtaDraft ? "口味问题可审：短答再问安排" : "口味问题可审：短答已回答", reason: flavorCtaDraft ? "已先回答口味/味道，再接优惠、付款或 Flow；客服确认阶段和语气后可以批准。" : "已回答口味/味道，但更会成交的改法是补一句低压力下单问题，例如确认味道 OK 后继续保留优惠、付款或配套。" };
       }
       if (strongSuitabilityOverclaimDraft) {
         return { tone: "fix", title: "不能过：身体适合度强承诺", reason: "顾客问更年期、经期或体重这类特殊身体状态；草稿不能说更适合、加速燃烧脂肪或保证达到减肥效果。改成安全边界回复，必要时转人工确认。" };
@@ -7857,7 +7857,7 @@
         return { tone: "review", title: "折扣问题可审：守当前活动", reason: "草稿没有乱降价，已回到当前价梯/活动边界，并用价值或服务承接再给 CTA；客服确认当天活动后可以批准。" };
       }
       if (delayHardPushDraft) {
-        return { tone: "fix", title: "不能过：考虑/问家人别硬催", reason: "顾客说考虑、迟点或问老公/家人时，不要继续 Step Flow、长篇教育、催付款或强压下单。改成低压力承接，给她一句可以转述的理由，再用保留优惠/稍后跟进 CTA 收口。" };
+        return { tone: "fix", title: "不能过：考虑/问家人别硬催", reason: "顾客说考虑、迟点或问老公/家人时，不要继续 Step Flow、长篇教育、催付款或强压下单。改成低压力承接，给她一句可以转述的理由，再用保留优惠/稍后跟进收口。" };
       }
       if (delaySoftCloseDraft) {
         return { tone: "review", title: "考虑/问家人可审：轻成交", reason: "草稿尊重顾客要考虑或问家人，没有硬催付款；用简短理由降低风险，并给保留优惠或稍后跟进 CTA。客服确认语气不压迫后可以批准。" };
@@ -7881,13 +7881,13 @@
 	        return { tone: "handoff", title: "退款先人工审核", reason: "顾客提出退款，Dashboard 只能提醒客服查订单、政策和使用资料；AI 不承诺退款、不拒绝退款，也不接销售 Flow。" };
 	      }
 	      if (fearNoEffectUnsafeDraft) {
-	        return { tone: "fix", title: "不能过：怕没效不能保证", reason: "顾客怕买了没效或浪费钱，草稿不能保证一定有效。要先承接担心，用真实反馈/机制/适合度降低风险，再给低门槛 CTA。" };
+	        return { tone: "fix", title: "不能过：怕没效不能保证", reason: "顾客怕买了没效或浪费钱，草稿不能保证一定有效。要先承接担心，用真实反馈/机制/适合度降低风险，再给低门槛下单问题。" };
 	      }
 	      if (fearNoEffectHandledDraft) {
-	        return { tone: "review", title: "怕没效可审：proof + 低门槛 CTA", reason: "顾客不是售后投诉，而是看价后怕没效/浪费钱。草稿已承接风险，用 proof、适合度或先试一盒降低顾虑，再回到 CTA；客服确认没有保证效果后可以批准。" };
+	        return { tone: "review", title: "怕没效可审：证明 + 低门槛下单", reason: "顾客不是售后投诉，而是看价后怕没效/浪费钱。草稿已承接风险，用真实证明、适合度或先试一盒降低顾虑，再回到下单动作；客服确认没有保证效果后可以批准。" };
 	      }
 	      if (fearNoEffectObjection) {
-	        return { tone: "fix", title: "不能过：怕没效没处理", reason: "顾客核心顾虑是怕没效和浪费钱；不要只回普通嫌贵或继续报价。改成：理解担心 -> proof/机制/适合度 -> 低门槛 CTA。" };
+	        return { tone: "fix", title: "不能过：怕没效没处理", reason: "顾客核心顾虑是怕没效和浪费钱；不要只回普通嫌贵或继续报价。改成：理解担心 -> 证明/机制/适合度 -> 低门槛下单问题。" };
 	      }
 	      if (noResultSalesPushDraft) {
 	        return { tone: "fix", title: "不能过：没效果别继续卖", reason: "顾客在投诉没效果；不要继续推价格、配套、CTA 或 Flow。先问使用天数/盒数、喝法、水量和排便，再由客服判断售后动作。" };
@@ -7932,12 +7932,12 @@
 	        return { tone: "fix", title: "不能过：价格包数没答完", reason: "顾客问“多少钱有多少包”是两个问题；草稿只答价格或只接 Promo Flow 不够。必须同时答当前价 RM150 / RM258 / RM378 和 1盒15小包，可喝15天，再接 CTA。" };
 	      }
 	      if (priceAndSachetQuestion && priceAndSachetAnswered) {
-	        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? "价格+包数可审：答完再CTA" : "不能过：价格包数缺CTA", reason: priceCtaAnswered ? "已先回答当前价格和 1盒15小包，再接下单动作；客服确认没有旧价/旧赠品后可以批准。" : "顾客问价格和包数时，答完当前价与 1盒15小包后，还要给一个明确下一步，例如问她要不要安排哪一个配套。" };
+	        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? "价格+包数可审：答完再问配套" : "不能过：价格包数缺下一步", reason: priceCtaAnswered ? "已先回答当前价格和 1盒15小包，再接下单动作；客服确认没有旧价/旧赠品后可以批准。" : "顾客问价格和包数时，答完当前价与 1盒15小包后，还要给一个明确下一步，例如问她要不要安排哪一个配套。" };
 	      }
       if (directPriceQuestion && directPriceAnswered) {
-        let directPriceTitle = "问价可审：价梯 + CTA";
+        let directPriceTitle = "问价可审：价梯 + 下单动作";
         let directPriceReason = priceQuestionAfterFlowContext
-          ? "顾客是在 ManyChat Flow、Smart Delay 或 Broadcast 后主动问价；这是真问题，不是纯自动 Flow。先正面回答当前价格，再接一个下单 CTA，不要把旧订单提醒当成已下单。"
+          ? "顾客是在 ManyChat Flow、Smart Delay 或 Broadcast 后主动问价；这是真问题，不是纯自动 Flow。先正面回答当前价格，再接一个下单问题，不要把旧订单提醒当成已下单。"
           : "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。";
         if (oneBoxSpecificQuestion) {
           if (priceQuestionAfterFlowContext && oneBoxGenericPackageCta) {
@@ -7951,9 +7951,9 @@
             directPriceReason = oneBoxGenericPackageCta ? "顾客问一盒多少钱，草稿已回答 1盒 RM150 并有下单动作，所以可审；但“哪个配套”偏泛。更会成交的下一句是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。" : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但下一句应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。";
           }
         } else if (priceQuestionAfterFlowContext) {
-          directPriceTitle = "Flow后问价：答完再接CTA";
+          directPriceTitle = "Flow后问价：答完再问下单";
         }
-        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? directPriceTitle : "不能过：问价缺 CTA", reason: priceCtaAnswered ? directPriceReason : "顾客问价时，草稿除了当前价，还要给明确下一步，例如问她要不要安排一盒或哪个配套。" };
+        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? directPriceTitle : "不能过：问价缺下一步", reason: priceCtaAnswered ? directPriceReason : "顾客问价时，草稿除了当前价，还要给明确下一步，例如问她要不要安排一盒或哪个配套。" };
       }
       if (paymentReceivedSignal) {
         return { tone: "order", title: "付款/汇款先审款", reason: "顾客说已付款/已汇款，或草稿确认收到款；先核对金额、截图和订单资料，不继续销售，也不要直接承诺已出货。" };
@@ -8044,7 +8044,7 @@
         return { tone: "pass", title: "看价前可过：答完接 Flow", reason: "问题答清楚后接下一段教育/信心 Flow；approval-first 下仍要客服批准。" };
       }
       if (stage === "STEP_4" || stage === "S4" || intent.includes("price") || intent.includes("objection") || intent.includes("trust")) {
-        return { tone: "review", title: "看价后可过：要信心 + CTA", reason: "不要再乱接普通 Flow；回答疑虑、补证明，然后给明确下单动作。" };
+        return { tone: "review", title: "看价后可过：要信心 + 下单动作", reason: "不要再乱接普通 Flow；回答疑虑、补证明，然后给明确下单动作。" };
       }
       if (decision.send_now) {
         return { tone: "review", title: "系统动作中，仍要看记录", reason: "固定流程可继续，但客服要确认没有订单、投诉或风险语境。" };
@@ -8665,7 +8665,7 @@
           artifact_type: "closer_script",
           artifact_label: "成交话术",
           title: "价格/信任/异议要沉淀成交话术",
-          proposed_rule: "价格图后问题先回答顾客疑虑，再补信心证明，最后给一个明确 CTA；价格图前则回答问题后接正确 Flow。",
+          proposed_rule: "价格图后问题先回答顾客疑虑，再补信心证明，最后给一个明确下单问题；价格图前则回答问题后接正确 Flow。",
           next_owner_action: "审核后加入 objection script、FAQ、CTA map，并回放销售测试。"
         };
       } else if (/receipt|收据|付款|payment|银行|bank|订单|訂單|地址|电话|電話|下单|下單|order/.test(combined)) {
