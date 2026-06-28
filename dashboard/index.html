@@ -1697,6 +1697,77 @@
       background: rgba(255,255,255,.78);
     }
 
+    .qa-guide-strip {
+      display: grid;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(53,120,246,.16);
+      border-left: 4px solid rgba(53,120,246,.62);
+      background: rgba(238,246,255,.86);
+    }
+
+    .qa-guide-strip.hidden {
+      display: none;
+    }
+
+    .qa-guide-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .qa-guide-head span {
+      display: block;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .qa-guide-head b {
+      display: block;
+      margin-top: 2px;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .qa-guide-head small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 820;
+      line-height: 1.35;
+      text-align: right;
+    }
+
+    .qa-guide-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .qa-guide-column {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .qa-guide-column strong {
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .qa-guide-column span {
+      color: #344054;
+      font-size: 11px;
+      font-weight: 760;
+      line-height: 1.35;
+    }
+
     .filters {
       display: flex;
       flex-wrap: wrap;
@@ -2952,6 +3023,9 @@
       .ops-command-main { min-height: 0; padding: 18px; }
       .ops-command-grid { grid-template-columns: 1fr; }
       .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
+      .qa-guide-head { display: grid; }
+      .qa-guide-head small { text-align: left; }
+      .qa-guide-grid { grid-template-columns: 1fr; }
       .selection-tools { justify-content: flex-start; }
       .view-toggle { align-self: flex-start; }
       .member-row { grid-template-columns: 38px minmax(0, 1fr); }
@@ -3201,6 +3275,7 @@
             <button id="listView">列表</button>
           </div>
         </div>
+        <div class="qa-guide-strip hidden" id="qaGuideStrip" aria-label="Owner QA 测试标准"></div>
         <div class="bulk-bar hidden" id="bulkBar" aria-label="批量处理">
           <div class="bulk-summary"><b id="bulkCount">0</b><span>已选</span></div>
           <div class="bulk-actions">
@@ -4953,6 +5028,7 @@
       const visible = sortCases(searched, state.sort);
       state.visibleCases = visible;
       renderQueueSummary(visible.length, filtered.length, all.length, counts);
+      renderOwnerQaGuide(counts);
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
       renderSelectionTools();
       renderBulkBar();
@@ -5291,10 +5367,48 @@
     function renderQueueSummary(visibleCount, filteredCount, totalCount, counts = {}) {
       const queryText = state.query ? ` · 搜索「${state.query}」` : "";
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新" : "名字";
+      const qaText = canUseQaMode() ? " · QA 测试：老板压测，不给客服" : "";
       const staffGuide = state.role === "staff"
         ? ` · 先人工 ${counts.human || 0}，退回 AI ${counts.returnAi || 0}，补回复 ${counts.pendingManualReplies || 0}，可批准 ${counts.approval || 0}`
         : "";
-      $("queueSummary").textContent = `${visibleCount}/${filteredCount} 位${queryText} · ${sortText}${staffGuide}`;
+      $("queueSummary").textContent = `${visibleCount}/${filteredCount} 位${queryText} · ${sortText}${qaText}${staffGuide}`;
+    }
+
+    function renderOwnerQaGuide(counts = {}) {
+      const element = $("qaGuideStrip");
+      if (!element) return;
+      if (!canUseQaMode()) {
+        element.classList.add("hidden");
+        element.innerHTML = "";
+        return;
+      }
+      element.classList.remove("hidden");
+      element.innerHTML = `
+        <div class="qa-guide-head">
+          <div>
+            <span>Owner QA 测试标准</span>
+            <b>这里是老板压测：看什么能过、什么不能过；不会发 WhatsApp，也不会触发 Flow。</b>
+          </div>
+          <small>可批准 ${Number(counts.approval || 0)} · 要人工 ${Number(counts.human || 0)} · 退回 AI ${Number(counts.returnAi || 0)} · 测试资料不进客服真实入口</small>
+        </div>
+        <div class="qa-guide-grid">
+          <div class="qa-guide-column">
+            <strong>能过：答完再推进</strong>
+            <span>看价前 FAQ / 用法 / 信任问题：先答顾客最后一句，再接下一段教育或信心 Flow。</span>
+            <span>看价后异议：给信心 + 当前活动边界 + CTA，留 Dashboard 审批。</span>
+          </div>
+          <div class="qa-guide-column">
+            <strong>不能过：先挡住</strong>
+            <span>旧活动、4+2、直接瘦 kg、乱折扣、没回答问题就接 Flow，都要退回 AI 或人工确认。</span>
+            <span>健康敏感、想吐、怀孕、投诉、退款、改地址、付款/Receipt，先人工/SOP，不走普通销售 Flow。</span>
+          </div>
+          <div class="qa-guide-column">
+            <strong>学习：只学好样本</strong>
+            <span>学习顾客问题 -> 正确回复 -> 下一步动作；不要只学 ManyChat 主动发出的 Flow 文案。</span>
+            <span>转人工后必须贴真正发给顾客的回复；“已回复 / Done”不能当学习样本。</span>
+          </div>
+        </div>
+      `;
     }
 
     function renderWorkspaceViews(cases, counts, learned) {
