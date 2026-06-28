@@ -8394,6 +8394,13 @@
         };
       }
       const aiDifferent = originalAiReply && compactCompareText(originalAiReply) !== compactCompareText(manualReplyText);
+      const replaySource = {
+        id: artifact.title,
+        title: artifact.title,
+        improvement: artifact.proposed_rule,
+        reason: combined,
+        severity: "review"
+      };
       return {
         ...artifact,
         status: "owner_review_required",
@@ -8404,6 +8411,7 @@
         previous_agent_text: previousAgentText,
         ai_gap: aiDifferent ? `AI 原草稿：${originalAiReply}` : "没有发现明显 AI 改写差异；先作为人工处理样本观察。",
         better_reply: manualReplyText,
+        replay_test: learningRecommendationReplayTest(replaySource, { artifact_type: artifact.artifact_type }),
         safety: "候选只用于复盘；不会发送 WhatsApp，也不会自动写入 reviewed/applied brain。"
       };
     }
@@ -8574,6 +8582,8 @@
     }
 
     function learningRecommendationArtifactType(item = {}) {
+      const direct = String(item.artifact_type || "").trim();
+      if (direct) return direct;
       const combined = [item.id, item.title, item.improvement, item.severity].join("\n").toLowerCase();
       if (/price|promo|gift|旧价|价格|赠品|活动|信心|cta|objection/.test(combined)) return "closer_script";
       if (/payment|delivery|marketplace|follow|referral|seller|order|receipt|付款|送货|物流|官方|没人|亲友|售后/.test(combined)) return "ops_sop";
@@ -8597,7 +8607,7 @@
     function learningRecommendationReplayTest(item = {}, candidate = null) {
       const artifactType = String(candidate?.artifact_type || learningRecommendationArtifactType(item));
       const combined = [item.id, item.title, item.improvement, item.reason, item.severity].join("\n").toLowerCase();
-      if (/旧价|旧价格|3送1|price|promo/.test(combined) && artifactType === "closer_script") {
+      if (/(旧价|旧价格|3送1|price|promo|\brm\b|价钱|價錢|价格|價格|多少钱|多少錢|一盒|1\s*盒|价梯|價梯|优惠|優惠|活动|活動|cta)/i.test(combined) && artifactType === "closer_script") {
         return "回放测试：顾客问当前价格/活动时，只能用 RM150 / RM258 / RM378 和当天赠品确认口径。";
       }
       if (/收到货|谢谢|after.?sales|received|gratitude/.test(combined)) {
