@@ -6572,6 +6572,10 @@
       if (afterSalesSellerNoReplyContext) {
         return "售后没回复：先给基础喝法；查订单/聊天记录";
       }
+      const deliveryPaymentArrangementContext = /(?:安排|arrange|how|如何|怎样|怎樣|怎么|怎麼)?[^。？?\n]{0,30}(?:送货|送貨|配送|寄送|邮寄|郵寄|delivery|shipping|courier)[^。？?\n]{0,50}(?:付款|付钱|付錢|payment|pay|cod|货到付款|貨到付款)|(?:付款|付钱|付錢|payment|pay|cod|货到付款|貨到付款)[^。？?\n]{0,50}(?:送货|送貨|配送|寄送|邮寄|郵寄|delivery|shipping|courier)/i.test(`${customerText} ${sourceText}`);
+      if (deliveryPaymentArrangementContext) {
+        return "送货/付款：先确认地区/配套/渠道；不接产品Flow";
+      }
       const targetWeightPackageContext = /(?:\d{2,3}\s*(?:多)?\s*(?:kg|KG|公斤)?).{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?).{0,36}(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?|(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?.{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?)/i.test(customerText);
       if (targetWeightPackageContext) {
         return "目标体重：建议配套；不保证瘦到Xkg";
@@ -6591,6 +6595,10 @@
       const afterSalesReceivedContext = /(收到货|收到貨|货收到了|貨收到了|货已收到|貨已收到|货到了|貨到了|刚收到|剛收到|parcel\s+received|received\s+(?:it|parcel|goods|product)|^\s*(?:谢谢|謝謝|thank\s*you|thanks|tq|thx)\s*[.!！?？~～,，。❤️❤]*\s*$)/i.test(customerText);
       if (afterSalesReceivedContext) {
         return "收到货/谢谢：只回用法或关怀；不接销售Flow";
+      }
+      const greetingOnlyContext = /^(hi|hello|hey|halo|hallo|嗨|哈咯|哈啰|你好|您好)[\s.!！?？~～,，👋😊🙂🙏❤️❤]*$/i.test(String(customerText || "").trim());
+      if (greetingOnlyContext) {
+        return "只打招呼：短欢迎+问需求；不接长Flow";
       }
       const attachmentContext = /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText) || (/^(?:\.{3}|…)$/.test(String(customerText || "").trim()) && /(image|attachment|photo|media|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText));
 	      if (attachmentContext) {
