@@ -6510,7 +6510,8 @@
       const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(customerText);
       const priceAndSachetQuestion = directPriceQuestion && /(?:一|1)?\s*(?:盒)?[^。？?\n]{0,12}(?:几|幾|多少|how\s+many).{0,8}(?:包|小包|sachets?|packs?)|(?:包|小包|sachets?|packs?).{0,12}(?:几|幾|多少|how\s+many)/i.test(customerText);
       const orderRetentionContext = /(624|Broadcast|SHOPEE|Shopee\s+voucher|平台优惠|平台優惠|平台活动|平台活動|平台折扣券|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|订单确认|訂單確認|订单相关权益|訂單相關權益|保留状态|保留狀態|已安排出货|已安排出貨)/i.test(sourceText);
-      const orderGiftQuestion = /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerText);
+      const orderGiftMissingComplaint = /(?:没|沒|没有|沒有|少|漏|缺|没收到|沒收到|没有收到|沒有收到|missing|not\s+receive).{0,24}(?:赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包)|(?:赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包).{0,24}(?:没|沒|没有|沒有|少|漏|缺|没收到|沒收到|没有收到|沒有收到|missing|not\s+receive)/i.test(customerText) && /(?:订单|訂單|配套|下单|下單|order|ordered|purchase|purchased|送|赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包|上星期|上周|上週|之前)/i.test(combined);
+      const orderGiftQuestion = orderGiftMissingComplaint || /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerText);
       if (orderGiftQuestion) {
         return "已下单赠品：先查订单/当时活动；别套今天赠品";
       }
@@ -7597,8 +7598,9 @@
       const promoGiftAnswered = /RM\s*150/i.test(draftText) && /RM\s*258/i.test(draftText) && /RM\s*378/i.test(draftText) && /(赠品|贈品|free\s*gift|gift|promotion|promo|优惠|優惠|活动|活動|当天|當天|客服|确认|確認|库存|庫存)/i.test(draftText);
       const promoGiftEnglishMixedDraft = promoGiftEnglishQuestion && /[\u4e00-\u9fff]/.test(draftText);
       const promoGiftMissingDraft = promoGiftQuestion && !promoGiftAnswered;
-      const orderGiftQuestion = /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerSignalText);
-      const orderGiftSafeDraft = orderGiftQuestion && /(?:查|查看|确认|確認|核对|核對|check|review).{0,40}(?:订单|訂單|order|记录|紀錄|record|配套|赠品|贈品|gift|活动|活動)|(?:订单|訂單|order|记录|紀錄|record|配套|赠品|贈品|gift|活动|活動).{0,40}(?:查|查看|确认|確認|核对|核對|check|review)|(?:不要|不敢|不能|先不).{0,18}(?:乱确认|亂確認|乱讲|亂講|承诺|承諾)/i.test(draftText);
+      const orderGiftMissingComplaint = /(?:没|沒|没有|沒有|少|漏|缺|没收到|沒收到|没有收到|沒有收到|missing|not\s+receive).{0,24}(?:赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包)|(?:赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包).{0,24}(?:没|沒|没有|沒有|少|漏|缺|没收到|沒收到|没有收到|沒有收到|missing|not\s+receive)/i.test(customerSignalText) && /(?:订单|訂單|配套|下单|下單|order|ordered|purchase|purchased|送|赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包|上星期|上周|上週|之前)/i.test([customerSignalText, previousAgentText, languageSwitchContextText].filter(Boolean).join(" "));
+      const orderGiftQuestion = orderGiftMissingComplaint || /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerSignalText);
+      const orderGiftSafeDraft = orderGiftQuestion && /(?:查|查看|确认|確認|核对|核對|check|review|补寄|補寄|补发|補發).{0,40}(?:订单|訂單|order|记录|紀錄|record|配套|赠品|贈品|gift|活动|活動|毛巾|小粉瓶|玻璃杯|小包)|(?:订单|訂單|order|记录|紀錄|record|配套|赠品|贈品|gift|活动|活動|毛巾|小粉瓶|玻璃杯|小包).{0,40}(?:查|查看|确认|確認|核对|核對|check|review|补寄|補寄|补发|補發)|(?:不要|不敢|不能|先不).{0,18}(?:乱确认|亂確認|乱讲|亂講|承诺|承諾)/i.test(draftText);
       const orderGiftCurrentPromoDraft = orderGiftQuestion && !orderGiftSafeDraft && (flowAction || salesPushDraft || promoGiftAnswered || /(?:今天下单|今天下單|现在下单|現在下單|当前|目前|现在|現在|LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|RM\s*150|RM\s*258|RM\s*378|加送|Beyoute\s*3\s*小包|丝柔亲肤毛巾|絲柔親膚毛巾|小粉瓶|哪个配套|哪個配套)/i.test(draftText));
       const specialPromoText = [
         decision.reply_message,
@@ -7921,6 +7923,9 @@
       }
       if (orderGiftCurrentPromoDraft) {
         return { tone: "fix", title: "不能过：赠品问题别套当前活动", reason: "顾客问的是上星期已订配套/截图里的赠品，不是现在有什么 promotion。不要用当前价梯、Last Call、今天赠品或成交 CTA 回答；先查订单、当时活动和截图。" };
+      }
+      if (orderGiftMissingComplaint) {
+        return { tone: "handoff", title: "缺赠品先查单补寄", reason: "ManyChat Janet：顾客说毛巾/赠品没有或少了，这是售后查单和补寄场景。不要套当前活动、不要继续成交 Flow；先人工核对订单、当时赠品和补寄安排。" };
       }
       if (orderGiftQuestion) {
         return { tone: "handoff", title: "赠品/订单先查记录", reason: "顾客在问已下单配套的赠品是否少了，通常还会附截图；客服要查订单、当时活动和配套记录，AI 不确认也不否认赠品。" };
