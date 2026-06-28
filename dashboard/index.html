@@ -8138,6 +8138,8 @@
 	      const title = closer.title || candidate.title || "待复盘";
 	      const issue = pendingReply ? "转人工后缺人工最终回复，AI 还不能判断正确答案。" : title;
 	      const artifactLabel = candidate.artifact_label || "学习候选";
+	      const artifactType = candidate.artifact_type || "";
+	      const artifactLine = artifactType ? `${artifactLabel} / ${artifactType}` : artifactLabel;
 	      const replay = candidate.replay_test || "用同类真实顾客句子重跑，确认 verdict 和下一步动作都正确。";
 	      const nextAction = pendingReply
 	        ? "补人工最终回复后，再判断下次自动答、退回 AI、还是继续人工。"
@@ -8145,6 +8147,7 @@
 	      return [
 	        `错因：${issue}`,
 	        hasFinalReply ? "正确回复：人工最终回复已保存，先判可学 / 要修 / 不学。" : "正确回复：等客服贴最后真正发给顾客的文字。",
+	        `学习归类：${artifactLine}`,
 	        `下次动作：${nextAction}`,
 	        `回放测试：${replay}`
 	      ];
