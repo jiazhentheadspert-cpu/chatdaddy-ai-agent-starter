@@ -6652,6 +6652,22 @@
       const packageChoiceAmbiguousBadDraft = packageChoicePrompt && shortAmbiguousChoiceReply && !packageChoiceClarifyDraft && (salesPushDraft || longMessageDraft || action.includes("flow") || /STEP_[1-4]|S[1-4]/.test(stage) || /Beyoute|阻碳水|燃脂|排宿便|Kombucha/i.test(draftText));
       const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
       const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
+      const flowAction = action.includes("flow") || action === "send_message_then_trigger_flow" || action === "reply_then_flow";
+      const flowContextText = [
+        decision.flow_key,
+        decision.flow_name,
+        decision.next_flow_key,
+        decision.next_flow_name,
+        decision.target_flow_key,
+        decision.target_flow_name,
+        decision.provider_flow_id,
+        decision.stage
+      ].filter(Boolean).join(" ");
+      const englishFlowConfirmed = /(english|英文|英语|英語|\ben\b)/i.test(flowContextText);
+      const englishFlowMismatch = englishRequest && flowAction && !englishFlowConfirmed;
+      const usageQuestion = intent.includes("usage") || /(怎么喝|怎麼喝|怎样喝|怎樣喝|一天.{0,8}(几次|幾次)|喝法|用法|how\s+(?:to\s+)?(?:drink|take|use)|how\s+many\s+times)/i.test(customerSignalText);
+      const usageAnswered = /(一天|每日|每天|饭前|飯前|餐前|150\s*[-到至]?\s*200\s*ml|150\s*ml|200\s*ml|温水|溫水|once\s+a\s+day|twice\s+a\s+day|before\s+(?:a\s+)?meal|150\s*[-–to]{0,4}\s*200\s*ml|room\s+temperature\s+water)/i.test(draftText);
+      const usageFlowWithoutAnswer = usageQuestion && flowAction && !usageAnswered;
       const noFollowUpComplaint = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerSignalText);
       const orderDenialComplaint = intent.includes("order_denial") || intent.includes("not_ordered") || /(?:我)?(?:没|沒|没有|沒有).{0,8}(?:订购|訂購|下单|下單|买|買|order|ordered|purchase|purchased)|(?:didn['’]?t|did\s+not|never).{0,20}(?:order|buy|purchase)/i.test(customerSignalText);
       const referralBulkOrder = ((/(介绍|介紹|推荐|推薦|refer|referral|introduced|recommend)/i.test(customerSignalText) && /(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText)) || (/(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerSignalText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerSignalText) && /(?:[4-9]|四|五|六|七|八|九)\s*(?:盒|box|boxes)|(?:多|几|幾)\s*(?:盒|box|boxes)/i.test(customerSignalText)));
@@ -6810,6 +6826,12 @@
       if (englishMixedDraft) {
         return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
       }
+      if (englishFlowMismatch) {
+        return { tone: "fix", title: "不能过：英文请求接错 Flow", reason: "顾客要求 English 或看不懂中文；如果要接 Flow，必须明确接英文 Flow。没有英文 Flow 证据时，不要把顾客送回中文 Step。" };
+      }
+      if (usageFlowWithoutAnswer) {
+        return { tone: "fix", title: "不能过：没回答就接 Flow", reason: "顾客问怎么喝/一天几次；接下一段 Flow 前必须先回答用法。不要只说继续下一步或直接丢 Flow。" };
+      }
       if (promoGiftEnglishMixedDraft) {
         return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客用英文问 promotion/free gift；草稿必须整段英文，就算价格和赠品资料对，也不能夹中文。" };
       }
@@ -6895,7 +6917,10 @@
       if (gratitudeAck) {
         return { tone: "pass", title: "礼貌收尾：不继续卖", reason: "顾客只是感谢或收尾，短回即可；不要推价格、不要接普通 Flow。" };
       }
-      if (action.includes("flow") || action === "send_message_then_trigger_flow" || action === "reply_then_flow" || ["STEP_1", "STEP_2", "STEP_3", "S1", "S2", "S3"].includes(stage)) {
+      if (englishRequest && flowAction && englishFlowConfirmed) {
+        return { tone: "pass", title: "英文可过：答完接英文 Flow", reason: "顾客要求英文，草稿整段英文，并且下一步 Flow 明确是 English；approval-first 下仍要客服确认。" };
+      }
+      if (flowAction || ["STEP_1", "STEP_2", "STEP_3", "S1", "S2", "S3"].includes(stage)) {
         return { tone: "pass", title: "看价前可过：答完接 Flow", reason: "问题答清楚后接下一段教育/信心 Flow；approval-first 下仍要客服批准。" };
       }
       if (stage === "STEP_4" || stage === "S4" || intent.includes("price") || intent.includes("objection") || intent.includes("trust")) {
