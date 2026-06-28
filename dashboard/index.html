@@ -6610,8 +6610,13 @@
           ? "PWP/RM68加购：旧5月活动先挡；查当前资格"
           : "PWP/RM68加购：先查当前资格；别当普通价";
       }
-      if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`)) {
+      const walletPaymentContext = /电子钱包|電子錢包|GrabPay|eWallet/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`);
+      if (walletPaymentContext) {
         return "电子钱包/GrabPay：先确认渠道；发链接后要截图";
+      }
+      const paymentMethodQuestionContext = /(?:付款方式|付款方法|怎么付款|怎麼付款|如何付款|可以.{0,12}(?:付款|付钱|付錢|pay)|货到付款|貨到付款|\bcod\b|cash\s+on\s+delivery|online\s+payment|bank\s+card|银行卡|銀行卡|信用卡|credit\s+card|debit\s+card|card\s+payment|payex|payment\s+method|payment\s+option)/i.test(`${customerText} ${sourceText} ${titleReason}`);
+      if (paymentMethodQuestionContext) {
+        return "付款方式：先确认可用渠道；发链接后要截图";
       }
       const compactReply = String(customerText || "").replace(/[\s.!！?？~～,，。❤️❤]/g, "");
       const shortAmbiguousReply = /^(ok|okay|k|yes|ya|yup|好|好的|可以|可以的|嗯+|恩+|👍|👌)$/i.test(compactReply);
