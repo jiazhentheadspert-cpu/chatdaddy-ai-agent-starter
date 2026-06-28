@@ -6627,6 +6627,55 @@
 	      return `${text.slice(0, limit).trim()}...`;
 	    }
 
+	    function cleanInferredFlowContextName(value) {
+	      return String(value || "")
+	        .replace(/\s+/g, " ")
+	        .replace(/^[\s:：-]+|[\s:：,.，。-]+$/g, "")
+	        .slice(0, 64)
+	        .trim();
+	    }
+
+	    function inferFlowContextNameFromText(value = "") {
+	      const raw = String(value || "").trim();
+	      if (!raw) return "";
+	      const smartDelay = raw.match(/Smart delay started in the Automation:\s*([^\n\r]+?)(?:\s*ends on|\n|\r|$)/i);
+	      if (smartDelay) return cleanInferredFlowContextName(smartDelay[1]);
+	      const text = raw.replace(/\s+/g, " ").trim();
+	      const codedFlow = text.match(/\b(\d{3,4}\s*(?:Broadcast|SHOPEE(?:\s*FB)?|META\s*DAY|LAST\s*CALL(?:\s*母亲节)?|母亲节(?:早鸟)?|MidMonth|PAYDAY))\b/i);
+	      if (codedFlow) return cleanInferredFlowContextName(codedFlow[1]);
+	      const namedBroadcast = text.match(/((?:Shopee|SH0PEE|META\s*DAY|LAST\s*CALL|母亲节|Broadcast)[^。,.，\n\r]{0,42})/i);
+	      if (namedBroadcast) return cleanInferredFlowContextName(namedBroadcast[1]);
+	      return "";
+	    }
+
+	    function inferredFlowContextName(decision = {}, item = {}) {
+	      const messageText = Array.isArray(item.messages)
+	        ? item.messages.map((msg) => msg?.text || msg?.body || "").filter(Boolean).join("\n")
+	        : "";
+	      const sources = [
+	        decision.previous_flow_text,
+	        decision.source_flow_text,
+	        decision.previous_broadcast_text,
+	        decision.broadcast_text,
+	        decision.previous_agent_text,
+	        decision.context_summary,
+	        decision.conversation_context,
+	        decision.history_summary,
+	        item.context_summary,
+	        item.conversation_context,
+	        item.history_summary,
+	        item.previous_agent_text,
+	        item.last_agent_message,
+	        item.raw_context,
+	        messageText,
+	      ];
+	      for (const source of sources) {
+	        const inferred = inferFlowContextNameFromText(source);
+	        if (inferred) return inferred;
+	      }
+	      return "";
+	    }
+
 	    function flowContextName(decision = {}, item = {}) {
 	      return firstContextText(
 	        decision.previous_flow_name,
@@ -6663,6 +6712,7 @@
 	      const action = String(decision.action || "").toLowerCase();
 	      const previousAgentText = String(decision.previous_agent_text || "").trim();
 	      const currentFlow = flowContextName(decision, item);
+	      const inferredFlow = currentFlow ? "" : inferredFlowContextName(decision, item);
 	      const nextFlow = nextFlowContextName(decision);
 	      const replyText = firstContextText(
 	        decision.reply_message,
@@ -6677,7 +6727,7 @@
 	          : actionLabel(decision.action);
 	      return [
 	        ["顾客最后一句", customerPreviewText(item)],
-	        ["上一段 Flow / Broadcast", currentFlow || (previousAgentText ? "看上一句 Agent" : "没有 Flow 名称，先看聊天记录")],
+	        ["上一段 Flow / Broadcast", currentFlow || (inferredFlow ? `推断：${inferredFlow}` : (previousAgentText ? "看上一句 Agent" : "没有 Flow 名称，先看聊天记录"))],
 	        ...(previousAgentText ? [["上一句 Agent", previousAgentText]] : []),
 	        ["AI 建议", replyText || "没有文字草稿"],
 	        ["下一步", nextAction],
