@@ -1233,6 +1233,51 @@
       font-weight: 920;
     }
 
+    .manual-sample-judgment {
+      display: grid;
+      gap: 4px;
+      border: 1px solid rgba(0, 183, 160, .20);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .72);
+      padding: 9px 10px;
+    }
+
+    .manual-sample-judgment span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 920;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .manual-sample-judgment b {
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .manual-sample-judgment small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.35;
+    }
+
+    .manual-sample-judgment.learn {
+      border-color: rgba(16, 185, 129, .30);
+      background: rgba(236, 253, 245, .86);
+    }
+
+    .manual-sample-judgment.fix {
+      border-color: rgba(245, 158, 11, .34);
+      background: rgba(255, 251, 235, .88);
+    }
+
+    .manual-sample-judgment.reject {
+      border-color: rgba(239, 68, 68, .30);
+      background: rgba(254, 242, 242, .88);
+    }
+
     .case-optimizer-input {
       width: 100%;
       min-height: 86px;
@@ -3162,6 +3207,11 @@
                 <span>只做复盘，不会发送给顾客</span>
               </div>
               <span class="case-optimizer-pill">Owner / Admin</span>
+            </div>
+            <div class="manual-sample-judgment" id="caseOptimizerJudgment">
+              <span>人工样本判断</span>
+              <b>待补人工最终回复</b>
+              <small>没有最终人工回复时，只能记录问题，不能让 AI 学。</small>
             </div>
             <textarea id="caseOptimizerInput" class="case-optimizer-input" placeholder="例：顾客回“有”是在回答上一句，不要重新问；应该接着 Step 1 回答。"></textarea>
             <div class="case-optimizer-actions">
@@ -6352,6 +6402,8 @@
       $("caseOptimizerOutput").textContent = caseOptimizerManualReplyText(item)
         ? buildCaseOptimizerDraft(item, "")
         : "写下这个 Case 哪里错了，我会整理成可学习规则。";
+      $("caseOptimizerJudgment").className = `manual-sample-judgment ${manualSampleLearningJudgment(item).tone}`;
+      $("caseOptimizerJudgment").innerHTML = manualSampleLearningJudgmentHtml(item);
       $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = actionHint(item);
       const closer = closerVerdict(item);
@@ -7463,6 +7515,114 @@
       return rawReply;
     }
 
+    function manualSampleLearningJudgment(item = {}) {
+      const decision = item.latest_decision || {};
+      const manualReplyText = caseOptimizerManualReplyText(item);
+      if (!manualReplyText) {
+        return {
+          tone: "wait",
+          title: "待补人工最终回复",
+          reason: "没有最终人工回复时，只能记录问题，不能让 AI 学。",
+          action: "客服处理完后先补人工最终回复。"
+        };
+      }
+      const customerText = [
+        item.last_message,
+        item.customer_text,
+        item.inbound_text,
+        decision.customer_text,
+        decision.inbound_text,
+        decision.intent
+      ].filter(Boolean).join(" ");
+      const sampleReviewItem = {
+        ...item,
+        status: "approval_required",
+        latest_decision: {
+          ...decision,
+          action: "send_reply",
+          reply_message: manualReplyText,
+          risk: decision.risk || item.risk || "medium"
+        }
+      };
+      const verdict = closerVerdict(sampleReviewItem);
+      const salesPush = /(RM\s*\d+|1\s*盒\s*RM|2\s*盒\s*RM|3\s*盒\s*RM|which\s+package|哪个配套|哪一个配套|安排.*配套|抢购|promotion|promo|order\s+now|buy\s+now)/i.test(manualReplyText);
+      const orderOrServiceRecovery = /order_denial|not_ordered|no_follow_up|after_sales|receipt|payment|order|delivery/i.test(String(decision.intent || "")) ||
+        /(?:我)?(?:没|沒有|没有|沒).{0,8}(?:订购|訂購|下单|下單|order|buy|purchase)|没人|沒人|没有人|沒有人|no\s*one|receipt|付款|汇款|匯款|地址|电话|電話|送货|送貨/i.test(customerText);
+      const outdatedPrice = /RM\s*368|加\s*RM\s*10|3\s*送\s*1|3送1|送1盒\s*RM\s*378/i.test(manualReplyText);
+      const englishRequest = /english|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|中文|华文|華文)/i.test(customerText);
+      if (outdatedPrice) {
+        return {
+          tone: "fix",
+          title: "要修：人工回复含旧价",
+          reason: "这类人工样本只能作为负例；修成当前 RM150 / RM258 / RM378 或活动价边界后才可学。",
+          action: "Owner 先改价格规则和测试用例。"
+        };
+      }
+      if (englishRequest && /[\u4e00-\u9fff]/.test(manualReplyText)) {
+        return {
+          tone: "fix",
+          title: "要修：英文顾客混中文",
+          reason: "顾客要求英文时，人工样本必须整段英文，并确认接 English Flow。",
+          action: "Owner 修成英文 FAQ / English Flow 规则后再学。"
+        };
+      }
+      if (orderOrServiceRecovery && salesPush) {
+        return {
+          tone: "reject",
+          title: "不学：服务/订单问题继续卖",
+          reason: "顾客在否认订单、查付款、查物流或投诉没人跟进时，继续销售会误导 AI。",
+          action: "只保留为负例，补 SOP：先查记录、安抚、转人工。"
+        };
+      }
+      if (verdict.tone === "fix") {
+        return {
+          tone: "fix",
+          title: `要修：${verdict.title}`,
+          reason: verdict.reason || "人工回复仍没过成交高手检查，不能原样进业务脑。",
+          action: "Owner 先改成正确回复，再批准学习。"
+        };
+      }
+      if (verdict.tone === "handoff") {
+        return {
+          tone: "reject",
+          title: "不学成自动回复",
+          reason: "这类样本应该沉淀转人工边界或客服 SOP，不应该让 AI 以后自动回。",
+          action: "Owner 写入 handoff / SOP 规则。"
+        };
+      }
+      if (verdict.tone === "order" || orderOrServiceRecovery) {
+        return {
+          tone: "learn",
+          title: "可学为客服 SOP",
+          reason: "人工回复处理的是查单、审款、付款、物流或售后边界；可沉淀成 SOP，不进入自动销售。",
+          action: "Owner 审核后写入客服 SOP 和回放测试。"
+        };
+      }
+      if (verdict.tone === "pass") {
+        return {
+          tone: "learn",
+          title: "可学：正确回答样本",
+          reason: "人工回复回答了顾客问题，并通过成交高手检查；可作为 FAQ / 成交话术候选。",
+          action: "Owner 审核后才进业务脑。"
+        };
+      }
+      return {
+        tone: "fix",
+        title: "要审后再学",
+        reason: "人工回复大方向可参考，但仍需要 Owner 判断是 FAQ、成交话术、SOP 还是 Flow 规则。",
+        action: "Owner 补规则类型和通过条件。"
+      };
+    }
+
+    function manualSampleLearningJudgmentHtml(item = {}) {
+      const judgment = manualSampleLearningJudgment(item);
+      return `
+        <span>人工样本判断</span>
+        <b>${escapeHtml(judgment.title)}</b>
+        <small>${escapeHtml(judgment.reason)} ${escapeHtml(judgment.action || "")}</small>
+      `;
+    }
+
     function compactCompareText(value = "") {
       return String(value || "").toLowerCase().replace(/\s+/g, "").replace(/[^\p{L}\p{N}]+/gu, "").slice(0, 500);
     }
@@ -7477,9 +7637,11 @@
       const combined = [
         item.last_message || customerPreviewText(item) || "",
         manualReplyText,
-        originalAiReply,
-        previousAgentText,
-        decision.intent || "",
+	        originalAiReply,
+	        previousAgentText,
+	        flowContextName(decision, item),
+	        nextFlowContextName(decision),
+	        decision.intent || "",
         decision.stage || "",
         feedback
       ].join("\n").toLowerCase();
@@ -7586,11 +7748,16 @@
         return "先写一句这次哪里错，例如：顾客回答“有”是在接上一句，AI 不应该重新问。";
       }
       const candidate = caseOptimizerLearningCandidate(item, feedback);
+      const judgment = manualSampleLearningJudgment(item);
       const rules = inferCaseOptimizerRules(cleanFeedback, item);
       const reason = cleanFeedback.length > 180 ? `${cleanFeedback.slice(0, 180)}...` : cleanFeedback;
       return [
         "复盘原因",
         reason,
+        "",
+        "人工样本判断",
+        `${judgment.title}｜${judgment.reason}`,
+        `处理：${judgment.action || "-"}`,
         "",
         "学习候选",
         `${candidate.artifact_label}｜${candidate.title}`,
@@ -7627,6 +7794,7 @@
         customer_message: item.last_message || customerPreviewText(item) || "",
         suggested_reply: caseOptimizerOriginalAiReply(item) || decision.reply_message || "",
         learning_candidate: caseOptimizerLearningCandidate(item, feedback),
+        manual_sample_judgment: manualSampleLearningJudgment(item),
         source: "dashboard_case_optimizer",
 	        context: {
 	          status: item.status || "",
