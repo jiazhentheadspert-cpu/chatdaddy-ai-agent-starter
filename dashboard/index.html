@@ -6868,9 +6868,12 @@
       const specialPromoAddon = Boolean(decision.special_promo_addon || decision.signals?.special_promo_addon || /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|加购|加購)/i.test(specialPromoText));
       const legacyPromo = Boolean(decision.legacy_package_promo || decision.signals?.legacy_package_promo || /(配套\s*[bc]\b|package\s*[bc]\b|4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|5\s*\+\s*3|5\s*盒\s*送\s*3\s*盒|RM\s*508|RM\s*658|8\s*盒|八\s*盒|4\s*个月|四\s*个月|年中优惠|年中優惠|直接瘦\s*(?:10|15)|旧活动|舊活動|旧图|舊圖)/i.test(specialPromoText));
       const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(rawCustomerText);
+      const oneBoxSpecificQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(rawCustomerText);
+      const oneBoxPriceAnswered = /(?:1\s*盒|一盒|1\s*box).{0,24}RM\s*150|RM\s*150.{0,24}(?:1\s*盒|一盒|1\s*box)/i.test(draftText);
       const currentPriceLadderAnswered = /(?:1\s*盒|一盒|1\s*box).{0,24}RM\s*150|RM\s*150.{0,24}(?:1\s*盒|一盒|1\s*box)/i.test(draftText)
         && /(?:2\s*盒|二盒|2\s*boxes?).{0,24}RM\s*258|RM\s*258.{0,24}(?:2\s*盒|二盒|2\s*boxes?)/i.test(draftText)
         && /(?:3\s*盒|三盒|3\s*boxes?).{0,24}RM\s*378|RM\s*378.{0,24}(?:3\s*盒|三盒|3\s*boxes?)/i.test(draftText);
+      const directPriceAnswered = currentPriceLadderAnswered || (oneBoxSpecificQuestion && oneBoxPriceAnswered);
       const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
       const paymentReceivedText = [
         intent,
@@ -6907,7 +6910,8 @@
         item.manual_reply_text
       ].filter(Boolean).join(" ");
       const cardPaymentQuestion = /(银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment|card).{0,40}(付款|付钱|付錢|支付|如何|怎样|怎樣|怎么|怎麼|用|方式|method|pay|payment|use)|(付款|付钱|付錢|支付|如何|怎样|怎樣|怎么|怎麼|用|方式|method|pay|payment|use).{0,40}(银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment|card)/i.test(paymentMethodText);
-      const paymentMethodIssue = intent.includes("payment_method") || cardPaymentQuestion || /(没有货到付款|沒有貨到付款|不能\s*cod|可以\s*cod|有\s*cod|cash\s+on\s+delivery|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card))/i.test(paymentMethodText);
+      const walletPaymentQuestion = /(grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|online\s+banking|payment\s*link|pay\s*link|qr\s*(?:pay|code)|电子钱包|電子錢包|付款链接|付款連結|付款link|支付链接|支付連結|扫码|掃碼|二维码|二維碼).{0,40}(?:对吗|對嗎|吗|嗎|可以|能|付款|支付|pay|payment|use|correct|right|link)?|(?:这是|這是|is\s+this|this\s+is).{0,40}(?:grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|qr\s*(?:pay|code)|电子钱包|電子錢包|付款链接|付款連結|二维码|二維碼)/i.test(paymentMethodText);
+      const paymentMethodIssue = intent.includes("payment_method") || cardPaymentQuestion || walletPaymentQuestion || /(没有货到付款|沒有貨到付款|不能\s*cod|可以\s*cod|有\s*cod|cash\s+on\s+delivery|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card))/i.test(paymentMethodText);
       const deliveryPaymentText = [
         intent,
         action,
@@ -7017,11 +7021,15 @@
       if (orderDenialComplaint) {
         return { tone: "handoff", title: "否认订购先查记录", reason: "顾客说没有订购，通常是 Broadcast/订单提醒语境；不要继续销售或重复下单，先人工查记录并安抚。" };
       }
-      if (directPriceQuestion && !specialPromoAddon && !legacyPromo && !currentPriceLadderAnswered) {
-        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，必须给当前 RM150/RM258/RM378 价梯和下一步 CTA。" };
+      if (directPriceQuestion && !specialPromoAddon && !legacyPromo && !directPriceAnswered) {
+        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
       }
-      if (directPriceQuestion && currentPriceLadderAnswered) {
-        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? "问价可审：价梯 + CTA" : "不能过：问价缺 CTA", reason: priceCtaAnswered ? "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。" : "顾客问价时，草稿除了当前价梯，还要给明确下一步，例如问她要安排哪个配套。" };
+      if (directPriceQuestion && directPriceAnswered) {
+        const directPriceTitle = currentPriceLadderAnswered ? "问价可审：价梯 + CTA" : "问一盒可审：一盒价 + CTA";
+        const directPriceReason = currentPriceLadderAnswered
+          ? "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。"
+          : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；客服可再确认是否要一盒，或轻轻提醒 2盒/3盒更划算。";
+        return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? directPriceTitle : "不能过：问价缺 CTA", reason: priceCtaAnswered ? directPriceReason : "顾客问价时，草稿除了当前价，还要给明确下一步，例如问她要不要安排一盒或哪个配套。" };
       }
       if (paymentReceivedSignal) {
         return { tone: "order", title: "付款/汇款先审款", reason: "顾客说已付款/已汇款，或草稿确认收到款；先核对金额、截图和订单资料，不继续销售，也不要直接承诺已出货。" };
@@ -7048,7 +7056,7 @@
         return { tone: "handoff", title: "送货/付款先确认", reason: "顾客问送货和付款怎样安排；要看地区、配套、付款方式和订单资料，不要回产品介绍或接 Flow，先人工确认。" };
       }
       if (paymentMethodIssue) {
-        return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡或线上付款要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
+        return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡、GrabPay/eWallet 或付款链接要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
       }
       if (orderUpdateRequest) {
         return { tone: "handoff", title: "改资料先查单", reason: "顾客要改地址、电话或收件资料；先查订单是否已建立或出货，不要重复下单，也不要承诺已改好。" };
