@@ -8298,6 +8298,14 @@
           action: "Owner 审核后才进业务脑。"
         };
       }
+      if (verdict.tone === "review") {
+        return {
+          tone: "learn",
+          title: "可学候选：Owner 审核后进业务脑",
+          reason: "人工回复已回答顾客问题，并通过成交高手的审核型判定；这不是错误，只是还要由 Owner 确认写成 FAQ、成交话术、SOP 或 Flow 规则。",
+          action: "保留顾客原话、上一段 Flow、AI 原草稿和人工最终回复，审核后再应用。"
+        };
+      }
       return {
         tone: "fix",
         title: "要审后再学",
