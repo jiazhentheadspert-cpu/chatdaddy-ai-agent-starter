@@ -6726,6 +6726,7 @@
 	          ? "停止 Flow / 转人工"
 	          : actionLabel(decision.action);
 	      return [
+	        ["判断顺序", "先看顾客最后一句；Flow 只是上下文，问题没答完不能接 Flow"],
 	        ["顾客最后一句", customerPreviewText(item)],
 	        ["上一段 Flow / Broadcast", currentFlow || (inferredFlow ? `推断：${inferredFlow}` : (previousAgentText ? "看上一句 Agent" : "没有 Flow 名称，先看聊天记录"))],
 	        ...(previousAgentText ? [["上一句 Agent", previousAgentText]] : []),
