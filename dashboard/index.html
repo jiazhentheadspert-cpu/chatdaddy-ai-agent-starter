@@ -2520,6 +2520,40 @@
     .closer-verdict.fix { border-left-color: rgba(239,68,68,.9); }
     .closer-verdict.order { border-left-color: rgba(59,130,246,.9); }
 
+    .flow-context-chain {
+      display: grid;
+      gap: 7px;
+      margin-top: 12px;
+      padding-left: 10px;
+      border-left: 3px solid rgba(59,130,246,.56);
+    }
+
+    .flow-context-chain > span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .context-chain-row {
+      display: grid;
+      gap: 2px;
+    }
+
+    .context-chain-row small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .context-chain-row b {
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.35;
+      margin: 0;
+    }
+
     .action-card .btn {
       margin-top: 12px;
       min-height: 46px;
@@ -3150,6 +3184,13 @@
               <p id="closerVerdictReason">确认文案、阶段和 CTA 后再批准。</p>
               <p class="verdict-next-action" id="closerVerdictNextAction">客服下一步：确认后批准；不能确定就转人工。</p>
               <p class="verdict-learning-capture" id="closerVerdictLearningCapture">复盘要留：顾客问题、AI 草稿、客服最终处理。</p>
+            </div>
+            <div class="flow-context-chain" id="flowContextChain" aria-label="顾客问题到 Flow 接法">
+              <span>上下文链</span>
+              <div class="context-chain-row">
+                <small>顾客最后一句</small>
+                <b>等待选择 Case</b>
+              </div>
             </div>
             <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
           </div>
@@ -6321,6 +6362,7 @@
       $("closerVerdictReason").textContent = closer.reason;
       $("closerVerdictNextAction").textContent = closerVerdictNextAction(closer, item);
       $("closerVerdictLearningCapture").textContent = closerVerdictLearningCapture(closer, item);
+      $("flowContextChain").innerHTML = flowContextChainHtml(item);
       if (approvalGuard.blocked) {
         $("actionTitle").textContent = approvalGuard.title;
         $("actionReason").textContent = approvalGuard.reason;
@@ -6511,12 +6553,94 @@
       if (decision.action === "ask_human") return "停止自动流程，人工接手";
       if (item.status === "order") return "确认资料后再提交订单";
       if (decision.send_now) return "固定自动流程或已排程动作继续执行";
-      return "顾客有疑问或成交语境，需要人确认";
-    }
+	      return "顾客有疑问或成交语境，需要人确认";
+	    }
 
-    function approvalGuardForVerdict(closer = {}) {
-      if (closer.tone === "fix") {
-        return {
+	    function firstContextText(...values) {
+	      return values
+	        .map((value) => String(value || "").trim())
+	        .find(Boolean) || "";
+	    }
+
+	    function contextSnippet(value, limit = 132) {
+	      const text = String(value || "").replace(/\s+/g, " ").trim();
+	      if (!text || text.length <= limit) return text;
+	      return `${text.slice(0, limit).trim()}...`;
+	    }
+
+	    function flowContextName(decision = {}, item = {}) {
+	      return firstContextText(
+	        decision.previous_flow_name,
+	        decision.previous_flow_key,
+	        decision.source_flow_name,
+	        decision.source_flow_key,
+	        decision.last_flow_name,
+	        decision.last_flow_key,
+	        decision.broadcast_name,
+	        decision.broadcast_key,
+	        decision.flow_name,
+	        decision.flow_key,
+	        item.previous_flow_name,
+	        item.previous_flow_key,
+	        item.broadcast_name,
+	        item.flow_name
+	      );
+	    }
+
+	    function nextFlowContextName(decision = {}) {
+	      return firstContextText(
+	        decision.next_flow_name,
+	        decision.next_flow_key,
+	        decision.target_flow_name,
+	        decision.target_flow_key,
+	        decision.flow_name,
+	        decision.flow_key,
+	        decision.provider_flow_id
+	      );
+	    }
+
+	    function flowContextChainRows(item = {}) {
+	      const decision = item.latest_decision || {};
+	      const action = String(decision.action || "").toLowerCase();
+	      const previousAgentText = String(decision.previous_agent_text || "").trim();
+	      const currentFlow = flowContextName(decision, item);
+	      const nextFlow = nextFlowContextName(decision);
+	      const replyText = firstContextText(
+	        decision.reply_message,
+	        item.final_text,
+	        item.manual_reply_text,
+	        actionLabel(decision.action)
+	      );
+	      const nextAction = action.includes("flow")
+	        ? `接 Flow：${nextFlow || "未标明 Flow，先确认 Step"}`
+	        : action === "ask_human"
+	          ? "停止 Flow / 转人工"
+	          : actionLabel(decision.action);
+	      return [
+	        ["顾客最后一句", customerPreviewText(item)],
+	        ["上一段 Flow / Broadcast", currentFlow || (previousAgentText ? "看上一句 Agent" : "没有 Flow 名称，先看聊天记录")],
+	        ...(previousAgentText ? [["上一句 Agent", previousAgentText]] : []),
+	        ["AI 建议", replyText || "没有文字草稿"],
+	        ["下一步", nextAction],
+	      ];
+	    }
+
+	    function flowContextChainHtml(item = {}) {
+	      const rows = flowContextChainRows(item);
+	      return `
+	        <span>上下文链</span>
+	        ${rows.map(([label, value]) => `
+	          <div class="context-chain-row">
+	            <small>${escapeHtml(label)}</small>
+	            <b>${escapeHtml(contextSnippet(value))}</b>
+	          </div>
+	        `).join("")}
+	      `;
+	    }
+
+	    function approvalGuardForVerdict(closer = {}) {
+	      if (closer.tone === "fix") {
+	        return {
           blocked: true,
           label: "不能批准",
           title: "先退回 / 改稿",
@@ -7298,21 +7422,25 @@
       }
     }
 
-    function caseOptimizerContextLine(item = {}) {
-      const decision = item.latest_decision || {};
-      const previousAgentText = String(decision.previous_agent_text || "").trim();
-      const originalAiReply = caseOptimizerOriginalAiReply(item);
-      const manualReplyText = caseOptimizerManualReplyText(item);
-      return [
-        `顾客：${item.contact?.name || "顾客"}`,
-        `阶段：${stageLabel(decision.stage)}`,
-        `意图：${intentLabel(decision.intent)}`,
-        ...(previousAgentText ? [`上一句 Agent：${previousAgentText}`] : []),
-        `顾客最后一句：${item.last_message || customerPreviewText(item) || "[看不到原文]"}`,
-        `AI 建议：${originalAiReply || decision.reply_message || "[没有建议]"}`,
-        ...(manualReplyText ? [`客服最终回复：${manualReplyText}`] : [])
-      ].join("\n");
-    }
+	    function caseOptimizerContextLine(item = {}) {
+	      const decision = item.latest_decision || {};
+	      const previousAgentText = String(decision.previous_agent_text || "").trim();
+	      const flowName = flowContextName(decision, item);
+	      const nextFlowName = nextFlowContextName(decision);
+	      const originalAiReply = caseOptimizerOriginalAiReply(item);
+	      const manualReplyText = caseOptimizerManualReplyText(item);
+	      return [
+	        `顾客：${item.contact?.name || "顾客"}`,
+	        `阶段：${stageLabel(decision.stage)}`,
+	        `意图：${intentLabel(decision.intent)}`,
+	        ...(flowName ? [`上一段 Flow / Broadcast：${flowName}`] : []),
+	        ...(previousAgentText ? [`上一句 Agent：${previousAgentText}`] : []),
+	        `顾客最后一句：${item.last_message || customerPreviewText(item) || "[看不到原文]"}`,
+	        `AI 建议：${originalAiReply || decision.reply_message || "[没有建议]"}`,
+	        ...(nextFlowName ? [`下一步 Flow：${nextFlowName}`] : []),
+	        ...(manualReplyText ? [`客服最终回复：${manualReplyText}`] : [])
+	      ].join("\n");
+	    }
 
     function caseOptimizerManualReplyText(item = {}) {
       const status = String(item.status || "").toLowerCase();
