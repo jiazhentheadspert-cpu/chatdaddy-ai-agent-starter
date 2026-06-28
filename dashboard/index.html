@@ -6394,7 +6394,7 @@
 	      const combined = `${customerText} ${sourceText}`;
 	      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(customerText);
       const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(customerText);
-      const orderRetentionContext = /(624|Broadcast|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|保留状态|保留狀態|已安排出货|已安排出貨)/i.test(sourceText);
+      const orderRetentionContext = /(624|Broadcast|SHOPEE|Shopee\s+voucher|平台优惠|平台優惠|平台活动|平台活動|平台折扣券|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|订单确认|訂單確認|订单相关权益|訂單相關權益|保留状态|保留狀態|已安排出货|已安排出貨)/i.test(sourceText);
       const orderGiftQuestion = /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerText);
       if (orderGiftQuestion) {
         return "已下单赠品：先查订单/当时活动；别套今天赠品";
@@ -6417,8 +6417,8 @@
       }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
-          ? "订单提醒不是订单；先答 1盒 RM150 + 一盒 CTA"
-          : "订单提醒不是订单；先答当前价梯 + CTA";
+          ? "Shopee/624提醒不是订单；先答 1盒 RM150 + 一盒 CTA"
+          : "Shopee/624提醒不是订单；先答当前价梯 + CTA";
       }
       const pwpAddonContext = /(\bPWP\b|RM\s*68|RM68|add[\s-]?on|addon|top\s*up|加购|加購)/i.test(sourceText);
       if (pwpAddonContext) {
