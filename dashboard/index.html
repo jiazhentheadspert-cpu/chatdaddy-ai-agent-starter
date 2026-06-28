@@ -6641,6 +6641,8 @@
       const salesPushDraft = /(RM\s*\d+|1\s*盒\s*RM|2\s*盒\s*RM|3\s*盒\s*RM|1\s*box\s*RM|2\s*boxes?\s*RM|3\s*boxes?\s*RM|哪个配套|哪一个配套|安排.*配套|抢购|搶購|主推|promotion|promo|which\s+package|arrange.*package|buy\s+now|order\s+now)/i.test(draftText);
       const greetingOnly = /^(hi|hello|hey|halo|hallo|嗨|哈咯|哈啰|你好|您好)[\s.!！?？~～,，👋😊🙂🙏❤️❤]*$/i.test(rawCustomerText);
       const greetingHardSellDraft = greetingOnly && (salesPushDraft || action.includes("flow") || /Beyoute Plus\+\s+主要是|阻碳水|燃脂|排宿便|不是普通代餐|下一步重点|我接下来|I will show you the next key point|carb control|bowel movement|skin glow/i.test(draftText));
+      const longMessageFatigue = /(?:don['’]?\s*t|do\s+not|dont|no).{0,24}(?:patience|time|mood).{0,28}(?:read|go\s+through)|(?:too|so)\s+long.{0,24}(?:read|message|text)|(?:too\s+much|so\s+much).{0,20}(?:text|message|read)|(?:no\s+patience).{0,24}(?:read|those)|(?:不想|懒惰|懶惰|没耐心|沒耐心|没有耐心|沒有耐心).{0,16}(?:读|讀|看)|(?:太长|太長|很长|很長|一大段|太多字|字太多|看不完)/i.test(customerSignalText);
+      const longMessageDraft = draftText.length > 220 || action.includes("flow") || /Step\s*4|Beyoute\s+瘦身|Kombucha.{0,80}(?:明星|保证|保證|世界证实|世界證實)|我们的【?Beyoute|我们肯定有信心|我可以跟你保证|一旦停用|其他产品喝了后/i.test(draftText);
       const englishRequest = /(^|\b)(in\s+english|english\s+please|english|reply\s+english|speak\s+english)(\b|$)|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|characters|中文|华文|華文|华语|華語)/i.test(customerSignalText);
       const englishMixedDraft = englishRequest && /[\u4e00-\u9fff]/.test(draftText);
       const noFollowUpComplaint = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerSignalText);
@@ -6791,6 +6793,9 @@
       }
       if (greetingHardSellDraft) {
         return { tone: "fix", title: "不能过：只打招呼别硬卖", reason: "顾客只发 Hi/Hello/你好，还没有问产品；草稿不要长篇讲卖点或接 Flow。改成短欢迎，问她想了解产品、优惠、用法还是订单/售后。" };
+      }
+      if (longMessageFatigue && longMessageDraft) {
+        return { tone: "fix", title: "不能过：顾客嫌太长", reason: "顾客已经说没耐心读或嫌内容太长；不要继续 Step 长文、产品教育或长链接解释。改成 1-2 句短版重点，再给一个选择题 CTA。" };
       }
       if (englishMixedDraft) {
         return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
