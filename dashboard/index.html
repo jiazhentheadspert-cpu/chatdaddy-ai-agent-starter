@@ -1391,17 +1391,39 @@
       margin-bottom: 4px;
     }
 
-    .case-learning-step span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 760;
-      line-height: 1.35;
-    }
+	    .case-learning-step span {
+	      display: block;
+	      color: var(--muted);
+	      font-size: 12px;
+	      font-weight: 760;
+	      line-height: 1.35;
+	    }
 
-    .case-learning-loop small {
-      color: var(--muted);
-      font-size: 12px;
+	    .case-learning-self-audit {
+	      border: 1px solid rgba(15, 143, 118, .18);
+	      border-radius: 10px;
+	      background: rgba(255, 255, 255, .74);
+	      padding: 9px;
+	      display: grid;
+	      gap: 5px;
+	    }
+
+	    .case-learning-self-audit strong {
+	      color: var(--green);
+	      font-size: 11px;
+	      font-weight: 950;
+	    }
+
+	    .case-learning-self-audit span {
+	      color: var(--muted);
+	      font-size: 12px;
+	      font-weight: 760;
+	      line-height: 1.35;
+	    }
+
+	    .case-learning-loop small {
+	      color: var(--muted);
+	      font-size: 12px;
       font-weight: 760;
       line-height: 1.4;
     }
@@ -7169,6 +7191,7 @@
 	      const manychatAutomationContext = /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed|Send Message|META DAY|PAYDAY|LAST CALL|Shopee|订单|訂單|通知|提醒)/i.test(languageSwitchContextText);
 	      const englishStepOneFromBroadcast = englishRequest && flowAction && englishFlowConfirmed && /(?:step\s*1|STEP_1|S1|\bs1\b|11a)/i.test(flowContextText) && manychatAutomationContext;
 	      const automationOnlyFlowContext = flowAction && !rawCustomerText && /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed)/i.test(languageSwitchContextText);
+	      const noCustomerPromoRecoveryContext = !rawCustomerText && salesPushDraft && manychatAutomationContext && /(Smart delay started|Broadcast|订单|訂單|通知|提醒|LAST\s*CALL|Shopee|META\s*DAY|PAYDAY|优惠|優惠|活动|活動)/i.test([languageSwitchContextText, draftText, flowContextText].filter(Boolean).join(" "));
 	      const attachmentEntries = [
 	        decision.attachments,
 	        decision.attachment,
@@ -7263,6 +7286,7 @@
 	      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
 	      const oneBoxFocusedCtaAnswered = /(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,18}(?:一|1)\s*(?:盒|box)|(?:一|1)\s*(?:盒|box).{0,18}(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order)|(?:先帮你|先幫你|帮你|幫你|要我).{0,20}(?:一|1)\s*(?:盒|box)/i.test(draftText);
 	      const oneBoxGenericPackageCta = oneBoxSpecificQuestion && priceCtaAnswered && !oneBoxFocusedCtaAnswered;
+	      const priceQuestionAfterFlowContext = Boolean(rawCustomerText) && directPriceQuestion && manychatAutomationContext;
 	      const discountRequest = /(discount|折扣|便宜(?:一点|一點)?|更便宜|cheaper|best\s+price|special\s+price|扣(?:一点|一點)?|优惠(?:点|點)|優惠(?:点|點)|可以(?:再)?便宜|能(?:再)?便宜)/i.test(customerSignalText);
 	      const discountBoundaryDraft = discountRequest && (currentPriceLadderAnswered || oneBoxPriceAnswered) && /(?:目前|当前|現在|现在|今天|优惠|優惠|配套|已经|已經|现有|現有|不(?:能|会|可以)?(?:再)?(?:乱)?(?:折扣|便宜|扣价|扣價|降价|降價)|没有再扣|沒有再扣|不乱给折扣)/i.test(draftText);
 	      const unsafeDiscountPromiseDraft = discountRequest && !specialPromoAddon && !discountBoundaryDraft && (/(?:RM\s*(?:[1-9]\d|1[0-4]\d)\b)/i.test(draftText) || /(?:可以|能|帮你|幫你|给你|給你|特别|特別|私人|我这边|我這邊|老板|老闆).{0,18}(?:discount|折扣|便宜|扣价|扣價|扣|special\s+price|best\s+price)|(?:discount|折扣|便宜|扣价|扣價|扣|special\s+price|best\s+price).{0,18}(?:可以|能|给你|給你|帮你|幫你|ok|没问题|沒問題)/i.test(draftText));
@@ -7433,6 +7457,9 @@
 	      if (postNoResultPromoFlow) {
 	        return { tone: "fix", title: "不能过：效果投诉后停促销 Flow", reason: "上文已经有没瘦、没效果或失去信心；后面不能再跑 Last Call、订单提醒、优惠促销或成交 Flow。先暂停 automation，由客服售后承接并复盘使用情况。" };
 	      }
+	      if (noCustomerPromoRecoveryContext) {
+	        return { tone: "review", title: "促销追单：不学问答", reason: "没有看到顾客问题；这是 ManyChat/人工在订单提醒、Smart Delay 或促销上下文里的追单动作。可以审价格、活动和 CTA 是否正确，但不要把它写进 FAQ 或顾客问答学习。" };
+	      }
 	      if (automationOnlyFlowContext) {
 	        return { tone: "review", title: "纯自动 Flow：不学问答", reason: "这条没有顾客问题，只是 ManyChat automation / Broadcast 自己推进。可以审 Flow 是否该继续，但不要把它当成顾客问答、FAQ 或成交话术样本。" };
 	      }
@@ -7506,12 +7533,24 @@
 	        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
 	      }
       if (directPriceQuestion && directPriceAnswered) {
-        const directPriceTitle = oneBoxSpecificQuestion
-          ? (oneBoxGenericPackageCta ? "问一盒可审：CTA 改成一盒" : "问一盒可审：一盒价优先")
-          : "问价可审：价梯 + CTA";
-        const directPriceReason = oneBoxSpecificQuestion
-          ? (oneBoxGenericPackageCta ? "顾客问一盒多少钱，草稿已回答 1盒 RM150 并有 CTA，所以可审；但“哪个配套”偏泛。更会成交的 CTA 是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。" : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但 CTA 应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。")
+        let directPriceTitle = "问价可审：价梯 + CTA";
+        let directPriceReason = priceQuestionAfterFlowContext
+          ? "顾客是在 ManyChat Flow、Smart Delay 或 Broadcast 后主动问价；这是真问题，不是纯自动 Flow。先正面回答当前价格，再接一个下单 CTA，不要把旧订单提醒当成已下单。"
           : "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。";
+        if (oneBoxSpecificQuestion) {
+          if (priceQuestionAfterFlowContext && oneBoxGenericPackageCta) {
+            directPriceTitle = "Flow后问一盒：CTA改一盒";
+            directPriceReason = "顾客是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已答 1盒 RM150，可以补价梯，但“哪个配套”偏泛。更会成交的 CTA 是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。";
+          } else if (priceQuestionAfterFlowContext) {
+            directPriceTitle = "Flow后问一盒：先答价再成交";
+            directPriceReason = "顾客是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已先回答 1盒 RM150。价梯和赠品可以轻补充，CTA 要优先问要不要安排一盒试喝，确认后才进收资料/下单。";
+          } else {
+            directPriceTitle = oneBoxGenericPackageCta ? "问一盒可审：CTA 改成一盒" : "问一盒可审：一盒价优先";
+            directPriceReason = oneBoxGenericPackageCta ? "顾客问一盒多少钱，草稿已回答 1盒 RM150 并有 CTA，所以可审；但“哪个配套”偏泛。更会成交的 CTA 是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。" : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但 CTA 应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。";
+          }
+        } else if (priceQuestionAfterFlowContext) {
+          directPriceTitle = "Flow后问价：答完再接CTA";
+        }
         return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? directPriceTitle : "不能过：问价缺 CTA", reason: priceCtaAnswered ? directPriceReason : "顾客问价时，草稿除了当前价，还要给明确下一步，例如问她要不要安排一盒或哪个配套。" };
       }
       if (paymentReceivedSignal) {
@@ -7709,11 +7748,31 @@
 	      return caseOptimizerLearningCandidate(item, "");
 	    }
 
+	    function caseSelfOptimizationChecklist(item = {}, candidate = {}) {
+	      const closer = closerVerdict(item);
+	      const pendingReply = needsManualReplyAfterHandoff(item);
+	      const hasFinalReply = hasManualFinalReply(item);
+	      const title = closer.title || candidate.title || "待复盘";
+	      const issue = pendingReply ? "转人工后缺人工最终回复，AI 还不能判断正确答案。" : title;
+	      const artifactLabel = candidate.artifact_label || "学习候选";
+	      const replay = candidate.replay_test || "用同类真实顾客句子重跑，确认 verdict 和下一步动作都正确。";
+	      const nextAction = pendingReply
+	        ? "补人工最终回复后，再判断下次自动答、退回 AI、还是继续人工。"
+	        : (candidate.next_owner_action || `Owner 审核是否写入 ${artifactLabel}。`);
+	      return [
+	        `错因：${issue}`,
+	        hasFinalReply ? "正确回复：人工最终回复已保存，先判可学 / 要修 / 不学。" : "正确回复：等客服贴最后真正发给顾客的文字。",
+	        `下次动作：${nextAction}`,
+	        `回放测试：${replay}`
+	      ];
+	    }
+
 	    function caseLearningLoopHtml(item = {}) {
 	      if (!shouldShowCaseLearningLoop(item)) return "";
 	      const pendingReply = needsManualReplyAfterHandoff(item);
 	      const manualReply = caseOptimizerManualReplyText(item);
 	      const candidate = caseLearningLoopCandidate(item);
+	      const selfAuditLines = caseSelfOptimizationChecklist(item, candidate);
 	      const label = candidate.artifact_label || "学习候选";
 	      const title = pendingReply ? "先补人工最终回复" : (candidate.title || "人工处理样本待复盘");
 	      const stepOne = pendingReply
@@ -7737,6 +7796,10 @@
 	            <div class="case-learning-step"><strong>客服</strong><span>${escapeHtml(stepOne)}</span></div>
 	            <div class="case-learning-step"><strong>Hermas</strong><span>${escapeHtml(stepTwo)}</span></div>
 	            <div class="case-learning-step"><strong>Owner</strong><span>${escapeHtml(stepThree)}</span></div>
+	          </div>
+	          <div class="case-learning-self-audit">
+	            <strong>AI 自我优化要补</strong>
+	            ${selfAuditLines.map((line) => `<span>${escapeHtml(line)}</span>`).join("")}
 	          </div>
 	          <small>${escapeHtml(candidate.next_owner_action || "老板审核后，才决定写入 FAQ、SOP、成交话术、Flow 规则或测试用例。")}</small>
 	        </div>
