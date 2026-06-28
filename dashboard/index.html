@@ -7593,6 +7593,11 @@
 	      const directPriceAnswered = currentPriceLadderAnswered || (oneBoxSpecificQuestion && oneBoxPriceAnswered);
 	      const priceAndSachetQuestion = directPriceQuestion && sachetCountQuestion;
 	      const priceAndSachetAnswered = directPriceAnswered && sachetCountAnswered;
+	      const pricePackAnswerIndex = draftText.search(/(?:1\s*盒|一盒|1\s*box|RM\s*150|当前价|目前优惠|15\s*小包|15\s*sachets?)/i);
+	      const pricePackPromoBeforeAnswer = priceAndSachetQuestion
+	        && priceAndSachetAnswered
+	        && pricePackAnswerIndex > 80
+	        && /(?:LAST\s*CALL|优惠|優惠|活动|活動|促销|促銷|promotion|promo|预购|預購|名额|名額|价格图|價格圖|WhatsApp Image|配套\s*[ABC]|Beyoute\s*Plus|赠品|贈品|加送|毛巾|小粉瓶|限时|限時)/i.test(draftText.slice(0, pricePackAnswerIndex));
 	      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
 	      const oneBoxFocusedCtaAnswered = /(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,18}(?:一|1)\s*(?:盒|box)|(?:一|1)\s*(?:盒|box).{0,18}(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order)|(?:先帮你|先幫你|帮你|幫你|要我).{0,20}(?:一|1)\s*(?:盒|box)/i.test(draftText);
 	      const oneBoxGenericPackageCta = oneBoxSpecificQuestion && priceCtaAnswered && !oneBoxFocusedCtaAnswered;
@@ -7927,6 +7932,9 @@
 	      }
 	      if (directPriceQuestion && !specialPromoAddon && !legacyPromo && !directPriceAnswered) {
 	        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
+	      }
+	      if (pricePackPromoBeforeAnswer) {
+	        return { tone: "fix", title: "不能过：价格包数先短答", reason: "顾客问“多少钱有多少包”时，不能先丢 LAST CALL、价格图或促销长文。第一句先短答当前价 + 1盒15小包/15天，再问配套；需要 Flow 也要答完后再接。" };
 	      }
 	      if (priceAndSachetQuestion && directPriceAnswered && !sachetCountAnswered) {
 	        return { tone: "fix", title: "不能过：价格包数没答完", reason: "顾客问“多少钱有多少包”是两个问题；草稿只答价格或只接 Promo Flow 不够。必须同时答当前价 RM150 / RM258 / RM378 和 1盒15小包，可喝15天，再接 CTA。" };
