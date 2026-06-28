@@ -7604,7 +7604,7 @@
 	      const pricePackAnswerIndex = draftText.search(/(?:1\s*盒|一盒|1\s*box|RM\s*150|当前价|目前优惠|15\s*小包|15\s*sachets?)/i);
 	      const pricePackPromoBeforeAnswer = priceAndSachetQuestion
 	        && priceAndSachetAnswered
-	        && pricePackAnswerIndex > 80
+	        && pricePackAnswerIndex > 40
 	        && /(?:LAST\s*CALL|优惠|優惠|活动|活動|促销|促銷|promotion|promo|预购|預購|名额|名額|价格图|價格圖|WhatsApp Image|配套\s*[ABC]|Beyoute\s*Plus|赠品|贈品|加送|毛巾|小粉瓶|限时|限時)/i.test(draftText.slice(0, pricePackAnswerIndex));
 	      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
 	      const oneBoxFocusedCtaAnswered = /(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,18}(?:一|1)\s*(?:盒|box)|(?:一|1)\s*(?:盒|box).{0,18}(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order)|(?:先帮你|先幫你|帮你|幫你|要我).{0,20}(?:一|1)\s*(?:盒|box)/i.test(draftText);
