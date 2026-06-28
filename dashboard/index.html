@@ -6689,6 +6689,53 @@
 	      return "";
 	    }
 
+	    function automationControlContextName(decision = {}, item = {}) {
+	      const messageText = Array.isArray(item.messages)
+	        ? item.messages.map((msg) => msg?.text || msg?.body || "").filter(Boolean).join("\n")
+	        : "";
+	      const direct = firstContextText(
+	        decision.automation_control,
+	        decision.automation_event,
+	        decision.automation_status,
+	        decision.staff_action,
+	        decision.operator_action,
+	        decision.human_action,
+	        item.automation_control,
+	        item.automation_event,
+	        item.automation_status,
+	        item.staff_action,
+	        item.operator_action
+	      );
+	      const sources = [
+	        direct,
+	        decision.context_summary,
+	        decision.conversation_context,
+	        decision.history_summary,
+	        item.context_summary,
+	        item.conversation_context,
+	        item.history_summary,
+	        item.raw_context,
+	        messageText,
+	      ];
+	      for (const source of sources) {
+	        const text = String(source || "").replace(/\s+/g, " ").trim();
+	        if (!text) continue;
+	        if (/paused automated replies|暂停(?:自动|automation)|暫停(?:自動|automation)/i.test(text)) {
+	          return "人工暂停 automation：先处理顾客问题，再决定是否接 Flow";
+	        }
+	        if (/Automations have been resumed by|resumed automation|恢复(?:自动|automation)|恢復(?:自動|automation)/i.test(text)) {
+	          return "人工恢复 automation：确认后才接下一步 Flow";
+	        }
+	        if (/Conversation was assigned to|assigned to|已分配|指派给|指派給/i.test(text)) {
+	          return "人工接管 / 分配：先由客服确认";
+	        }
+	        if (/Conversation was moved from (?:Closed|Unassigned) to (?:Unassigned|Open)|moved from Closed to Unassigned|moved from Unassigned to Open/i.test(text)) {
+	          return "Conversation 已打开：需要客服处理";
+	        }
+	      }
+	      return "";
+	    }
+
 	    function flowContextName(decision = {}, item = {}) {
 	      return firstContextText(
 	        decision.previous_flow_name,
@@ -6726,6 +6773,7 @@
 	      const previousAgentText = String(decision.previous_agent_text || "").trim();
 	      const currentFlow = flowContextName(decision, item);
 	      const inferredFlow = currentFlow ? "" : inferredFlowContextName(decision, item);
+	      const automationControl = automationControlContextName(decision, item);
 	      const nextFlow = nextFlowContextName(decision);
 	      const replyText = firstContextText(
 	        decision.reply_message,
@@ -6742,6 +6790,7 @@
 	        ["判断顺序", "先看顾客最后一句；Flow 只是上下文，问题没答完不能接 Flow"],
 	        ["顾客最后一句", customerPreviewText(item)],
 	        ["上一段 Flow / Broadcast", currentFlow || (inferredFlow ? `推断：${inferredFlow}` : (previousAgentText ? "看上一句 Agent" : "没有 Flow 名称，先看聊天记录"))],
+	        ...(automationControl ? [["人工动作", automationControl]] : []),
 	        ...(previousAgentText ? [["上一句 Agent", previousAgentText]] : []),
 	        ["AI 建议", replyText || "没有文字草稿"],
 	        ["下一步", nextAction],
