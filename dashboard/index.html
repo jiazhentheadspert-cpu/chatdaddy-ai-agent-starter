@@ -6373,15 +6373,20 @@
         decision.target_flow_key,
         decision.target_flow_name,
         decision.reply_message,
-        closer.title,
-        closer.reason
-      ].filter(Boolean).join(" ");
-      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(customerText);
+	        closer.title,
+	        closer.reason
+	      ].filter(Boolean).join(" ");
+	      const combined = `${customerText} ${sourceText}`;
+	      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(customerText);
       const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(customerText);
       const orderRetentionContext = /(624|Broadcast|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|保留状态|保留狀態|已安排出货|已安排出貨)/i.test(sourceText);
       const orderGiftQuestion = /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerText);
       if (orderGiftQuestion) {
         return "已下单赠品：先查订单/当时活动；别套今天赠品";
+      }
+      const adverseReactionContext = /(?:喝了|服用|服了|take|drink|mixed).{0,60}(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服|side\s*effect|nausea|vomit|dizzy|diarrhea|stomach)|(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|nausea|vomit|dizzy|diarrhea).{0,60}(?:Beyoute|喝|服用|take|drink|产品|產品|mixed|water)/i.test(combined);
+      if (adverseReactionContext) {
+        return "不适/想吐：先停销售；问喝法+症状";
       }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
@@ -7243,9 +7248,14 @@
 	      const attachmentOnlyMessage = !rawCustomerText && /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof)/i.test(attachmentText);
 	      const afterSalesPhotoReportContext = attachmentOnlyMessage && /(报平安|報平安|BPA|收到货|收到貨|收到了|review|Review|截图|截圖|回购券|回購券|VIP|After payment|订单|訂單|parcel|photo|image)/i.test([attachmentText, languageSwitchContextText, previousAgentText, draftText, flowContextText].filter(Boolean).join(" "));
 	      const usageQuestion = intent.includes("usage") || /(怎么喝|怎麼喝|怎样喝|怎樣喝|一天.{0,8}(几次|幾次)|喝法|用法|how\s+(?:to\s+)?(?:drink|take|use)|how\s+many\s+times)/i.test(customerSignalText);
-      const usageAnswered = /(一天|每日|每天|饭前|飯前|餐前|150\s*[-到至]?\s*200\s*ml|150\s*ml|200\s*ml|温水|溫水|once\s+a\s+day|twice\s+a\s+day|before\s+(?:a\s+)?meal|150\s*[-–to]{0,4}\s*200\s*ml|room\s+temperature\s+water)/i.test(draftText);
-      const usageFlowWithoutAnswer = usageQuestion && flowAction && !usageAnswered;
-      const packageBoxCountQuestion = /(?:有|共|一共|总共|總共|多少|几|幾|8|八)\s*(?:盒|box|boxes)|(?:几|幾|多少).{0,6}(?:盒|box|boxes)/i.test(customerSignalText);
+	      const usageAnswered = /(一天|每日|每天|饭前|飯前|餐前|150\s*[-到至]?\s*200\s*ml|150\s*ml|200\s*ml|温水|溫水|once\s+a\s+day|twice\s+a\s+day|before\s+(?:a\s+)?meal|150\s*[-–to]{0,4}\s*200\s*ml|room\s+temperature\s+water)/i.test(draftText);
+	      const usageFlowWithoutAnswer = usageQuestion && flowAction && !usageAnswered;
+	      const adverseReactionText = [customerSignalText, priorCustomerIssueText, languageSwitchContextText].filter(Boolean).join(" ");
+	      const adverseReactionComplaint = intent.includes("adverse") || intent.includes("side_effect") || /(?:喝了|服用|服了|take|drink|mixed).{0,60}(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服|side\s*effect|nausea|vomit|dizzy|diarrhea|stomach)/i.test(adverseReactionText) || /(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|nausea|vomit|dizzy|diarrhea).{0,60}(?:Beyoute|喝|服用|take|drink|产品|產品|mixed|water)/i.test(adverseReactionText) || /(?:why|为什么|為什麼).{0,40}(?:想吐|呕吐|嘔吐|恶心|噁心|nausea|vomit)/i.test(adverseReactionText);
+	      const adverseReactionUnsafeDraft = adverseReactionComplaint && /(?:一定|肯定|绝对|絕對).{0,12}(?:不会|不會|没有|沒有).{0,18}(?:副作用|不舒服|想吐|呕吐|嘔吐|恶心|噁心)|(?:不会|不會).{0,16}(?:让身体产生依赖|讓身體產生依賴|副作用|想吐|头晕|頭暈|心跳加速)|(?:子宫肌瘤|子宮肌瘤|水瘤|肉瘤|三高|尿酸|心脏病|心臟病).{0,30}(?:可以|都可以|能).{0,12}(?:服用|喝|take|drink)|(?:no|without).{0,12}(?:side\s*effects?|dependency|dependen)/i.test(draftText);
+	      const adverseReactionSalesPushDraft = adverseReactionComplaint && !adverseReactionUnsafeDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|下单|下單|order\s*now|配套|package|加送|赠品|贈品)/i.test([draftText, flowContextText, languageSwitchContextText].filter(Boolean).join(" ")));
+	      const adverseReactionDiagnosticDraft = adverseReactionComplaint && !adverseReactionUnsafeDraft && !adverseReactionSalesPushDraft && /(?:不好意思|抱歉|sorry|明白|理解|understand|体验|體驗)/i.test(draftText) && /(?:怎么服用|怎麼服用|怎么喝|怎麼喝|怎么用|怎麼用|before\s*meal|餐前|150\s*ml|水量|第一次|喝了几天|喝了幾天|几天|幾天|马上|馬上|多久|呕吐|嘔吐|恶心|噁心|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服)/i.test(draftText);
+	      const packageBoxCountQuestion = /(?:有|共|一共|总共|總共|多少|几|幾|8|八)\s*(?:盒|box|boxes)|(?:几|幾|多少).{0,6}(?:盒|box|boxes)/i.test(customerSignalText);
       const packageDurationQuestion = /(?:8|八)?\s*盒.{0,12}(?:多少|几|幾|多久).{0,8}(?:个月|個月|月|months?)|(?:喝|用).{0,12}(?:多少|几|幾|多久).{0,8}(?:个月|個月|月|months?)/i.test(customerSignalText);
       const sachetCountQuestion = /(?:一|1)\s*盒.{0,12}(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)|(?:几|幾|多少).{0,8}(?:包|小包|sachet|pack)/i.test(customerSignalText);
       const cycleSuitabilityQuestion = /(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期).{0,12}(?:可以|能|可不可以|喝|take|drink)|(?:可以|能).{0,12}(?:经期|經期|月经|月經|姨妈|姨媽|period|menstruat|年期)/i.test(customerSignalText);
@@ -7504,12 +7514,21 @@
 	      if (englishStepOneFromBroadcast) {
 	        return { tone: "fix", title: "不能过：语言请求先承接", reason: "顾客只是说看不懂中文/要求 English，尤其是在 Broadcast 或订单提醒后；先用英文解释上一条是什么，并问她要产品、价格、优惠还是订单帮助。不要直接丢完整 Step 1 教育 Flow。" };
 	      }
-	      if (attachmentOnlyMessage) {
-	        return { tone: "handoff", title: afterSalesPhotoReportContext ? "图片报平安先人工" : "图片/附件先人工看", reason: "顾客只发图片/附件，没有文字问题；客服必须先打开图片确认是报平安、Review 截图、付款证明、投诉还是问题图。确认后才接对应售后 Flow，不要让 AI 猜图意，也不要把它当 FAQ 或成交话术学习。" };
-	      }
-	      if (postNoResultPromoFlow) {
-	        return { tone: "fix", title: "不能过：效果投诉后停促销 Flow", reason: "上文已经有没瘦、没效果或失去信心；后面不能再跑 Last Call、订单提醒、优惠促销或成交 Flow。先暂停 automation，由客服售后承接并复盘使用情况。" };
-	      }
+		      if (attachmentOnlyMessage) {
+		        return { tone: "handoff", title: afterSalesPhotoReportContext ? "图片报平安先人工" : "图片/附件先人工看", reason: "顾客只发图片/附件，没有文字问题；客服必须先打开图片确认是报平安、Review 截图、付款证明、投诉还是问题图。确认后才接对应售后 Flow，不要让 AI 猜图意，也不要把它当 FAQ 或成交话术学习。" };
+		      }
+		      if (adverseReactionUnsafeDraft || adverseReactionSalesPushDraft) {
+		        return { tone: "fix", title: "不能过：不适反应别否认", reason: "顾客说喝后肚子不舒服/想吐；草稿不能说一定没副作用、心脏病/三高都能喝，也不能继续 LAST CALL、优惠或成交 Flow。先暂停销售，问喝法、时间、症状和严重程度，必要时建议暂停并人工售后/医生确认。" };
+		      }
+		      if (adverseReactionDiagnosticDraft) {
+		        return { tone: "review", title: "不适反应可审：先问症状", reason: "已承接不舒服/想吐，并先问喝法、时间、有没有呕吐/头晕/腹痛/腹泻等；客服审核后再决定调整喝法、暂停或售后跟进。" };
+		      }
+		      if (adverseReactionComplaint) {
+		        return { tone: "handoff", title: "不适反应先人工售后", reason: "顾客说喝后不舒服/想吐；先人工问清楚喝法、时间、症状和严重程度，不接销售 Flow，不否认副作用。" };
+		      }
+		      if (postNoResultPromoFlow) {
+		        return { tone: "fix", title: "不能过：效果投诉后停促销 Flow", reason: "上文已经有没瘦、没效果或失去信心；后面不能再跑 Last Call、订单提醒、优惠促销或成交 Flow。先暂停 automation，由客服售后承接并复盘使用情况。" };
+		      }
 	      if (noCustomerPromoRecoveryContext) {
 	        return { tone: "review", title: "促销追单：不学问答", reason: "没有看到顾客问题；这是 ManyChat/人工在订单提醒、Smart Delay 或促销上下文里的追单动作。可以审价格、活动和 CTA 是否正确，但不要把它写进 FAQ 或顾客问答学习。" };
 	      }
