@@ -6882,11 +6882,13 @@
 	        item.manual_reply_text,
 	        actionLabel(decision.action)
 	      );
-	      const nextAction = action.includes("flow")
-	        ? `接 Flow：${nextFlow || "未标明 Flow，先确认 Step"}`
-	        : action === "ask_human"
-	          ? (directPriceContextQuestion ? priceContextNext : "停止 Flow / 转人工")
-	          : actionLabel(decision.action);
+		      const nextAction = directPriceContextQuestion
+		        ? priceContextNext
+		        : action.includes("flow")
+		          ? `接 Flow：${nextFlow || "未标明 Flow，先确认 Step"}`
+		          : action === "ask_human"
+		            ? "停止 Flow / 转人工"
+		            : actionLabel(decision.action);
 	      return [
 	        ["判断顺序", "先看顾客最后一句；Flow 只是上下文，问题没答完不能接 Flow"],
 	        ["接 Flow 规则", "先回答顾客问题，再接对应 Flow / FAQ / 成交 CTA；不要只看上一段蓝色内容"],
