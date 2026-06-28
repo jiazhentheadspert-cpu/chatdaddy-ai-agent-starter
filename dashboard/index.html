@@ -6782,12 +6782,14 @@
 	      const decision = item.latest_decision || {};
 	      const action = String(decision.action || "").toLowerCase();
 	      const previousAgentText = String(decision.previous_agent_text || "").trim();
+	      const customerText = customerPreviewText(item);
+	      const directPriceContextQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(customerText);
 	      const currentFlow = flowContextName(decision, item);
 	      const inferredFlow = currentFlow ? "" : inferredFlowContextName(decision, item);
 	      const automationControl = automationControlContextName(decision, item);
 	      const nextFlow = nextFlowContextName(decision);
 	      const replyText = firstContextText(
-	        decision.reply_message,
+	        directPriceContextQuestion && action === "ask_human" ? "补当前价梯 + CTA；不要把 Broadcast 当订单" : decision.reply_message,
 	        item.final_text,
 	        item.manual_reply_text,
 	        actionLabel(decision.action)
@@ -6795,12 +6797,12 @@
 	      const nextAction = action.includes("flow")
 	        ? `接 Flow：${nextFlow || "未标明 Flow，先确认 Step"}`
 	        : action === "ask_human"
-	          ? "停止 Flow / 转人工"
+	          ? (directPriceContextQuestion ? "先答价梯 + CTA；确认后再接 Flow / 收单" : "停止 Flow / 转人工")
 	          : actionLabel(decision.action);
 	      return [
 	        ["判断顺序", "先看顾客最后一句；Flow 只是上下文，问题没答完不能接 Flow"],
 	        ["接 Flow 规则", "先回答顾客问题，再接对应 Flow / FAQ / 成交 CTA；不要只看上一段蓝色内容"],
-	        ["顾客最后一句", customerPreviewText(item)],
+	        ["顾客最后一句", customerText],
 	        ["上一段 Flow / Broadcast", currentFlow || (inferredFlow ? `推断：${inferredFlow}` : (previousAgentText ? "看上一句 Agent" : "没有 Flow 名称，先看聊天记录"))],
 	        ...(automationControl ? [["人工动作", automationControl]] : []),
 	        ...(previousAgentText ? [["上一句 Agent", previousAgentText]] : []),
