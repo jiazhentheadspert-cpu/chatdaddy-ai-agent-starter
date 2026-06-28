@@ -6518,6 +6518,12 @@
       if (adverseReactionContext) {
         return "不适/想吐：先停销售；问喝法+症状";
       }
+      const englishLanguageRequestContext = /(?:idont|i\s+don['’]?t|dont|do\s+not|can\s+you|can\s+u|please).{0,48}(?:english|write\s+english|understand)|\benglish\b|英文/i.test(customerText);
+      const confusedShortReplyContext = /^(?:[?？]{2,}|什么意思|什麼意思|不懂|看不懂|看不明白|不明白|不理解|听不懂|聽不懂|what|what\?|huh|huh\?)$/i.test(String(customerText || "").trim()) || /(?:看不懂|看不明白|不懂|不明白|不理解|什么意思|什麼意思|don['’]?t\s+understand|dont\s+understand|confused)/i.test(customerText);
+      const priorExplainerContext = /(Beyoute|产品|產品|副作用|成分|白芸豆|阻碳水|碳水|甜味|代糖|Step|Flow|Broadcast|Smart delay|Automation sent|LAST\s*CALL|优惠|優惠|活动|活動)/i.test(sourceText);
+      if (confusedShortReplyContext && priorExplainerContext && !englishLanguageRequestContext) {
+        return "看不懂/???：先解释上一句；别接下一段 Flow";
+      }
       const flavorQuestionContext = /(?:其他|其它|别的|別的|几|幾|多少|什么|什麼|哪(?:一)?个|哪(?:一)?個|一种|一種).{0,12}(?:口味|味道|flavo[u]?r|taste)|(?:口味|味道|flavo[u]?r|taste).{0,18}(?:其他|其它|别的|別的|几|幾|多少|什么|什麼|哪(?:一)?个|哪(?:一)?個|一种|一種|有吗|有嗎|难喝|難喝|好喝|药味|藥味)|(?:难喝|難喝|好喝|药味|藥味|口感|酸甜|微气泡|微氣泡)/i.test(customerText);
       if (flavorQuestionContext) {
         return "口味/味道：先答一种石榴酸甜；再接CTA";
@@ -7402,6 +7408,7 @@
       const longMessageDraft = draftText.length > 220 || action.includes("flow") || /Step\s*4|Beyoute\s+瘦身|Kombucha.{0,80}(?:明星|保证|保證|世界证实|世界證實)|我们的【?Beyoute|我们肯定有信心|我可以跟你保证|一旦停用|其他产品喝了后/i.test(draftText);
       const priceOnlySignalText = [customerSignalText, priorCustomerIssueText].filter(Boolean).join(" ");
       const priceOnlyAfterLongFlow = /(?:just|only|simply).{0,24}(?:ask|asking|want|need|asking\s+for).{0,24}(?:price|pricing|how\s+much)|(?:i\s+just\s+asking\s+for\s+the\s+price)|(?:只|只是|只想|只要|我只).{0,24}(?:问|問|知道|要|看).{0,18}(?:价钱|價錢|价格|價格|price)|(?:price|价钱|價錢|价格|價格).{0,80}(?:don['’]?\s*t|do\s+not|dont|no\s+need|不要|不用).{0,36}(?:send|发|發|讲|講|explain).{0,30}(?:so\s+many|too\s+many|many|这么多|那麼多|那么多)/i.test(priceOnlySignalText);
+      const confusedShortReply = /^(?:[?？]{2,}|什么意思|什麼意思|不懂|看不懂|看不明白|不明白|不理解|听不懂|聽不懂|what|what\?|huh|huh\?)$/i.test(rawCustomerText.trim()) || /(?:看不懂|看不明白|不懂|不明白|不理解|什么意思|什麼意思|don['’]?t\s+understand|dont\s+understand|confused)/i.test(customerSignalText);
       const compactCustomerReply = rawCustomerText.toLowerCase().replace(/[\s.!！?？~～,，。…·\-—_、:：;；'"“”‘’()[\]{}<>]/g, "");
       const earlyAttachmentEntries = [
         decision.attachments,
@@ -7471,7 +7478,8 @@
         item.customer_text,
         item.inbound_text
       ].filter(Boolean).join(" ");
-		      const manychatAutomationContext = /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed|Send Message|META DAY|PAYDAY|LAST CALL|Shopee|订单|訂單|通知|提醒)/i.test(languageSwitchContextText);
+      const manychatAutomationContext = /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed|Send Message|META DAY|PAYDAY|LAST CALL|Shopee|订单|訂單|通知|提醒)/i.test(languageSwitchContextText);
+      const confusedAfterExplainerContext = confusedShortReply && !englishRequest && /(Beyoute|产品|產品|副作用|成分|白芸豆|阻碳水|碳水|甜味|代糖|Step|Flow|Broadcast|Smart delay|Automation sent|LAST\s*CALL|优惠|優惠|活动|活動)/i.test([previousAgentText, languageSwitchContextText, flowContextText].filter(Boolean).join(" "));
 		      const englishProfileChineseFlowDraft = englishProfileCustomer && !/[\u4e00-\u9fff]/.test(rawCustomerText) && !englishFlowConfirmed && /[\u4e00-\u9fff]/.test([draftText, flowContextText].filter(Boolean).join(" ")) && (flowAction || salesPushDraft || longMessageDraft || manychatAutomationContext);
 		      const englishStepOneFromBroadcast = englishRequest && flowAction && englishFlowConfirmed && /(?:step\s*1|STEP_1|S1|\bs1\b|11a)/i.test(flowContextText) && manychatAutomationContext;
 	      const automationOnlyFlowContext = flowAction && !rawCustomerText && /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed)/i.test(languageSwitchContextText);
@@ -7742,6 +7750,9 @@
 	      }
       if (longMessageFatigue && longMessageDraft) {
         return { tone: "fix", title: "不能过：顾客嫌太长", reason: "顾客已经说没耐心读或嫌内容太长；不要继续 Step 长文、产品教育或长链接解释。改成 1-2 句短版重点，再给一个选择题 CTA。" };
+      }
+      if (confusedAfterExplainerContext && (longMessageDraft || flowAction || salesPushDraft)) {
+        return { tone: "fix", title: "不能过：看不懂先解释", reason: "顾客只回 “???”、看不懂或不明白，代表上一段没接住；不要继续产品长文、优惠或下一段 Flow。先用 1-2 句解释上一句是什么意思，再问她卡在产品、喝法、价格还是订单。" };
       }
 	      if (packageChoiceAmbiguousBadDraft) {
 	        return { tone: "fix", title: "不能过：表情/短答不是下单", reason: "上一句已经在问 A/B/C 或哪个配套，顾客只回 👍、emoji、sticker 或短答不等于确认购买，也不等于允许继续 Flow；不要继续长文、Flow 或默认她要某配套。改成短追问她要 A/B/C 哪个配套，必要时人工看上下文。" };
