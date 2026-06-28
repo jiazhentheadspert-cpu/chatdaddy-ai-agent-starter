@@ -6403,6 +6403,10 @@
       if (adverseReactionContext) {
         return "不适/想吐：先停销售；问喝法+症状";
       }
+      const flavorQuestionContext = /(?:其他|其它|别的|別的|几|幾|多少|什么|什麼|哪(?:一)?个|哪(?:一)?個|一种|一種).{0,12}(?:口味|味道|flavo[u]?r|taste)|(?:口味|味道|flavo[u]?r|taste).{0,18}(?:其他|其它|别的|別的|几|幾|多少|什么|什麼|哪(?:一)?个|哪(?:一)?個|一种|一種|有吗|有嗎|难喝|難喝|好喝|药味|藥味)|(?:难喝|難喝|好喝|药味|藥味|口感|酸甜|微气泡|微氣泡)/i.test(customerText);
+      if (flavorQuestionContext) {
+        return "口味/味道：先答一种石榴酸甜；再接CTA";
+      }
       const annoyedStopContext = /(煩死人|烦死人|煩死|烦死|很煩|很烦|太煩|太烦|不要再(?:发|發|send|message)|别再(?:发|發)|不要再打扰|不要再打擾|别打扰|別打擾|一直(?:发|發|send)|不要买|不要買|不想买|不想買|not\s+interested|stop\s+(?:messaging|message|sending|send)|don['’]?t\s+(?:send|message|disturb)|do\s+not\s+(?:send|message|disturb)|annoying|disturbing|unsubscribe|退订|退訂)/i.test(combined);
       if (annoyedStopContext) {
         return "嫌烦/别打扰：停止跟进；不接 Flow";
@@ -7274,6 +7278,9 @@
 	      const usageQuestion = intent.includes("usage") || /(怎么喝|怎麼喝|怎样喝|怎樣喝|一天.{0,8}(几次|幾次)|喝法|用法|how\s+(?:to\s+)?(?:drink|take|use)|how\s+many\s+times)/i.test(customerSignalText);
 	      const usageAnswered = /(一天|每日|每天|饭前|飯前|餐前|150\s*[-到至]?\s*200\s*ml|150\s*ml|200\s*ml|温水|溫水|once\s+a\s+day|twice\s+a\s+day|before\s+(?:a\s+)?meal|150\s*[-–to]{0,4}\s*200\s*ml|room\s+temperature\s+water)/i.test(draftText);
 	      const usageFlowWithoutAnswer = usageQuestion && flowAction && !usageAnswered;
+	      const flavorQuestion = intent.includes("flavor") || intent.includes("taste") || /(?:其他|其它|别的|別的|几|幾|多少|什么|什麼|哪(?:一)?个|哪(?:一)?個|一种|一種).{0,12}(?:口味|味道|flavo[u]?r|taste)|(?:口味|味道|flavo[u]?r|taste).{0,18}(?:其他|其它|别的|別的|几|幾|多少|什么|什麼|哪(?:一)?个|哪(?:一)?個|一种|一種|有吗|有嗎|难喝|難喝|好喝|药味|藥味)|(?:难喝|難喝|好喝|药味|藥味|口感|酸甜|微气泡|微氣泡)/i.test(customerSignalText);
+	      const flavorAnswered = /(?:只有|只(?:有)?|目前只有|暂时只有|暫時只有).{0,12}(?:一|1|一种|一種).{0,12}(?:口味|味道)|(?:一|1|一种|一種).{0,12}(?:口味|味道)|(?:口味|味道).{0,18}(?:只有|一种|一種)|(?:石榴|酸甜|微气泡|微氣泡|Kombucha|果酸|不是药味|不是藥味|清爽)/i.test(draftText);
+	      const flavorCtaDraft = flavorAnswered && (flowAction || salesPushDraft || /(?:继续|繼續|接下来|下一步|保留|安排|下单|下單|付款|payment|order|优惠|優惠|配套|要不要|要我|帮你|幫你|试喝|試喝)/i.test(draftText));
 	      const adverseReactionText = [customerSignalText, priorCustomerIssueText, languageSwitchContextText].filter(Boolean).join(" ");
 	      const adverseReactionComplaint = intent.includes("adverse") || intent.includes("side_effect") || /(?:喝了|服用|服了|take|drink|mixed).{0,60}(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服|side\s*effect|nausea|vomit|dizzy|diarrhea|stomach)/i.test(adverseReactionText) || /(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|nausea|vomit|dizzy|diarrhea).{0,60}(?:Beyoute|喝|服用|take|drink|产品|產品|mixed|water)/i.test(adverseReactionText) || /(?:why|为什么|為什麼).{0,40}(?:想吐|呕吐|嘔吐|恶心|噁心|nausea|vomit)/i.test(adverseReactionText);
 	      const adverseReactionUnsafeDraft = adverseReactionComplaint && /(?:一定|肯定|绝对|絕對).{0,12}(?:不会|不會|没有|沒有).{0,18}(?:副作用|不舒服|想吐|呕吐|嘔吐|恶心|噁心)|(?:不会|不會).{0,16}(?:让身体产生依赖|讓身體產生依賴|副作用|想吐|头晕|頭暈|心跳加速)|(?:子宫肌瘤|子宮肌瘤|水瘤|肉瘤|三高|尿酸|心脏病|心臟病).{0,30}(?:可以|都可以|能).{0,12}(?:服用|喝|take|drink)|(?:no|without).{0,12}(?:side\s*effects?|dependency|dependen)/i.test(draftText);
@@ -7578,6 +7585,12 @@
 	      }
       if (usageFlowWithoutAnswer) {
         return { tone: "fix", title: "不能过：没回答就接 Flow", reason: "顾客问怎么喝/一天几次；接下一段 Flow 前必须先回答用法。不要只说继续下一步或直接丢 Flow。" };
+      }
+      if (flavorQuestion && !flavorAnswered) {
+        return { tone: "fix", title: "不能过：没回答口味", reason: "顾客问有几种口味、什么味道或会不会难喝；接 Flow/价格/优惠前必须先正面回答：目前一种石榴口味，酸甜微气泡、不是药味。不要只丢产品介绍或 LAST CALL。" };
+      }
+      if (flavorQuestion && flavorAnswered) {
+        return { tone: "review", title: flavorCtaDraft ? "口味问题可审：短答再接 CTA" : "口味问题可审：短答已回答", reason: flavorCtaDraft ? "已先回答口味/味道，再接优惠、付款或 Flow；客服确认阶段和语气后可以批准。" : "已回答口味/味道，但更会成交的改法是补一句低压力 CTA，例如确认味道 OK 后继续保留优惠、付款或配套。" };
       }
       if (strongSuitabilityOverclaimDraft) {
         return { tone: "fix", title: "不能过：身体适合度强承诺", reason: "顾客问更年期、经期或体重这类特殊身体状态；草稿不能说更适合、加速燃烧脂肪或保证达到减肥效果。改成安全边界回复，必要时转人工确认。" };
