@@ -6925,6 +6925,9 @@
       if (/运输时效|物流|快递/.test(titleReason)) {
         return "改稿方向：直接回答西马预计2-3个工作天、东马预计5-7个工作天，再看是否需要查订单。";
       }
+      if (/问价嫌长/.test(titleReason)) {
+        return "改稿方向：先承接刚刚太长，用同语言直接给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再给一个下单 CTA；不要再接 Step 长 Flow。";
+      }
       if (/顾客嫌太长/.test(titleReason)) {
         return "改稿方向：改成1-2句短版重点，再给选择题 CTA；不要继续长篇 Step 文案。";
       }
@@ -7037,6 +7040,8 @@
       const greetingHardSellDraft = greetingOnly && (salesPushDraft || action.includes("flow") || /Beyoute Plus\+\s+主要是|阻碳水|燃脂|排宿便|不是普通代餐|下一步重点|我接下来|I will show you the next key point|carb control|bowel movement|skin glow/i.test(draftText));
       const longMessageFatigue = /(?:don['’]?\s*t|do\s+not|dont|no).{0,24}(?:patience|time|mood).{0,28}(?:read|go\s+through)|(?:too|so)\s+long.{0,24}(?:read|message|text)|(?:too\s+much|so\s+much).{0,20}(?:text|message|read)|(?:no\s+patience).{0,24}(?:read|those)|(?:不想|懒惰|懶惰|没耐心|沒耐心|没有耐心|沒有耐心).{0,16}(?:读|讀|看)|(?:太长|太長|很长|很長|一大段|太多字|字太多|看不完)/i.test(customerSignalText);
       const longMessageDraft = draftText.length > 220 || action.includes("flow") || /Step\s*4|Beyoute\s+瘦身|Kombucha.{0,80}(?:明星|保证|保證|世界证实|世界證實)|我们的【?Beyoute|我们肯定有信心|我可以跟你保证|一旦停用|其他产品喝了后/i.test(draftText);
+      const priceOnlySignalText = [customerSignalText, priorCustomerIssueText].filter(Boolean).join(" ");
+      const priceOnlyAfterLongFlow = /(?:just|only|simply).{0,24}(?:ask|asking|want|need|asking\s+for).{0,24}(?:price|pricing|how\s+much)|(?:i\s+just\s+asking\s+for\s+the\s+price)|(?:只|只是|只想|只要|我只).{0,24}(?:问|問|知道|要|看).{0,18}(?:价钱|價錢|价格|價格|price)|(?:price|价钱|價錢|价格|價格).{0,80}(?:don['’]?\s*t|do\s+not|dont|no\s+need|不要|不用).{0,36}(?:send|发|發|讲|講|explain).{0,30}(?:so\s+many|too\s+many|many|这么多|那麼多|那么多)/i.test(priceOnlySignalText);
       const compactCustomerReply = rawCustomerText.toLowerCase().replace(/[\s.!！?？~～,，。…·\-—_、:：;；'"“”‘’()[\]{}<>]/g, "");
       const earlyAttachmentEntries = [
         decision.attachments,
@@ -7321,6 +7326,9 @@
       }
       if (greetingHardSellDraft) {
         return { tone: "fix", title: "不能过：只打招呼别硬卖", reason: "顾客只发 Hi/Hello/你好，还没有问产品；草稿不要长篇讲卖点或接 Flow。改成短欢迎，问她想了解产品、优惠、用法还是订单/售后。" };
+      }
+      if (priceOnlyAfterLongFlow && longMessageDraft) {
+        return { tone: "fix", title: "不能过：问价嫌长别接长 Flow", reason: "顾客已经说明只是要价格，或说不要再收到那么多内容；不要继续 Step 4、产品教育、信心长文或多段 Flow。先用同语言短承接，直接给当前价 1盒 RM150 / 2盒 RM258 / 3盒 RM378，再给一个下单 CTA。" };
       }
       if (longMessageFatigue && longMessageDraft) {
         return { tone: "fix", title: "不能过：顾客嫌太长", reason: "顾客已经说没耐心读或嫌内容太长；不要继续 Step 长文、产品教育或长链接解释。改成 1-2 句短版重点，再给一个选择题 CTA。" };
