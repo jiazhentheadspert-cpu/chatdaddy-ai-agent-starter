@@ -7249,7 +7249,7 @@
         return "改稿方向：顾客问“多少钱有多少包”要逐条答：当前价 RM150 / RM258 / RM378，1盒15小包可喝15天；答完才接配套 CTA，不要只接 Promo Flow。";
       }
       if (/问一盒可审|一盒价优先/i.test(titleReason)) {
-        return "改稿方向：先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒更划算，但 CTA 优先问要不要安排一盒。旧 Broadcast/订单提醒不是订单；如问运费/COD，才补免邮/COD无额外费。";
+        return "改稿方向：先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒更划算，但下一句要优先问要不要安排一盒。旧 Broadcast/订单提醒不是订单；如问运费/COD，才补免邮/COD无额外费。";
       }
       if (/旧活动 Flow|活动版本|Mother/i.test(titleReason)) {
         return "改稿方向：换成当前活动 / 当前价格 Flow；英文 Flow 也要确认月份、价钱和赠品是今天能用的，不确定就转人工确认。";
@@ -7941,14 +7941,14 @@
           : "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。";
         if (oneBoxSpecificQuestion) {
           if (priceQuestionAfterFlowContext && oneBoxGenericPackageCta) {
-            directPriceTitle = "Flow后问一盒：CTA改一盒";
-            directPriceReason = "顾客是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已答 1盒 RM150，可以补价梯，但“哪个配套”偏泛。更会成交的 CTA 是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。";
+            directPriceTitle = "Flow后问一盒：问安排一盒";
+            directPriceReason = "顾客是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已答 1盒 RM150，可以补价梯，但“哪个配套”偏泛。更会成交的下一句是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。";
           } else if (priceQuestionAfterFlowContext) {
             directPriceTitle = "Flow后问一盒：先答价再成交";
-            directPriceReason = "顾客是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已先回答 1盒 RM150。价梯和赠品可以轻补充，CTA 要优先问要不要安排一盒试喝，确认后才进收资料/下单。";
+            directPriceReason = "顾客是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已先回答 1盒 RM150。价梯和赠品可以轻补充，下一句要优先问要不要安排一盒试喝，确认后才进收资料/下单。";
           } else {
-            directPriceTitle = oneBoxGenericPackageCta ? "问一盒可审：CTA 改成一盒" : "问一盒可审：一盒价优先";
-            directPriceReason = oneBoxGenericPackageCta ? "顾客问一盒多少钱，草稿已回答 1盒 RM150 并有 CTA，所以可审；但“哪个配套”偏泛。更会成交的 CTA 是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。" : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但 CTA 应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。";
+            directPriceTitle = oneBoxGenericPackageCta ? "问一盒可审：问安排一盒" : "问一盒可审：一盒价优先";
+            directPriceReason = oneBoxGenericPackageCta ? "顾客问一盒多少钱，草稿已回答 1盒 RM150 并有下单动作，所以可审；但“哪个配套”偏泛。更会成交的下一句是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。" : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但下一句应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。";
           }
         } else if (priceQuestionAfterFlowContext) {
           directPriceTitle = "Flow后问价：答完再接CTA";
