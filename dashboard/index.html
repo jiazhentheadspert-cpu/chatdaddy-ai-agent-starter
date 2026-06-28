@@ -6928,7 +6928,7 @@
       if (/顾客嫌太长/.test(titleReason)) {
         return "改稿方向：改成1-2句短版重点，再给选择题 CTA；不要继续长篇 Step 文案。";
       }
-      if (/笑脸不是下单|只打招呼/.test(titleReason)) {
+      if (/表情\/短答不是下单|笑脸不是下单|只打招呼/.test(titleReason)) {
         return "改稿方向：短追问顾客要了解产品、优惠、用法还是订单/售后；不要默认成交或长篇硬卖。";
       }
       if (/售后勿继续卖|售后收货|礼貌收尾|收到货|谢谢/.test(titleReason)) {
@@ -7038,7 +7038,27 @@
       const longMessageFatigue = /(?:don['’]?\s*t|do\s+not|dont|no).{0,24}(?:patience|time|mood).{0,28}(?:read|go\s+through)|(?:too|so)\s+long.{0,24}(?:read|message|text)|(?:too\s+much|so\s+much).{0,20}(?:text|message|read)|(?:no\s+patience).{0,24}(?:read|those)|(?:不想|懒惰|懶惰|没耐心|沒耐心|没有耐心|沒有耐心).{0,16}(?:读|讀|看)|(?:太长|太長|很长|很長|一大段|太多字|字太多|看不完)/i.test(customerSignalText);
       const longMessageDraft = draftText.length > 220 || action.includes("flow") || /Step\s*4|Beyoute\s+瘦身|Kombucha.{0,80}(?:明星|保证|保證|世界证实|世界證實)|我们的【?Beyoute|我们肯定有信心|我可以跟你保证|一旦停用|其他产品喝了后/i.test(draftText);
       const compactCustomerReply = rawCustomerText.toLowerCase().replace(/[\s.!！?？~～,，。…·\-—_、:：;；'"“”‘’()[\]{}<>]/g, "");
-      const shortAmbiguousChoiceReply = Boolean(rawCustomerText) && rawCustomerText.length <= 24 && (/^(ok|okay|k|yes|ya|yup|嗯+|恩+|哦+|噢+|好|好的|可以|可以的|haha|hehe|哈哈+|呵呵+|笑|smile)$/i.test(compactCustomerReply) || !/[a-z0-9\u4e00-\u9fff]/i.test(compactCustomerReply));
+      const earlyAttachmentEntries = [
+        decision.attachments,
+        decision.attachment,
+        decision.media,
+        item.attachments,
+        item.attachment,
+        item.media
+      ].flatMap((value) => Array.isArray(value) ? value : (value ? [value] : []));
+      const earlyAttachmentText = [
+        decision.message_type,
+        decision.inbound_type,
+        decision.attachment_type,
+        decision.media_type,
+        item.message_type,
+        item.inbound_type,
+        item.attachment_type,
+        item.media_type,
+        ...earlyAttachmentEntries.map((entry) => typeof entry === "string" ? entry : Object.values(entry || {}).join(" "))
+      ].filter(Boolean).join(" ");
+      const reactionOnlyMessage = !rawCustomerText && /(reaction|thumb|like|sticker|emoji|quick[_\s-]?reply|👍)/i.test(earlyAttachmentText);
+      const shortAmbiguousChoiceReply = (Boolean(rawCustomerText) && rawCustomerText.length <= 24 && (/^(ok|okay|k|yes|ya|yup|嗯+|恩+|哦+|噢+|好|好的|可以|可以的|haha|hehe|哈哈+|呵呵+|笑|smile)$/i.test(compactCustomerReply) || !/[a-z0-9\u4e00-\u9fff]/i.test(compactCustomerReply))) || reactionOnlyMessage;
       const packageChoicePrompt = /(?:哪(?:一)?个|哪(?:一)?個|which).{0,30}(?:配套|package|set|盒)|(?:配套|package)\s*[abc].{0,80}(?:配套|package)\s*[abc]|A\s*[\/／、,，]\s*B\s*[\/／、,，]\s*C/i.test(previousAgentText);
       const packageChoiceClarifyDraft = draftText.length <= 180 && !longMessageDraft && /(?:A|B|C|配套|package).{0,50}(?:哪|哪个|哪一个|哪個|哪一個|要|拿|选|選|choose|which)|(?:哪|哪个|哪一个|哪個|哪一個|要|拿|选|選|choose|which).{0,50}(?:A|B|C|配套|package)/i.test(draftText);
       const packageChoiceAmbiguousBadDraft = packageChoicePrompt && shortAmbiguousChoiceReply && !packageChoiceClarifyDraft && (salesPushDraft || longMessageDraft || action.includes("flow") || /STEP_[1-4]|S[1-4]/.test(stage) || /Beyoute|阻碳水|燃脂|排宿便|Kombucha/i.test(draftText));
@@ -7306,7 +7326,7 @@
         return { tone: "fix", title: "不能过：顾客嫌太长", reason: "顾客已经说没耐心读或嫌内容太长；不要继续 Step 长文、产品教育或长链接解释。改成 1-2 句短版重点，再给一个选择题 CTA。" };
       }
       if (packageChoiceAmbiguousBadDraft) {
-        return { tone: "fix", title: "不能过：笑脸不是下单", reason: "上一句已经在问 A/B/C 或哪个配套，顾客只回 emoji/短答不等于确认购买；不要继续长文、Flow 或默认她要某配套。改成短追问她要 A/B/C 哪个配套，必要时人工看上下文。" };
+        return { tone: "fix", title: "不能过：表情/短答不是下单", reason: "上一句已经在问 A/B/C 或哪个配套，顾客只回 👍、emoji、sticker 或短答不等于确认购买，也不等于允许继续 Flow；不要继续长文、Flow 或默认她要某配套。改成短追问她要 A/B/C 哪个配套，必要时人工看上下文。" };
       }
       if (addOnDeclined && addOnUpsellDraft) {
         return { tone: "fix", title: "不能过：加购已拒绝", reason: "顾客已经说先不加购/不要 add-on；草稿不要继续推 RM68/top up/加购一盒。尊重拒绝，回到付款方式、收件资料或订单确认。" };
