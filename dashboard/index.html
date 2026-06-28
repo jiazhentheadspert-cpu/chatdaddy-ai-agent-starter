@@ -6541,7 +6541,7 @@
       }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
-          ? "Shopee/624提醒不是订单；先答 1盒 RM150/15小包 + 一盒 CTA"
+          ? "Shopee/624提醒不是订单；答RM150/15小包；问安排一盒"
           : "Shopee/624提醒不是订单；先答当前价梯 + CTA";
       }
       const postPriceContext = /(STEP_4|user_current_step.{0,16}step_4|看价后|看價後|price_objection|trust_after_price|Flow后问价|Flow後問價)/i.test(sourceText);
@@ -7126,10 +7126,10 @@
 	      const plan = replyThenFlowPlan(item);
 	      const directNewPricePlan = /Direct 新客/.test(plan.answer);
 	      const priceContextAdvice = oneBoxContextQuestion
-	        ? "补 1盒 RM150 + 15小包 + 一盒 CTA；不要把 Broadcast 当订单"
+	        ? "补 1盒 RM150 + 15小包；问安排一盒；不要把 Broadcast 当订单"
 	        : "补当前价梯 + CTA；不要把 Broadcast 当订单";
 	      const priceContextNext = oneBoxContextQuestion
-	        ? "先答一盒 + CTA；确认后再接 Flow / 收单"
+	        ? "先答一盒价；问安排一盒；确认后再接 Flow / 收单"
 	        : "先答价梯 + CTA；确认后再接 Flow / 收单";
 	      const replyText = firstContextText(
 	        directPriceContextQuestion && !directNewPricePlan && action === "ask_human" ? priceContextAdvice : decision.reply_message,
