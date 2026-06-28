@@ -2507,6 +2507,13 @@
       font-weight: 820;
     }
 
+    .closer-verdict .verdict-learning-capture {
+      margin-top: 4px;
+      color: var(--text);
+      font-weight: 760;
+      opacity: .92;
+    }
+
     .closer-verdict.pass { border-left-color: rgba(16,185,129,.9); }
     .closer-verdict.review { border-left-color: rgba(245,158,11,.9); }
     .closer-verdict.handoff,
@@ -3142,6 +3149,7 @@
               <small class="verdict-approval-signal" id="closerVerdictApprovalSignal">批准信号：可批准但先确认</small>
               <p id="closerVerdictReason">确认文案、阶段和 CTA 后再批准。</p>
               <p class="verdict-next-action" id="closerVerdictNextAction">客服下一步：确认后批准；不能确定就转人工。</p>
+              <p class="verdict-learning-capture" id="closerVerdictLearningCapture">复盘要留：顾客问题、AI 草稿、客服最终处理。</p>
             </div>
             <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
           </div>
@@ -6311,6 +6319,7 @@
       $("closerVerdictApprovalSignal").textContent = closerVerdictApprovalSignal(closer, item);
       $("closerVerdictReason").textContent = closer.reason;
       $("closerVerdictNextAction").textContent = closerVerdictNextAction(closer, item);
+      $("closerVerdictLearningCapture").textContent = closerVerdictLearningCapture(closer, item);
       if (approvalGuard.blocked) {
         $("actionTitle").textContent = approvalGuard.title;
         $("actionReason").textContent = approvalGuard.reason;
@@ -6558,6 +6567,31 @@
         return "客服下一步：检查语气、阶段和禁区；没问题就点「批准发送」。";
       }
       return "客服下一步：确认活动、赠品、CTA 和当前阶段；没问题才批准。";
+    }
+
+    function closerVerdictLearningCapture(closer = {}, item = {}) {
+      const tone = String(closer.tone || "").toLowerCase();
+      const decision = item.latest_decision || {};
+      const action = String(decision.action || "").toLowerCase();
+      if (tone === "handoff") {
+        if (needsManualReplyAfterHandoff(item)) {
+          return "复盘要留：人工最后怎么回、为什么这样回、下次同类是否继续人工。";
+        }
+        return "复盘要留：转人工原因、顾客原话、人工处理完的最终回复。";
+      }
+      if (tone === "fix") {
+        return "复盘要留：AI 原草稿哪里错、正确写法、要补 FAQ / SOP / 成交话术哪一种。";
+      }
+      if (tone === "order") {
+        return "复盘要留：审款/查单结果、缺什么资料、是否需要补订单 SOP。";
+      }
+      if (action === "trigger_flow") {
+        return "复盘要留：当前 Step、为什么能接 Flow、如果接错要补哪条 Flow 规则。";
+      }
+      if (tone === "pass") {
+        return "复盘要留：这句为什么可过，作为以后同类少审样本。";
+      }
+      return "复盘要留：顾客问题、AI 草稿、客服最终处理和 Owner 是否批准进业务脑。";
     }
 
     function needsReturnAiBeforeApproval(item = {}) {
