@@ -6508,6 +6508,7 @@
 	      const combined = `${customerText} ${sourceText}`;
 	      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(customerText);
       const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(customerText);
+      const priceAndSachetQuestion = directPriceQuestion && /(?:一|1)?\s*(?:盒)?[^。？?\n]{0,12}(?:几|幾|多少|how\s+many).{0,8}(?:包|小包|sachets?|packs?)|(?:包|小包|sachets?|packs?).{0,12}(?:几|幾|多少|how\s+many)/i.test(customerText);
       const orderRetentionContext = /(624|Broadcast|SHOPEE|Shopee\s+voucher|平台优惠|平台優惠|平台活动|平台活動|平台折扣券|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|订单确认|訂單確認|订单相关权益|訂單相關權益|保留状态|保留狀態|已安排出货|已安排出貨)/i.test(sourceText);
       const orderGiftQuestion = /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerText);
       if (orderGiftQuestion) {
@@ -6528,6 +6529,9 @@
       const attachmentContext = /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText) || (/^(?:\.{3}|…)$/.test(String(customerText || "").trim()) && /(image|attachment|photo|media|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText));
       if (attachmentContext) {
         return "图片/附件：先打开看；不接 Flow";
+      }
+      if (priceAndSachetQuestion) {
+        return "价钱+包数：先答当前价 + 1盒15小包；再CTA";
       }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
