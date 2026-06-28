@@ -7140,6 +7140,9 @@
       const walletPaymentQuestion = /(grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|online\s+banking|payment\s*link|pay\s*link|qr\s*(?:pay|code)|电子钱包|電子錢包|付款链接|付款連結|付款link|支付链接|支付連結|扫码|掃碼|二维码|二維碼).{0,40}(?:对吗|對嗎|吗|嗎|可以|能|付款|支付|pay|payment|use|correct|right|link)?|(?:这是|這是|is\s+this|this\s+is).{0,40}(?:grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|qr\s*(?:pay|code)|电子钱包|電子錢包|付款链接|付款連結|二维码|二維碼)/i.test(paymentMethodText);
       const paymentMethodIssue = intent.includes("payment_method") || cardPaymentQuestion || walletPaymentQuestion || /(没有货到付款|沒有貨到付款|不能\s*cod|可以\s*cod|有\s*cod|cash\s+on\s+delivery|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card))/i.test(paymentMethodText);
       const paymentLinkAmountMismatch = /(payex|payment\s*link|pay\s*link|付款链接|付款連結|付款link|link)/i.test(paymentMethodText) && /(错了|錯了|wrong|amount|金额|金額|RM\s*666|RM\s*658|RM\s*8|多余|多餘|多给|多給|差额|差額|extra)/i.test(paymentMethodText);
+      const futurePaymentPromise = intent.includes("future_payment") || /(?:(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|下(?:个|個)?星期|下周|下週|月底|月尾|tomorrow|later|next\s+(?:week|month)|on\s+\w+\s+\d{1,2}).{0,24}(?:付款|付钱|付錢|支付|pay|payment)|(?:会|會|will|going\s+to|gonna).{0,24}(?:付款|付钱|付錢|支付|pay|make\s+payment).{0,24}(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|tomorrow|later|next\s+(?:week|month)|月底|月尾))/i.test(customerSignalText);
+      const futurePaymentAckDraft = /(?:付款|付钱|付錢|支付|pay|payment).{0,24}(?:截图|截圖|receipt|proof|通知|告诉|告訴|给我知道|給我知道|send|let\s+me\s+know)|(?:截图|截圖|receipt|proof|通知|告诉|告訴|给我知道|給我知道|send|let\s+me\s+know).{0,24}(?:付款|付钱|付錢|支付|pay|payment)|(?:记录|記錄|提醒|remind|reminder).{0,20}(?:付款|pay|payment)|\d{1,2}\s*(?:号|號|日).{0,24}(?:付款|付钱|付錢|支付|pay|payment)/i.test(draftText);
+      const futurePaymentBadDraft = futurePaymentPromise && (flowAction || (salesPushDraft && !futurePaymentAckDraft) || (/(继续了解|繼續了解|下一步|Step\s*[1-4]|Beyoute\s+Plus|阻碳水|燃脂|排宿便)/i.test(draftText) && !futurePaymentAckDraft));
       const deliveryPaymentText = [
         intent,
         action,
@@ -7276,6 +7279,12 @@
       }
       if (paymentLinkAmountMismatch) {
         return { tone: "handoff", title: "付款链接金额先确认", reason: "付款链接、PayEx、GrabPay Later 或金额出现不一致；客服要核对配套、金额、差额补偿和付款截图，不要让 AI 自动承诺链接正确或继续销售 Flow。" };
+      }
+      if (futurePaymentBadDraft) {
+        return { tone: "fix", title: "不能过：等付款别继续卖", reason: "顾客已经说会在某日付款；草稿不要继续产品教育、催另一个配套或接普通销售 Flow。改成确认付款方式/日期，提醒付款后发截图或通知，并记录跟进。" };
+      }
+      if (futurePaymentPromise) {
+        return { tone: "order", title: "等付款：记录日期", reason: "顾客说会在某日付款；正确动作是确认付款方式/日期，提醒付款后发截图或通知，并设置跟进。不能当成已付款，也不要继续销售 Flow。" };
       }
       if (shippingEtaQuestion && !shippingEtaAnswered) {
         return { tone: "fix", title: "不能过：没回答运输时效", reason: "顾客问运输/快递/几天到；草稿必须回答西马/东马预计时效，不要回产品介绍或继续成交。" };
