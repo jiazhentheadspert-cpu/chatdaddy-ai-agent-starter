@@ -6556,6 +6556,22 @@
       if (annoyedStopContext) {
         return "嫌烦/别打扰：停止跟进；不接 Flow";
       }
+      const marketplaceOfficialContext = /(?:shopee|lazada).{0,50}(?:official|official\s+page|page|link|store|shop|mall)|(?:official|official\s+page|page|link|store|shop|mall).{0,50}(?:shopee|lazada)|官方.{0,30}(?:shopee|lazada)|(?:shopee|lazada).{0,30}(?:官方|旗舰店|旗艦店|店铺|店舖|链接|連結)/i.test(customerText);
+      if (marketplaceOfficialContext) {
+        return "官方平台：先确认Shopee/Lazada链接；不乱给，不接Flow";
+      }
+      const noFollowUpContext = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerText);
+      if (noFollowUpContext) {
+        return "没人跟进：先道歉查记录；真人接手，不接销售Flow";
+      }
+      const referralBulkContext = ((/(介绍|介紹|推荐|推薦|refer|referral|introduced|recommend)/i.test(customerText) && /(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerText)) || (/(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerText) && /(?:[4-9]|四|五|六|七|八|九)\s*(?:盒|box|boxes)|(?:多|几|幾)\s*(?:盒|box|boxes)/i.test(customerText)));
+      if (referralBulkContext) {
+        return "亲友/多盒：先查订单/优惠/售后；不当新客Flow";
+      }
+      const afterSalesSellerNoReplyContext = /(我)?(买了|買了|购买了|購買了|已经买|已經買|收到货|收到貨|刚收到|剛收到|货到了|貨到了|卖给我|賣給我|seller|bought|ordered|purchased)/i.test(customerText) && /(no\s*reply|not\s+reply|didn['’]?t\s+reply|never\s+reply|没回|沒回|没有回复|沒有回覆|没回复|沒回覆|不回复|不回覆|没有回应|沒有回應|没回应|沒回應)/i.test(customerText) && (/(怎么喝|怎麼喝|怎样喝|怎樣喝|如何喝|喝法|用法|怎么吃|怎麼吃|怎样吃|怎樣吃|how\s+(?:to\s+)?(?:drink|take|use))/i.test(customerText) || /(whats\s*app|whatsapp|whatapps|watsapp|wassap|\bwa\b|\bwsp\b|\bws\b|卖给我|賣給我|seller|那人|那個人|那个人|agent|staff|salesperson)/i.test(customerText));
+      if (afterSalesSellerNoReplyContext) {
+        return "售后没回复：先给基础喝法；查订单/聊天记录";
+      }
       const targetWeightPackageContext = /(?:\d{2,3}\s*(?:多)?\s*(?:kg|KG|公斤)?).{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?).{0,36}(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?|(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?.{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?)/i.test(customerText);
       if (targetWeightPackageContext) {
         return "目标体重：建议配套；不保证瘦到Xkg";
