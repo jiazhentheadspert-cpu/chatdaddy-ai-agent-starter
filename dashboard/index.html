@@ -6533,12 +6533,16 @@
         return "嫌烦/别打扰：停止跟进；不接 Flow";
       }
       const attachmentContext = /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText) || (/^(?:\.{3}|…)$/.test(String(customerText || "").trim()) && /(image|attachment|photo|media|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText));
-      if (attachmentContext) {
-        return "图片/附件：先打开看；不接 Flow";
-      }
-      if (priceAndSachetQuestion) {
-        return "价钱+包数：先答当前价 + 1盒15小包；再问配套";
-      }
+	      if (attachmentContext) {
+	        return "图片/附件：先打开看；不接 Flow";
+	      }
+	      const offlineAvailabilityContext = /(药店|实体店|实体門店|門市|门市|門店|门店|线下|線下|哪里买|哪裡買|哪里有卖|哪裡有賣|有卖吗|有賣嗎|现货|現貨|pharmacy|store|outlet|retail|where\s+are\s+(?:you|u)\s+located|location)/i.test(customerText);
+	      if (offlineAvailabilityContext) {
+	        return "线下店/药店：给官方地区名单；问方便哪里";
+	      }
+	      if (priceAndSachetQuestion) {
+	        return "价钱+包数：先答当前价 + 1盒15小包；再问配套";
+	      }
       if (directPriceQuestion && orderRetentionContext) {
         return oneBoxQuestion
           ? "Shopee/624提醒不是订单；答RM150/15小包；问安排一盒"
@@ -7708,8 +7712,14 @@
 	        decision.headline,
 	        item.inbound_text,
 	        item.customer_text
-	      ].filter(Boolean).join(" ");
+      ].filter(Boolean).join(" ");
       const offlineAvailabilityQuestion = intent.includes("offline_availability") || /(药店|实体店|实体門店|門市|门市|門店|门店|线下|線下|哪里买|哪裡買|哪里有卖|哪裡有賣|有卖吗|有賣嗎|现货|現貨|柔佛|古来|johor|kulai|pharmacy|store|outlet|retail|where\s+are\s+(?:you|u)\s+located|where\s+(?:are\s+)?(?:you|u)\s+based|your\s+location|location\?|located\?)/i.test(offlineAvailabilityText);
+      const offlineOfficialAreaListDraft = offlineAvailabilityQuestion
+        && /(?:以下.{0,12}(?:地区|地區).{0,18}(?:线下店|線下店|门店|門店|outlet|store)|(?:线下店|線下店|门店|門店|outlet|store).{0,80}(?:KEDAH|PENANG|PERAK|KUALA|SELANGOR|MELAKA|JOHOR|SABAH|SARAWAK|Alor\s*Setar|Tanjung\s*Tokong|Ipoh|Kepong|Batu\s*Caves|Klang|Seri\s*Kembangan|Puchong|Subang\s*Jaya|Bachang|Skudai|Mount\s*Austin|Kluang|Kota\s*Kinabalu|Sibu|Miri|Kuching))/i.test(draftText)
+        && /(?:方便|near|nearest|which|哪个|哪個|地区|地區|area|state|location)/i.test(draftText);
+      const offlineUnsafeStockDraft = offlineAvailabilityQuestion
+        && !offlineOfficialAreaListDraft
+        && /(?:(?:每间|每間|全部|所有|any|all).{0,18}(?:pharmacy|药店|藥店|store|outlet).{0,18}(?:有卖|有賣|可以买|可以買|现货|現貨|stock)|(?:Watsons|Guardian|AA\s*Pharmacy|BIG\s*Pharmacy|Caring).{0,36}(?:有卖|有賣|可以买|可以買|现货|現貨|stock)|(?:有现货|有現貨|stock\s*available|一定有|肯定有).{0,28}(?:pharmacy|药店|藥店|store|outlet))/i.test(draftText);
       const marketplaceOfficialText = [
         intent,
         action,
@@ -7783,12 +7793,18 @@
 	      if (crossChannelContactRequest) {
 	        return { tone: "handoff", title: "转 WhatsApp 先确认", reason: "顾客想转 WhatsApp 联系；先确认号码和同意跟进，不要继续普通教育 Flow，也不要自动联系未确认号码。" };
 	      }
-	      if (marketplaceOfficialQuestion) {
-	        return { tone: "handoff", title: "官方平台先确认", reason: "顾客问 Shopee/Lazada 官方页、店铺或链接；没有确认官方链接时，不要回产品介绍或乱给链接，先人工确认。" };
-	      }
-	      if (offlineAvailabilityQuestion) {
-	        return { tone: "handoff", title: "地点/现货先确认", reason: "顾客问所在地、门店、药店或现货；没有实时门店/库存资料时，不要乱讲有卖或没卖，先人工确认。" };
-	      }
+		      if (marketplaceOfficialQuestion) {
+		        return { tone: "handoff", title: "官方平台先确认", reason: "顾客问 Shopee/Lazada 官方页、店铺或链接；没有确认官方链接时，不要回产品介绍或乱给链接，先人工确认。" };
+		      }
+		      if (offlineUnsafeStockDraft) {
+		        return { tone: "fix", title: "不能过：门店现货别乱承诺", reason: "顾客问 pharmacy/线下店哪里有卖；草稿不能说全部药店都有、保证现货或乱点名 Watsons/Guardian。可以给官方地区名单并问她方便哪个地区，再由客服确认具体门店/库存。" };
+		      }
+		      if (offlineOfficialAreaListDraft) {
+		        return { tone: "review", title: "线下店可审：问方便地区", reason: "ManyChat 对标 Joey：顾客问 pharmacy 哪里有卖时，先暂停自动回复，给官方线下店地区名单，再问她方便哪个地区。客服确认地区/库存后再给具体门店，不接产品 Flow。" };
+		      }
+		      if (offlineAvailabilityQuestion) {
+		        return { tone: "handoff", title: "地点/现货先确认", reason: "顾客问所在地、门店、药店或现货；没有实时门店/库存资料时，不要乱讲有卖或没卖，先人工确认。" };
+		      }
 		      if (englishMixedDraft) {
 		        return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
 		      }
@@ -8010,6 +8026,12 @@
       }
       if (marketplaceOfficialQuestion) {
         return { tone: "handoff", title: "官方平台先确认", reason: "顾客问 Shopee/Lazada 官方页、店铺或链接；没有确认官方链接时，不要回产品介绍或乱给链接，先人工确认。" };
+      }
+      if (offlineUnsafeStockDraft) {
+        return { tone: "fix", title: "不能过：门店现货别乱承诺", reason: "顾客问 pharmacy/线下店哪里有卖；草稿不能说全部药店都有、保证现货或乱点名 Watsons/Guardian。可以给官方地区名单并问她方便哪个地区，再由客服确认具体门店/库存。" };
+      }
+      if (offlineOfficialAreaListDraft) {
+        return { tone: "review", title: "线下店可审：问方便地区", reason: "ManyChat 对标 Joey：顾客问 pharmacy 哪里有卖时，先暂停自动回复，给官方线下店地区名单，再问她方便哪个地区。客服确认地区/库存后再给具体门店，不接产品 Flow。" };
       }
       if (offlineAvailabilityQuestion) {
         return { tone: "handoff", title: "地点/现货先确认", reason: "顾客问所在地、门店、药店或现货；没有实时门店/库存资料时，不要乱讲有卖或没卖，先人工确认。" };
