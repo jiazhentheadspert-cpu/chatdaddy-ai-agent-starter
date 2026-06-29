@@ -63,6 +63,7 @@
       position: sticky;
       top: 0;
       height: 100vh;
+      min-height: 100vh;
       padding: 22px 20px;
       background:
         linear-gradient(180deg, rgba(7, 18, 24, .99), rgba(8, 40, 43, .98)),
@@ -72,6 +73,9 @@
       display: grid;
       grid-template-rows: auto 1fr auto;
       gap: 20px;
+      align-self: stretch;
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
 
     .brand {
@@ -207,10 +211,6 @@
       color: #fff;
     }
 
-    .side-nav button[data-channel-nav] {
-      background: rgba(255,255,255,.035);
-    }
-
     .side-nav button[data-step-nav] {
       min-height: 48px;
     }
@@ -224,22 +224,6 @@
       place-items: center;
       color: rgba(255,255,255,.82);
       background: rgba(255,255,255,.045);
-    }
-
-    .side-nav button[data-channel-nav].active {
-      background: linear-gradient(135deg, rgba(16,185,157,.14), rgba(0,183,216,.08));
-      border-color: rgba(16,185,157,.34);
-      box-shadow: inset 3px 0 0 rgba(16,185,157,.76);
-    }
-
-    .side-nav small.channel-live {
-      color: #dffcf6;
-      background: rgba(16,185,157,.20);
-    }
-
-    .side-nav small.channel-pending {
-      color: #f6d7a6;
-      background: rgba(166,105,24,.22);
     }
 
     .side-card {
@@ -449,6 +433,49 @@
     .status-chip.warn::before {
       background: var(--amber);
       box-shadow: 0 0 0 5px rgba(168,109,29,.10);
+    }
+
+    .channel-outage-alert {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+      margin: 10px 0 12px;
+      padding: 12px 13px;
+      border: 1px solid rgba(184, 76, 76, 0.28);
+      border-radius: var(--radius-sm);
+      background: #fff5f5;
+      color: #5b2626;
+      box-shadow: 0 12px 30px rgba(78, 26, 26, 0.08);
+    }
+
+    .channel-outage-alert.hidden {
+      display: none;
+    }
+
+    .channel-outage-alert .alert-dot {
+      width: 10px;
+      height: 10px;
+      margin-top: 4px;
+      border-radius: 999px;
+      background: var(--red);
+      box-shadow: 0 0 0 5px rgba(194, 82, 82, 0.12);
+    }
+
+    .channel-outage-alert b {
+      display: block;
+      font-size: 13px;
+      font-weight: 950;
+      line-height: 1.25;
+    }
+
+    .channel-outage-alert span {
+      display: block;
+      margin-top: 3px;
+      color: #7a3b3b;
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.35;
     }
 
     .session-title {
@@ -1664,8 +1691,9 @@
 
     .queue-tools {
       display: grid;
-      grid-template-columns: minmax(180px, 1fr) 160px;
+      grid-template-columns: minmax(270px, auto) minmax(180px, 1fr) 160px;
       gap: 10px;
+      align-items: center;
     }
 
     .queue-tools input,
@@ -1685,6 +1713,83 @@
     .queue-tools select:focus {
       border-color: rgba(0,183,216,.36);
       box-shadow: 0 0 0 4px rgba(0,183,216,.10);
+    }
+
+    .queue-date-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.88);
+      box-shadow: 0 10px 24px rgba(8,23,29,.05);
+    }
+
+    .queue-date-label {
+      display: grid;
+      grid-template-columns: auto minmax(132px, 1fr);
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .queue-date-label input {
+      height: 38px;
+      min-height: 38px;
+      padding: 7px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .queue-date-button {
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(8,23,29,.10);
+      border-radius: 12px;
+      background: rgba(246,249,251,.94);
+      color: var(--ink);
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .queue-date-button.today {
+      width: auto;
+      padding: 0 12px;
+      color: #075e5f;
+      background: rgba(224,255,250,.92);
+      border-color: rgba(16,185,157,.22);
+      white-space: nowrap;
+    }
+
+    .queue-date-button.is-at-today,
+    .queue-date-button:disabled {
+      opacity: .54;
+      cursor: default;
+    }
+
+    .queue-sync-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-bottom: 1px solid rgba(0,183,216,.14);
+      background: rgba(232,252,255,.70);
+      color: #31525a;
+      font-size: 12px;
+      font-weight: 820;
+      line-height: 1.4;
+    }
+
+    .queue-sync-note b {
+      color: #075e5f;
+      font-weight: 950;
     }
 
     .toolbar {
@@ -1745,7 +1850,7 @@
 
     .qa-guide-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 10px;
     }
 
@@ -2085,6 +2190,37 @@
       font-weight: 900;
     }
 
+    .case-context-mini {
+      margin-top: -2px;
+      margin-bottom: 9px;
+      border: 1px solid rgba(59, 130, 246, .22);
+      border-radius: 10px;
+      background: rgba(239, 246, 255, .86);
+      padding: 8px 9px;
+      color: #1d4ed8;
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 860;
+    }
+
+    .case-context-mini span {
+      display: block;
+      color: #55708c;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .case-context-mini b {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+    }
+
     .case-message {
       color: var(--muted);
       font-weight: 700;
@@ -2161,6 +2297,128 @@
       line-height: 1.2;
     }
 
+    .case-next-action {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 28px;
+      border: 1px solid rgba(126,142,153,.22);
+      border-radius: 8px;
+      background: rgba(246,250,251,.74);
+      padding: 6px 8px;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.25;
+      overflow: hidden;
+    }
+
+    .case-next-action span {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .case-next-action b {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .case-next-action.fix {
+      color: var(--red);
+      border-color: rgba(201,74,85,.26);
+      background: var(--soft-red);
+    }
+
+    .case-next-action.handoff {
+      color: #9a650f;
+      border-color: rgba(183,121,31,.28);
+      background: rgba(255,248,232,.94);
+    }
+
+    .case-next-action.order {
+      color: var(--blue);
+      border-color: rgba(37,99,235,.22);
+      background: rgba(239,246,255,.92);
+    }
+
+    .case-next-action.pass {
+      color: var(--green);
+      border-color: rgba(38,166,91,.22);
+      background: rgba(232,246,239,.92);
+    }
+
+    .case-work-mode {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 28px;
+      border: 1px solid rgba(0,183,216,.22);
+      border-radius: 8px;
+      background: rgba(230,248,251,.66);
+      color: var(--green-deep);
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.25;
+      overflow: hidden;
+    }
+
+    .case-work-mode.reply {
+      color: var(--green);
+      border-color: rgba(38,166,91,.22);
+      background: rgba(232,246,239,.88);
+    }
+
+    .case-work-mode.flow-only {
+      color: var(--cyan);
+      border-color: rgba(0,183,216,.22);
+      background: rgba(230,248,251,.86);
+    }
+
+    .case-work-mode.handoff,
+    .case-work-mode.order {
+      color: #9a650f;
+      border-color: rgba(183,121,31,.28);
+      background: rgba(255,248,232,.94);
+    }
+
+    .case-work-mode.fix {
+      color: var(--red);
+      border-color: rgba(201,74,85,.26);
+      background: var(--soft-red);
+    }
+
+    .case-work-mode.learning {
+      color: var(--green-deep);
+      border-color: rgba(15,143,118,.20);
+      background: rgba(238,255,250,.92);
+    }
+
+    .case-work-mode span {
+      color: inherit;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      opacity: .78;
+    }
+
+    .case-work-mode b {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .case-action-row {
       display: flex;
       flex-wrap: wrap;
@@ -2207,6 +2465,79 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+    }
+
+    .case-flow-mini {
+      margin-top: 8px;
+      border: 1px solid rgba(0,183,216,.22);
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(230,248,251,.74), rgba(255,255,255,.82));
+      padding: 9px 10px;
+      color: var(--green-deep);
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 850;
+    }
+
+    .case-flow-mini span {
+      display: block;
+      color: var(--cyan);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .case-flow-mini b {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+    }
+
+    .case-auto-boundary {
+      margin-top: 8px;
+      border: 1px solid rgba(109,121,128,.22);
+      border-radius: 8px;
+      background: rgba(250,252,252,.88);
+      padding: 7px 9px;
+      color: #394850;
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+
+    .case-auto-boundary.block {
+      color: var(--red);
+      border-color: rgba(201,74,85,.24);
+      background: var(--soft-red);
+    }
+
+    .case-auto-boundary.candidate {
+      color: var(--green-deep);
+      border-color: rgba(38,166,91,.22);
+      background: rgba(232,246,239,.88);
+    }
+
+    .case-auto-boundary span {
+      display: block;
+      color: inherit;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      opacity: .78;
+    }
+
+    .case-auto-boundary b {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      overflow-wrap: anywhere;
     }
 
     .case-foot {
@@ -2288,10 +2619,20 @@
     .grid.list .case-head,
     .grid.list .word-cloud,
     .grid.list .case-insight,
+    .grid.list .case-work-mode,
+    .grid.list .case-flow-mini,
+    .grid.list .case-auto-boundary,
     .grid.list .case-foot {
       margin: 0;
       padding: 0;
       border: 0;
+    }
+
+    .grid.list .case-work-mode,
+    .grid.list .case-flow-mini,
+    .grid.list .case-auto-boundary {
+      grid-column: 1 / -1;
+      padding-top: 6px;
     }
 
     .grid.list .case-message {
@@ -2713,6 +3054,24 @@
       font-weight: 820;
     }
 
+    .short-version-actions {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 7px;
+    }
+
+    .short-version-actions.hidden {
+      display: none;
+    }
+
+    .short-version-actions .btn {
+      margin-top: 0;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
     .action-card .btn {
       margin-top: 12px;
       min-height: 46px;
@@ -3038,6 +3397,20 @@
       width: 100%;
       max-width: none;
       grid-template-columns: 300px minmax(0, 1fr);
+      position: relative;
+      z-index: 1;
+    }
+
+    body.staff-mode::before {
+      content: "";
+      position: fixed;
+      inset: 0 auto 0 0;
+      width: 300px;
+      background:
+        linear-gradient(180deg, rgba(7, 18, 24, .99), rgba(8, 40, 43, .98)),
+        #081217;
+      pointer-events: none;
+      z-index: 0;
     }
 
     body.staff-mode .sidebar {
@@ -3045,6 +3418,7 @@
       position: sticky;
       top: 0;
       height: 100vh;
+      min-height: 100vh;
       min-width: 300px;
     }
 
@@ -3054,6 +3428,17 @@
 
     body.staff-mode .status-strip {
       display: none;
+    }
+
+    body.staff-mode .queue-head {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    body.staff-mode .queue-tools {
+      width: 100%;
+      grid-template-columns: minmax(270px, auto) minmax(220px, 1fr) 170px;
+      justify-self: stretch;
     }
 
 	    body.staff-mode [data-owner-nav],
@@ -3073,7 +3458,12 @@
       body.staff-mode .sidebar {
         position: sticky;
         height: 100vh;
+        min-height: 100vh;
         min-width: 260px;
+      }
+
+      body.staff-mode::before {
+        width: 260px;
       }
 
       body.staff-mode .side-nav {
@@ -3092,11 +3482,160 @@
         order: 2;
         position: static;
         height: auto;
+        min-height: 0;
         min-width: 0;
+      }
+
+      body.staff-mode::before {
+        display: none;
       }
 
       body.staff-mode .workspace {
         order: 1;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body.staff-mode .workspace {
+        padding: 12px 10px;
+      }
+
+      body.staff-mode .topbar {
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      body.staff-mode .mode-tag {
+        margin-bottom: 6px;
+        padding: 5px 9px;
+        font-size: 12px;
+      }
+
+      body.staff-mode #workspaceTitle {
+        font-size: 30px;
+      }
+
+      body.staff-mode #dashboardSubtitle {
+        margin-top: 2px;
+        font-size: 13px;
+      }
+
+      body.staff-mode .session-bar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        margin-bottom: 10px;
+        padding: 9px 10px;
+        border-radius: 14px;
+      }
+
+      body.staff-mode .session-title {
+        font-size: 14px;
+        line-height: 1.2;
+      }
+
+      body.staff-mode .session-subtitle {
+        display: none;
+      }
+
+      body.staff-mode .session-actions {
+        display: none;
+      }
+
+      body.staff-mode .workbench-card {
+        border-radius: 18px;
+      }
+
+      body.staff-mode .queue-head {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 10px 12px;
+      }
+
+      body.staff-mode .queue-title {
+        font-size: 18px;
+      }
+
+      body.staff-mode .queue-subtitle {
+        margin-top: 3px;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      body.staff-mode .queue-tools {
+        grid-template-columns: 1fr;
+        gap: 7px;
+      }
+
+      body.staff-mode .queue-tools input,
+      body.staff-mode .queue-tools select {
+        padding: 9px 10px;
+        border-radius: 11px;
+        font-size: 13px;
+      }
+
+      body.staff-mode .toolbar {
+        gap: 8px;
+        padding: 9px 10px;
+      }
+
+      body.staff-mode .filters {
+        flex-wrap: nowrap;
+        gap: 6px;
+        max-width: 100%;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+      }
+
+      body.staff-mode .filters::-webkit-scrollbar {
+        display: none;
+      }
+
+      body.staff-mode .pill {
+        flex: 0 0 auto;
+        padding: 7px 10px;
+        white-space: nowrap;
+      }
+
+      body.staff-mode .selection-tools {
+        flex-wrap: nowrap;
+      }
+
+      body.staff-mode .case-card {
+        padding: 12px;
+      }
+
+      body.staff-mode .case-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      body.staff-mode .case-name {
+        flex: none;
+        max-width: 100%;
+      }
+
+      body.staff-mode .case-select {
+        width: 28px;
+        height: 28px;
+        margin-right: 6px;
+      }
+
+      body.staff-mode .case-id {
+        width: 34px;
+        height: 34px;
+        margin-right: 8px;
+      }
+
+      body.staff-mode .case-name b {
+        font-size: 18px;
+      }
+
+      body.staff-mode .case-head > .badge {
+        flex: 0 0 auto;
+        justify-self: start;
+        padding: 6px 9px;
       }
     }
   </style>
@@ -3113,26 +3652,16 @@
       </div>
 
       <nav class="side-nav" aria-label="主导航">
-        <div class="side-section">AI AGENT 板块</div>
+	        <div class="side-section">客服工作区</div>
 	        <button data-side-key="configure" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1" data-owner-nav>
           <span class="side-label"><b class="side-code">CF</b><em>Configure</em></span>
           <small id="navConfigureBadge">✅</small>
         </button>
         <button class="active" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
-          <span class="side-label"><b class="side-code">CD</b><em>Chat Window Decision</em></span>
+          <span class="side-label"><b class="side-code">Q</b><em>顾客队列</em></span>
           <small id="navCasesBadge">0</small>
         </button>
-
-        <div class="side-section">AS USER · CHATDADDY</div>
-        <div class="side-note">客服日常只需要看第 4 项；一次性设置完成后左边会打勾。</div>
-        <button data-side-key="channel_whatsapp" data-side-filter="needs_attention" data-workspace-target="cases" data-channel-nav>
-          <span class="side-label"><b class="side-code">WA</b><em>WhatsApp</em></span>
-          <small id="navWhatsAppBadge" class="channel-live">待接</small>
-        </button>
-        <button data-side-key="channel_line" data-side-filter="needs_attention" data-workspace-target="cases" data-channel-nav>
-          <span class="side-label"><b class="side-code">LN</b><em>LINE</em></span>
-          <small id="navLineBadge" class="channel-pending">待接</small>
-        </button>
+        <div class="side-note">客服只处理顾客队列；系统会把已自动继续的记录放到自动记录。</div>
 
 	        <div class="side-section" data-owner-section>一次性设置</div>
 	        <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1" data-owner-nav>
@@ -3147,18 +3676,6 @@
           <span class="side-label"><b class="side-code">3</b><em>FAQ Upload</em></span>
           <small id="navStep3Badge">✅</small>
         </button>
-        <button data-side-key="step_4" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
-          <span class="side-label"><b class="side-code">4</b><em>Customer Queue</em></span>
-          <small id="navStep4Badge">0</small>
-        </button>
-        <button data-side-key="step_5" data-side-filter="records" data-workspace-target="learning" data-step-nav data-step-view="5">
-          <span class="side-label"><b class="side-code">5</b><em>Summary Panel</em></span>
-          <small id="navStep5Badge">中</small>
-        </button>
-        <button data-side-key="step_6" data-side-filter="records" data-workspace-target="learning" data-step-nav data-step-view="6">
-          <span class="side-label"><b class="side-code">6</b><em>Recommendation</em></span>
-          <small id="navStep6Badge">中</small>
-        </button>
 	        <button data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7" data-owner-nav>
           <span class="side-label"><b class="side-code">7</b><em>Default Segment</em></span>
           <small id="navStep7Badge">待</small>
@@ -3170,7 +3687,7 @@
         <span id="sideHint">公开演示。连接后会读取顾客讯息。</span>
         <div class="side-meter">
           <div class="side-meter-row"><span>工作区</span><strong id="sideWorkspace">DEMO</strong></div>
-          <div class="side-meter-row"><span>连接</span><strong id="sideConnection">演示</strong></div>
+          <div class="side-meter-row"><span>模式</span><strong id="sideConnection">审核优先</strong></div>
           <div class="side-meter-divider" aria-hidden="true"></div>
           <div class="side-meter-row cost owner-meter-row"><span>今日 AI 成本</span><strong id="sideCostToday">US$0.00</strong></div>
           <div class="side-meter-row cost owner-meter-row"><span>本月 AI 成本</span><strong id="sideCostMonth">US$0.00</strong></div>
@@ -3247,6 +3764,15 @@
             <div class="queue-subtitle" id="queueSummary">按优先级排序。</div>
           </div>
           <div class="queue-tools">
+            <div class="queue-date-control" aria-label="选择日期">
+              <button class="queue-date-button" id="casePrevDate" type="button" aria-label="前一天">&lt;</button>
+              <label class="queue-date-label" for="caseDateFilter">
+                <span>日期</span>
+                <input id="caseDateFilter" type="date" />
+              </label>
+              <button class="queue-date-button today" id="caseTodayDate" type="button">今天</button>
+              <button class="queue-date-button" id="caseNextDate" type="button" aria-label="后一天">&gt;</button>
+            </div>
             <input id="caseSearch" placeholder="搜索顾客 / 关键词" />
             <select id="caseSort" aria-label="排序方式">
               <option value="priority">优先级排序</option>
@@ -3254,6 +3780,10 @@
               <option value="name">顾客名字</option>
             </select>
           </div>
+        </div>
+        <div class="queue-sync-note" id="queueSyncNote">
+          <b>人工优先</b>
+          <span>待处理只放需要客服看的顾客；AI 已回复或外部流程已继续的 Case 放到自动记录，不再卡住上一个批准卡。</span>
         </div>
         <div class="toolbar">
           <div class="filters">
@@ -3287,6 +3817,7 @@
         </div>
 
         <div id="error" class="error"></div>
+        <div id="channelOutageAlert" class="channel-outage-alert hidden" role="status" aria-live="polite"></div>
         <section id="cases" class="grid"></section>
       </section>
     </section>
@@ -3369,6 +3900,11 @@
               </div>
             </div>
             <div class="approval-first-reminder">Approval-first：AI 不会自己发；只有客服检查后点按钮才执行当前动作。不能确定就退回 AI 或转人工。</div>
+            <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
+              <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
+              <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
+              <button class="btn danger" id="shortVersionHandoffBtn" type="button">转人工</button>
+            </div>
             <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
           </div>
           <div class="side-actions">
@@ -3437,6 +3973,7 @@
       contactStats: {},
       usageSummary: null,
       metaCapiStatus: null,
+      selectedDate: "",
     };
 
     const DEFAULT_SETTINGS = {
@@ -3475,6 +4012,11 @@
     const demoScenarioEl = $("demoScenario");
     const caseSearchEl = $("caseSearch");
     const caseSortEl = $("caseSort");
+    const caseDateFilterEl = $("caseDateFilter");
+    const casePrevDateEl = $("casePrevDate");
+    const caseTodayDateEl = $("caseTodayDate");
+    const caseNextDateEl = $("caseNextDate");
+    const todayISO = localDateIso();
 
     const DEMO_SCENARIOS = {
       ecommerce: [
@@ -3716,6 +4258,8 @@
     document.body.dataset.role = state.role;
     state.workspaceView = params.get("view") || state.workspaceView;
     state.pendingCaseId = params.get("case_id") || null;
+    state.selectedDate = normalizeIsoDate(params.get("date")) || todayISO;
+    syncDateControls();
 
     const requestedApiUrl = params.get("api") || "";
     apiUrlEl.value = requestedApiUrl || state.session.apiUrl || localStorage.getItem("agent_api_url") || "";
@@ -3789,6 +4333,14 @@
       state.sort = caseSortEl.value;
       render();
     });
+    if (caseDateFilterEl) {
+      caseDateFilterEl.addEventListener("change", () => {
+        setSelectedDate(caseDateFilterEl.value || todayISO);
+      });
+    }
+    if (casePrevDateEl) casePrevDateEl.addEventListener("click", () => shiftSelectedDate(-1));
+    if (caseNextDateEl) caseNextDateEl.addEventListener("click", () => shiftSelectedDate(1));
+    if (caseTodayDateEl) caseTodayDateEl.addEventListener("click", () => setSelectedDate(todayISO));
 
     $("gridView").addEventListener("click", () => setView("grid"));
     $("listView").addEventListener("click", () => setView("list"));
@@ -3800,6 +4352,9 @@
       closePanel();
     });
     $("approveBtn").addEventListener("click", approveActive);
+    $("approveShortVersionBtn").addEventListener("click", approveShortVersionActive);
+    $("shortenAgainBtn").addEventListener("click", () => applyShortVersionDraft(true));
+    $("shortVersionHandoffBtn").addEventListener("click", handoffActive);
     $("learnBtn").addEventListener("click", learnActive);
     $("manualResolveBtn").addEventListener("click", manualResolveActive);
     $("returnAiBtn").addEventListener("click", returnAiActive);
@@ -3814,6 +4369,9 @@
     $("bulkReturnAi").addEventListener("click", () => bulkCaseAction("return_ai"));
     $("bulkHandoff").addEventListener("click", () => bulkCaseAction("handoff"));
     $("bulkClear").addEventListener("click", clearSelection);
+    $("replyBox").addEventListener("input", () => {
+      if (state.active) setPanelBusy(false);
+    });
 
     document.querySelectorAll("[data-filter]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -4075,7 +4633,7 @@
       $("sideRole").textContent = roleLabel;
       $("sideWorkspace").textContent = workspaceLabel;
       $("sideConnection").textContent = connectionStatusLabel();
-      $("modeTag").textContent = canUseDemoMode() ? "演示" : state.role === "staff" ? "Chat Window Decision" : "读取中";
+      $("modeTag").textContent = canUseDemoMode() ? "演示" : state.role === "staff" ? "顾客队列" : "读取中";
       $("sideHint").textContent = state.role === "staff"
         ? "看待处理和自动记录。"
         : "总览、连接、复盘。";
@@ -4108,9 +4666,9 @@
         label.textContent = "顾客队列";
         return;
       }
-      code.textContent = "CD";
+      code.textContent = "AI";
       code.style.display = "";
-      label.textContent = "Chat Window Decision";
+      label.textContent = "AI 判断";
     }
 
     function setFilter(filter) {
@@ -4124,6 +4682,105 @@
     function setWorkspaceView(view) {
       state.workspaceView = view || "overview";
       render();
+    }
+
+    function localDateIso(value = new Date()) {
+      const date = value instanceof Date ? value : new Date(value);
+      if (!Number.isFinite(date.getTime())) return "";
+      const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 10);
+    }
+
+    function normalizeIsoDate(value) {
+      const text = String(value || "").trim();
+      return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+    }
+
+    function shiftIsoDate(isoDate, days) {
+      const normalized = normalizeIsoDate(isoDate);
+      if (!normalized) return "";
+      const [year, month, day] = normalized.split("-").map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day + Number(days || 0)));
+      return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : "";
+    }
+
+    function selectedDateLabel() {
+      const selected = normalizeIsoDate(state.selectedDate) || todayISO;
+      if (selected === todayISO) return `今天 ${selected}`;
+      if (selected === shiftIsoDate(todayISO, -1)) return `昨天 ${selected}`;
+      return selected;
+    }
+
+    function syncDateControls() {
+      const selected = normalizeIsoDate(state.selectedDate) || todayISO;
+      state.selectedDate = selected;
+      if (caseDateFilterEl) {
+        caseDateFilterEl.value = selected;
+        caseDateFilterEl.max = todayISO;
+      }
+      const nextDate = shiftIsoDate(selected, 1);
+      const atToday = !nextDate || nextDate > todayISO || selected >= todayISO;
+      if (caseNextDateEl) {
+        caseNextDateEl.disabled = false;
+        caseNextDateEl.classList.toggle("is-at-today", atToday);
+        caseNextDateEl.title = atToday ? "已经是今天" : "后一天";
+      }
+      if (caseTodayDateEl) {
+        caseTodayDateEl.textContent = selected === todayISO ? "今天" : "回今天";
+        caseTodayDateEl.classList.toggle("active", selected === todayISO);
+      }
+    }
+
+    function setSelectedDate(nextDate) {
+      const normalized = normalizeIsoDate(nextDate) || todayISO;
+      state.selectedDate = normalized > todayISO ? todayISO : normalized;
+      state.selected.clear();
+      syncDateControls();
+      render();
+    }
+
+    function shiftSelectedDate(days) {
+      const nextDate = shiftIsoDate(state.selectedDate || todayISO, days);
+      if (!nextDate) return;
+      if (days > 0 && nextDate > todayISO) {
+        setSelectedDate(todayISO);
+        return;
+      }
+      setSelectedDate(nextDate);
+    }
+
+    function isoDateFromValue(value) {
+      const text = String(value || "").trim();
+      if (!text) return "";
+      const iso = text.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+      if (iso) return iso[1];
+      const slash = text.match(/\b(\d{4})\/(\d{1,2})\/(\d{1,2})\b/);
+      if (slash) {
+        const [, year, month, day] = slash;
+        return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      }
+      return localDateIso(text);
+    }
+
+    function caseDateKey(item = {}) {
+      const raw = [
+        item.last_message_at,
+        item.updated_at,
+        item.created_at,
+        item.approved_at,
+        item.raw_approval?.inbound?.message_at,
+        item.raw_approval?.updated_at,
+        item.raw_approval?.created_at,
+        item.raw_approval?.approved_at,
+        item.latest_decision?.created_at,
+        item.latest_decision?.updated_at,
+      ].find((value) => String(value || "").trim());
+      return isoDateFromValue(raw) || todayISO;
+    }
+
+    function filterCasesBySelectedDate(cases = []) {
+      const selected = normalizeIsoDate(state.selectedDate) || todayISO;
+      return cases.filter((item) => caseDateKey(item) === selected);
     }
 
     function syncFilterControls() {
@@ -4162,8 +4819,6 @@
         ai_reply: "cases",
         brand_brain: "operations",
         content: "overview",
-        channel_whatsapp: "cases",
-        channel_line: "cases",
         logs: "learning",
       };
       return map[key] || "cases";
@@ -4350,6 +5005,7 @@
 
       box.value = templates[template] || text;
       box.focus();
+      setPanelBusy(false);
       showToast("已调整建议回复，确认后再批准发送。");
     }
 
@@ -4373,7 +5029,7 @@
 	    function connectionStatusLabel() {
 	      if (state.demoMode) return "演示";
 	      if (canUseQaMode()) return "QA";
-	      return state.role === "staff" ? "已连接" : "真实";
+	      return state.role === "staff" ? "审核优先" : "真实";
 	    }
 
 	    function activeModeLabel() {
@@ -4843,17 +5499,63 @@
 	      };
 	    }
 
-	    function approvalStatus(item) {
+    function approvalStatus(item) {
 		      if (item.status === "purchase_confirmed") return "purchase_confirmed";
 		      if (item.status === "manual_resolved") return "manual_resolved";
 		      if (item.status === "rejected") return isReturnedToAiApproval(item) ? "returned_to_ai" : "handoff_done";
       if (item.status === "sending") return "sending";
+      if (isExternalFlowProgressedApproval(item)) return "auto_sent";
       if (item.status === "sent" && (item.auto_reply || item.category === "auto" || item.decision?.delivery?.mode === "auto_send" || item.approved_by === "agent_auto_send")) return "auto_sent";
       if (item.status === "sent") return "sent";
       if (item.status === "send_failed") return "send_failed";
       if (item.category === "handoff" || item.category === "human") return "human_required";
       if (item.category === "ops" || item.category === "order") return "order";
       return "approval_required";
+    }
+
+    function externalFlowProgressText(item = {}) {
+      const decision = item.decision || {};
+      const signals = decision.signals || {};
+      const delivery = decision.delivery || {};
+      const action = item.action || {};
+      const reply = item.reply || {};
+      return [
+        item.status,
+        item.category,
+        item.source_status,
+        item.event_type,
+        item.approved_by,
+        item.auto_reply ? "auto_reply" : "",
+        action.type,
+        action.label,
+        action.provider_flow_id,
+        action.flow_id,
+        action.flow_name,
+        decision.action,
+        delivery.mode,
+        delivery.provider,
+        delivery.flow_id,
+        delivery.provider_flow_id,
+        signals.flow_action,
+        signals.next_flow,
+        signals.user_current_step,
+        signals.stage,
+        reply.stage_after,
+        item.flow_id,
+        item.provider_flow_id,
+        item.flow_name,
+        item.raw_context,
+        item.context,
+        item.send_result?.reason,
+        item.send_result?.message,
+      ].filter(Boolean).join(" ");
+    }
+
+    function isExternalFlowProgressedApproval(item = {}) {
+      const statusText = [item.status, item.category, item.decision?.delivery?.mode, item.approved_by].filter(Boolean).join(" ").toLowerCase();
+      const completedLike = /(sent|approved|complete|completed|done|auto|flow)/i.test(statusText);
+      if (!completedLike || /pending|approval_required|draft/i.test(statusText)) return false;
+      return /(trigger[_\s-]?flow|flow[_\s-]?(?:triggered|progressed|sent|continued)|external[_\s-]?flow|automation sent|smart delay|broadcast|user_current_step|provider_flow_id|manychat|chatdaddy|step[_\s-]?\d)/i.test(externalFlowProgressText(item));
     }
 
     function approvalAction(item) {
@@ -4867,6 +5569,7 @@
     }
 
     function approvalReason(item, status, action) {
+      if (status === "auto_sent" && isExternalFlowProgressedApproval(item)) return "外部流程已继续；Dashboard 放到自动记录，避免客服重复处理旧批准卡。";
       if (status === "auto_sent") return "AI 已自动回复顾客；这里保留已发送内容，方便客服追踪。";
       if (status === "sent") return "这条回复已发送给顾客。";
       if (status === "purchase_confirmed") return `已确认成交${item.amount_rm || item.purchase?.amount_rm ? ` RM ${item.amount_rm || item.purchase?.amount_rm}` : ""}。`;
@@ -5006,7 +5709,8 @@
     }
 
     function render() {
-      const all = casesForRole(state.cases);
+      const allForRole = casesForRole(state.cases);
+      const all = filterCasesBySelectedDate(allForRole);
       const counts = countCases(all);
       const learned = countLearnedRules(all);
       state.contactStats = buildContactStats(all);
@@ -5029,6 +5733,7 @@
       state.visibleCases = visible;
       renderQueueSummary(visible.length, filtered.length, all.length, counts);
       renderOwnerQaGuide(counts);
+      renderChannelOutageAlert(all, counts);
       casesEl.innerHTML = visible.map(cardHtml).join("") || emptyHtml();
       renderSelectionTools();
       renderBulkBar();
@@ -5093,8 +5798,6 @@
       setBadge("navAutoBadge", counts.auto || 0);
       setBadge("navOrderBadge", counts.orders || 0);
       setBadge("navLogBadge", learned || "记录");
-      setBadge("navWhatsAppBadge", state.connected ? "真实" : "待接");
-      setBadge("navLineBadge", "待接");
       setBadge("navConfigureBadge", "✅");
       setBadge("navStep1Badge", state.demoMode ? "待" : "✅");
       setBadge("navStep2Badge", "✅");
@@ -5371,7 +6074,59 @@
       const staffGuide = state.role === "staff"
         ? ` · 先人工 ${counts.human || 0}，退回 AI ${counts.returnAi || 0}，补回复 ${counts.pendingManualReplies || 0}，可批准 ${counts.approval || 0}`
         : "";
-      $("queueSummary").textContent = `${visibleCount}/${filteredCount} 位${queryText} · ${sortText}${qaText}${staffGuide}`;
+      $("queueSummary").textContent = `${selectedDateLabel()} · ${visibleCount}/${filteredCount} 位${queryText} · ${sortText}${qaText}${staffGuide}`;
+    }
+
+    function channelOutageTextForCase(item = {}) {
+      const decision = item.latest_decision || {};
+      return [
+        item.status,
+        item.reason,
+        item.error,
+        item.send_error,
+        item.raw_context,
+        item.context,
+        item.last_error,
+        item.send_result?.reason,
+        item.send_result?.error,
+        item.send_result?.message,
+        decision.reason,
+        decision.error,
+        decision.send_error,
+        decision.raw_context,
+        decision.delivery?.reason,
+        decision.delivery?.error
+      ].filter(Boolean).join(" ");
+    }
+
+    function hasChannelOutageEvidence(item = {}) {
+      return /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(channelOutageTextForCase(item));
+    }
+
+    function channelOutageCases(cases = []) {
+      return cases.filter(hasChannelOutageEvidence);
+    }
+
+    function renderChannelOutageAlert(cases = [], counts = {}) {
+      const element = $("channelOutageAlert");
+      if (!element) return;
+      const outages = channelOutageCases(cases);
+      if (!outages.length) {
+        element.classList.add("hidden");
+        element.innerHTML = "";
+        return;
+      }
+      const failedCount = Number(counts.failed || outages.filter((item) => item.status === "send_failed").length || 0);
+      const first = outages[0] || {};
+      const name = first.contact?.name || first.customer_name || first.name || "顾客";
+      element.classList.remove("hidden");
+      element.innerHTML = `
+        <span class="alert-dot" aria-hidden="true"></span>
+        <div>
+          <b>WhatsApp / API 渠道异常：先修渠道，不要重复批准</b>
+          <span>${escapeHtml(`ManyChat/ChatDaddy 显示 Data Use / WhatsApp channel off 迹象；当前 ${failedCount || outages.length} 条相关记录，例：${name}。修好 App Dashboard / WhatsApp 连接后再回 Dashboard 处理。`)}</span>
+        </div>
+      `;
     }
 
     function renderOwnerQaGuide(counts = {}) {
@@ -5393,19 +6148,25 @@
         </div>
         <div class="qa-guide-grid">
           <div class="qa-guide-column">
-            <strong>能过：答完再推进</strong>
-            <span>看价前 FAQ / 用法 / 信任问题：先答顾客最后一句，再接下一段教育或信心 Flow。</span>
-            <span>看价后异议：给信心 + 当前活动边界 + CTA，留 Dashboard 审批。</span>
+            <strong>价格图前：先答问题</strong>
+            <span>问价、喝法、口味、适合度：先回答顾客最后一句，再接对应教育 / 信任 Flow。</span>
+            <span>能过：答案清楚 + Flow Step 正确 + 仍留 Dashboard 审批。</span>
           </div>
           <div class="qa-guide-column">
-            <strong>不能过：先挡住</strong>
-            <span>旧活动、4+2、直接瘦 kg、乱折扣、没回答问题就接 Flow，都要退回 AI 或人工确认。</span>
-            <span>健康敏感、想吐、怀孕、投诉、退款、改地址、付款/Receipt，先人工/SOP，不走普通销售 Flow。</span>
+            <strong>价格图后：信心 + CTA</strong>
+            <span>问一盒/配套/免邮/COD：先答当前价和边界，再给信心与下单动作。</span>
+            <span>不能过：倒回教育 Flow、旧活动、乱折扣、没回答就接价格图。</span>
           </div>
           <div class="qa-guide-column">
-            <strong>学习：只学好样本</strong>
-            <span>学习顾客问题 -> 正确回复 -> 下一步动作；不要只学 ManyChat 主动发出的 Flow 文案。</span>
-            <span>转人工后必须贴真正发给顾客的回复；“已回复 / Done”不能当学习样本。</span>
+            <strong>售后/订单：先人工</strong>
+            <span>付款、Receipt、改地址、退款、投诉、想吐、没人跟进：停止普通销售 Flow。</span>
+            <span>客服处理完必须贴最终回复，Hermas 才能复盘边界。</span>
+          </div>
+          <div class="qa-guide-column">
+            <strong>学习：问题 -> 回复 -> 下一步</strong>
+            <span>真实学习单位：顾客问题 -> 人工回复 -> 接 Flow / CTA；截图要往上看顾客原话。</span>
+            <span>只学好样本：顾客原话、上一段 Flow、AI 草稿、人工最终回复都要留。</span>
+            <span>不要只学 ManyChat 主动发出的 Flow 文案；Flow 是下一步，不是答案。</span>
           </div>
         </div>
       `;
@@ -5583,7 +6344,7 @@
         },
         "5": {
           kicker: "STEP 5",
-          title: "Summary Panel",
+          title: "复盘总结",
           body: "每天看一眼：谁有回复、谁成交、谁没回、谁需要 Follow Up。",
           rows: [
             ["待处理", `${pending} 位今天需要看`, "Today"],
@@ -5595,7 +6356,7 @@
         },
         "6": {
           kicker: "STEP 6",
-          title: "Recommendation",
+          title: "优化建议",
           body: "从重复问题和客服修改里找出底层问题，反过来优化 FAQ、SOP、广告回流和 Flow。",
           rows: [
             ["重复疑问", "同一个问题一直出现，就补 FAQ", "资料"],
@@ -5638,7 +6399,7 @@
           <strong class="command-title">${escapeHtml(panel.footer)}</strong>
           <div class="steps">
             ${stepHtml("一次性", "项目上线前由管理者设置好。")}
-            ${stepHtml("日常", "客服主要看第 4 项 Customer Queue。")}
+            ${stepHtml("日常", "客服主要看第 4 项顾客队列。")}
             ${stepHtml("优化", "出错的 Case 在复盘里改规则。")}
           </div>
         </section>
@@ -5737,6 +6498,7 @@
 	                <div class="audit-item">
 	                  <b>${escapeHtml(item.title || id || "学习建议")}</b>
 	                  <span>${escapeHtml(item.improvement || candidate.proposed_rule || "先记录成学习候选，之后再审核。")}</span>
+	                  ${candidate.better_reply ? `<span>${escapeHtml(`客服参考回复：${candidate.better_reply}`)}</span>` : ""}
 	                  <span>${escapeHtml(learningRecommendationOwnerAction(item, candidate))}</span>
 	                  <span>${escapeHtml(learningRecommendationReplayTest(item, candidate))}</span>
 	                  <small>${escapeHtml(candidate.artifact_label || learningSeverityLabel(item.severity))}｜${Number(item.count || 0)} 次｜不会发送 WhatsApp</small>
@@ -6431,9 +7193,25 @@
     }
 
     function customerPreviewText(item) {
-      const text = String(item.last_message || item.messages?.find((msg) => msg.direction === "inbound")?.text || "").trim();
-      if (text) return text;
       const decision = item.latest_decision || {};
+      const inboundMessage = Array.isArray(item.messages)
+        ? item.messages.find((msg) => msg?.direction === "inbound" || msg?.direction === "in" || msg?.role === "customer")
+        : null;
+      const text = [
+        item.last_message,
+        item.customer_text,
+        item.inbound_text,
+        item.incoming,
+        item.message,
+        decision.customer_text,
+        decision.inbound_text,
+        decision.incoming,
+        decision.message,
+        inboundMessage?.text,
+        inboundMessage?.body,
+        inboundMessage?.message,
+      ].map((value) => String(value || "").trim()).find(Boolean) || "";
+      if (text) return text;
       if (decision.intent === "receipt" || decision.action === "review_receipt") return "顾客上传了付款截图";
       return "顾客没有文字讯息";
     }
@@ -6467,6 +7245,14 @@
       const decision = item.latest_decision || {};
       const closer = closerVerdict(item);
       const approvalGuard = approvalGuardForVerdict(closer);
+      if (approvalGuard.blocked && closer.tone === "fix" && isLongMessageFatigueCase(item, closer)) {
+        return `
+          <div class="case-action-row">
+            <button class="card-action primary" type="button" data-card-action="open_review" data-case-id="${escapeHtml(item.id)}">改短版</button>
+            <button class="card-action" type="button" data-card-action="handoff" data-case-id="${escapeHtml(item.id)}">人工</button>
+          </div>
+        `;
+      }
       if (approvalGuard.blocked && closer.tone === "fix") {
         return `
           <div class="case-action-row">
@@ -6501,6 +7287,13 @@
         item.rawContext,
         item.context_text,
         item.customer_history_text,
+        item.status,
+        item.reason,
+        item.error,
+        item.send_error,
+        item.send_result?.reason,
+        item.send_result?.error,
+        item.send_result?.message,
         item.message_type,
         item.inbound_type,
         item.attachment_type,
@@ -6518,6 +7311,11 @@
         raw.media_type,
         decision.previous_agent_text,
         decision.operator_instruction,
+        decision.reason,
+        decision.error,
+        decision.send_error,
+        decision.delivery?.reason,
+        decision.delivery?.error,
         decision.message_type,
         decision.inbound_type,
         decision.attachment_type,
@@ -6533,7 +7331,29 @@
 	        closer.reason
 	      ].filter(Boolean).join(" ");
 	      const combined = `${customerText} ${sourceText}`;
+	      const draftText = [
+	        item.reply,
+	        item.finalText,
+	        item.final_text,
+	        item.manualReplyText,
+	        item.manual_reply_text,
+	        raw.reply_message,
+	        raw.final_text,
+	        raw.manual_reply_text,
+	        decision.reply,
+	        decision.reply_message,
+	        decision.finalText,
+	        decision.final_text,
+	        decision.manualReplyText,
+	        decision.manual_reply_text,
+	        closer.title,
+	        closer.reason
+	      ].filter(Boolean).join(" ");
 	      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(customerText);
+      const channelOutageContext = /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(`${sourceText} ${draftText}`);
+      if (channelOutageContext) {
+        return "渠道/API断开：先修Data Use/WhatsApp；别重复批准";
+      }
       const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(customerText);
       const priceAndSachetQuestion = directPriceQuestion && /(?:一|1)?\s*(?:盒)?[^。？?\n]{0,12}(?:几|幾|多少|how\s+many).{0,8}(?:包|小包|sachets?|packs?)|(?:包|小包|sachets?|packs?).{0,12}(?:几|幾|多少|how\s+many)/i.test(customerText);
       const orderRetentionContext = /(624|Broadcast|SHOPEE|Shopee\s+voucher|平台优惠|平台優惠|平台活动|平台活動|平台折扣券|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|订单确认|訂單確認|订单相关权益|訂單相關權益|保留状态|保留狀態|已安排出货|已安排出貨)/i.test(sourceText);
@@ -6541,6 +7361,19 @@
       const orderDenialContext = /(?:没|沒|没有|沒有).{0,10}(?:订购|訂購|下单|下單|买|買|order|purchase)|(?:didn['’]?t|did\s+not|never).{0,20}(?:order|buy|purchase)|我没订购|我沒訂購|not[_\s-]?ordered|order[_\s-]?denial/i.test(customerText);
       if (orderDenialContext) {
         return "否认订购：先道歉澄清；查记录/排除，不接Flow";
+      }
+      const broadcastOrderClaimContext = orderRetentionContext && /(?:不能过：Broadcast订单话术别当事实|(?:订单|訂單|order).{0,36}(?:正在|处理中|處理中|完成更新|保留状态|保留狀態|确认|確認|相关权益|相關權益|reserved|processing|confirmed)|(?:已安排|安排).{0,18}(?:出货|出貨|发货|發貨|shipping|delivery))/i.test(draftText);
+      if (broadcastOrderClaimContext) {
+        return "Broadcast订单话术：先查记录；别当已下单/已出货";
+      }
+      const directMoneyQuestionForLongHistory = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒.*(?:多少|RM|rm)|how\s+much|\bprice\b)/i.test(customerText);
+      const automationHistoryMarkers = (sourceText.match(/Smart delay started|Automation sent via Inbox|Broadcast|SHOPEE|Shopee|LAST\s*CALL|META\s*DAY|PAYDAY|母亲节|母親節/g) || []).length;
+      const automationHistoryDateMarkers = (sourceText.match(/\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+20\d{2}\b|(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)|\b20\d{2}[-/]\d{1,2}[-/]\d{1,2}\b/g) || []).length;
+      const longAutomationHistoryContext = directMoneyQuestionForLongHistory && orderRetentionContext && automationHistoryMarkers >= 4 && automationHistoryDateMarkers >= 3;
+      if (longAutomationHistoryContext) {
+        return oneBoxQuestion
+          ? "多段Broadcast：最后问一盒优先；答RM150/15小包"
+          : "多段Broadcast：最后顾客问题优先；先答当前价";
       }
       const orderGiftMissingComplaint = /(?:没|沒|没有|沒有|少|漏|缺|没收到|沒收到|没有收到|沒有收到|missing|not\s+receive).{0,24}(?:赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包)|(?:赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包).{0,24}(?:没|沒|没有|沒有|少|漏|缺|没收到|沒收到|没有收到|沒有收到|missing|not\s+receive)/i.test(customerText) && /(?:订单|訂單|配套|下单|下單|order|ordered|purchase|purchased|送|赠品|贈品|gift|毛巾|玻璃杯|杯|小粉瓶|小包|上星期|上周|上週|之前)/i.test(combined);
       const orderGiftQuestion = orderGiftMissingComplaint || /(?:上星期|上个星期|上個星期|上周|上週|之前|已经|已經|已|刚|剛|刚才|剛才).{0,36}(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套).{0,48}(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包)|(?:送|gift|赠品|贈品|玻璃杯|杯|毛巾|小包).{0,48}(?:上星期|上个星期|上個星期|上周|上週|之前|订|訂|下单|下單|order|ordered|bought|purchase|purchased|配套)/i.test(customerText);
@@ -6559,6 +7392,10 @@
       if (outdatedPriceContext) {
         return "旧价/旧活动：退回AI；只用当前价梯，不接旧Flow";
       }
+      const infoGapPackageContext = !pwpAddonContext && /(资料缺口|資料缺口|未知配套|未知价格|未知價|4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|hidden\s+package|隐藏配套|隱藏配套|特殊配套|特別配套|特殊价|特殊價|老板价|老闆價|活动配套资料缺口|活動配套資料缺口)/i.test(combined);
+      if (infoGapPackageContext) {
+        return "资料缺口：只答已确认价；老板补FAQ/SOP";
+      }
       const noCustomerTextForContext = !String(customerText || "").trim() || /^(?:顾客没有文字讯息|顾客没有文字信息|no\s+customer\s+text|no\s+customer\s+message)$/i.test(String(customerText || "").trim());
       const noCustomerPromoRecoveryContext = noCustomerTextForContext
         && /(?:promo_recovery|follow[_\s-]?up|Smart delay|Broadcast|Automation sent|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|保留状态|保留狀態|SHOPEE|Shopee)/i.test(sourceText)
@@ -6569,6 +7406,10 @@
       const adverseReactionContext = /(?:喝了|服用|服了|take|drink|mixed).{0,60}(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服|side\s*effect|nausea|vomit|dizzy|diarrhea|stomach)|(?:想吐|呕吐|嘔吐|恶心|噁心|肚子不舒服|胃不舒服|头晕|頭暈|肚子痛|腹泻|腹瀉|nausea|vomit|dizzy|diarrhea).{0,60}(?:Beyoute|喝|服用|take|drink|产品|產品|mixed|water)/i.test(combined);
       if (adverseReactionContext) {
         return "不适/想吐：先停销售；问喝法+症状";
+      }
+      const sugarSafetyContext = /(?:很甜|太甜|甜味|甜|有加糖|加糖|有糖|糖分|代糖|甜味剂|甜味劑|麦芽糖醇|麥芽糖醇|赤藓糖醇|赤蘚糖醇|三氯蔗糖|sugar|sweet|sweetener|diabet|diabetes|diabetic|blood\s*sugar|血糖|糖尿|三高|高血糖)/i.test(customerText);
+      if (sugarSafetyContext) {
+        return "糖/甜味：先答成分边界；血糖/糖尿病先人工，不接销售Flow";
       }
       const englishLanguageRequestContext = /(?:idont|i\s+don['’]?t|dont|do\s+not|can\s+you|can\s+u|please).{0,48}(?:english|write\s+english|understand)|\benglish\b|英文/i.test(customerText);
       const confusedShortReplyContext = /^(?:[?？]{2,}|什么意思|什麼意思|不懂|看不懂|看不明白|不明白|不理解|听不懂|聽不懂|what|what\?|huh|huh\?)$/i.test(String(customerText || "").trim()) || /(?:看不懂|看不明白|不懂|不明白|不理解|什么意思|什麼意思|don['’]?t\s+understand|dont\s+understand|confused)/i.test(customerText);
@@ -6588,9 +7429,17 @@
       if (marketplaceOfficialContext) {
         return "官方平台：先确认Shopee/Lazada链接；不乱给，不接Flow";
       }
-      const noFollowUpContext = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerText);
-      if (noFollowUpContext) {
-        return "没人跟进：先道歉查记录；真人接手，不接销售Flow";
+	      const noFollowUpContext = /(?:都|也|一直)?(?:没有人|沒有人|没人|沒人|无人|無人).{0,24}(?:follow\s*up|回复|回覆|reply|respond|回应|回應|联络|聯絡|联系|聯繫|contact)|(?:no\s*one|nobody).{0,30}(?:follow\s*up|reply|respond|contact|get\s*back)|(?:follow\s*up).{0,24}(?:没有人|沒有人|没人|沒人|无人|無人|no\s*one|nobody)/i.test(customerText);
+	      if (noFollowUpContext) {
+	        return "没人跟进：先道歉查记录；真人接手，不接销售Flow";
+	      }
+	      const policyCompensationContext = /(?:compensat(?:e|ed|es|ion)?|\bterms?\s*(?:&|and)\s*conditions?\b|\bt\s*(?:&|and)\s*c\b|赔偿|賠償|补偿|補償|索赔|索賠|拒赔|拒賠|条款|條款)/i.test(`${customerText} ${sourceText}`);
+	      if (policyCompensationContext) {
+	        return "赔偿/T&C：先查订单+政策；不承诺/不拒赔";
+	      }
+	      const noResultReviewContext = /(?:so\s+far\s+no\s+lose\s+weight|lost\s+confiden(?:t|ce)|not\s+effective|no\s+(?:effect|result)|doesn['’]?t\s+work|not\s+working|haven['’]?t\s+seen.{0,16}(?:result|effect)|喝了.{0,24}(?:没效|沒效|没效果|沒效果|没瘦|沒瘦)|(?:服用|用了|用咗|买了|買了|购买了|購買了).{0,24}(?:没效|沒效|没效果|沒效果|没瘦|沒瘦)|(?:没看到效果|沒看到效果|不见效|不見效|没瘦|沒瘦).{0,24}(?:喝|服用|用|体重|體重|weight|排便|肚子))/i.test(`${customerText} ${sourceText}`);
+      if (noResultReviewContext) {
+        return "没效果复盘：问喝多久/饭前时间/水量/排便/身体反应；不接销售Flow";
       }
       const referralBulkContext = ((/(介绍|介紹|推荐|推薦|refer|referral|introduced|recommend)/i.test(customerText) && /(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerText)) || (/(妹妹|姐姐|哥哥|弟弟|朋友|家人|亲戚|親戚|sister|brother|friend|family)/i.test(customerText) && /(购买|購買|买|買|订|訂|拿|order|ordered|bought|purchase|purchased)/i.test(customerText) && /(?:[4-9]|四|五|六|七|八|九)\s*(?:盒|box|boxes)|(?:多|几|幾)\s*(?:盒|box|boxes)/i.test(customerText)));
       if (referralBulkContext) {
@@ -6600,15 +7449,32 @@
       if (afterSalesSellerNoReplyContext) {
         return "售后没回复：先给基础喝法；查订单/聊天记录";
       }
+      const paymentReceivedContext = /(?:已|已经|已經|刚|剛)\s*(?:汇款|匯款|付款|付钱|付錢|转账|轉賬)|(?:汇款|匯款|转账|轉賬)(?:了|啦|咯|好了|过了|過了)|\b(?:bank\s*in|banked\s*in|transferred|paid|already\s+paid|paid\s+already|payment\s*(?:already\s*)?made|payment\s*done|payment\s*completed)\b|收到.{0,16}(?:汇款|匯款|付款|payment|款)/i.test(combined);
+      const shippingEtaContext = /(运输|運輸|快递|快遞|物流|包裹|包裹几时|包裹幾時|单号|單號|追踪|追蹤|tracking|track|waybill|parcel|几天|幾天|多久.{0,12}到|几时.{0,12}到|幾時.{0,12}到|when\s+can\s+i\s+get|delivery|shipping|courier|arrive|arrival|eta)/i.test(customerText);
+      const paymentRecordConflictContext = paymentReceivedContext && /(?:waiting\s+for\s+payment|待付款|pending\s+payment|payment[_\s-]?status.{0,24}(?:pending|unpaid)|unpaid|未付款|未收款|还没收款|還沒收款|order.{0,24}waiting\s+for\s+payment)/i.test(`${sourceText} ${draftText}`);
+      if (paymentRecordConflictContext) {
+        return "付款记录冲突：顾客说已付但系统待付款；先核对";
+      }
+      if (paymentReceivedContext && shippingEtaContext) {
+        return "已付款问包裹：查订单/追踪；先回ETA，不接销售Flow";
+      }
       const deliveryPaymentArrangementContext = /(?:安排|arrange|how|如何|怎样|怎樣|怎么|怎麼)?[^。？?\n]{0,30}(?:送货|送貨|配送|寄送|邮寄|郵寄|delivery|shipping|courier)[^。？?\n]{0,50}(?:付款|付钱|付錢|payment|pay|cod|货到付款|貨到付款)|(?:付款|付钱|付錢|payment|pay|cod|货到付款|貨到付款)[^。？?\n]{0,50}(?:送货|送貨|配送|寄送|邮寄|郵寄|delivery|shipping|courier)/i.test(`${customerText} ${sourceText}`);
       if (deliveryPaymentArrangementContext) {
         return "送货/付款：先确认地区/配套/渠道；不接产品Flow";
+      }
+      const totalAmountPaymentContext = /(?:总共|總共|一共|合计|合計|加起来|加起來|total|altogether|overall).{0,30}(?:多少钱|多少錢|RM|amount|price)|(?:加|top\s*up|add).{0,24}(?:哪|哪个|哪個|一|1).{0,12}(?:包|盒|box).{0,30}(?:多少钱|多少錢|RM|total)|(?:多少钱|多少錢).{0,30}(?:总共|總共|一共|total)/i.test(customerText) || (directPriceQuestion && /(?:下午|今晚|晚上|等下|待会|待會|迟点|遲点|迟些|遲些|later|tonight|today).{0,24}(?:付款|付钱|付錢|过钱|過錢|支付|pay|payment)|(?:付款|付钱|付錢|过钱|過錢|支付|pay|payment).{0,24}(?:下午|今晚|晚上|等下|待会|待會|迟点|遲点|迟些|遲些|later|tonight|today)/i.test(customerText));
+      if (totalAmountPaymentContext) {
+        return "总额/稍后付款：先算总额；提醒截图，不接产品Flow";
       }
       const targetWeightPackageContext = /(?:\d{2,3}\s*(?:多)?\s*(?:kg|KG|公斤)?).{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?).{0,36}(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?|(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?.{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?)/i.test(customerText);
       if (targetWeightPackageContext) {
         return "目标体重：建议配套；不保证瘦到Xkg";
       }
       const bodySuitabilityContext = /(?:经期|經期|月经|月經|姨妈|姨媽|生理期|跟车期|跟車期|period|menstruat|年期|体重|體重|100\s*kg|100KG|更年期|跟年期|停经|停經).{0,18}(?:可以|能|适合|適合|喝|服用|take|drink)|(?:可以|能|适合|適合).{0,18}(?:经期|經期|月经|月經|姨妈|姨媽|生理期|跟车期|跟車期|period|menstruat|年期|体重|體重|100\s*kg|100KG|更年期|跟年期|停经|停經)/i.test(customerText);
+      const afterOrderBodySuitabilityContext = bodySuitabilityContext && /(?:收到你的订单|收到你的訂單|收到.{0,12}(?:订单|訂單)|(?:已经|已經|已|刚|剛).{0,12}(?:下单|下單|订购|訂購|购买|購買)|(?:完成|确认|確認).{0,12}(?:下单|下單|订单|訂單|order)|(?:shopee|Shopee).{0,36}(?:下单|下單|订单|訂單|order|售后|售後)|order.{0,18}(?:received|confirmed|placed))/i.test(sourceText);
+      if (afterOrderBodySuitabilityContext) {
+        return "下单后经期：答可喝+不舒服/量多暂停；不接销售Flow";
+      }
       if (bodySuitabilityContext) {
         return "身体/经期/体重：先答适合度；别只丢配套Flow";
       }
@@ -6616,11 +7482,9 @@
 	      if (futurePaymentContext) {
 	        return "等付款：记录日期；提醒付款后截图";
 	      }
-      const paymentReceivedContext = /(?:已|已经|已經|刚|剛)\s*(?:汇款|匯款|付款|付钱|付錢|转账|轉賬)|(?:汇款|匯款|转账|轉賬)(?:了|啦|咯|好了|过了|過了)|\b(?:bank\s*in|banked\s*in|transferred|paid|payment\s*done)\b|收到.{0,16}(?:汇款|匯款|付款|payment|款)/i.test(combined);
       if (paymentReceivedContext) {
         return "已付款/汇款：先审款；核对截图/金额，不接销售Flow";
       }
-      const shippingEtaContext = /(运输|運輸|快递|快遞|物流|几天|幾天|多久.{0,12}到|几时.{0,12}到|幾時.{0,12}到|delivery|shipping|courier|arrive|arrival|eta)/i.test(customerText);
       if (shippingEtaContext) {
         return "运输时效：答西马2-3/东马5-7；不接产品Flow";
       }
@@ -6632,14 +7496,23 @@
       if (greetingOnlyContext) {
         return "只打招呼：短欢迎+问需求；不接长Flow";
       }
+      const voiceAudioContext = /(Inbox message audio attachment|audio|voice(?:\s*message)?|语音|語音|音频|音訊|0:00\s*\/\s*0:0?\d+)/i.test(`${sourceText} ${draftText}`) || (!String(customerText || "").trim() && /(audio|voice(?:\s*message)?|语音|語音|音频|音訊)/i.test(`${sourceText} ${draftText}`));
+      if (voiceAudioContext) {
+        return "语音样本：先听/写摘要；不直接学习/接Flow";
+      }
       const attachmentContext = /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText) || (/^(?:\.{3}|…)$/.test(String(customerText || "").trim()) && /(image|attachment|photo|media|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText));
+      const afterSalesPhotoReportContext = attachmentContext && /(报平安|報平安|BPA|After payment|收到货|收到貨|收到了|review|Review|回购券|回購券|VIP|parcel|product\s+photo)/i.test(sourceText);
 	      if (attachmentContext) {
-	        return "图片/附件：先打开看；不接 Flow";
+	        return afterSalesPhotoReportContext ? "图片报平安：先看图；确认收货后接BPA/Review" : "图片/附件：先打开看；不接 Flow";
 	      }
 	      const offlineAvailabilityContext = /(药店|实体店|实体門店|門市|门市|門店|门店|线下|線下|哪里买|哪裡買|哪里有卖|哪裡有賣|有卖吗|有賣嗎|现货|現貨|pharmacy|store|outlet|retail|where\s+are\s+(?:you|u)\s+located|location)/i.test(customerText);
 	      if (offlineAvailabilityContext) {
 	        return "线下店/药店：先给地区名单；等地区/查库存，不接销售Flow";
 	      }
+      const absoluteProductOverclaimContext = /(?:保证|保證|一定|肯定|绝对|絕對|confirm|sure).{0,24}(?:有效|看到效果|瘦|瘦身|变白|變白|亮白|不反弹|不反彈|不会反弹|不會反彈|没副作用|沒副作用|没有副作用|沒有副作用|副作用)|(?:不可能|绝不|絕不|完全不|完全没有|完全沒有).{0,24}(?:副作用|反弹|反彈|依赖|依賴|不舒服)/i.test(draftText);
+      if (absoluteProductOverclaimContext) {
+        return "强承诺Flow：退回AI；别承诺绝对有效/无副作用";
+      }
       const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
       const englishBusinessQuestion = /[a-z]/i.test(customerText) && !/[\u4e00-\u9fff]/.test(customerText) && /\b(?:what(?:'s|s)?|promo|promotion|price|package|free\s*gift|gift|discount|offer|how\s+much|official|shopee|lazada|delivery|shipping|payment|order|available|cod|where)\b/i.test(customerText);
       const englishMixedVerdictContext = /(英文请求混中文|英文顾客中文草稿|英文资料接中文\s*Flow)/i.test(titleReason);
@@ -6658,7 +7531,7 @@
           return "624后问价+人工暂停：答RM150/15小包；不回624/不接Flow";
         }
         return oneBoxQuestion
-          ? "624后问价≠回624：先答RM150/15小包；再一盒CTA"
+          ? "624后问价≠回624：先答RM150/15小包；优先问安排一盒"
           : "Shopee/624提醒不是订单；先答当前价梯；再问配套";
       }
       const postPriceContext = /(STEP_4|user_current_step.{0,16}step_4|看价后|看價後|price_objection|trust_after_price|Flow后问价|Flow後問價)/i.test(sourceText);
@@ -6666,24 +7539,44 @@
         return "看价后问价：答当前价+给信心；CTA成交/收单";
       }
       if (directPriceQuestion && !oneBoxQuestion && !postPriceContext) {
-        return "问价前：短桥接+问痛点；接Step3产品信任Flow";
+        return "问价前：短桥接后接Step1/产品Flow；看价后才成交";
       }
       if (pwpAddonContext) {
         return /(?:5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|May\s+Early\s+Bird)/i.test(sourceText)
           ? "PWP/RM68加购：旧5月活动先挡；查当前资格"
           : "PWP/RM68加购：先查当前资格；别当普通价";
       }
-      const walletPaymentContext = /电子钱包|電子錢包|GrabPay|eWallet/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`);
-      if (walletPaymentContext) {
-        const walletOrderReadyContext = /(?:确认订单|確認訂單|请确认|請確認|安排下单|安排下單|下单|下單|订单|訂單|配套|package|RM\s*150|RM\s*258|RM\s*378|RM\s*658|5\s*盒|8\s*盒|一盒|1\s*盒)/i.test(sourceText);
-        return walletOrderReadyContext
-          ? "电子钱包：确认配套后接付款Flow；提醒截图"
-          : "电子钱包：别只回有的；先确认配套/渠道";
-      }
-      const paymentMethodQuestionContext = /(?:付款方式|付款方法|怎么付款|怎麼付款|如何付款|可以.{0,12}(?:付款|付钱|付錢|pay)|货到付款|貨到付款|\bcod\b|cash\s+on\s+delivery|online\s+payment|bank\s+card|银行卡|銀行卡|信用卡|credit\s+card|debit\s+card|card\s+payment|payex|payment\s+method|payment\s+option)/i.test(`${customerText} ${sourceText} ${titleReason}`);
-      if (paymentMethodQuestionContext) {
-        return "付款方式：先确认可用渠道；发链接后要截图";
-      }
+	      const walletPaymentContext = /电子钱包|電子錢包|GrabPay|eWallet/i.test(titleReason) || /(电子钱包|電子錢包|grab\s*pay|grabpay|e[-\s]?wallet|ewallet|touch\s*'?n\s*go|tng|duit\s*now|duitnow|fpx|payment\s*link|pay\s*link|付款链接|付款連結|付款link)/i.test(`${customerText} ${sourceText}`);
+	      if (walletPaymentContext) {
+	        const walletOrderReadyContext = /(?:确认订单|確認訂單|请确认|請確認|安排下单|安排下單|下单|下單|订单|訂單|配套|package|RM\s*150|RM\s*258|RM\s*378|RM\s*658|5\s*盒|8\s*盒|一盒|1\s*盒)/i.test(sourceText);
+	        return walletOrderReadyContext
+	          ? "电子钱包：确认配套后接付款Flow；提醒截图"
+	          : "电子钱包：别只回有的；先确认配套/渠道";
+	      }
+	      const onlinePaymentSourceText = [
+	        customerText,
+	        raw.raw_context,
+	        raw.customer_history_text,
+	        raw.previous_agent_text,
+	        raw.operator_instruction,
+	        decision.previous_agent_text,
+	        decision.operator_instruction,
+	        decision.flow_name,
+	        decision.next_flow_name,
+	        decision.target_flow_name,
+	        decision.reply_message
+	      ].filter(Boolean).join(" ");
+	      const onlinePaymentContext = /线上付款可审|给我户口|給我戶口/i.test(titleReason) || /(线上付款|線上付款|online\s*(?:banking|payment)|bank\s*transfer|bank\s*in|汇款|匯款|转账|轉賬|给我户口|給我戶口|bank\s*account|account\s*(?:no|number))/i.test(onlinePaymentSourceText);
+	      if (onlinePaymentContext) {
+	        const onlinePaymentOrderReadyContext = /(?:确认订单|確認訂單|请确认|請確認|安排下单|安排下單|下单|下單|订单|訂單|配套|package|RM\s*150|RM\s*258|RM\s*378|RM\s*658|5\s*盒|8\s*盒|一盒|1\s*盒)/i.test(sourceText);
+	        return onlinePaymentOrderReadyContext
+	          ? "线上付款：确认配套后接付款Flow；提醒截图"
+	          : "线上付款：先确认配套/金额；再给收款资料";
+	      }
+	      const paymentMethodQuestionContext = /(?:付款方式|付款方法|怎么付款|怎麼付款|如何付款|可以.{0,12}(?:付款|付钱|付錢|pay)|货到付款|貨到付款|\bcod\b|cash\s+on\s+delivery|online\s+payment|线上付款|線上付款|bank\s+card|银行卡|銀行卡|信用卡|credit\s+card|debit\s+card|card\s+payment|payex|payment\s+method|payment\s+option)/i.test(`${customerText} ${sourceText} ${titleReason}`);
+	      if (paymentMethodQuestionContext) {
+	        return "付款方式：先确认可用渠道；发链接后要截图";
+	      }
       const compactReply = String(customerText || "").replace(/[\s.!！?？~～,，。❤️❤]/g, "");
       const shortAmbiguousReply = /^(ok|okay|k|yes|ya|yup|好|好的|可以|可以的|嗯+|恩+|👍|👌)$/i.test(compactReply);
       const packageChoiceContext = /(?:哪(?:一)?个|哪(?:一)?個|which).{0,30}(?:配套|package|set|盒)|(?:配套|package)\s*[abc].{0,80}(?:配套|package)\s*[abc]|A\s*[\/／、,，]\s*B\s*[\/／、,，]\s*C/i.test(sourceText);
@@ -6705,6 +7598,49 @@
       return "";
     }
 
+    function cardPreviousContextLine(item = {}) {
+      const decision = item.latest_decision || {};
+      const previousAgentText = String(
+        decision.previous_agent_text ||
+        decision.previousAgentText ||
+        item.previous_agent_text ||
+        item.previousAgentText ||
+        ""
+      ).trim();
+      if (!previousAgentText) return "";
+      const customerText = String(
+        item.last_message ||
+        item.customer_text ||
+        decision.customer_text ||
+        customerPreviewText(item) ||
+        ""
+      ).trim();
+      const compactReply = customerText.replace(/[\s.!！?？~～,，。'"“”‘’❤️❤💗💕💖]/g, "");
+      const contextText = [
+        customerText,
+        previousAgentText,
+        decision.intent,
+        decision.reason,
+        item.raw_context,
+        item.operator_instruction,
+      ].filter(Boolean).join(" ");
+      const shortReply = /^(?:ok|okay|k|yes|ya|yup|好|好的|可以|可以的|嗯+|恩+|有|要|拿|1|2|3|一|二|三|a|b|c|A|B|C|👍|👌|🙏|😂|🤣|😊|🙂)$/.test(compactReply);
+      const contextRisk = /(短答|表情|emoji|上一句|上一轮|上一輪|选项|選項|option|low[_\s-]?context|package\s*[abc]|配套\s*[ABC]|哪(?:一)?个配套|哪(?:一)?個配套|which package)/i.test(contextText);
+      if (!shortReply && !contextRisk) return "";
+      return `上一句：${contextSnippet(previousAgentText, 96)}`;
+    }
+
+    function cardPreviousContextHtml(item = {}) {
+      const line = cardPreviousContextLine(item);
+      if (!line) return "";
+      return `
+        <div class="case-context-mini short-context" title="${escapeHtml(line)}">
+          <span>上下文</span>
+          <b>${escapeHtml(line)}</b>
+        </div>
+      `;
+    }
+
     function cardVerdictSummary(item = {}, learningFollowup = null) {
       if (learningFollowup) {
         return {
@@ -6723,6 +7659,214 @@
         title: closer.title || actionLabel(item.latest_decision?.action),
         body: oneGlanceHint || closer.reason || actionHint(item),
       };
+    }
+
+    function cardNextActionMiniText(item = {}) {
+      const learningFollowup = caseLearningFollowup(item);
+      if (learningFollowup) {
+        return `下一步：${learningFollowup.pill || "补人工最终回复"}`;
+      }
+      const closer = closerVerdict(item);
+      const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
+      if (/Flow后问一盒|问一盒可审|CTA改安排一盒/i.test(titleReason)) {
+        return "下一步：改CTA为「你要我先帮你安排一盒试喝吗？」";
+      }
+      const raw = closerVerdictNextAction(closer, item)
+        .replace(/^客服下一步：/, "")
+        .replace(/；.*$/, "")
+        .replace(/。.*$/, "")
+        .trim();
+      if (!raw) return "下一步：打开审核";
+      return `下一步：${contextSnippet(raw, 42)}`;
+    }
+
+    function cardNextActionTone(item = {}) {
+      const closer = closerVerdict(item);
+      const tone = String(closer.tone || "").toLowerCase();
+      if (tone === "fix") return "fix";
+      if (tone === "handoff") return "handoff";
+      if (tone === "order") return "order";
+      if (tone === "pass") return "pass";
+      return "review";
+    }
+
+    function cardNextActionHtml(item = {}) {
+      const line = cardNextActionMiniText(item);
+      if (!line) return "";
+      return `
+        <div class="case-next-action ${escapeHtml(cardNextActionTone(item))}" title="${escapeHtml(line)}">
+          <span>下一步</span>
+          <b>${escapeHtml(line)}</b>
+        </div>
+      `;
+    }
+
+    function caseWorkModeLine(item = {}, closerOverride = null) {
+      const learningFollowup = caseLearningFollowup(item);
+      if (learningFollowup) return "补人工回复后复盘";
+      const decision = item.latest_decision || {};
+      const closer = closerOverride || closerVerdict(item);
+      const tone = String(closer.tone || "").toLowerCase();
+      const action = String(decision.action || "").toLowerCase();
+      const plan = replyThenFlowPlan(item);
+      if (/顾客未回|无新问题|没有顾客/.test(String(plan.answer || ""))) return "只审Flow/追单";
+      if (tone === "fix") return "退回AI重写";
+      if (tone === "handoff") return "转人工处理";
+      if (tone === "order") return "订单/付款确认";
+      if (action.includes("flow") || /(接|Flow|CTA|收单|收單|成交)/i.test(String(plan.after || ""))) return "先回复，再接Flow/CTA";
+      if (tone === "pass") return "可批准回复";
+      return "客服审核回复";
+    }
+
+    function caseWorkModeTone(line = "") {
+      const text = String(line || "");
+      if (/退回AI/.test(text)) return "fix";
+      if (/转人工/.test(text)) return "handoff";
+      if (/订单|付款/.test(text)) return "order";
+      if (/只审Flow/.test(text)) return "flow-only";
+      if (/补人工|复盘/.test(text)) return "learning";
+      if (/可批准/.test(text)) return "reply";
+      return "review";
+    }
+
+    function caseWorkModeHtml(item = {}) {
+      const line = caseWorkModeLine(item);
+      if (!line) return "";
+      return `
+        <div class="case-work-mode ${escapeHtml(caseWorkModeTone(line))}" title="${escapeHtml(line)}">
+          <span>处理模式</span>
+          <b>${escapeHtml(line)}</b>
+        </div>
+      `;
+    }
+
+    function cardFlowMiniLine(item = {}) {
+      const decision = item.latest_decision || {};
+      const action = String(decision.action || "").toLowerCase();
+      const customerText = customerPreviewText(item);
+      const sourceText = [
+        item.raw_context,
+        item.rawContext,
+        item.context_text,
+        item.customer_history_text,
+        decision.previous_agent_text,
+        decision.operator_instruction,
+        decision.flow_key,
+        decision.flow_name,
+        decision.next_flow_key,
+        decision.next_flow_name,
+        decision.target_flow_key,
+        decision.target_flow_name,
+        decision.stage,
+        decision.intent
+      ].filter(Boolean).join(" ");
+      const plan = replyThenFlowPlan(item);
+      const combined = `${customerText} ${sourceText} ${plan.answer || ""} ${plan.after || ""}`;
+      const shouldShow = action.includes("flow") ||
+        /(Flow|Broadcast|Smart delay|Automation sent|user_current_step|Step|价格图|價格圖|Promo|CTA|收单|收單|转人工|轉人工|Direct|问价|問價|喝法|用法|口味|English|英文)/i.test(combined);
+      if (!shouldShow) return "";
+      const firstLabel = /顾客未回|无新问题|没有顾客/.test(String(plan.answer || "")) ? "先看" : "先答";
+      return `${firstLabel}：${contextSnippet(plan.answer, 72)}｜再接：${contextSnippet(plan.after, 78)}`;
+    }
+
+    function cardFlowMiniLabel(line = "") {
+      return /^先看：/.test(String(line || "")) ? "Flow审查" : "答法链";
+    }
+
+    function cardFlowMiniHtml(item = {}) {
+      const line = cardFlowMiniLine(item);
+      if (!line) return "";
+      const label = cardFlowMiniLabel(line);
+      return `
+        <div class="case-flow-mini" title="${escapeHtml(line)}">
+          <span>${escapeHtml(label)}</span>
+          <b>${escapeHtml(line)}</b>
+        </div>
+      `;
+    }
+
+    function caseAutomationBoundaryLine(item = {}, closerOverride = null) {
+      const learningFollowup = caseLearningFollowup(item);
+      if (learningFollowup) {
+        return `不能自动：${learningFollowup.pill || "先补人工最终回复"}；补齐顾客问题和最终回复后再复盘`;
+      }
+      const decision = item.latest_decision || {};
+      const closer = closerOverride || closerVerdict(item);
+      const tone = String(closer.tone || "").toLowerCase();
+      const action = String(decision.action || "").toLowerCase();
+      const status = String(item.status || "").toLowerCase();
+      const combined = [
+        customerPreviewText(item),
+        item.raw_context,
+        item.rawContext,
+        item.context_text,
+        item.customer_history_text,
+        item.manual_resolution?.reply_text,
+        decision.customer_text,
+        decision.previous_agent_text,
+        decision.operator_instruction,
+        decision.reply_message,
+        decision.action,
+        decision.stage,
+        decision.intent,
+        decision.flow_key,
+        decision.flow_name,
+        decision.next_flow_key,
+        decision.next_flow_name,
+        decision.target_flow_key,
+        decision.target_flow_name,
+        closer.title,
+        closer.reason,
+        cardOneGlanceContextHint(item, closer)
+      ].filter(Boolean).join(" ");
+      if (/(?:语音|語音|音频|音訊|audio|voice(?:\s*message)?|0:00\s*\/\s*0:0?\d+)/i.test(combined)) {
+        return "不能自动：语音先补顾客问题摘要，再判断答法/Flow";
+      }
+      if (/(?:付款记录冲突|waiting\s+for\s+payment|待付款|pending\s+payment|unpaid|未付款)/i.test(combined) && /(?:已付款|已經付款|已经付款|payment\s*(?:already\s*)?made|already\s+paid|paid\s+already|payment\s*done|banked\s*in|transferred)/i.test(combined)) {
+        return "不能自动：付款记录冲突先核对截图/后台/订单";
+      }
+      if (/(?:旧价|旧活动|old\s+price|outdated\s+(?:price|promo)|Mother['’]?s\s+Day|5\s*月|RM\s*398|RM\s*498|RM\s*538|RM\s*698)/i.test(combined)) {
+        return "不能自动：旧价/旧活动先退回 AI，只用当前价梯";
+      }
+      if (/(?:英文资料接中文|英文请求接错|英文顾客中文草稿|English Flow|中英混|language)/i.test(combined) && /(?:不能过|接错|中文|Chinese)/i.test(combined)) {
+        return "不能自动：语言/Flow 不匹配先修正";
+      }
+      if (/(?:强承诺|保证|保證|绝对|絕對|无副作用|無副作用|糖尿病|血糖|不舒服|想吐|投诉|投訴|退款|没人跟进|沒人跟進|没效果|沒效果)/i.test(combined)) {
+        return "不能自动：健康/投诉/售后边界先人工";
+      }
+      const plan = replyThenFlowPlan(item);
+      if (/顾客未回|无新问题|没有顾客/.test(String(plan.answer || ""))) {
+        return "只审Flow：顾客未回/无新问题，不写FAQ，不当客服回复";
+      }
+      if (tone === "fix") return "不能自动：退回 AI 修到能答清顾客问题才可审";
+      if (tone === "handoff") return "不能自动：先转人工处理，贴最终回复给复盘";
+      if (tone === "order") return "不能自动：订单/付款/物流先人工确认";
+      if (/^(auto_sent|sent|manual_resolved|handoff_done|returned_to_ai|purchase_confirmed)$/.test(status)) {
+        return "只读复盘：记录人工/已发结果；不会重复发送或触发 Flow";
+      }
+      if (action.includes("flow")) {
+        if (tone === "pass") return "未来少审候选：答完问题后可接 Flow；当前仍需审批";
+        return "先审批：接 Flow 前确认顾客问题已答完、Step 正确";
+      }
+      if (tone === "pass") return "未来少审候选：FAQ 可学；Owner 复盘通过后才考虑自动";
+      return "先审批：确认答案、阶段、禁区和下一步动作";
+    }
+
+    function caseAutomationBoundaryTone(line = "") {
+      if (/^不能自动/.test(String(line || ""))) return "block";
+      if (/^未来少审候选/.test(String(line || ""))) return "candidate";
+      return "review";
+    }
+
+    function caseAutomationBoundaryHtml(item = {}) {
+      const line = caseAutomationBoundaryLine(item);
+      if (!line) return "";
+      return `
+        <div class="case-auto-boundary ${escapeHtml(caseAutomationBoundaryTone(line))}" title="${escapeHtml(line)}">
+          <span>自动边界</span>
+          <b>${escapeHtml(line)}</b>
+        </div>
+      `;
     }
 
 	    function cardHtml(item) {
@@ -6764,13 +7908,18 @@
               ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
             </div>
           </div>
+	          ${cardPreviousContextHtml(item)}
 	          <div class="case-insight ${escapeHtml(verdictSummary.className)}">
 	            <span>${escapeHtml(verdictSummary.label)}</span>
 	            <strong>${escapeHtml(verdictSummary.title)}</strong>
 	            <small>${escapeHtml(verdictSummary.body)}</small>
 	          </div>
-	          ${cardQuickActionsHtml(item)}
-	          <div class="case-foot">
+		          ${cardNextActionHtml(item)}
+		          ${caseWorkModeHtml(item)}
+		          ${cardFlowMiniHtml(item)}
+		          ${caseAutomationBoundaryHtml(item)}
+		          ${cardQuickActionsHtml(item)}
+		          <div class="case-foot">
 	            <span>${escapeHtml(formatDate(item.updated_at))}</span>
 	            <span class="sla-pill ${escapeHtml(footPillTone)}">${escapeHtml(footPillText)}</span>
 	          </div>
@@ -6814,7 +7963,7 @@
       $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = actionHint(item);
       const closer = closerVerdict(item);
-      const approvalGuard = approvalGuardForVerdict(closer);
+      const approvalGuard = effectiveApprovalGuardForCase(item, closer);
       $("closerVerdictBox").className = `closer-verdict ${closer.tone}`;
       $("closerVerdictTitle").textContent = closer.title;
       $("closerVerdictApprovalSignal").textContent = closerVerdictApprovalSignal(closer, item);
@@ -6823,13 +7972,14 @@
       $("closerVerdictNextAction").textContent = closerVerdictNextAction(closer, item);
       $("closerVerdictLearningCapture").textContent = closerVerdictLearningCapture(closer, item);
       $("flowContextChain").innerHTML = flowContextChainHtml(item);
+      updateShortVersionActions(item, closer, readOnly);
       if (approvalGuard.blocked) {
         $("actionTitle").textContent = approvalGuard.title;
         $("actionReason").textContent = approvalGuard.reason;
       }
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
 	      $("panelStatusPill").textContent = caseStatusLabel(item, decision.risk);
-      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : decision.action === "review_receipt" ? "已审核付款" : item.status === "order" ? "确认处理" : "批准发送";
+      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "批准短版" : readOnly ? "已记录" : isFlowOnly ? "只审Flow/追单" : decision.action === "review_receipt" ? "已审核付款" : item.status === "order" ? "确认处理" : "批准发送";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
       $("manualResolveBtn").disabled = state.actionBusy || !canManualResolve;
       $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : "记录人工回复";
@@ -6904,6 +8054,8 @@
 	      const sla = slaInfo(item);
 	      const previousAgentText = String(decision.previous_agent_text || "").trim();
 	      const learningFollowup = caseLearningFollowup(item);
+	      const automationBoundary = caseAutomationBoundaryLine(item);
+	      const workMode = caseWorkModeLine(item);
 
 	      return `
 	        <div class="detail-tile">
@@ -6919,13 +8071,22 @@
           <b>${escapeHtml(actionLabel(decision.action))}</b>
         </div>
         <div class="detail-tile">
-          <span>等待</span>
-          <b>${escapeHtml(sla.text)}</b>
+          <span>处理模式</span>
+          <b>${escapeHtml(workMode)}</b>
         </div>
-	        ${previousAgentText ? `
 	        <div class="detail-tile">
-	          <span>上一句 Agent</span>
-	          <b>${escapeHtml(previousAgentText)}</b>
+	          <span>等待</span>
+	          <b>${escapeHtml(sla.text)}</b>
+	        </div>
+	        <div class="detail-tile wide">
+	          <span>自动边界</span>
+	          <b>${escapeHtml(automationBoundary)}</b>
+	          <small>当前仍是 approval-first；这里只判断能不能学成未来低审规则。</small>
+	        </div>
+		        ${previousAgentText ? `
+		        <div class="detail-tile">
+		          <span>上一句 Agent</span>
+		          <b>${escapeHtml(previousAgentText)}</b>
 	        </div>
 	        ` : ""}
 	        ${learningFollowup ? `
@@ -6979,6 +8140,21 @@
 
 	    function actionTitle(item) {
 	      const decision = item.latest_decision || {};
+	      const channelOutageText = [
+	        item.status,
+	        item.reason,
+	        item.error,
+	        item.send_error,
+	        item.send_result?.reason,
+	        item.send_result?.error,
+	        item.send_result?.message,
+	        decision.reason,
+	        decision.error,
+	        decision.send_error,
+	        decision.delivery?.reason,
+	        decision.delivery?.error
+	      ].filter(Boolean).join(" ");
+	      const channelOutageFailure = item.status === "send_failed" && /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(channelOutageText);
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return learningFollowup.title;
 	      if (item.status === "auto_sent") return "AI 已自动回复";
@@ -6988,6 +8164,7 @@
       if (item.status === "returned_to_ai") return "已退回 AI";
       if (item.status === "handoff_done") return "已转人工";
       if (item.status === "sending") return "发送中";
+      if (channelOutageFailure) return "渠道/API断开";
       if (item.status === "send_failed") return "发送失败";
       if (decision.action === "trigger_flow") return "不用发送";
       if (decision.action === "ask_human") return "按「转人工」";
@@ -6998,6 +8175,21 @@
 
 	    function actionHint(item) {
 	      const decision = item.latest_decision || {};
+	      const channelOutageText = [
+	        item.status,
+	        item.reason,
+	        item.error,
+	        item.send_error,
+	        item.send_result?.reason,
+	        item.send_result?.error,
+	        item.send_result?.message,
+	        decision.reason,
+	        decision.error,
+	        decision.send_error,
+	        decision.delivery?.reason,
+	        decision.delivery?.error
+	      ].filter(Boolean).join(" ");
+	      const channelOutageFailure = item.status === "send_failed" && /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(channelOutageText);
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return learningFollowup.body;
 	      if (item.status === "auto_sent") return "下面显示的回复已经自动发送给顾客。";
@@ -7007,6 +8199,7 @@
       if (item.status === "returned_to_ai") return "这条没有发送 AI 建议，已退回 AI 重写或等待复盘。";
       if (item.status === "handoff_done") return "这条没有发送 AI 建议，已留下转人工记录。";
       if (item.status === "sending") return "系统正在发送这条回复，先不要重复点击。";
+      if (channelOutageFailure) return "渠道或 API 已断开：先去 App Dashboard 完成 Data Use Checkup / 重连 WhatsApp，再回 Dashboard 处理；不要重复批准或重发。";
       if (item.status === "send_failed") return "这条没有成功发送，需要检查错误或人工处理。";
       if (decision.action === "trigger_flow") return "已交给自动流程，AI 不补发文字";
       if (decision.action === "ask_human" && decision.previous_agent_text) return "顾客只回短答案或 emoji，先看上一句 Agent 再接手";
@@ -7039,13 +8232,15 @@
 	    function inferFlowContextNameFromText(value = "") {
 	      const raw = String(value || "").trim();
 	      if (!raw) return "";
-	      const smartDelay = raw.match(/Smart delay started in the Automation:\s*([^\n\r]+?)(?:\s*ends on|\n|\r|$)/i);
-	      if (smartDelay) return cleanInferredFlowContextName(smartDelay[1]);
+	      const automationSentMatches = Array.from(raw.matchAll(/Automation sent(?:\s+via\s+Inbox)?:\s*([^\n\r]+)/gi));
+	      if (automationSentMatches.length) return cleanInferredFlowContextName(automationSentMatches[automationSentMatches.length - 1][1]);
+	      const smartDelayMatches = Array.from(raw.matchAll(/Smart delay started in the Automation:\s*([^\n\r]+?)(?:\s*ends on|\n|\r|$)/gi));
+	      if (smartDelayMatches.length) return cleanInferredFlowContextName(smartDelayMatches[smartDelayMatches.length - 1][1]);
 	      const text = raw.replace(/\s+/g, " ").trim();
-	      const codedFlow = text.match(/\b(\d{3,4}\s*(?:Broadcast|SHOPEE(?:\s*FB)?|META\s*DAY|LAST\s*CALL(?:\s*母亲节)?|母亲节(?:早鸟)?|MidMonth|PAYDAY))\b/i);
-	      if (codedFlow) return cleanInferredFlowContextName(codedFlow[1]);
-	      const namedBroadcast = text.match(/((?:Shopee|SH0PEE|META\s*DAY|LAST\s*CALL|母亲节|Broadcast)[^。,.，\n\r]{0,42})/i);
-	      if (namedBroadcast) return cleanInferredFlowContextName(namedBroadcast[1]);
+	      const codedFlowMatches = Array.from(text.matchAll(/\b(\d{3,4}\s*(?:Broadcast|SHOPEE(?:\s*FB)?|META\s*DAY|LAST\s*CALL(?:\s*母亲节)?|母亲节(?:早鸟)?|MidMonth|PAYDAY))\b/gi));
+	      if (codedFlowMatches.length) return cleanInferredFlowContextName(codedFlowMatches[codedFlowMatches.length - 1][1]);
+	      const namedBroadcastMatches = Array.from(text.matchAll(/((?:Shopee|SH0PEE|META\s*DAY|LAST\s*CALL|母亲节|Broadcast)[^。,.，\n\r]{0,42})/gi));
+	      if (namedBroadcastMatches.length) return cleanInferredFlowContextName(namedBroadcastMatches[namedBroadcastMatches.length - 1][1]);
 	      return "";
 	    }
 
@@ -7169,6 +8364,21 @@
 	        item.inbound_text,
 	        intent
 	      ].filter(Boolean).join(" ");
+	      const sourceText = [
+	        item.raw_context,
+	        item.rawContext,
+	        item.context_text,
+	        item.customer_history_text,
+	        decision.previous_agent_text,
+	        decision.operator_instruction,
+	        decision.flow_key,
+	        decision.flow_name,
+	        decision.next_flow_key,
+	        decision.next_flow_name,
+	        decision.target_flow_key,
+	        decision.target_flow_name,
+	        decision.stage
+	      ].filter(Boolean).join(" ");
 	      const nextFlow = nextFlowContextName(decision);
 	      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(signalText);
 	      const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(signalText);
@@ -7180,14 +8390,25 @@
 	      const paymentOrService = /(付款|付钱|付錢|汇款|匯款|receipt|payment|payex|grabpay|ewallet|银行卡|信用卡|送货|送貨|delivery|shipping|订单|訂單|下单|下單|refund|退款|没效果|沒效果|不舒服|想吐|售后|售後|after_sales|complaint|order|receipt|payment_method)/i.test(signalText);
 	      const flowAction = action.includes("flow");
 	      const postPriceStage = stage === "STEP_4" || stage === "S4" || /(price|early_price|objection|discount|promotion|promo|trust_after_price)/i.test(intent);
+	      const noCustomerText = !String(customerText || "").trim() || /^(?:顾客没有文字讯息|顾客没有文字信息|没有顾客文字|no\s+customer\s+(?:text|message))$/i.test(String(customerText || "").trim());
+	      const automationOnlyFlowContext = noCustomerText && (
+	        flowAction || /(Smart delay|Automation sent|Broadcast|user_current_step|Custom field changed|Flow|Step\s*\d|STEP_\d|Promo|Sequence)/i.test(`${sourceText} ${nextFlow} ${intent} ${action}`)
+	      );
+	      if (automationOnlyFlowContext) {
+	        return {
+	          answer: "顾客未回/无新问题：先看上一段 Flow / Step；不要写成 FAQ 问答。",
+	          after: "只审当前 Flow / 等顾客回应；需要人工时再接手，不把 Flow 文案写进 FAQ。",
+	          learning: "可学：Flow 是上下文和下一步动作；没有顾客问题时不能当问答样本。"
+	        };
+	      }
 	      if (directPriceQuestion) {
 	        const priceStageSeen = stage === "STEP_4" || stage === "S4" || /(objection|discount|promotion|promo|trust_after_price)/i.test(intent);
 	        const directNewPriceQuestion = !oneBoxQuestion && !priceStageSeen && !/(Broadcast|Smart delay|Automation sent|订单资料|訂單資料|通知|提醒|SHOPEE|LAST\s*CALL|META\s*DAY|PAYDAY|user_current_step.{0,12}step_4)/i.test(signalText);
 	        if (directNewPriceQuestion) {
 	          return {
-            answer: "Direct 新客只问“多少钱”时，先短桥接：欢迎/产品定位，说明先让她了解产品和想改善的问题，再给优惠价。",
-            after: `接 ManyChat 产品 Flow：产品定位 -> 需求按钮 -> 认证/反馈 -> Step4 问肥胖多久：${nextFlow || "优先接产品+喝法 Flow；不要直接收单"}`,
-            learning: "可学：顾客问价 -> 短回答/桥接 -> 接 Flow；Flow 是下一步动作，不能代替回答顾客问题。"
+            answer: "Direct 新客只问“多少钱”时，先短桥接：先让她了解产品，再给优惠价格；不要直接收单。",
+            after: `接 ManyChat 产品 Flow：Step 1 产品定位 -> 需求按钮 -> Step 3 认证/反馈/喝法 -> Step 4 价格/成交：${nextFlow || "优先接 Step 1 / 产品 Flow"}`,
+            learning: "可学：顾客问价 -> 桥接回复 -> 接 Flow；Flow 是下一步动作，不能把蓝色 Flow 文案当成顾客问答。"
 	          };
 	        }
 	        if (priceAndSachetQuestion) {
@@ -7285,6 +8506,7 @@
 		            : actionLabel(decision.action);
 	      return [
 	        ["判断顺序", "先看顾客最后一句；Flow 只是上下文，问题没答完不能接 Flow"],
+	        ["真实学习单位", "顾客问题 -> 人工回复 -> 接 Flow / CTA；只截图我们发什么不够，要往上看顾客原话"],
 	        ["接 Flow 规则", "先回答顾客问题，再接对应 Flow / FAQ / 成交 CTA；不要只看上一段蓝色内容"],
 	        ["顾客最后一句", customerText],
 	        ["上一段 Flow / Broadcast", currentFlow || (inferredFlow ? `推断：${inferredFlow}` : (previousAgentText ? "看上一句 Agent" : "没有 Flow 名称，先看聊天记录"))],
@@ -7346,6 +8568,10 @@
       const tone = String(closer.tone || "").toLowerCase();
       const decision = item.latest_decision || {};
       const action = String(decision.action || "").toLowerCase();
+      const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
+      if (/售后经期|下单后问经期|经期.*安全边界/i.test(titleReason)) {
+        return "客服下一步：直接答经期可喝；不舒服、痛经或经量多就暂停，结束后再继续。不接销售 Flow。";
+      }
       if (tone === "fix") {
         return "客服下一步：点「退回 AI 重写」，或手动改好后记录人工回复；不要批准旧草稿。";
       }
@@ -7354,6 +8580,27 @@
           return "客服下一步：把真正发给顾客的人工回复贴进回复框，再点「补人工回复」。";
         }
         return "客服下一步：点「转人工」接手；处理完后回 Dashboard 补人工最终回复。";
+      }
+      if (/语音先人工摘要/i.test(titleReason)) {
+        return "客服下一步：先听语音并补一句顾客问题摘要；没有摘要前不要批准/学习/接 Flow。";
+      }
+      const paymentConflictEvidence = [
+        titleReason,
+        item.raw_context,
+        item.rawContext,
+        item.context_text,
+        item.payment_status,
+        item.order?.payment_status,
+        item.purchase?.payment_status,
+        decision.payment_status,
+        decision.order?.payment_status,
+        decision.purchase?.payment_status
+      ].filter(Boolean).join(" ");
+      if (/付款记录冲突|waiting\s+for\s+payment|待付款|pending\s+payment|payment[_\s-]?status.{0,24}(?:pending|unpaid)|unpaid|未付款|未收款/i.test(paymentConflictEvidence) && /paid|payment|付款|汇款|匯款|已付|已汇|已匯/i.test(`${titleReason} ${item.last_message || ""} ${item.customer_text || ""} ${decision.customer_text || ""} ${decision.intent || ""}`)) {
+        return "客服下一步：先核对付款截图、后台付款状态和订单卡；确认已收款后才承诺出货/追踪。";
+      }
+      if (/已付款问包裹|包裹.*查订单|parcel/i.test(titleReason)) {
+        return "客服下一步：先查付款/订单/单号或仓库；回复预计到货/追踪，不接销售 Flow。";
       }
       if (tone === "order") {
         return "客服下一步：先审款 / 查订单 / 核对资料；确认无误才记录成交或继续处理。";
@@ -7364,6 +8611,9 @@
       if (tone === "pass") {
         return "客服下一步：检查语气、阶段和禁区；没问题就点「批准发送」。";
       }
+      if (/Flow后问一盒|Flow后问价|问一盒可审/i.test(titleReason)) {
+        return "客服下一步：确认先答 1盒 RM150 + 15小包/15天；把 CTA 改成「你要我先帮你安排一盒试喝吗？」不要把上一段 Broadcast 当订单。";
+      }
       return "客服下一步：确认活动、赠品、下一步和当前阶段；没问题才批准。";
     }
 
@@ -7372,8 +8622,8 @@
       const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
       const decision = item.latest_decision || {};
       const action = String(decision.action || item.action || "").toLowerCase();
-      if (/Direct问价可审|Direct问价缺(?:产品|Step3)\s*Flow|Direct问价没桥接Flow/.test(titleReason)) {
-        return "改稿方向：Direct 新客只问多少钱时，先短桥接“我先让你了解产品/喝法，再给优惠价”，然后接 ManyChat 产品 Flow：欢迎/产品定位、需求按钮、认证/反馈，最后才到 Step 4 问肥胖多久、给价格和成交 CTA。不要只丢一句话卡住。";
+      if (/问价前可审|Direct问价可审|Direct问价缺(?:产品|Step3)\s*Flow|Direct问价没桥接Flow|Direct问价没先答价/.test(titleReason)) {
+        return "改稿方向：Direct 新客只问多少钱、还没看产品时，可先用 ManyChat 桥接句“亲爱的，我先让你了解产品再给你知道优惠价格哦”，然后接 Step 1/产品定位、需求按钮、Step 3 认证/反馈/喝法，再到 Step 4 价格和成交 CTA。只丢一句“先了解产品”但没接 Flow 不够；看过价格或问一盒时才必须先正面答 RM150/15小包。";
       }
 	      if (/具体问价别接教育 Flow/.test(titleReason)) {
 	        return "改稿方向：顾客问一盒/1 box 多少钱，要先答 1盒 RM150 + 15小包/15天，再问要不要先安排一盒试喝；如她问运费/COD，才顺带补全马免邮/COD无额外费。不要只说先了解产品。";
@@ -7392,6 +8642,21 @@
       }
 	      if (/问一盒可审|一盒价优先/i.test(titleReason)) {
 	        return "改稿方向：先答 1盒 RM150 + 15小包/15天；可以轻补 2盒/3盒更划算，但下一句要优先问“你要我先帮你安排一盒试喝吗？”。旧 Broadcast/订单提醒不是订单；答完才接价格图 / Promo Flow / 收单；如问运费/COD，才补免邮/COD无额外费。";
+      }
+      if (/已付款问包裹|已付款问包裹别继续卖|parcel/i.test(titleReason)) {
+        return "改稿方向：这是售后查单，不是销售。先回“我帮你查付款和订单/单号”，再给预计到货或等仓库/物流确认后更新；不要接 LAST CALL、价格图、赠品或成交 Flow。";
+      }
+      if (/付款记录冲突/i.test(titleReason)) {
+        return "改稿方向：顾客说已付款但系统显示待付款时，不要直接承诺今天出货；先回“我帮你核对付款截图和后台订单状态”，确认后再给 ETA/追踪。";
+      }
+      if (/语音先人工摘要/i.test(titleReason)) {
+        return "改稿方向：顾客只发语音/音频时，客服先听并补一句顾客问题摘要；没有顾客原话前不要从人工回复反推 FAQ，也不要接 Flow。";
+      }
+      if (/没效果|沒效果|效果投诉|效果投訴|没瘦|沒瘦|no\s+(?:effect|result)|not\s+effective|lost\s+confiden/i.test(titleReason)) {
+        return "改稿方向：先承接顾客说没效果；补问喝多久/几盒、是否饭前15-30分钟、每次水量150-200ml、排便变化、身体反应、有没有照喝。不要继续促销、价格 CTA 或普通销售 Flow。";
+      }
+      if (/售后经期|下单后问经期|经期.*安全边界/i.test(titleReason)) {
+        return "改稿方向：这是售后使用问题，不是销售。可回：可以喝的亲爱的；如果经期不舒服、痛经或经量比较多，就先暂停，结束后再继续喝。不要接 LAST CALL、配套、赠品、付款或成交 Flow。";
       }
       if (/旧活动 Flow|活动版本|Mother/i.test(titleReason)) {
         return "改稿方向：换成当前活动 / 当前价格 Flow；英文 Flow 也要确认月份、价钱和赠品是今天能用的，不确定就转人工确认。";
@@ -7438,11 +8703,17 @@
       if (/售后勿继续卖|售后收货|礼貌收尾|收到货|谢谢/.test(titleReason)) {
         return "改稿方向：只回用法、关怀或礼貌收尾；不要推价格，也不要接普通销售 Flow。";
       }
-      if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式/i.test(titleReason)) {
-        return "改稿方向：先人工确认当前订单/渠道可用；可短答“可以/对的，可以用 GrabPay/eWallet，我发你付款链接；付款后截图给我”。不要接产品 Flow。";
-      }
+	      if (/线上付款|線上付款|online\s*(?:banking|payment)|给我户口|給我戶口/i.test(titleReason)) {
+	        return "改稿方向：先确认当前配套/金额，再接订单或收款资料 Flow；提醒付款后截图给我。不要倒回产品 Flow。";
+	      }
+	      if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式/i.test(titleReason)) {
+	        return "改稿方向：先人工确认当前订单/渠道可用；可短答“可以/对的，可以用 GrabPay/eWallet，我发你付款链接；付款后截图给我”。不要接产品 Flow。";
+	      }
       if (/付款链接金额|付款|汇款|审款|订单|改资料|否认订购|没人跟进|亲友购买|售后没回复|官方平台|地点|现货|送货/.test(titleReason) || tone === "handoff" || tone === "order") {
         return "改稿方向：先真人查订单、付款、售后或官方资料；处理完把人工最终回复补回 Dashboard。";
+      }
+      if (/未知配套|资料缺口|資料缺口|先答已确认价|先答已確認價|活动配套资料缺口|活動配套資料缺口/i.test(titleReason)) {
+        return "改稿方向：只答已确认价 1盒 RM150 / 2盒 RM258 / 3盒 RM378；未知 4+2、隐藏配套或特殊价先问老板/团队，确认后补 FAQ/SOP，不自己编价格。";
       }
       if (/活动配套|特别加购|RM508|RM658|8盒|4个月/.test(titleReason)) {
         return "改稿方向：先核对当天活动、赠品和库存；确认后再回答配套时长，并接信心证明和下单动作。";
@@ -7456,13 +8727,125 @@
       return "改稿方向：先确认顾客最后一句已被回答，价格/赠品/下一步和当前阶段一致。";
     }
 
+    function isLongMessageFatigueCase(item = {}, closer = closerVerdict(item)) {
+      const decision = item.latest_decision || {};
+      const combined = [
+        closer.title,
+        closer.reason,
+        item.last_message,
+        item.customer_text,
+        item.raw_context,
+        decision.intent,
+        decision.reply_message,
+        decision.reason,
+      ].filter(Boolean).join(" ");
+      return /问价嫌长|顾客嫌太长|没耐心|沒有耐心|嫌.{0,8}长|嫌.{0,8}長|no\s+patience|patience\s+to\s+read|too\s+(?:long|much)|don['’]?t\s+have\s+the\s+patience/i.test(combined);
+    }
+
+    function shortVersionLanguage(item = {}) {
+      const decision = item.latest_decision || {};
+      const text = [
+        item.contact?.language,
+        item.contact_language,
+        item.profile_language,
+        item.last_message,
+        item.customer_text,
+        item.raw_context,
+        decision.customer_text,
+        decision.reply_message,
+      ].filter(Boolean).join(" ");
+      if (/\b(?:english|in english|write english|i don['’]?t|dont|do not|price|how much|patience|sorry|short version)\b/i.test(text)) return "en";
+      return "zh";
+    }
+
+    function shortVersionDraftForCase(item = {}, extraShort = false) {
+      const language = shortVersionLanguage(item);
+      if (language === "en") {
+        return extraShort
+          ? "No worries. Short version: 1 box RM150, 2 boxes RM258, 3 boxes RM378. Want to try 1 box or take the 3-box course?"
+          : "No worries, short version: Beyoute Plus+ supports carb control, bowel movement and belly/weight management. 1 box RM150, 2 boxes RM258, 3 boxes RM378. Which one should I arrange?";
+      }
+      return extraShort
+        ? "不好意思，短版：1盒 RM150、2盒 RM258、3盒 RM378。你想先试1盒，还是拿3盒疗程？"
+        : "不好意思，刚刚太长了。短版：Beyoute Plus+ 主要帮你做阻碳水、排便和体重管理。1盒 RM150、2盒 RM258、3盒 RM378。你想先试1盒，还是拿3盒疗程？";
+    }
+
+    function shortVersionDraftIsSafe(text = "") {
+      const value = String(text || "").trim();
+      if (!value) return false;
+      const compact = value.replace(/\s+/g, " ");
+      const hasCurrentPrices = /1\s*(?:盒|box)\s*RM\s*150/i.test(compact) &&
+        /2\s*(?:盒|boxes?)\s*RM\s*258/i.test(compact) &&
+        /3\s*(?:盒|boxes?)\s*RM\s*378/i.test(compact);
+      const hasCta = /(要|想|先试|先試|拿|安排|which one|want to|try 1 box|3-box course|take the 3)/i.test(compact);
+      const tooLong = compact.length > 340;
+      const bannedFlow = /(LAST\s*CALL|Step\s*[1-4]|Automation sent|Broadcast|Smart delay|继续给你看|接下来给你看|下一段 Flow|Flow)/i.test(compact);
+      const bannedClaim = /(一定瘦|肯定瘦|绝对|絕對|no side effects?|impossible to have side effects?|guarantee)/i.test(compact);
+      return hasCurrentPrices && hasCta && !tooLong && !bannedFlow && !bannedClaim;
+    }
+
+    function currentReplyIsApprovedShortVersion(item = {}, closer = closerVerdict(item)) {
+      if (!isLongMessageFatigueCase(item, closer)) return false;
+      const box = document.getElementById("replyBox");
+      return shortVersionDraftIsSafe(box?.value || "");
+    }
+
+    function effectiveApprovalGuardForCase(item = {}, closer = closerVerdict(item)) {
+      const guard = approvalGuardForVerdict(closer);
+      if (guard.blocked && currentReplyIsApprovedShortVersion(item, closer)) {
+        return {
+          blocked: false,
+          label: "批准短版",
+          title: "短版可批准",
+          reason: "顾客嫌长文，回复框已改成当前价梯 + 短 CTA；仍需客服确认后才发送。",
+        };
+      }
+      return guard;
+    }
+
+    function updateShortVersionActions(item = {}, closer = closerVerdict(item), readOnly = false) {
+      const wrap = $("shortVersionActions");
+      if (!wrap) return;
+      const show = !readOnly && isLongMessageFatigueCase(item, closer);
+      wrap.classList.toggle("hidden", !show);
+    }
+
+    function applyShortVersionDraft(extraShort = false) {
+      if (!state.active) return "";
+      const draft = shortVersionDraftForCase(state.active, extraShort);
+      $("replyBox").value = draft;
+      $("replyModeLabel").textContent = extraShort ? "已继续缩短" : "短版可批准";
+      setPanelBusy(false);
+      $("replyBox").focus();
+      showToast(extraShort ? "已继续缩短，确认后可批准短版。" : "已套用短版，确认后可批准短版。");
+      return draft;
+    }
+
+    async function approveShortVersionActive() {
+      if (!state.active) return;
+      applyShortVersionDraft(false);
+      await approveActive();
+    }
+
     function closerVerdictLearningCapture(closer = {}, item = {}) {
       const tone = String(closer.tone || "").toLowerCase();
       const decision = item.latest_decision || {};
       const action = String(decision.action || "").toLowerCase();
       const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
-      if (/电子钱包|電子錢包|GrabPay|eWallet|付款方式|付款链接/i.test(titleReason)) {
-        return "复盘要留：顾客问的付款方式、最后确认的渠道/链接/金额、是否要求付款后截图；审核后补付款 FAQ / SOP，不写进普通销售 Flow。";
+      if (/未知配套|资料缺口|資料缺口|活动配套|活動配套|4\+2|隐藏配套|隱藏配套|特殊价|特殊價/i.test(titleReason)) {
+        return "复盘要留：顾客问的未知配套/价格、客服最后确认答案、老板要补 FAQ/SOP/价目表哪一条；未批准前 AI 只答已确认价。";
+      }
+      if (/没效果|沒效果|效果投诉|效果投訴|没瘦|沒瘦|no\s+(?:effect|result)|not\s+effective|lost\s+confiden/i.test(titleReason)) {
+        return "复盘要留：使用天数/盒数、喝法、饭前时间、水量150-200ml、排便、身体反应、客服最终判断；老板批准后补售后SOP/FAQ/测试。";
+      }
+	      if (/电子钱包|電子錢包|GrabPay|eWallet|线上付款|線上付款|online\s*(?:banking|payment)|给我户口|給我戶口|付款方式|付款链接/i.test(titleReason)) {
+	        return "复盘要留：顾客问的付款方式、最后确认的渠道/链接/金额、是否要求付款后截图；审核后补付款 FAQ / SOP，不写进普通销售 Flow。";
+	      }
+      if (/付款记录冲突/i.test(titleReason)) {
+        return "复盘要留：顾客原话、付款截图/后台/订单卡三方核对结果、最后是否出货/给追踪；只沉淀成付款冲突 SOP。";
+      }
+      if (/语音先人工摘要/i.test(titleReason)) {
+        return "复盘要留：客服补的顾客语音摘要、实际人工回复、是否可写成 FAQ/SOP；没有摘要前不学习。";
       }
       if (tone === "handoff") {
         if (needsManualReplyAfterHandoff(item)) {
@@ -7626,6 +9009,10 @@
 		      const englishStepOneFromBroadcast = englishRequest && flowAction && englishFlowConfirmed && /(?:step\s*1|STEP_1|S1|\bs1\b|11a)/i.test(flowContextText) && manychatAutomationContext;
 	      const automationOnlyFlowContext = flowAction && !rawCustomerText && /(Automation sent via Inbox|Smart delay started|Broadcast|user_current_step|Custom field changed)/i.test(languageSwitchContextText);
 	      const noCustomerPromoRecoveryContext = !rawCustomerText && salesPushDraft && manychatAutomationContext && /(Smart delay started|Broadcast|订单|訂單|通知|提醒|LAST\s*CALL|Shopee|META\s*DAY|PAYDAY|优惠|優惠|活动|活動)/i.test([languageSwitchContextText, draftText, flowContextText].filter(Boolean).join(" "));
+	      const broadcastOrderReminderContext = manychatAutomationContext && /(624|Broadcast|Smart delay|SHOPEE|Shopee|META\s*DAY|PAYDAY|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|订单确认|訂單確認|订单相关权益|訂單相關權益|保留状态|保留狀態|已安排出货|已安排出貨)/i.test(languageSwitchContextText);
+	      const draftClaimsOrderProgress = /(?:订单|訂單|order).{0,36}(?:正在|处理中|處理中|完成更新|保留状态|保留狀態|确认|確認|相关权益|相關權益|reserved|processing|confirmed)|(?:已安排|安排).{0,18}(?:出货|出貨|发货|發貨|shipping|delivery)/i.test(draftText);
+	      const verifiedOrderContext = /^(ORDER|RECEIPT|AFTER_PAYMENT|PAYMENT)/i.test(stage) || status.includes("purchase") || /(mark_purchase|submit_order|collect_order|audit_receipt|payment|receipt)/i.test(action) || /(?:已|已经|已經|刚|剛)\s*(?:汇款|匯款|付款|付钱|付錢|转账|轉賬)|(?:汇款|匯款|转账|轉賬)(?:了|啦|咯|好了|过了|過了)|\b(?:bank\s*in|banked\s*in|transferred|paid|already\s+paid|paid\s+already|payment\s*(?:already\s*)?made|payment\s*done|payment\s*completed)\b/i.test(customerSignalText);
+	      const broadcastOrderClaimDraft = broadcastOrderReminderContext && draftClaimsOrderProgress && !verifiedOrderContext;
 	      const attachmentEntries = [
 	        decision.attachments,
 	        decision.attachment,
@@ -7647,6 +9034,7 @@
 	      ].filter(Boolean).join(" ");
 	      const attachmentOnlyMessage = !rawCustomerText && /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof)/i.test(attachmentText);
 	      const afterSalesPhotoReportContext = attachmentOnlyMessage && /(报平安|報平安|BPA|收到货|收到貨|收到了|review|Review|截图|截圖|回购券|回購券|VIP|After payment|订单|訂單|parcel|photo|image)/i.test([attachmentText, languageSwitchContextText, previousAgentText, draftText, flowContextText].filter(Boolean).join(" "));
+	      const voiceAudioOnlyMessage = !rawCustomerText && /(Inbox message audio attachment|audio|voice(?:\s*message)?|语音|語音|音频|音訊|0:00\s*\/\s*0:0?\d+)/i.test([attachmentText, languageSwitchContextText, flowContextText].filter(Boolean).join(" "));
 	      const usageQuestion = intent.includes("usage") || /(怎么喝|怎麼喝|怎样喝|怎樣喝|一天.{0,8}(几次|幾次)|喝法|用法|how\s+(?:to\s+)?(?:drink|take|use)|how\s+many\s+times)/i.test(customerSignalText);
 	      const usageAnswered = /(一天|每日|每天|饭前|飯前|餐前|150\s*[-到至]?\s*200\s*ml|150\s*ml|200\s*ml|温水|溫水|once\s+a\s+day|twice\s+a\s+day|before\s+(?:a\s+)?meal|150\s*[-–to]{0,4}\s*200\s*ml|room\s+temperature\s+water)/i.test(draftText);
 	      const usageFlowWithoutAnswer = usageQuestion && flowAction && !usageAnswered;
@@ -7658,6 +9046,12 @@
 	      const adverseReactionUnsafeDraft = adverseReactionComplaint && /(?:一定|肯定|绝对|絕對).{0,12}(?:不会|不會|没有|沒有).{0,18}(?:副作用|不舒服|想吐|呕吐|嘔吐|恶心|噁心)|(?:不会|不會).{0,16}(?:让身体产生依赖|讓身體產生依賴|副作用|想吐|头晕|頭暈|心跳加速)|(?:子宫肌瘤|子宮肌瘤|水瘤|肉瘤|三高|尿酸|心脏病|心臟病).{0,30}(?:可以|都可以|能).{0,12}(?:服用|喝|take|drink)|(?:no|without).{0,12}(?:side\s*effects?|dependency|dependen)/i.test(draftText);
 		      const adverseReactionSalesPushDraft = adverseReactionComplaint && !adverseReactionUnsafeDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|下单|下單|order\s*now|配套|package|加送|赠品|贈品)/i.test([draftText, flowContextText, languageSwitchContextText].filter(Boolean).join(" ")));
 		      const adverseReactionDiagnosticDraft = adverseReactionComplaint && !adverseReactionUnsafeDraft && !adverseReactionSalesPushDraft && /(?:不好意思|抱歉|sorry|明白|理解|understand|体验|體驗)/i.test(draftText) && /(?:怎么服用|怎麼服用|怎么喝|怎麼喝|怎么用|怎麼用|before\s*meal|餐前|150\s*ml|水量|第一次|喝了几天|喝了幾天|几天|幾天|马上|馬上|多久|呕吐|嘔吐|恶心|噁心|头晕|頭暈|肚子痛|腹泻|腹瀉|不舒服)/i.test(draftText);
+      const sugarSafetyQuestion = /(很甜|太甜|甜味|甜|有加糖|加糖|有糖|糖分|代糖|甜味剂|甜味劑|麦芽糖醇|麥芽糖醇|赤藓糖醇|赤蘚糖醇|三氯蔗糖|sugar|sweet|sweetener|diabet|diabetes|diabetic|blood\s*sugar|血糖|糖尿|三高|高血糖)/i.test(customerSignalText);
+      const bloodSugarSensitiveQuestion = /(diabet|diabetes|diabetic|blood\s*sugar|血糖|糖尿|三高|高血糖|insulin|胰岛素|胰島素)/i.test(customerSignalText);
+      const sugarSafetyUnsafeDraft = sugarSafetyQuestion && /(?:不会|不會|没有|沒有|不影响|不影響|不会导致|不會導致|不会造成|不會造成|不会升|不會升|不会突然升|不會突然升|零热量|零熱量|热量几乎为零|熱量幾乎為零|可以|能|适合|適合|都可以|放心).{0,32}(?:血糖|糖尿|三高|升糖|糖分|喝|服用|take|drink)|(?:糖尿|血糖|三高|高血糖).{0,32}(?:可以|能|适合|適合|放心|不会|不會|没有问题|沒問題|no\s+problem)|(?:白芸豆|阻碳水|阻断|阻斷).{0,24}(?:糖分|碳水|吸收)/i.test(draftText);
+      const sugarSafetySalesPushDraft = sugarSafetyQuestion && !sugarSafetyUnsafeDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|下单|下單|配套|package|order\s*now|安排|赠品|贈品)/i.test([draftText, flowContextText, languageSwitchContextText].filter(Boolean).join(" ")));
+      const sugarSafetyBoundaryDraft = sugarSafetyQuestion && !sugarSafetyUnsafeDraft && !sugarSafetySalesPushDraft && /(?:甜味|糖分|成分|配方|代糖|甜味剂|甜味劑|label|ingredient|sugar|sweetener|客服|团队|團隊|确认|確認|查|血糖|糖尿|三高|医生|醫生|doctor|不乱|不亂)/i.test(draftText);
+      const absoluteProductOverclaimDraft = /(?:保证|保證|一定|肯定|绝对|絕對|confirm|sure).{0,24}(?:有效|看到效果|瘦|瘦身|变白|變白|亮白|不反弹|不反彈|不会反弹|不會反彈|没副作用|沒副作用|没有副作用|沒有副作用|副作用)|(?:不可能|绝不|絕不|完全不|完全没有|完全沒有).{0,24}(?:副作用|反弹|反彈|依赖|依賴|不舒服)|(?:喝|服用|用).{0,18}(?:绝对|絕對|一定|肯定).{0,18}(?:看到效果|有效|瘦|变白|變白)|(?:大部分人|多数人|多數人).{0,18}(?:成功塑身|成功瘦|都会瘦|都會瘦)|(?:皮肤|膚色|肤色).{0,18}(?:直接|一定|肯定).{0,10}(?:亮了|白了).{0,8}(?:2|两|兩).{0,4}(?:度)/i.test(draftText);
 		      const annoyedStopText = [customerSignalText, priorCustomerIssueText, languageSwitchContextText].filter(Boolean).join(" ");
 		      const customerAnnoyedByFollowup = /(?:stop[_\s-]?follow|not[_\s-]?interested|unsubscribe)/i.test(intent) || /(煩死人|烦死人|煩死|烦死|很煩|很烦|太煩|太烦|不要再(?:发|發|send|message)|别再(?:发|發)|不要再打扰|不要再打擾|别打扰|別打擾|一直(?:发|發|send)|不要买|不要買|不想买|不想買|not\s+interested|stop\s+(?:messaging|message|sending|send)|don['’]?t\s+(?:send|message|disturb)|do\s+not\s+(?:send|message|disturb)|annoying|disturbing|unsubscribe|退订|退訂)/i.test(annoyedStopText);
 		      const stopFollowUpAction = action === "stop_follow_up" || action.includes("stop_follow");
@@ -7671,6 +9065,8 @@
       const targetWeightPackageQuestion = /(?:\d{2,3}\s*(?:多)?\s*(?:kg|KG|公斤)?).{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?).{0,36}(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?|(?:瘦到|瘦下|减到|減到|目标|目標).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?.{0,36}(?:建议|建議|几个配套|幾個配套|几盒|幾盒|多少盒|配套|package|boxes?)/i.test(customerSignalText);
       const menopauseSuitabilityQuestion = /(?:更年期|跟年期|停经|停經|menopause|menopausal|中年).{0,16}(?:可以|能|适合|適合|喝|服用|take|drink)|(?:可以|能|适合|適合).{0,16}(?:更年期|跟年期|停经|停經|menopause|menopausal|中年)/i.test(customerSignalText);
       const specialBodySuitabilityQuestion = cycleSuitabilityQuestion || weightSuitabilityQuestion || menopauseSuitabilityQuestion;
+      const afterOrderServiceText = [previousAgentText, languageSwitchContextText, flowContextText].filter(Boolean).join(" ");
+      const afterOrderServiceContext = /(?:收到你的订单|收到你的訂單|收到.{0,12}(?:订单|訂單)|(?:已经|已經|已|刚|剛).{0,12}(?:下单|下單|订购|訂購|购买|購買)|(?:完成|确认|確認).{0,12}(?:下单|下單|订单|訂單|order)|(?:shopee|Shopee).{0,36}(?:下单|下單|订单|訂單|order|售后|售後)|order.{0,18}(?:received|confirmed|placed))/i.test(afterOrderServiceText);
       const strongSuitabilityOverclaimDraft = specialBodySuitabilityQuestion && /(?:更适合|更適合|适合服用|適合服用|加速.{0,16}(?:新陈代谢|新陳代謝|代谢|代謝|燃烧|燃燒|脂肪)|燃烧脂肪|燃燒脂肪|达到.{0,10}(?:减肥|減肥|瘦|效果)|24\s*小时.{0,12}燃脂|阻断.{0,16}(?:碳水|糖分|吸收)|改善.{0,16}(?:更年期|跟年期|月经|月經|经期|經期|生理期|跟车期|跟車期))/i.test(draftText);
       const targetWeightGuaranteeDraft = targetWeightPackageQuestion && (/(?:保证|保證|一定|肯定|绝对|絕對|包瘦|包你|confirm|sure).{0,32}(?:瘦到|瘦下|减到|減到|目标|目標|\d{2,3}\s*(?:kg|KG|公斤)?)|(?:可以|能|会|會).{0,10}(?:瘦到|瘦下|减到|減到).{0,18}\d{2,3}\s*(?:kg|KG|公斤)?/i.test(draftText) && !/(?:不保证|不保證|不能保证|不能保證|看个人|看個人|每个人|每個人|配合|目标|目標)/i.test(draftText));
       const targetWeightPackageDraft = targetWeightPackageQuestion && !targetWeightGuaranteeDraft && /(?:建议|建議|比较适合|比較適合|可以考虑|可以考慮|大配套|最大配套|配套\s*C|RM\s*658|8\s*盒|八\s*盒|4\s*个?月|疗程|療程|盒|package|boxes?)/i.test(draftText);
@@ -7680,8 +9076,13 @@
       const packageDurationAnswered = /4\s*个?月|四\s*个?月|4\s*months?|four\s*months?/i.test(draftText);
       const sachetCountAnswered = /15\s*(?:小包|包|sachets?|packs?)|75\s*g|5\s*g/i.test(draftText);
       const cycleSuitabilityAnswered = /(?:经期|經期|月经|月經|姨妈|姨媽|生理期|跟车期|跟車期|period|menstruat|menses)/i.test(draftText) && /(?:可以|能|建议|建議|暂停|暫停|先停|不建议|不建議|医生|醫生|doctor|consult|safe|avoid)/i.test(draftText);
+      const cycleComfortOverclaimDraft = cycleSuitabilityQuestion && /(?:不会|不會|不容易|不会导致|不會導致|不会造成|不會造成).{0,18}(?:宫寒|宮寒|不舒服|不適|不适|肚子痛|腹痛|痛经|痛經|经痛|經痛)|(?:温性|溫性).{0,24}(?:不会|不會).{0,18}(?:宫寒|宮寒|不舒服|不適|不适|肚子痛|腹痛|痛经|痛經)/i.test(draftText);
+      const cycleSuitabilityBoundaryDraft = cycleSuitabilityAnswered && !cycleComfortOverclaimDraft && /(?:痛经|痛經|经量|經量|量多|比较虚|比較虛|暂停|暫停|先停|结束后|結束後|过后|過後|再继续|再繼續|恢复|恢復|观察|觀察|(?:如果|若|如有|有).{0,18}(?:不舒服|不適|不适|肚子痛|腹痛))/i.test(draftText);
       const weightSuitabilityAnswered = /(?:100\s*kg|100KG|100\s*KG|一百|体重|體重|weight)/i.test(draftText) && /(?:可以|能|适合|適合|建议|建議|看个人|看個人|doctor|consult|医生|醫生)/i.test(draftText);
       const unansweredSuitabilitySalesDraft = specialBodySuitabilityQuestion && !strongSuitabilityOverclaimDraft && (flowAction || salesPushDraft || /(?:RM\s*\d+|配套|package|下单|下單|订单|訂單|付款|优惠|優惠|LAST\s*CALL|赠品|贈品|安排)/i.test(draftText));
+      const afterOrderCycleSuitabilityQuestion = cycleSuitabilityQuestion && afterOrderServiceContext;
+      const afterOrderCycleSalesDraft = afterOrderCycleSuitabilityQuestion && !strongSuitabilityOverclaimDraft && (flowAction || salesPushDraft || /(?:RM\s*\d+|配套|package|下单|下單|订单|訂單|付款|优惠|優惠|LAST\s*CALL|赠品|贈品|抢购|搶購|安排.{0,8}(?:盒|box)|order\s+now|buy\s+now)/i.test(draftText));
+      const afterOrderCycleSafeDraft = afterOrderCycleSuitabilityQuestion && cycleSuitabilityBoundaryDraft && !afterOrderCycleSalesDraft;
       const cycleSuitabilityUnansweredDraft = cycleSuitabilityQuestion && !cycleSuitabilityAnswered && unansweredSuitabilitySalesDraft;
       const weightSuitabilityUnansweredDraft = weightSuitabilityQuestion && !weightSuitabilityAnswered && unansweredSuitabilitySalesDraft;
       const cycleOrWeightSuitabilitySafeDraft = !strongSuitabilityOverclaimDraft && ((cycleSuitabilityQuestion && cycleSuitabilityAnswered) || (weightSuitabilityQuestion && weightSuitabilityAnswered));
@@ -7703,8 +9104,10 @@
       const priorNoResultRawContext = /(?:so\s+far\s+no\s+lose\s+weight|no\s+lose\s+weight|lost\s+confiden(?:t|ce)|not\s+effective\s+product|should\s+ask\s+for\s+refund)/i.test(languageSwitchContextText);
 	      const priorNoResultComplaint = Boolean(decision.prior_no_result_complaint || decision.signals?.prior_no_result_complaint || item.prior_no_result_complaint || item.signals?.prior_no_result_complaint) || noResultComplaintPattern.test(priorCustomerIssueText) || priorNoResultRawContext;
 	      const noResultComplaint = intent.includes("no_result") || intent.includes("not_effective") || noResultComplaintPattern.test(customerSignalText) || priorNoResultComplaint;
-	      const refundRequest = intent.includes("refund") || intent.includes("refund_request") || /(?:refund|money\s*back|return\s+my\s+money|退款|退钱|退錢|退货|退貨)/i.test(customerSignalText);
-	      const refundAcknowledgedDraft = /(?:refund|退款|退钱|退錢|退货|退貨)/i.test(draftText) && /(?:客服|售后|售後|人工|审核|審核|policy|review|check|order|订单|訂單|确认|確認|跟进|跟進)/i.test(draftText);
+		      const refundRequest = intent.includes("refund") || intent.includes("refund_request") || /(?:refund|money\s*back|return\s+my\s+money|退款|退钱|退錢|退货|退貨)/i.test(customerSignalText);
+		      const refundAcknowledgedDraft = /(?:refund|退款|退钱|退錢|退货|退貨)/i.test(draftText) && /(?:客服|售后|售後|人工|审核|審核|policy|review|check|order|订单|訂單|确认|確認|跟进|跟進)/i.test(draftText);
+		      const policyCompensationClaim = /(?:compensat(?:e|ed|es|ion)?|\bterms?\s*(?:&|and)\s*conditions?\b|\bt\s*(?:&|and)\s*c\b|赔偿|賠償|补偿|補償|索赔|索賠|拒赔|拒賠|条款|條款)/i.test(customerSignalText);
+		      const policyClaimAcknowledgedDraft = refundAcknowledgedDraft || /(?:(?:compensat(?:e|ed|es|ion)?|\bterms?\s*(?:&|and)\s*conditions?\b|\bt\s*(?:&|and)\s*c\b|policy|赔偿|賠償|补偿|補償|索赔|索賠|条款|條款).{0,80}(?:客服|售后|售後|人工|审核|審核|policy|review|check|order|订单|訂單|record|case|确认|確認|跟进|跟進)|(?:客服|售后|售後|人工|审核|審核|policy|review|check|order|订单|訂單|record|case|确认|確認|跟进|跟進).{0,80}(?:compensat(?:e|ed|es|ion)?|refund|\bterms?\s*(?:&|and)\s*conditions?\b|\bt\s*(?:&|and)\s*c\b|赔偿|賠償|补偿|補償|索赔|索賠|条款|條款))/i.test(draftText);
 	      const noResultDiagnosticDraft = /(?:how\s+long|多久|几天|幾天|几盒|幾盒|days?|boxes?|taking|服用|喝了)/i.test(draftText) && /(?:before\s+(?:your\s+)?meal|餐前|15\s*[–-]?\s*30|water|水|bowel|排便|怎么喝|怎麼喝|怎样喝|怎樣喝|喝法|用法)/i.test(draftText);
 	      const noResultSalesPushDraft = noResultComplaint && (flowAction || salesPushDraft || /(?:马上安排|馬上安排|下单|下單|order\s+now|要不要安排|which\s+package|哪个配套|哪個配套)/i.test(draftText));
 	      const postNoResultPromoFlow = priorNoResultComplaint && !noResultDiagnosticDraft && !refundAcknowledgedDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|配套|package|Shopee|订单资料|訂單資料|确认订单|確認訂單|加送|赠品|贈品)/i.test([draftText, flowContextText, languageSwitchContextText].filter(Boolean).join(" ")));
@@ -7751,12 +9154,20 @@
 	      const priceCtaAnswered = /(安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,40}(?:配套|盒|package|set)|(?:哪个|哪一个|哪個|哪一個|which).{0,30}(?:配套|package|box|盒)|趁优惠|趁優惠/i.test(draftText);
 	      const oneBoxFocusedCtaAnswered = /(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order).{0,18}(?:一|1)\s*(?:盒|box)|(?:一|1)\s*(?:盒|box).{0,18}(?:安排|下单|下單|拿|预购|預購|订|訂|confirm|order)|(?:先帮你|先幫你|帮你|幫你|要我).{0,20}(?:一|1)\s*(?:盒|box)/i.test(draftText);
 	      const oneBoxGenericPackageCta = oneBoxSpecificQuestion && priceCtaAnswered && !oneBoxFocusedCtaAnswered;
+	      const unknownPackageText = [specialPromoText, customerSignalText].filter(Boolean).join(" ");
+	      const unknownPackagePriceQuestion = Boolean(decision.unknown_package_price || decision.signals?.unknown_package_price || /(4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|hidden\s+package|隐藏配套|隱藏配套|隐藏优惠|隱藏優惠|特殊配套|特別配套|特殊价|特殊價|老板价|老闆價|内部价|內部價)/i.test(unknownPackageText));
+	      const unknownPackageMentionedInDraft = /(4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|hidden\s+package|隐藏配套|隱藏配套|隐藏优惠|隱藏優惠|特殊配套|特別配套|特殊价|特殊價|老板价|老闆價|内部价|內部價)/i.test(draftText);
+	      const asksTeamConfirmUnknownPackage = /(?:先|帮你|幫你|需要|我这边|我這邊|等我|我帮你|我幫你).{0,24}(?:确认|確認|查|问|問|核对|核對)|(?:确认后|確認後|查了|问了|問了|不乱报|不亂報|不能乱报|不能亂報|还没确认|還沒確認|未确认|未確認|老板|老闆|团队|團隊|客服|负责人|負責人)/i.test(draftText);
+	      const unknownPackageQuotedPriceDraft = unknownPackagePriceQuestion && /(?:4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|hidden\s+package|隐藏配套|隱藏配套|隐藏优惠|隱藏優惠|特殊配套|特別配套|特殊价|特殊價|老板价|老闆價|内部价|內部價).{0,64}RM\s*(?!150\b|258\b|378\b)\d{3,}|RM\s*(?!150\b|258\b|378\b)\d{3,}.{0,64}(?:4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|hidden\s+package|隐藏配套|隱藏配套|隐藏优惠|隱藏優惠|特殊配套|特別配套|特殊价|特殊價|老板价|老闆價|内部价|內部價)/i.test(draftText);
+	      const unknownPackageSafeBoundaryDraft = unknownPackagePriceQuestion && (currentPriceLadderAnswered || oneBoxPriceAnswered) && asksTeamConfirmUnknownPackage && !unknownPackageQuotedPriceDraft;
+	      const unknownPackageInventedDraft = unknownPackagePriceQuestion && (unknownPackageQuotedPriceDraft || (unknownPackageMentionedInDraft && /RM\s*(?:446|508|548|588|658|698|798|888)/i.test(draftText) && !asksTeamConfirmUnknownPackage));
 	      const priceStageSeen = stage === "STEP_4" || stage === "S4" || /user_current_step.{0,16}step_4/i.test(languageSwitchContextText) || /(price_objection|trust_after_price|discount|promotion|promo)/i.test(intent);
 	      const broadcastOrOrderPriceContext = /(Broadcast|624|SHOPEE|Shopee|订单资料|訂單資料|订单提醒|訂單提醒|通知|提醒|LAST\s*CALL|META\s*DAY|PAYDAY)/i.test(languageSwitchContextText);
 	      const directNewPriceContext = directPriceQuestion && !oneBoxSpecificQuestion && !priceStageSeen && !broadcastOrOrderPriceContext;
 	      const directPriceBridgeDraft = directPriceQuestion && /(?:先|first).{0,20}(?:了解|讓你了解|让你了解|看|介绍|介紹|share|show).{0,30}(?:产品|產品|Beyoute|喝法|重点|重點|价|價|price|promotion|优惠|優惠).{0,30}(?:再|才|then|after).{0,24}(?:价|價|price|优惠|優惠|promotion)|(?:先让你了解|先讓你了解).{0,24}(?:产品|產品).{0,24}(?:价|價|优惠|優惠)/i.test(draftText);
 	      const directPriceEducationFlow = flowAction && /(STEP_[1-3]|S[1-3]|step\s*[1-3]|11a|22a|33a|产品|產品|喝法|背景|认证|認證|education|intro)/i.test([flowContextText, stage].filter(Boolean).join(" "));
 	      const directPriceBridgeSafe = directNewPriceContext && directPriceBridgeDraft && directPriceEducationFlow;
+	      const directPriceBridgeMissingAnswer = false;
 	      const directPriceBridgeMissingFlow = directNewPriceContext && directPriceBridgeDraft && !directPriceEducationFlow;
 	      const directPriceBridgeWrongStage = directPriceQuestion && directPriceBridgeDraft && !directNewPriceContext;
 	      const priceQuestionAfterFlowContext = Boolean(rawCustomerText) && directPriceQuestion && (priceStageSeen || (manychatAutomationContext && !directNewPriceContext));
@@ -7784,8 +9195,26 @@
         item.final_text,
         item.manual_reply_text
       ].filter(Boolean).join(" ");
-      const paymentReceivedSignal = intent.includes("payment_received") || intent.includes("paid") || /(?:已|已经|已經|刚|剛)\s*(?:汇款|匯款|付款|付钱|付錢|转账|轉賬)|(?:汇款|匯款|转账|轉賬)(?:了|啦|咯|好了|过了|過了)|\b(?:bank\s*in|banked\s*in|transferred|paid|payment\s*done)\b|收到.{0,16}(?:汇款|匯款|付款|payment|款)/i.test(paymentReceivedText);
-      const shippingEtaQuestion = intent.includes("shipping_eta") || /(运输|運輸|快递|快遞|物流|几天|幾天|多久.{0,12}到|几时.{0,12}到|幾時.{0,12}到|delivery|shipping|courier|arrive|arrival|eta)/i.test(customerSignalText);
+	      const paymentReceivedSignal = intent.includes("payment_received") || intent.includes("paid") || /(?:已|已经|已經|刚|剛)\s*(?:汇款|匯款|付款|付钱|付錢|转账|轉賬)|(?:汇款|匯款|转账|轉賬)(?:了|啦|咯|好了|过了|過了)|\b(?:bank\s*in|banked\s*in|transferred|paid|already\s+paid|paid\s+already|payment\s*(?:already\s*)?made|payment\s*done|payment\s*completed)\b|收到.{0,16}(?:汇款|匯款|付款|payment|款)/i.test(paymentReceivedText);
+	      const shippingEtaQuestion = intent.includes("shipping_eta") || /(运输|運輸|快递|快遞|物流|包裹|包裹几时|包裹幾時|单号|單號|追踪|追蹤|tracking|track|waybill|parcel|几天|幾天|多久.{0,12}到|几时.{0,12}到|幾時.{0,12}到|when\s+can\s+i\s+get|delivery|shipping|courier|arrive|arrival|eta)/i.test(customerSignalText);
+	      const paidParcelQuestion = paymentReceivedSignal && shippingEtaQuestion;
+	      const paymentRecordConflictText = [
+	        paymentReceivedText,
+	        languageSwitchContextText,
+	        flowContextText,
+	        previousAgentText,
+	        item.raw_context,
+	        item.rawContext,
+	        item.order?.payment_status,
+	        item.purchase?.payment_status,
+	        item.payment_status,
+	        decision.payment_status,
+	        decision.order?.payment_status,
+	        decision.purchase?.payment_status
+	      ].filter(Boolean).join(" ");
+	      const paymentRecordConflict = paymentReceivedSignal && /(?:waiting\s+for\s+payment|待付款|pending\s+payment|payment[_\s-]?status.{0,24}(?:pending|unpaid)|unpaid|未付款|未收款|还没收款|還沒收款|order.{0,24}waiting\s+for\s+payment)/i.test(paymentRecordConflictText);
+	      const paidParcelServiceDraft = paidParcelQuestion && /(?:先|帮你|幫你|我).{0,24}(?:查|check|confirm|确认|確認|核对|核對)|(?:查|check|confirm|确认|確認|核对|核對).{0,36}(?:付款|payment|订单|訂單|order|单号|單號|tracking|parcel|物流|快递|快遞|warehouse|仓库|倉庫)|(?:tracking|单号|單號|ETA|预计|預計|到货|到貨|waybill)/i.test(draftText);
+      const paidParcelSalesPushDraft = paidParcelQuestion && !paidParcelServiceDraft && (flowAction || salesPushDraft || /(?:LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|promotion|promo|下单|下單|order\s*now|配套|package|RM\s*(?:150|258|378)|赠品|贈品|加送)/i.test(`${draftText} ${flowContextText} ${languageSwitchContextText}`));
       const shippingEtaAnswered = /(西马|西馬|west\s*malaysia|wm).{0,50}(2\s*[-到至]\s*3|2\s*to\s*3).{0,30}(工作天|工作日|天|days?|business\s*days?)|(?:东马|東馬|east\s*malaysia|em).{0,50}(5\s*[-到至]\s*7|5\s*to\s*7).{0,30}(工作天|工作日|天|days?|business\s*days?)|(?:2\s*[-到至]\s*3|2\s*to\s*3).{0,30}(?:工作天|工作日|days?|business\s*days?).{0,80}(?:5\s*[-到至]\s*7|5\s*to\s*7)/i.test(draftText);
       const gratitudeText = [
         intent,
@@ -7828,11 +9257,21 @@
       ].filter(Boolean).join(" ");
       const walletPaymentHasPackageContext = walletPaymentQuestion && /(?:确认订单|確認訂單|请确认|請確認|安排下单|安排下單|下单|下單|订单|訂單|配套|package|RM\s*150|RM\s*258|RM\s*378|RM\s*658|5\s*盒|8\s*盒|一盒|1\s*盒)/i.test(walletPaymentOrderContextText);
       const walletPaymentReplyConfirmsChannel = walletPaymentQuestion && /(?:可以|有的|对的|對的|没问题|沒問題|yes|GrabPay|e[-\s]?wallet|ewallet|电子钱包|電子錢包|DuitNow|TNG|FPX|付款链接|付款連結|QR|二维码|二維碼)/i.test(draftText);
-      const walletPaymentHasPaymentFlow = walletPaymentQuestion && (flowAction || /(?:付款链接|付款連結|payment\s*link|QR|二维码|二維碼|DuitNow|Duit\s*QR|Bank|UOB|请汇款|請匯款|请付款|請付款|付款后|付款後|截图|截圖|receipt|proof|订单|訂單|下单|下單)/i.test(`${draftText} ${flowContextText} ${languageSwitchContextText}`));
-      const walletPaymentShortOnlyNoFlowDraft = walletPaymentQuestion && /^(?:有的|可以|对的|對的|yes|ok)[🥰❤️❤!！。.\s]*$/i.test(String(draftText || "").trim()) && !walletPaymentHasPaymentFlow;
-      const walletPaymentReadyDraft = walletPaymentQuestion && walletPaymentHasPackageContext && walletPaymentReplyConfirmsChannel && walletPaymentHasPaymentFlow;
-      const futurePaymentPromise = intent.includes("future_payment") || /(?:(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|下(?:个|個)?星期|下周|下週|月底|月尾|tomorrow|later|next\s+(?:week|month)|on\s+\w+\s+\d{1,2}).{0,24}(?:付款|付钱|付錢|支付|pay|payment)|(?:会|會|will|going\s+to|gonna).{0,24}(?:付款|付钱|付錢|支付|pay|make\s+payment).{0,24}(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|tomorrow|later|next\s+(?:week|month)|月底|月尾))/i.test(customerSignalText);
-      const futurePaymentAckDraft = /(?:付款|付钱|付錢|支付|pay|payment).{0,24}(?:截图|截圖|receipt|proof|通知|告诉|告訴|给我知道|給我知道|send|let\s+me\s+know)|(?:截图|截圖|receipt|proof|通知|告诉|告訴|给我知道|給我知道|send|let\s+me\s+know).{0,24}(?:付款|付钱|付錢|支付|pay|payment)|(?:记录|記錄|提醒|remind|reminder).{0,20}(?:付款|pay|payment)|\d{1,2}\s*(?:号|號|日).{0,24}(?:付款|付钱|付錢|支付|pay|payment)/i.test(draftText);
+	      const walletPaymentHasPaymentFlow = walletPaymentQuestion && (flowAction || /(?:付款链接|付款連結|payment\s*link|QR|二维码|二維碼|DuitNow|Duit\s*QR|Bank|UOB|请汇款|請匯款|请付款|請付款|付款后|付款後|截图|截圖|receipt|proof|订单|訂單|下单|下單)/i.test(`${draftText} ${flowContextText} ${languageSwitchContextText}`));
+	      const walletPaymentShortOnlyNoFlowDraft = walletPaymentQuestion && /^(?:有的|可以|对的|對的|yes|ok)[🥰❤️❤!！。.\s]*$/i.test(String(draftText || "").trim()) && !walletPaymentHasPaymentFlow;
+	      const walletPaymentReadyDraft = walletPaymentQuestion && walletPaymentHasPackageContext && walletPaymentReplyConfirmsChannel && walletPaymentHasPaymentFlow;
+	      const onlinePaymentQuestion = /(线上付款|線上付款|online\s*(?:banking|payment)|bank\s*transfer|bank\s*in|汇款|匯款|转账|轉賬|给我户口|給我戶口|户口|戶口|bank\s*account|account\s*(?:no|number))/i.test(paymentMethodText);
+	      const onlinePaymentOrderFlowContext = onlinePaymentQuestion && /(?:确认订单|確認訂單|请确认|請確認|安排下单|安排下單|下单|下單|订单|訂單|收款资料|收款資料|付款资料|付款資料|配套|package|order\s*details|collect\s*order|payment\s*info|RM\s*150|RM\s*258|RM\s*378|RM\s*658|5\s*盒|8\s*盒|一盒|1\s*盒)/i.test(`${walletPaymentOrderContextText} ${draftText} ${flowContextText} ${languageSwitchContextText}`);
+	      const onlinePaymentHasPaymentFlow = onlinePaymentQuestion && (flowAction || /(?:请汇款|請匯款|请付款|請付款|付款后|付款後|截图|截圖|receipt|proof|UOB|Bank|bank\s*account|account\s*(?:no|number)|户口|戶口|QR|二维码|二維碼|名字|电话|電話|地址)/i.test(`${draftText} ${flowContextText} ${languageSwitchContextText}`));
+	      const onlinePaymentReadyDraft = onlinePaymentQuestion && onlinePaymentOrderFlowContext && onlinePaymentHasPaymentFlow;
+	      const futurePaymentPromise = intent.includes("future_payment") || /(?:(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|下午|今晚|晚上|等下|待会|待會|迟点|遲点|迟些|遲些|下(?:个|個)?星期|下周|下週|月底|月尾|tomorrow|later|tonight|today|next\s+(?:week|month)|on\s+\w+\s+\d{1,2}).{0,24}(?:付款|付钱|付錢|过钱|過錢|支付|pay|payment|make\s+payment)|(?:会|會|will|going\s+to|gonna).{0,24}(?:付款|付钱|付錢|过钱|過錢|支付|pay|make\s+payment).{0,24}(?:\d{1,2}\s*(?:号|號|日)|明天|后天|後天|下午|今晚|晚上|等下|待会|待會|迟点|遲点|迟些|遲些|tomorrow|later|tonight|today|next\s+(?:week|month)|月底|月尾))/i.test(customerSignalText);
+      const futurePaymentAckDraft = /(?:付款|付钱|付錢|过钱|過錢|支付|pay|payment).{0,24}(?:截图|截圖|receipt|proof|通知|告诉|告訴|给我知道|給我知道|send|let\s+me\s+know|可以|没问题|沒問題|ok)|(?:截图|截圖|receipt|proof|通知|告诉|告訴|给我知道|給我知道|send|let\s+me\s+know).{0,24}(?:付款|付钱|付錢|过钱|過錢|支付|pay|payment)|(?:可以|没问题|沒問題|ok|sure).{0,24}(?:下午|今晚|晚上|later|tonight|today|付款|付钱|付錢|过钱|過錢|pay)|(?:记录|記錄|提醒|remind|reminder).{0,20}(?:付款|付钱|付錢|过钱|過錢|pay|payment)|\d{1,2}\s*(?:号|號|日).{0,24}(?:付款|付钱|付錢|过钱|過錢|支付|pay|payment)/i.test(draftText);
+      const totalAmountQuestion = /(?:总共|總共|一共|合计|合計|加起来|加起來|总额|總額|total|altogether|overall).{0,30}(?:多少钱|多少錢|RM|amount|price)|(?:加|top\s*up|add).{0,24}(?:哪|哪个|哪個|一|1).{0,12}(?:包|盒|box).{0,30}(?:多少钱|多少錢|RM|total)|(?:多少钱|多少錢).{0,30}(?:总共|總共|一共|total)/i.test(customerSignalText);
+      const totalAmountAnswered = /(?:总共|總共|一共|合计|合計|加起来|加起來|总额|總額|total).{0,28}RM\s*\d+|RM\s*\d+.{0,36}(?:总共|總共|一共|合计|合計|加购|加購|top\s*up|一起|加一盒|加一包)|RM\s*726/i.test(draftText);
+      const totalPaymentFlowContext = /(?:payment|order|付款|收款|订单|訂單|receipt|proof|截图|截圖|地址|电话|電話|payment\s*info|order\s*details)/i.test(`${flowContextText} ${languageSwitchContextText} ${draftText}`);
+      const productEducationFlowContext = /(?:Step\s*[1-4]|產品介紹|产品介绍|继续了解|繼續了解|阻碳水|燃脂|排宿便|LAST\s*CALL|优惠|優惠|活动|活動|Promo|promotion)/i.test(`${flowContextText} ${languageSwitchContextText} ${draftText}`);
+      const totalAmountPaymentSafeDraft = totalAmountQuestion && totalAmountAnswered && futurePaymentAckDraft && (!flowAction || totalPaymentFlowContext) && !productEducationFlowContext;
+      const totalAmountPaymentBadDraft = totalAmountQuestion && (!totalAmountAnswered || (flowAction && !totalPaymentFlowContext) || (productEducationFlowContext && !futurePaymentAckDraft));
       const futurePaymentBadDraft = futurePaymentPromise && (flowAction || (salesPushDraft && !futurePaymentAckDraft) || (/(继续了解|繼續了解|下一步|Step\s*[1-4]|Beyoute\s+Plus|阻碳水|燃脂|排宿便)/i.test(draftText) && !futurePaymentAckDraft));
       const deliveryPaymentText = [
         intent,
@@ -7897,6 +9336,21 @@
         item.manual_reply_text
       ].filter(Boolean).join(" ");
       const marketplaceOfficialQuestion = intent.includes("marketplace_official") || /(?:shopee|lazada).{0,50}(?:official|official\s+page|page|link|store|shop|mall)|(?:official|official\s+page|page|link|store|shop|mall).{0,50}(?:shopee|lazada)|官方.{0,30}(?:shopee|lazada)|(?:shopee|lazada).{0,30}(?:官方|旗舰店|旗艦店|店铺|店舖|链接|連結)/i.test(marketplaceOfficialText);
+      const channelOutageFailureText = [
+        item.status,
+        item.reason,
+        item.error,
+        item.send_error,
+        item.send_result?.reason,
+        item.send_result?.error,
+        item.send_result?.message,
+        decision.reason,
+        decision.error,
+        decision.send_error,
+        decision.delivery?.reason,
+        decision.delivery?.error
+      ].filter(Boolean).join(" ");
+      const channelOutageFailure = status === "send_failed" && /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(channelOutageFailureText);
 
       if (status === "purchase_confirmed") {
         return { tone: "pass", title: "已成交，进复盘", reason: "收到付款或 COD 确认后只保留记录，不再推销售话术。" };
@@ -7912,6 +9366,9 @@
 	      }
 	      if (status === "handoff_done") {
 		return { tone: "handoff", title: "不能直接过", reason: "已转人工；这类样本要总结为什么 AI 当时不该回。" };
+      }
+      if (channelOutageFailure) {
+        return { tone: "fix", title: "不能过：渠道/API断开", reason: "ManyChat/ChatDaddy 显示 API access disrupted、Data Use Checkup 或 WhatsApp channel turned off；这不是话术问题，先修 App Dashboard / WhatsApp 渠道，不能重复批准或重发。" };
       }
       if (status === "send_failed") {
         return { tone: "fix", title: "不能过，先修发送", reason: "发送失败不代表话术通过；先检查渠道或改人工处理。" };
@@ -7934,21 +9391,36 @@
       if (confusedAfterExplainerContext && (longMessageDraft || flowAction || salesPushDraft)) {
         return { tone: "fix", title: "不能过：看不懂先解释", reason: "顾客只回 “???”、看不懂或不明白，代表上一段没接住；不要继续产品长文、优惠或下一段 Flow。先用 1-2 句解释上一句是什么意思，再问她卡在产品、喝法、价格还是订单。" };
       }
+      if (confusedAfterExplainerContext) {
+        return { tone: "review", title: "看不懂可审：短解释上一句", reason: "草稿没有继续长 Flow 或成交催单，而是先解释上一句并确认顾客卡在产品、喝法、价格还是订单；客服确认语气和事实后可以批准，也可沉淀成 FAQ / Flow 上下文规则。" };
+      }
 	      if (packageChoiceAmbiguousBadDraft) {
 	        return { tone: "fix", title: "不能过：表情/短答不是下单", reason: "上一句已经在问 A/B/C 或哪个配套，顾客只回 👍、emoji、sticker 或短答不等于确认购买，也不等于允许继续 Flow；不要继续长文、Flow 或默认她要某配套。改成短追问她要 A/B/C 哪个配套，必要时人工看上下文。" };
 	      }
 	      if (addOnDeclined && addOnUpsellDraft) {
 	        return { tone: "fix", title: "不能过：加购已拒绝", reason: "顾客已经说先不加购/不要 add-on；草稿不要继续推 RM68/top up/加购一盒。尊重拒绝，回到付款方式、收件资料或订单确认。" };
 	      }
+      if (paidParcelSalesPushDraft) {
+        return { tone: "fix", title: "不能过：已付款问包裹别继续卖", reason: "ManyChat Chong：顾客已经付款后问 parcel/包裹几时到。草稿不能继续 LAST CALL、价格、赠品、配套或销售 Flow；改成先查付款、订单、单号/仓库，再回预计到货或追踪。" };
+      }
+      if (paymentRecordConflict) {
+        return { tone: "order", title: "付款记录冲突：先核对", reason: "ManyChat Chong：顾客说 payment already made，但订单/后台显示 Waiting for payment。客服要先核对截图、后台付款和订单状态，再承诺出货/追踪；不接销售 Flow。" };
+      }
+      if (paidParcelQuestion) {
+        return { tone: "order", title: "已付款问包裹：查订单/追踪", reason: "ManyChat Chong：顾客已付款并询问包裹/parcel。客服先核对付款、订单资料、单号或仓库状态，再回复预计到货/追踪；不要继续销售 Flow，也不要直接承诺已出货。" };
+      }
 	      if (deliveryPaymentArrangement) {
 	        return { tone: "handoff", title: "送货/付款先确认", reason: "顾客问送货和付款怎样安排；要看地区、配套、付款方式和订单资料，不要回产品介绍或接 Flow，先人工确认。" };
 	      }
-	      if (paymentLinkAmountMismatch) {
-	        return { tone: "handoff", title: "付款链接金额先确认", reason: "付款链接、PayEx、GrabPay Later 或金额出现不一致；客服要核对配套、金额、差额补偿和付款截图，不要让 AI 自动承诺链接正确或继续销售 Flow。" };
-	      }
-	      if (walletPaymentShortOnlyNoFlowDraft) {
-	        return { tone: "fix", title: "不能过：电子钱包只回有的", reason: "顾客问电子钱包/GrabPay/eWallet 时，只回“有的”不够。要确认配套/金额和可用渠道，或接订单/付款 Flow，并提醒付款后截图给我。" };
-	      }
+		      if (paymentLinkAmountMismatch) {
+		        return { tone: "handoff", title: "付款链接金额先确认", reason: "付款链接、PayEx、GrabPay Later 或金额出现不一致；客服要核对配套、金额、差额补偿和付款截图，不要让 AI 自动承诺链接正确或继续销售 Flow。" };
+		      }
+		      if (onlinePaymentReadyDraft) {
+		        return { tone: "review", title: "线上付款可审：确认后接付款 Flow", reason: "顾客已选线上付款/要户口，并且上下文已有配套或订单；可以接订单/收款资料 Flow，但客服仍要确认配套、金额、渠道和付款后截图提醒。" };
+		      }
+		      if (walletPaymentShortOnlyNoFlowDraft) {
+		        return { tone: "fix", title: "不能过：电子钱包只回有的", reason: "顾客问电子钱包/GrabPay/eWallet 时，只回“有的”不够。要确认配套/金额和可用渠道，或接订单/付款 Flow，并提醒付款后截图给我。" };
+		      }
 	      if (walletPaymentReadyDraft) {
 	        return { tone: "review", title: "电子钱包可审：确认后接付款 Flow", reason: "顾客在配套/金额上下文里问电子钱包，这是付款意向。可以先短答可以/对的，再接订单或付款 Flow；客服仍要确认配套、金额、渠道和付款截图提醒。" };
 	      }
@@ -7988,21 +9460,33 @@
 	      if (englishFlowMismatch) {
 	        return { tone: "fix", title: "不能过：英文请求接错 Flow", reason: "顾客要求 English 或看不懂中文；如果要接 Flow，必须明确接英文 Flow。没有英文 Flow 证据时，不要把顾客送回中文 Step。" };
       }
-	      if (englishStepOneFromBroadcast) {
-	        return { tone: "fix", title: "不能过：语言请求先承接", reason: "顾客只是说看不懂中文/要求 English，尤其是在 Broadcast 或订单提醒后；先用英文解释上一条是什么，并问她要产品、价格、优惠还是订单帮助。不要直接丢完整 Step 1 教育 Flow。" };
-	      }
-		      if (attachmentOnlyMessage) {
-		        return { tone: "handoff", title: afterSalesPhotoReportContext ? "图片报平安先人工" : "图片/附件先人工看", reason: "顾客只发图片/附件，没有文字问题；客服必须先打开图片确认是报平安、Review 截图、付款证明、投诉还是问题图。确认后才接对应售后 Flow，不要让 AI 猜图意，也不要把它当 FAQ 或成交话术学习。" };
+		      if (englishStepOneFromBroadcast) {
+		        return { tone: "fix", title: "不能过：语言请求先承接", reason: "顾客只是说看不懂中文/要求 English，尤其是在 Broadcast 或订单提醒后；先用英文解释上一条是什么，并问她要产品、价格、优惠还是订单帮助。不要直接丢完整 Step 1 教育 Flow。" };
 		      }
-		      if (adverseReactionUnsafeDraft || adverseReactionSalesPushDraft) {
-		        return { tone: "fix", title: "不能过：不适反应别否认", reason: "顾客说喝后肚子不舒服/想吐；草稿不能说一定没副作用、心脏病/三高都能喝，也不能继续 LAST CALL、优惠或成交 Flow。先暂停销售，问喝法、时间、症状和严重程度，必要时建议暂停并人工售后/医生确认。" };
-		      }
+				      if (voiceAudioOnlyMessage) {
+				        return { tone: "handoff", title: "语音先人工摘要", reason: "ManyChat Jolin：顾客发语音/音频，Dashboard 看不到原文；客服要先听完并写一句顾客问题摘要/转文字，AI 才能判断可学/要修/不学。不要从人工回复反推 FAQ，也不要自动接 Flow。" };
+				      }
+				      if (attachmentOnlyMessage) {
+				        return { tone: "handoff", title: afterSalesPhotoReportContext ? "图片报平安先人工" : "图片/附件先人工看", reason: "顾客只发图片/附件，没有文字问题；客服必须先打开图片确认是报平安、Review 截图、付款证明、投诉还是问题图。确认后才接对应售后 Flow，不要让 AI 猜图意，也不要把它当 FAQ 或成交话术学习。" };
+				      }
+			      if (adverseReactionUnsafeDraft || adverseReactionSalesPushDraft) {
+			        return { tone: "fix", title: "不能过：不适反应别否认", reason: "顾客说喝后肚子不舒服/想吐；草稿不能说一定没副作用、心脏病/三高都能喝，也不能继续 LAST CALL、优惠或成交 Flow。先暂停销售，问喝法、时间、症状和严重程度，必要时建议暂停并人工售后/医生确认。" };
+			      }
 		      if (adverseReactionDiagnosticDraft) {
 		        return { tone: "review", title: "不适反应可审：先问症状", reason: "已承接不舒服/想吐，并先问喝法、时间、有没有呕吐/头晕/腹痛/腹泻等；客服审核后再决定调整喝法、暂停或售后跟进。" };
 		      }
-			      if (adverseReactionComplaint) {
-			        return { tone: "handoff", title: "不适反应先人工售后", reason: "顾客说喝后不舒服/想吐；先人工问清楚喝法、时间、症状和严重程度，不接销售 Flow，不否认副作用。" };
-			      }
+				      if (adverseReactionComplaint) {
+				        return { tone: "handoff", title: "不适反应先人工售后", reason: "顾客说喝后不舒服/想吐；先人工问清楚喝法、时间、症状和严重程度，不接销售 Flow，不否认副作用。" };
+				      }
+      if (sugarSafetyUnsafeDraft || sugarSafetySalesPushDraft) {
+        return { tone: "fix", title: "不能过：糖/血糖别强承诺", reason: "顾客问甜味、加糖、血糖、糖尿病或三高时，草稿不能保证不会升糖、糖尿病/三高都能喝，也不能继续销售 Flow。先答成分边界；涉及血糖/疾病就人工确认。" };
+      }
+	      if (bloodSugarSensitiveQuestion) {
+	        return { tone: "handoff", title: "糖/血糖先人工确认", reason: "顾客问糖尿病、血糖、三高或 insulin；这不是普通口味问题。先人工确认成分/标签和身体情况，不接销售 Flow。" };
+	      }
+	      if (sugarSafetyBoundaryDraft) {
+	        return { tone: "review", title: "糖/甜味可审：成分边界", reason: "草稿有回答甜味/糖分边界，没有保证血糖或疾病适用，也没有继续销售 Flow；客服确认标签和口径后可以批准。" };
+	      }
 			      if (annoyedSalesPushDraft) {
 			        return { tone: "fix", title: "不能过：顾客嫌烦别继续卖", reason: "顾客已经嫌烦、要求别打扰或被标记不要买；不能继续 LAST CALL、优惠、价格 CTA 或 Flow。先道歉，暂停自动跟进/停止 follow-up，必要时转人工记录投诉。" };
 			      }
@@ -8015,9 +9499,15 @@
 			      if (postNoResultPromoFlow) {
 			        return { tone: "fix", title: "不能过：效果投诉后停促销 Flow", reason: "上文已经有没瘦、没效果或失去信心；后面不能再跑 Last Call、订单提醒、优惠促销或成交 Flow。先暂停 automation，由客服售后承接并复盘使用情况。" };
 			      }
+	      if (broadcastOrderClaimDraft) {
+	        return { tone: "fix", title: "不能过：Broadcast订单话术别当事实", reason: "ManyChat 910 这类记录里，订单资料/处理中/已安排出货常是 Broadcast 营销话术，不等于顾客已下单或真的出货。没有订单/付款证据时，草稿不能继续这样说；先回答顾客最后问题或查记录。" };
+	      }
 	      if (noCustomerPromoRecoveryContext) {
 	        return { tone: "review", title: "促销追单：不学问答", reason: "没有看到顾客问题；这是 ManyChat/人工在订单提醒、Smart Delay 或促销上下文里的追单动作。可以审价格、活动和 CTA 是否正确，但不要把它写进 FAQ 或顾客问答学习。" };
 	      }
+      if (absoluteProductOverclaimDraft && (automationOnlyFlowContext || !rawCustomerText || noCustomerPromoRecoveryContext)) {
+        return { tone: "fix", title: "不能过：强承诺 Flow", reason: "ManyChat Said：即使顾客没有投诉，草稿/Flow 也不能写绝对看到效果、保证瘦/变白、不会反弹或不可能有副作用。这类话术要退回 AI，改成真实反馈 + 个体差异 + 客服审核边界。" };
+      }
 	      if (automationOnlyFlowContext) {
 	        return { tone: "review", title: "纯自动 Flow：不学问答", reason: "这条没有顾客问题，只是 ManyChat automation / Broadcast 自己推进。可以审 Flow 是否该继续，但不要把它当成顾客问答、FAQ 或成交话术样本。" };
 	      }
@@ -8039,8 +9529,23 @@
       if (targetWeightPackageQuestion) {
         return { tone: "handoff", title: "目标体重先人工配套", reason: "顾客问从当前体重瘦到目标体重要几个配套；Dashboard 应让客服按目标、预算和当前活动建议配套，不让 AI 自己保证效果或乱配疗程。" };
       }
+      if (absoluteProductOverclaimDraft) {
+        return { tone: "fix", title: "不能过：强承诺 Flow", reason: "ManyChat Said：即使顾客没有投诉，草稿/Flow 也不能写绝对看到效果、保证瘦/变白、不会反弹或不可能有副作用。这类话术要退回 AI，改成真实反馈 + 个体差异 + 客服审核边界。" };
+      }
       if (strongSuitabilityOverclaimDraft) {
         return { tone: "fix", title: "不能过：身体适合度强承诺", reason: "顾客问更年期、经期或体重这类特殊身体状态；草稿不能说更适合、加速燃烧脂肪或保证达到减肥效果。改成安全边界回复，必要时转人工确认。" };
+      }
+      if (cycleComfortOverclaimDraft) {
+        return { tone: "fix", title: "不能过：售后经期缺安全边界", reason: "ManyChat Estee：顾客问经期能不能喝时，不能学“温性所以不会宫寒/不会不舒服”这种保证式说法。要改成：可以喝；如果经期不舒服、痛经或经量比较多，先暂停，结束后再继续；不接销售 Flow。" };
+      }
+      if (afterOrderCycleSalesDraft) {
+        return { tone: "fix", title: "不能过：售后经期别接销售 Flow", reason: "ManyChat Estee：顾客已经下单/订单已收到后才问经期能不能喝，这是售后使用答疑。先答经期喝法和暂停边界，不要再接 LAST CALL、配套、赠品、付款或成交 Flow。" };
+      }
+      if (afterOrderCycleSafeDraft) {
+        return { tone: "review", title: "售后经期可审：答用法边界", reason: "ManyChat Estee：下单后问经期期间能不能喝，草稿先回答可以喝，并补了不舒服/经量多就暂停、结束后再继续的安全边界；客服确认语气后可批准，不接销售 Flow。" };
+      }
+      if (afterOrderCycleSuitabilityQuestion) {
+        return { tone: "fix", title: "不能过：售后经期缺安全边界", reason: "顾客下单后问经期能不能喝时，不能只说可以。改成：可以喝；如果经期不舒服、痛经或经量比较多，先暂停，结束后再继续；不接销售 Flow。" };
       }
       if (cycleSuitabilityUnansweredDraft || weightSuitabilityUnansweredDraft) {
         return { tone: "fix", title: "不能过：适合度没答完", reason: "顾客问经期/生理期、100kg 或身体状态能不能喝时，要先正面回答适合度和安全边界，再接配套、信心 CTA 或 FAQ Flow。不要只丢 RM658、赠品或下单 Flow。" };
@@ -8084,9 +9589,15 @@
       if (promoGiftMissingDraft) {
         return { tone: "fix", title: "不能过：没回答赠品", reason: "顾客问还有送什么、赠品或 free gift；草稿必须列当前 RM150/RM258/RM378 和当天赠品确认口径，不要回产品介绍或接普通 Flow。" };
       }
-      if (refundRequest && !refundAcknowledgedDraft) {
-        return { tone: "fix", title: "不能过：退款要求没承接", reason: "顾客已经说 Refund/退款；草稿不能只问使用情况或继续解释产品。必须先承接退款诉求，说明按售后/退款政策人工审核，再补问订单和使用资料。" };
-      }
+	      if (policyCompensationClaim && !policyClaimAcknowledgedDraft) {
+	        return { tone: "fix", title: "不能过：赔偿申诉没承接", reason: "ManyChat Teresa：顾客说已符合 terms & conditions 却被拒绝 refund/compensation。草稿不能只问喝法或继续解释产品；必须先承接赔偿/退款申诉，说明按售后政策和订单记录人工审核。" };
+	      }
+	      if (policyCompensationClaim) {
+	        return { tone: "handoff", title: "赔偿/T&C先人工审核", reason: "顾客在申诉退款、赔偿或条款执行结果；Dashboard 只能提醒客服查订单、使用记录、T&C 和售后政策。AI 不承诺赔偿、不拒绝赔偿，也不接销售 Flow。" };
+	      }
+	      if (refundRequest && !refundAcknowledgedDraft) {
+	        return { tone: "fix", title: "不能过：退款要求没承接", reason: "顾客已经说 Refund/退款；草稿不能只问使用情况或继续解释产品。必须先承接退款诉求，说明按售后/退款政策人工审核，再补问订单和使用资料。" };
+	      }
 	      if (refundRequest) {
 	        return { tone: "handoff", title: "退款先人工审核", reason: "顾客提出退款，Dashboard 只能提醒客服查订单、政策和使用资料；AI 不承诺退款、不拒绝退款，也不接销售 Flow。" };
 	      }
@@ -8100,14 +9611,14 @@
 	        return { tone: "fix", title: "不能过：怕没效没处理", reason: "顾客核心顾虑是怕没效和浪费钱；不要只回普通嫌贵或继续报价。改成：理解担心 -> 证明/机制/适合度 -> 低门槛下单问题。" };
 	      }
 	      if (noResultSalesPushDraft) {
-	        return { tone: "fix", title: "不能过：没效果别继续卖", reason: "顾客在投诉没效果；不要继续推价格、配套、CTA 或 Flow。先问使用天数/盒数、喝法、水量和排便，再由客服判断售后动作。" };
-      }
-      if (noResultComplaint && noResultDiagnosticDraft) {
-        return { tone: "review", title: "效果投诉可审：先问使用情况", reason: "顾客说没效果时，可以先礼貌承接并问使用天数/盒数、喝法、水量和排便；客服审核后再决定售后建议。" };
-      }
-      if (noResultComplaint) {
-        return { tone: "handoff", title: "效果投诉先人工问清楚", reason: "顾客说没效果但草稿没有问关键使用资料；先人工承接，补问使用情况，不要直接接成交 Flow。" };
-      }
+	        return { tone: "fix", title: "不能过：没效果别继续卖", reason: "顾客在投诉没效果；不要继续推价格、配套、CTA 或 Flow。先问喝多久/几盒、是否饭前15-30分钟、每次水量150-200ml、排便变化、身体反应和有没有照喝，再由客服判断售后动作。" };
+	      }
+	      if (noResultComplaint && noResultDiagnosticDraft) {
+	        return { tone: "review", title: "效果投诉可审：先问使用情况", reason: "顾客说没效果时，可以先礼貌承接并问喝多久/几盒、是否饭前15-30分钟、每次水量150-200ml、排便变化、身体反应和有没有照喝；客服审核后再决定售后建议。" };
+	      }
+	      if (noResultComplaint) {
+	        return { tone: "handoff", title: "效果投诉先人工问清楚", reason: "顾客说没效果但草稿没有问关键使用资料；先人工承接，补问喝多久/饭前时间/水量/排便/身体反应/是否照喝，不要直接接成交 Flow。" };
+	      }
 	      if (orderDenialComplaint) {
 	        return { tone: "handoff", title: "否认订购先停 Flow 查记录", reason: "顾客说没有订购，通常是 Broadcast/订单提醒误伤；不要继续销售、价格、Flow 或重复下单。先道歉澄清、查记录/暂停跟进，再由人工决定是否排除分群。" };
 	      }
@@ -8120,6 +9631,12 @@
 	      if (membershipRebuyQuestion) {
 	        return { tone: "handoff", title: "会员/回购先查资格", reason: "顾客问会员、VIP、回购价或旧客福利；没有明确回购资格和价格时，不要套新人价，也不要接普通销售 Flow，先人工确认。" };
 	      }
+      if (totalAmountPaymentBadDraft) {
+        return { tone: "fix", title: "不能过：问总额没算清", reason: "ManyChat 陈升蓝：顾客问加哪一包总共多少钱，甚至说下午过钱可以吗。不要继续产品教育或普通 Flow；先把当前配套 + 加购算成总额，再说下午付款可以，并提醒付款后截图/通知。" };
+      }
+      if (totalAmountPaymentSafeDraft) {
+        return { tone: "review", title: "总额+稍后付款可审", reason: "顾客已经到付款意向阶段，草稿先算清总额，再承接下午/稍后付款，并提醒付款后截图或通知；客服确认金额和配套后可以批准，不接产品教育 Flow。" };
+      }
 	      if (oneBoxSpecificQuestion && directPriceBridgeDraft) {
 	        return { tone: "fix", title: "不能过：具体问价别接教育 Flow", reason: "顾客已经问一盒/1 box 多少钱；这不是普通 Direct 问价桥接。先答 1盒 RM150 + 15小包/15天，再给一盒试喝 CTA，不能只说先了解产品。" };
 	      }
@@ -8127,11 +9644,17 @@
 	        return { tone: "fix", title: "不能过：看价后别接教育 Flow", reason: "顾客已经在 Step 4、Broadcast/624/Shopee 或活动语境里问价；这时不要只说先了解产品，也不要倒回 Step 1/2/3。先正面回答当前价，再接成交 CTA。" };
 	      }
 	      if (directPriceBridgeSafe) {
-        return { tone: "review", title: "Direct问价可审：桥接后接Step3 Flow", reason: "Direct 新客只问“多少钱”且还没看产品；ManyChat Fei Ying / Chai Sim 对标是先欢迎和短桥接“先让你了解产品再给优惠价”，再接产品定位、需求按钮、认证/反馈 Flow。Step 3 后才进入 Step 4 问肥胖多久、给价格和成交 CTA。" };
+        return { tone: "review", title: "问价前可审：桥接后接Step1 Flow", reason: "ManyChat 李秀芬/Chai 这类 Direct 新客只问“多少钱”时，人工先短桥接“先让你了解产品，再给优惠价格”，再恢复 Step 1 / 产品 Flow。可学的是顾客问题 -> 桥接回复 -> 接 Flow；不是把 Flow 长文写成 FAQ。看过价格或问一盒时仍要先答当前价。" };
 	      }
 	      if (directPriceBridgeMissingFlow) {
 	        return { tone: "fix", title: "不能过：Direct问价缺Step3 Flow", reason: "Direct 新客问价时可以短桥接，但必须接 Step 3 背景/认证/线下店/喝法 Flow。只丢一句“先了解产品”没有下一步，客服会卡住。" };
 	      }
+      if (unknownPackageInventedDraft) {
+        return { tone: "fix", title: "不能过：未知配套别乱报", reason: "顾客问 4+2、隐藏配套、配套 B/C 或特殊价时，AI 不能自己编 RM508/RM658/老板价。只能先答已确认价，或请客服/老板确认后再补 FAQ/SOP。" };
+      }
+      if (unknownPackageSafeBoundaryDraft) {
+        return { tone: "review", title: "资料缺口可审：先答已确认价", reason: "草稿守住当前已确认价梯，并把 4+2、隐藏配套或特殊价交给客服/老板确认。Dashboard 要把这类问题变成老板补 FAQ/SOP 的资料缺口卡。" };
+      }
 	      if (directNewPriceContext && !directPriceAnswered) {
 	        return { tone: "fix", title: "不能过：Direct问价没桥接Flow", reason: "Direct 新客只问多少钱时，不要只沉默、转人工或乱接旧活动。要么短桥接后接产品 Flow，要么直接给当前价并补 CTA；不能让问题悬空。" };
 	      }
@@ -8154,13 +9677,13 @@
           : "顾客明确问价，草稿已给当前三档价和下单动作；客服只需确认活动/赠品边界后批准。";
         if (oneBoxSpecificQuestion) {
 	          if (priceQuestionAfterFlowContext && oneBoxGenericPackageCta) {
-	            directPriceTitle = "Flow后问一盒：问安排一盒";
+	            directPriceTitle = "Flow后问一盒：CTA改安排一盒";
 	            directPriceReason = "顾客原句是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已答 1盒 RM150，可以补价梯，但“哪个配套”偏泛。更会成交的下一句是先问要不要安排一盒试喝；Flow/收单只能在回答后作为下一步，不要把旧 Broadcast/订单提醒当成已下单。";
 	          } else if (priceQuestionAfterFlowContext) {
 	            directPriceTitle = "Flow后问一盒：先答价再成交";
 	            directPriceReason = "顾客原句是在 Flow/Broadcast 后问一盒多少钱；这是真问题，不是纯自动 Flow。草稿已先回答 1盒 RM150。价梯和赠品可以轻补充，下一句要优先问“你要我先帮你安排一盒试喝吗？”，确认后才进收资料/下单。";
           } else {
-            directPriceTitle = oneBoxGenericPackageCta ? "问一盒可审：问安排一盒" : "问一盒可审：一盒价优先";
+            directPriceTitle = oneBoxGenericPackageCta ? "问一盒可审：CTA改安排一盒" : "问一盒可审：一盒价优先";
             directPriceReason = oneBoxGenericPackageCta ? "顾客问一盒多少钱，草稿已回答 1盒 RM150 并有下单动作，所以可审；但“哪个配套”偏泛。更会成交的下一句是先问要不要安排一盒试喝，不要把旧 Broadcast/订单提醒当成已下单。" : "顾客问一盒多少钱，草稿已先回答 1盒 RM150；价梯和赠品可以轻补充，但下一句应优先问要不要安排一盒，不要把旧 Broadcast/订单提醒当成已下单。";
           }
         } else if (priceQuestionAfterFlowContext) {
@@ -8168,6 +9691,15 @@
         }
         return { tone: priceCtaAnswered ? "review" : "fix", title: priceCtaAnswered ? directPriceTitle : "不能过：问价缺下一步", reason: priceCtaAnswered ? directPriceReason : "顾客问价时，草稿除了当前价，还要给明确下一步，例如问她要不要安排一盒或哪个配套。" };
       }
+	      if (paidParcelSalesPushDraft) {
+	        return { tone: "fix", title: "不能过：已付款问包裹别继续卖", reason: "ManyChat Chong：顾客已经付款后问 parcel/包裹几时到。草稿不能继续 LAST CALL、价格、赠品、配套或销售 Flow；改成先查付款、订单、单号/仓库，再回预计到货或追踪。" };
+	      }
+	      if (paymentRecordConflict) {
+	        return { tone: "order", title: "付款记录冲突：先核对", reason: "ManyChat Chong：顾客说 payment already made，但订单/后台显示 Waiting for payment。客服要先核对截图、后台付款和订单状态，再承诺出货/追踪；不接销售 Flow。" };
+	      }
+	      if (paidParcelQuestion) {
+	        return { tone: "order", title: "已付款问包裹：查订单/追踪", reason: "ManyChat Chong：顾客已付款并询问包裹/parcel。客服先核对付款、订单资料、单号或仓库状态，再回复预计到货/追踪；不要继续销售 Flow，也不要直接承诺已出货。" };
+	      }
       if (paymentReceivedSignal) {
         return { tone: "order", title: "付款/汇款先审款", reason: "顾客说已付款/已汇款，或草稿确认收到款；先核对金额、截图和订单资料，不继续销售，也不要直接承诺已出货。" };
       }
@@ -8201,12 +9733,15 @@
       if (deliveryPaymentArrangement) {
         return { tone: "handoff", title: "送货/付款先确认", reason: "顾客问送货和付款怎样安排；要看地区、配套、付款方式和订单资料，不要回产品介绍或接 Flow，先人工确认。" };
       }
-      if (walletPaymentQuestion) {
-        return { tone: "handoff", title: "电子钱包/GrabPay 先确认", reason: "顾客问电子钱包、GrabPay/eWallet 或付款链接；参考 ManyChat：先暂停 automation，人工确认当前订单/渠道可用，再短答可以/对的、发付款链接，并提醒付款后截图给我。不要继续产品 Flow。" };
-      }
-      if (paymentMethodIssue) {
-        return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡、GrabPay/eWallet 或付款链接要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
-      }
+	      if (onlinePaymentReadyDraft) {
+	        return { tone: "review", title: "线上付款可审：确认后接付款 Flow", reason: "顾客已选线上付款/要户口，并且上下文已有配套或订单；可以接订单/收款资料 Flow，但客服仍要确认配套、金额、渠道和付款后截图提醒。" };
+	      }
+	      if (walletPaymentQuestion) {
+	        return { tone: "handoff", title: "电子钱包/GrabPay 先确认", reason: "顾客问电子钱包、GrabPay/eWallet 或付款链接；参考 ManyChat：先暂停 automation，人工确认当前订单/渠道可用，再短答可以/对的、发付款链接，并提醒付款后截图给我。不要继续产品 Flow。" };
+	      }
+	      if (paymentMethodIssue) {
+	        return { tone: "handoff", title: "付款方式先确认", reason: "COD、银行卡、信用卡、GrabPay/eWallet 或付款链接要看订单和渠道安排；不要在 Dashboard 里直接承诺可以付款，先人工确认。" };
+	      }
       if (orderUpdateRequest) {
         return { tone: "handoff", title: "改资料先查单", reason: "顾客要改地址、电话或收件资料；先查订单是否已建立或出货，不要重复下单，也不要承诺已改好。" };
       }
@@ -8245,7 +9780,7 @@
         return { tone: "review", title: "特别加购：先确认资格", reason: "PWP/RM68/add-on 不能套普通价格图；先确认活动、资格和当前订单能不能加购。" };
       }
       if (legacyPromo) {
-        return { tone: "review", title: "活动配套先确认", reason: "配套B/C、4+2、5+3、RM508/RM658 或 8盒/4个月这类活动价，要先确认当前活动、库存和赠品边界；不要套普通价梯，也不要编价格。" };
+        return { tone: "review", title: "活动配套资料缺口：先确认", reason: "配套B/C、4+2、5+3、RM508/RM658 或 8盒/4个月这类活动价，要先确认当前活动、库存和赠品边界；不要套普通价梯，也不要编价格。老板批准后补 FAQ/SOP/价目表。" };
       }
       if (promoGiftQuestion) {
         return { tone: "review", title: "赠品/活动可审", reason: "已回答当前三档价和赠品边界；最后按当天活动和库存确认，不乱保证。" };
@@ -8376,11 +9911,62 @@
 	      return caseOptimizerLearningCandidate(item, "");
 	    }
 
+	    function caseLearningTargetGuide(candidate = {}) {
+	      const artifactType = String(candidate.artifact_type || "").toLowerCase();
+	      const map = {
+	        faq: "FAQ 标准答案：适合用法、口味、物流、英文这类重复问题；资料不足仍转人工。",
+	        closer_script: "成交话术 / CTA map：适合价格、信任、异议、免邮/COD 和看价后成交。",
+	        ops_sop: "客服 SOP：适合审款、查单、送货、付款、售后接手和订单异常。",
+	        safety_sop: "安全 SOP / risk_policy：适合健康敏感、不适反应、孕期/药物和效果投诉。",
+	        flow_context_rule: "Flow/上下文规则：适合短回复、emoji、上一句、Broadcast 和接回 Flow 条件。",
+	        reply_rule: "回复规则：适合可重复的顾客问题、正确回复和下一步动作。"
+	      };
+	      return map[artifactType] || "回复规则：先由 Owner 判断要补 FAQ、成交话术、SOP 还是 Flow 规则。";
+	    }
+
+	    function caseLearningDoNotLearnGuide(candidate = {}) {
+	      const artifactType = String(candidate.artifact_type || "").toLowerCase();
+	      const map = {
+	        faq: "不要学成：没答完就接 Flow、乱承诺效果，或把未知资料当确定答案。",
+	        closer_script: "不要学成：自动降价、保证效果、旧活动、长文硬推，或看价后倒回教育 Flow。",
+	        ops_sop: "不要学成：普通 FAQ 自动发、自动确认订单/付款，或未查记录就承诺已安排。",
+	        safety_sop: "不要学成：自动承诺可以喝、无副作用、一定有效，或继续成交 Flow。",
+	        flow_context_rule: "不要学成：把 ManyChat 主动 Flow 当顾客问题，或没回答顾客就接下一段 Flow。",
+	        reply_rule: "不要学成：只记文案，不记顾客原话、上一段 Flow、AI 草稿和下一步动作。"
+	      };
+	      return map[artifactType] || "不要学成：未经 Owner 审核就写进业务脑或开启自动。";
+	    }
+
 	    function caseSelfOptimizationChecklist(item = {}, candidate = {}) {
 	      const closer = closerVerdict(item);
 	      const pendingReply = needsManualReplyAfterHandoff(item);
 	      const hasFinalReply = hasManualFinalReply(item);
+	      const decision = item.latest_decision || {};
+	      const manualReplyText = caseOptimizerManualReplyText(item);
+	      const customerText = firstContextText(item.last_message, item.customer_text, decision.customer_text, item.incoming, item.message, customerPreviewText(item));
+	      const flowContextText = firstContextText(
+	        decision.previous_flow_text,
+	        decision.source_flow_text,
+	        decision.previous_broadcast_text,
+	        decision.broadcast_text,
+	        decision.previous_agent_text,
+	        decision.context_summary,
+	        item.raw_context,
+	        item.context_summary,
+	        item.previous_agent_text,
+	        item.last_agent_message
+	      );
+	      const originalAiReply = caseOptimizerOriginalAiReply(item) || decision.reply_message || "";
+	      const evidenceMissing = [];
+	      if (!customerText) evidenceMissing.push("顾客原话");
+	      if (!flowContextText) evidenceMissing.push("上一段 Flow");
+	      if (!originalAiReply) evidenceMissing.push("AI 原草稿");
+	      if (!manualReplyText || isPlaceholderManualReply(manualReplyText)) evidenceMissing.push("人工最终回复");
+	      const evidenceLine = evidenceMissing.length
+	        ? `复盘证据包：顾客原话、上一段 Flow、AI 原草稿、人工最终回复；缺 ${evidenceMissing.join(" / ")}，先补齐再让 AI 总结。`
+	        : "复盘证据包：顾客原话、上一段 Flow、AI 原草稿、人工最终回复已齐，可以判可学 / 要修 / 不学。";
 	      const title = closer.title || candidate.title || "待复盘";
+	      const noResultSelfAudit = /没效果|沒效果|效果投诉|效果投訴|没瘦|沒瘦|no\s+(?:effect|result)|not\s+effective|lost\s+confiden/i.test([title, closer.reason, customerText, originalAiReply, manualReplyText].filter(Boolean).join(" "));
 	      const issue = pendingReply ? "转人工后缺人工最终回复，AI 还不能判断正确答案。" : title;
 	      const artifactLabel = candidate.artifact_label || "学习候选";
 	      const artifactType = candidate.artifact_type || "";
@@ -8392,10 +9978,14 @@
 	      return [
 	        `错因：${issue}`,
 	        hasFinalReply ? "正确回复：人工最终回复已保存，先判可学 / 要修 / 不学。" : "正确回复：等客服贴最后真正发给顾客的文字。",
+	        evidenceLine,
 	        `学习归类：${artifactLine}`,
+	        noResultSelfAudit ? "售后复盘清单：喝多久/几盒、饭前时间、水量150-200ml、排便、身体反应、是否照喝；没有这些不要写进FAQ。" : "",
+	        `业务脑位置：${caseLearningTargetGuide(candidate)}`,
+	        `不要学成：${caseLearningDoNotLearnGuide(candidate).replace(/^不要学成：/, "")}`,
 	        `下次动作：${nextAction}`,
 	        `回放测试：${replay}`
-	      ];
+	      ].filter(Boolean);
 	    }
 
 	    function caseLearningLoopHtml(item = {}) {
@@ -8721,7 +10311,24 @@
     function manualSampleLearningJudgment(item = {}) {
       const decision = item.latest_decision || {};
       const manualReplyText = caseOptimizerManualReplyText(item);
+      const action = String(decision.action || item.action || "").toLowerCase();
+      const status = String(item.status || "").toLowerCase();
+      const aiDraftText = String(decision.reply_message || item.final_text || item.reply_text || "").trim();
+      const approvalReadyDraft = aiDraftText && !/(ask_human|handoff|create_handoff)/i.test(action) && (
+        status.includes("approval") ||
+        action.includes("send") ||
+        action.includes("reply") ||
+        action.includes("flow")
+      );
       if (!manualReplyText) {
+        if (approvalReadyDraft) {
+          return {
+            tone: "wait",
+            title: "待客服批准后学习",
+            reason: "这是 AI 草稿/待批准回复，还不是人工最终样本；客服批准或修改后才可复盘学习。",
+            action: "先检查完整回复和当前 Flow，再点批准发送或修改。"
+          };
+        }
         return {
           tone: "wait",
           title: "待补人工最终回复",
@@ -8737,30 +10344,102 @@
           action: "请贴完整顾客可见回复，再判断可学 / 要修 / 不学。"
         };
       }
-      const customerText = [
-        item.last_message,
-        item.customer_text,
-        item.inbound_text,
-        decision.customer_text,
-        decision.inbound_text,
-        decision.intent
-      ].filter(Boolean).join(" ");
+	      const customerText = [
+	        item.last_message,
+	        item.customer_text,
+	        item.inbound_text,
+	        decision.customer_text,
+	        decision.inbound_text,
+	        decision.intent
+	      ].filter(Boolean).join(" ");
+	      const customerQuestionText = [
+	        item.last_message,
+	        item.customer_text,
+	        item.inbound_text,
+	        decision.customer_text,
+	        decision.inbound_text
+	      ].filter(Boolean).join(" ");
+	      const sampleEvidenceText = [
+	        customerQuestionText,
+	        item.raw_context,
+	        item.rawContext,
+	        item.context_text,
+	        item.message_type,
+	        item.inbound_type,
+	        item.attachment_type,
+	        item.media_type,
+	        decision.intent,
+	        decision.message_type,
+	        decision.inbound_type,
+	        decision.attachment_type,
+	        decision.media_type
+	      ].filter(Boolean).join(" ");
+	      const voiceAudioSample = !String(customerQuestionText || "").trim() && /(Inbox message audio attachment|audio|voice(?:\s*message)?|语音|語音|音频|音訊|0:00\s*\/\s*0:0?\d+)/i.test(sampleEvidenceText);
+	      if (voiceAudioSample) {
+	        return {
+	          tone: "wait",
+	          title: "待补语音摘要",
+	          reason: "顾客原话是语音/音频，AI 不能从客服回复倒推顾客问题。",
+	          action: "客服先补一句“顾客语音问：...”，再判断可学/要修/不学。"
+	        };
+	      }
+	      const originalAction = String(decision.action || item.action || "").toLowerCase();
       const sampleReviewItem = {
         ...item,
         status: "approval_required",
         latest_decision: {
           ...decision,
-          action: "send_reply",
+          action: originalAction.includes("flow") ? decision.action : "send_reply",
           reply_message: manualReplyText,
           risk: decision.risk || item.risk || "medium"
         }
       };
       const verdict = closerVerdict(sampleReviewItem);
+      const titleReason = `${verdict.title || ""} ${verdict.reason || ""}`;
       const salesPush = /(RM\s*\d+|1\s*盒\s*RM|2\s*盒\s*RM|3\s*盒\s*RM|which\s+package|哪个配套|哪一个配套|安排.*配套|抢购|promotion|promo|order\s+now|buy\s+now)/i.test(manualReplyText);
+      const oneBoxQuestion = /(?:要|拿|买|買|order|want|take)?\s*(?:一|1)\s*(?:盒|box)\b|(?:一|1)\s*(?:盒|box).{0,24}(?:多少钱|多少錢|多少|RM|rm|price|how\s+much)/i.test(customerText);
+      const genericPackageCta = /(?:哪个|哪一个|哪個|哪一個).{0,24}(?:配套|package)|(?:安排|下单|下單|拿|预购|預購|订|訂|order).{0,30}(?:哪个|哪一个|哪個|哪一個)?\s*(?:配套|package)/i.test(manualReplyText) && !/(?:安排|下单|下單|拿|预购|預購|订|訂|order).{0,18}(?:一|1)\s*(?:盒|box)|(?:一|1)\s*(?:盒|box).{0,18}(?:安排|下单|下單|拿|预购|預購|订|訂|order)|(?:先帮你|先幫你|帮你|幫你|要我).{0,20}(?:一|1)\s*(?:盒|box)/i.test(manualReplyText);
       const orderOrServiceRecovery = /order_denial|not_ordered|no_follow_up|after_sales|receipt|payment|order|delivery/i.test(String(decision.intent || "")) ||
         /(?:我)?(?:没|沒有|没有|沒).{0,8}(?:订购|訂購|下单|下單|order|buy|purchase)|没人|沒人|没有人|沒有人|no\s*one|receipt|付款|汇款|匯款|地址|电话|電話|送货|送貨/i.test(customerText);
       const outdatedPrice = /RM\s*368|加\s*RM\s*10|3\s*送\s*1|3送1|送1盒\s*RM\s*378|(?:5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|early\s*bird|188\s*sets?|59%\s*OFF|RM\s*398|RM\s*498|RM\s*538|RM\s*698)/i.test(manualReplyText);
       const englishRequest = /english|英文|(?:don['’]?\s*t|do\s+not|can['’]?\s*t|cannot)\s+(?:read|understand).{0,40}(?:chinese|mandarin|中文|华文|華文)/i.test(customerText);
+      const pricePackQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|how\s+much|price|package|配套)/i.test(customerQuestionText) &&
+        /(?:一|1)?\s*(?:盒)?[^。？?\n]{0,12}(?:几|幾|多少|how\s+many).{0,8}(?:包|小包|sachets?|packs?)|(?:包|小包|sachets?|packs?).{0,12}(?:几|幾|多少|how\s+many)/i.test(customerQuestionText);
+      const flowEvidenceText = [
+        item.raw_context,
+        item.rawContext,
+        item.context_text,
+        item.customer_history_text,
+        decision.previous_agent_text,
+        decision.previous_flow_text,
+        decision.source_flow_text,
+        decision.previous_broadcast_text,
+        decision.broadcast_text,
+        decision.flow_name,
+        decision.flow_key,
+        decision.next_flow_name,
+        decision.next_flow_key,
+        decision.target_flow_name,
+        decision.target_flow_key
+      ].filter(Boolean).join("\n");
+      const priorFlowAnsweredPricePack = pricePackQuestion &&
+        /(Automation sent via Inbox|Smart delay|Broadcast|Flow|Promo|LAST\s*CALL|价格图|價格圖|配套A|配套B|配套C|6\s*月|624)/i.test(flowEvidenceText) &&
+        /RM\s*(?:150|258|378|508|658)\b|(?:3\s*盒\s*[-–]?\s*RM\s*378)|(?:4\s*盒\s*[-–]?\s*RM\s*508)|(?:5\s*盒\s*[-–]?\s*RM\s*658)/i.test(flowEvidenceText) &&
+        /(?:一|1)\s*盒.{0,24}15\s*(?:小包|包|sachets?)|15\s*(?:小包|包|sachets?).{0,24}(?:15\s*天|一盒|1\s*盒)/i.test(flowEvidenceText);
+      const manualClarifiesPriorPriceFlow = priorFlowAnsweredPricePack &&
+        !/RM\s*\d+/i.test(manualReplyText) &&
+        /15\s*(?:小包|包|sachets?)|(?:不是|不 是).{0,8}30\s*(?:小包|包)|全马免邮|全馬免郵|货到付款|貨到付款|\bCOD\b|没有额外收费|沒有額外收費/i.test(manualReplyText);
+      const fulfillmentPromiseContextText = [
+        customerText,
+        flowEvidenceText,
+        decision.intent,
+        decision.stage,
+        item.raw_context,
+        item.rawContext
+      ].filter(Boolean).join(" ");
+      const fulfillmentPromiseSample = orderOrServiceRecovery &&
+        /(?:payment|paid|付款|汇款|匯款|parcel|包裹|tracking|订单|訂單|order|delivery|shipping|物流|快递|快遞)/i.test(fulfillmentPromiseContextText) &&
+        /(?:missed|oversight|wasn['’]?t\s+processed|not\s+processed\s+on\s+time|arrange\s+to\s+ship|ship(?:ped|ping)?\s+(?:your\s+)?parcel\s+today|tracking\s+number|once\s+(?:it\s+has\s+been\s+)?dispatch(?:ed)?|dispatch(?:ed)?|出货|出貨|发货|發貨|寄出|补寄|補寄|补偿|補償|complimentary|include\s+\d+\s+complimentary|加送)/i.test(manualReplyText);
       if (outdatedPrice) {
         return {
           tone: "fix",
@@ -8785,6 +10464,14 @@
           action: "只保留为负例，补 SOP：先查记录、安抚、转人工。"
         };
       }
+      if (manualClarifiesPriorPriceFlow) {
+        return {
+          tone: "learn",
+          title: "可学但要带上一段Flow：价格+包数链路",
+          reason: "这类 ManyChat 样本的完整答案在上一段 Promo Flow 里：价格图/配套已经答价钱和 1盒15小包，人工最后只是补充包数、免邮/COD 或成交 CTA；不能把最后两句单独学成 FAQ。",
+          action: "Owner 审核时保留顾客原话、上一段 Flow、人工补充和 CTA，再写入 Flow 接法 / 成交话术。"
+        };
+      }
       if (verdict.tone === "fix") {
         return {
           tone: "fix",
@@ -8801,12 +10488,36 @@
           action: "Owner 写入 handoff / SOP 规则。"
         };
       }
+      if (fulfillmentPromiseSample) {
+        return {
+          tone: "learn",
+          title: "只学SOP：出货承诺先查证",
+          reason: "ManyChat Chong 这类样本可以学的是查付款、订单卡和仓库后的处理流程；不要把“漏处理、今天几点出货、补几小包”原句学成自动承诺。",
+          action: "Owner 写入 SOP：先核对付款截图/后台订单/仓库，确认后才给出货时间、tracking 或补偿。"
+        };
+      }
       if (verdict.tone === "order" || orderOrServiceRecovery) {
         return {
           tone: "learn",
           title: "可学为客服 SOP",
           reason: "人工回复处理的是查单、审款、付款、物流或售后边界；可沉淀成 SOP，不进入自动销售。",
           action: "Owner 审核后写入客服 SOP 和回放测试。"
+        };
+      }
+      if (/问价前可审：桥接后接Step1 Flow/i.test(titleReason)) {
+        return {
+          tone: "learn",
+          title: "可学Flow接法：问价前桥接Step1",
+          reason: "ManyChat 纯新客问“多少钱”时，可学习的是人工桥接句 + 接 Step 1/产品 Flow 的路径；不要把后面的蓝色 Flow 长文写成 FAQ，也不要自动收单。",
+          action: "Owner 审核后写入 Flow 接法和回放测试。"
+        };
+      }
+      if (/Flow后问一盒|CTA改安排一盒/i.test(titleReason) || (oneBoxQuestion && genericPackageCta)) {
+        return {
+          tone: "learn",
+          title: "可学但先修CTA：优先安排一盒",
+          reason: "人工回复的价格、15小包/15天、免邮/COD 边界可参考；但顾客已经问一盒，成交 CTA 要改成“你要我先帮你安排一盒试喝吗？”，不要把泛问哪个配套学成最佳话术。",
+          action: "Owner 审核后只把修正版写入成交话术 / 回放测试。"
         };
       }
       if (verdict.tone === "pass") {
@@ -8856,15 +10567,26 @@
       const previousAgentText = String(decision.previous_agent_text || "").trim();
       const combined = [
         item.last_message || customerPreviewText(item) || "",
-        manualReplyText,
-	        originalAiReply,
-	        previousAgentText,
-	        flowContextName(decision, item),
-	        nextFlowContextName(decision),
-	        decision.intent || "",
-        decision.stage || "",
-        feedback
-      ].join("\n").toLowerCase();
+	        manualReplyText,
+		        originalAiReply,
+		        previousAgentText,
+		        item.raw_context || "",
+		        item.rawContext || "",
+		        item.context_text || "",
+		        item.message_type || "",
+		        item.inbound_type || "",
+		        item.attachment_type || "",
+		        item.media_type || "",
+		        flowContextName(decision, item),
+		        nextFlowContextName(decision),
+		        decision.intent || "",
+		        decision.message_type || "",
+		        decision.inbound_type || "",
+		        decision.attachment_type || "",
+		        decision.media_type || "",
+	        decision.stage || "",
+	        feedback
+	      ].join("\n").toLowerCase();
       let artifact = {
         artifact_type: "reply_rule",
         artifact_label: "回复规则",
@@ -8872,7 +10594,15 @@
         proposed_rule: "把顾客最后一句、上一句 Agent、AI 草稿和客服最终回复一起复盘，提炼可重复的正确回答。",
         next_owner_action: "Owner 审核后决定写入 FAQ、SOP、成交话术或测试用例。"
       };
-      if (/(?:没|沒|没有|沒有).{0,10}(?:订购|訂購|下单|下單|买|買|order|purchase|purchased)|(?:didn['’]?t|did\s+not|never).{0,20}(?:order|buy|purchase)/i.test(combined)) {
+	      if (/(?:inbox message audio attachment|audio|voice(?:\s*message)?|语音|語音|音频|音訊|0:00\s*\/\s*0:0?\d+)/i.test(combined)) {
+	        artifact = {
+	          artifact_type: "flow_context_rule",
+	          artifact_label: "语音/附件学习边界",
+	          title: "语音样本要先补顾客问题摘要",
+	          proposed_rule: "顾客只发语音/音频时，客服必须先听并补一句顾客问题摘要；AI 不从人工回复反推 FAQ/成交话术，也不自动接 Flow。",
+	          next_owner_action: "审核后加入人工样本 SOP、Dashboard 提示和语音回放测试。"
+	        };
+	      } else if (/(?:没|沒|没有|沒有).{0,10}(?:订购|訂購|下单|下單|买|買|order|purchase|purchased)|(?:didn['’]?t|did\s+not|never).{0,20}(?:order|buy|purchase)/i.test(combined)) {
         artifact = {
           artifact_type: "ops_sop",
           artifact_label: "Broadcast 排除 SOP",
@@ -8880,10 +10610,18 @@
           proposed_rule: "顾客说没订购时，不把前面的订单提醒/Broadcast 当成购买意图；先道歉澄清、查记录或暂停跟进，不接价格、成交 CTA 或 Flow。",
           next_owner_action: "审核后加入 Broadcast 分群排除、订单提醒文案边界、Dashboard 测试用例。"
         };
-      } else if (/想吐|呕吐|嘔吐|头晕|頭暈|不舒服|副作用|反弹|反彈|怀孕|懷孕|药|藥|medical|更年期|跟年期|停经|停經|经期|經期|月经|月經|体重|體重|100\s*kg|100KG|适合|適合|更适合|更適合|燃烧脂肪|燃燒脂肪/.test(combined)) {
-        artifact = {
-          artifact_type: "safety_sop",
-          artifact_label: "安全 SOP",
+	      } else if (/没效果|沒效果|没看到效果|沒看到效果|没瘦|沒瘦|no\s+(?:effect|result)|not\s+effective|so\s+far\s+no\s+lose\s+weight|lost\s+confiden/i.test(combined)) {
+	        artifact = {
+	          artifact_type: "ops_sop",
+	          artifact_label: "售后 SOP",
+	          title: "效果投诉要沉淀售后复盘 SOP",
+	          proposed_rule: "顾客说没效果时，先暂停销售，补问喝多久/几盒、饭前时间、水量、排便、身体反应和是否照喝；客服判断后才给售后建议，不接促销 Flow。",
+	          next_owner_action: "审核后加入售后SOP、FAQ边界、Dashboard卡片提示和回放测试。"
+	        };
+	      } else if (/想吐|呕吐|嘔吐|头晕|頭暈|不舒服|副作用|反弹|反彈|怀孕|懷孕|药|藥|medical|更年期|跟年期|停经|停經|经期|經期|月经|月經|体重|體重|100\s*kg|100KG|适合|適合|更适合|更適合|燃烧脂肪|燃燒脂肪|血糖|糖尿|三高|高血糖|insulin|胰岛素|胰島素/.test(combined)) {
+	        artifact = {
+	          artifact_type: "safety_sop",
+	          artifact_label: "安全 SOP",
           title: "身体反应/健康敏感要沉淀安全 SOP",
           proposed_rule: "身体反应或健康敏感问题先问清楚情况并转人工，不给医疗判断，不继续强推成交。",
           next_owner_action: "审核后加入 risk_policy、客服 SOP 和测试用例。"
@@ -9155,6 +10893,9 @@
       if (/打招呼|hi|hello|greeting/.test(combined)) {
         return "回放测试：顾客只打招呼时，只短欢迎并问想了解什么，不硬卖、不接 Flow。";
       }
+      if (/(audio|voice|语音|語音|音频|音訊)/.test(combined)) {
+        return "回放测试：顾客只发语音/音频时，先要求客服补顾客问题摘要，不从人工回复倒推 FAQ 或接 Flow。";
+      }
       if (/付款|payment|银行|card|cod/.test(combined)) {
         return "回放测试：顾客问付款方式时，先人工确认订单/地区/渠道，不承诺可用付款方式。";
       }
@@ -9167,10 +10908,13 @@
       if (/follow|没人|no.?reply|seller|售后/.test(combined)) {
         return "回放测试：顾客投诉没人跟进或卖家没回时，真人查记录接手，不继续普通销售 Flow。";
       }
-      if (/亲友|妹妹|家人|referral|bulk/.test(combined)) {
-        return "回放测试：顾客提到亲友/多盒购买时，查订单、优惠资格和售后记录，不当新顾客教育。";
-      }
-      if (artifactType === "faq") return "回放测试：用同一句顾客问题验证 FAQ 能回答完整；资料不足时转人工。";
+	      if (/亲友|妹妹|家人|referral|bulk/.test(combined)) {
+	        return "回放测试：顾客提到亲友/多盒购买时，查订单、优惠资格和售后记录，不当新顾客教育。";
+	      }
+	      if (/(audio|voice|语音|語音|音频|音訊)/.test(combined)) {
+	        return "回放测试：顾客只发语音/音频时，先要求客服补顾客问题摘要，不从人工回复倒推 FAQ 或接 Flow。";
+	      }
+	      if (artifactType === "faq") return "回放测试：用同一句顾客问题验证 FAQ 能回答完整；资料不足时转人工。";
       if (artifactType === "ops_sop") return "回放测试：用同类订单/付款/售后句子验证只能查记录或审款，不能承诺已安排。";
       if (artifactType === "flow_context_rule") return "回放测试：用短回复/上一句/emoji 验证 AI 会读上下文，不能脑补。";
       return "回放测试：用同类真实顾客句子重跑，确认 verdict 和下一步动作都正确。";
@@ -9192,7 +10936,7 @@
         proposed_rule: item.improvement || "把这个重复问题整理成可审核的 FAQ/SOP/成交话术候选。",
         customer_pattern: item.title || item.id || "复盘建议",
         ai_gap: `AI 自检发现 ${Number(item.count || 0)} 次类似问题；severity=${item.severity || "review"}.`,
-        better_reply: "",
+        better_reply: String(item.safe_reply_example || item.safe_reply || "").trim(),
         status: "owner_review_required",
         next_owner_action: learningRecommendationOwnerAction(item, { artifact_type: artifactType }),
         replay_test: learningRecommendationReplayTest(item, { artifact_type: artifactType }),
@@ -9455,7 +11199,7 @@
       const reply = $("replyBox").value.trim();
       if (action === "approve" || action === "learn") {
         const closer = closerVerdict(item);
-        const approvalGuard = approvalGuardForVerdict(closer);
+        const approvalGuard = effectiveApprovalGuardForCase(item, closer);
         if (approvalGuard.blocked) {
           alert(`这张 Case 不能直接批准：${closer.title}\n\n${closer.reason}\n\n请先转人工、记录人工回复，或退回 AI。`);
           return false;
@@ -9505,7 +11249,8 @@
       const canManualResolve = canManualResolveCase(state.active);
       const isManualFollowUp = requiresManualReplyForManualResolve(state.active);
       const isFlowOnly = decision.action === "trigger_flow";
-      const approvalGuard = approvalGuardForVerdict(closerVerdict(state.active));
+      const closer = closerVerdict(state.active);
+      const approvalGuard = effectiveApprovalGuardForCase(state.active, closer);
       const canResendPurchase = canResendPurchaseMeta(state.active);
       $("approveBtn").disabled = isBusy || isFlowOnly || readOnly || approvalGuard.blocked;
       $("manualResolveBtn").disabled = isBusy || !canManualResolve;
@@ -9522,7 +11267,7 @@
         $("markPurchaseBtn").textContent = label;
         return;
       }
-      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : readOnly ? "已记录" : isFlowOnly ? "已交给 Step 1" : decision.action === "review_receipt" ? "已审核付款" : state.active.status === "order" ? "确认处理" : "批准发送";
+      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "批准短版" : readOnly ? "已记录" : isFlowOnly ? "只审Flow/追单" : decision.action === "review_receipt" ? "已审核付款" : state.active.status === "order" ? "确认处理" : "批准发送";
       $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录人工回复";
       $("returnAiBtn").textContent = approvalGuard.blocked ? "退回 AI 重写" : readOnly ? "已记录" : "退回 AI";
       $("markPurchaseBtn").textContent = canResendPurchase ? "补回流 Meta" : readOnly ? "已成交" : "记录成交";
@@ -9730,9 +11475,9 @@
         : state.demoMode
           ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。"
           : state.filter === "auto"
-            ? "目前没有自动回复记录；AI 自动发送后会在这里留下内容。"
+            ? `${selectedDateLabel()}没有自动记录；AI 已回复或外部流程已继续的 Case 会放在这里，只读复盘。`
             : state.role === "staff"
-              ? "目前没有待处理顾客。有新讯息进来后会显示在这里。"
+              ? `${selectedDateLabel()}没有待处理顾客；有新讯息或需要人工的 Case 会显示在这里。`
               : "确认顾客讯息入口已经连接，然后用真实 WhatsApp 发一条测试消息。";
       return `
         <div class="box" style="grid-column: 1 / -1;">
