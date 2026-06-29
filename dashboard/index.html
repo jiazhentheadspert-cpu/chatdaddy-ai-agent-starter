@@ -135,6 +135,55 @@
       padding: 0 2px 2px;
     }
 
+    .side-settings {
+      margin-top: auto;
+      display: grid;
+      gap: 8px;
+    }
+
+    .side-settings summary {
+      list-style: none;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 13px;
+      background: rgba(255,255,255,.045);
+      color: rgba(255,255,255,.76);
+      padding: 9px 10px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .side-settings summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .side-settings summary::after {
+      content: "⌄";
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.72);
+      font-size: 14px;
+      transition: transform .16s ease;
+    }
+
+    .side-settings[open] summary::after {
+      transform: rotate(180deg);
+    }
+
+    .side-settings-panel {
+      display: grid;
+      gap: 8px;
+    }
+
     .side-label {
       display: flex;
       align-items: center;
@@ -274,6 +323,10 @@
 
     .side-meter-row.cost strong {
       color: #b8fff3;
+    }
+
+    .frontend-only-card .side-meter {
+      display: none;
     }
 
     .workspace {
@@ -3485,6 +3538,8 @@
 
 	    body.staff-mode [data-owner-nav],
 	    body.staff-mode [data-owner-section],
+	    body.staff-mode .side-settings,
+	    body.staff-mode [data-side-key]:not([data-side-key="ai_reply"]),
 	    body.staff-mode .owner-meter-row,
 	    body.staff-mode #pauseAgentBtn,
 	    body.staff-mode #learnBtn,
@@ -3694,39 +3749,43 @@
       </div>
 
       <nav class="side-nav" aria-label="主导航">
-	        <div class="side-section">客服工作区</div>
-	        <button data-side-key="configure" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1" data-owner-nav>
-          <span class="side-label"><b class="side-code">CF</b><em>Configure</em></span>
-          <small id="navConfigureBadge">✅</small>
-        </button>
+        <div class="side-section">客服</div>
         <button class="active" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
-          <span class="side-label"><b class="side-code">Q</b><em>顾客队列</em></span>
+          <span class="side-label"><b class="side-code">顾</b><em>顾客队列</em></span>
           <small id="navCasesBadge">0</small>
         </button>
-        <div class="side-note">客服只处理顾客队列；系统会把已自动继续的记录放到自动记录。</div>
-
-	        <div class="side-section" data-owner-section>一次性设置</div>
-	        <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1" data-owner-nav>
-          <span class="side-label"><b class="side-code">1</b><em>ChatDaddy Connect</em></span>
-          <small id="navStep1Badge">✅</small>
+        <button data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
+          <span class="side-label"><b class="side-code">盘</b><em>复盘</em></span>
+          <small id="navLearningBadge">0</small>
         </button>
-	        <button data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2" data-owner-nav>
-          <span class="side-label"><b class="side-code">2</b><em>Reply SOP</em></span>
-          <small id="navStep2Badge">✅</small>
-        </button>
-	        <button data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3" data-owner-nav>
-          <span class="side-label"><b class="side-code">3</b><em>FAQ Upload</em></span>
-          <small id="navStep3Badge">✅</small>
-        </button>
-	        <button data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7" data-owner-nav>
-          <span class="side-label"><b class="side-code">7</b><em>Default Segment</em></span>
+        <button data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
+          <span class="side-label"><b class="side-code">S</b><em>Segment</em></span>
           <small id="navStep7Badge">待</small>
         </button>
+        <div class="side-note">客服只看需要处理的顾客；已自动继续的记录进自动记录。</div>
+
+        <details class="side-settings">
+          <summary><span class="side-label"><b class="side-code">设</b><em>Setting</em></span></summary>
+          <div class="side-settings-panel">
+            <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
+              <span class="side-label"><b class="side-code">1</b><em>ChatDaddy Connect</em></span>
+              <small id="navStep1Badge">✅</small>
+            </button>
+            <button data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
+              <span class="side-label"><b class="side-code">2</b><em>Reply SOP</em></span>
+              <small id="navStep2Badge">✅</small>
+            </button>
+            <button data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
+              <span class="side-label"><b class="side-code">3</b><em>FAQ Upload</em></span>
+              <small id="navStep3Badge">✅</small>
+            </button>
+          </div>
+        </details>
       </nav>
 
-      <div class="side-card">
-        <strong id="sideRole">管理者</strong>
-        <span id="sideHint">公开演示。连接后会读取顾客讯息。</span>
+      <div class="side-card frontend-only-card">
+        <strong id="sideRole">顾客队列</strong>
+        <span id="sideHint">只看需要处理的顾客；自动记录只读。</span>
         <div class="side-meter">
           <div class="side-meter-row"><span>工作区</span><strong id="sideWorkspace">DEMO</strong></div>
           <div class="side-meter-row"><span>模式</span><strong id="sideConnection">审核优先</strong></div>
@@ -4663,27 +4722,21 @@
     }
 
     function applySessionShell() {
-      const workspace = projectKeyEl.value || state.session.workspace || "demo";
-      const workspaceLabel = workspaceName(workspace);
-      const name = state.session.displayName || (state.role === "staff" ? "客服" : "管理者");
       const roleLabel = roleName(state.role);
-      const titleParts = [workspaceLabel, roleLabel];
-      if (name && name !== roleLabel) titleParts.push(name);
+      const titleParts = ["Beyoute", state.role === "staff" ? "顾客队列" : "客服工作台"];
 
       $("sessionTitle").textContent = titleParts.join(" · ");
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
-      $("sideRole").textContent = roleLabel;
-      $("sideWorkspace").textContent = workspaceLabel;
-      $("sideConnection").textContent = connectionStatusLabel();
-      $("modeTag").textContent = canUseDemoMode() ? "演示" : state.role === "staff" ? "顾客队列" : "读取中";
-      $("sideHint").textContent = state.role === "staff"
-        ? "看待处理和自动记录。"
-        : "总览、连接、复盘。";
+      $("sideRole").textContent = state.role === "staff" ? "顾客队列" : "客服工作区";
+      $("sideWorkspace").textContent = "安全模式";
+      $("sideConnection").textContent = "审核优先";
+      $("modeTag").textContent = state.role === "staff" ? "顾客队列" : state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? "Segment" : "操作台";
+      $("sideHint").textContent = state.role === "staff" ? "只看需要处理的顾客；自动记录只读。" : "只看操作台、复盘和 Segment。";
       renderSideUsage();
 
       $("dashboardSubtitle").textContent = state.role === "staff"
         ? "处理待确认，追踪已自动回复。"
-        : "先处理红色和橙色。";
+        : "只看需要处理的顾客。";
 
       $("setupPanel").classList.toggle("hidden", true);
       $("autoFilterBtn").classList.toggle("hidden", false);
@@ -4703,14 +4756,9 @@
       const label = mainButton?.querySelector(".side-label em");
       const code = mainButton?.querySelector(".side-code");
       if (!label || !code) return;
-      if (state.role === "staff") {
-        code.textContent = "Q";
-        label.textContent = "顾客队列";
-        return;
-      }
-      code.textContent = "AI";
+      code.textContent = state.role === "staff" ? "顾" : "台";
       code.style.display = "";
-      label.textContent = "AI 判断";
+      label.textContent = state.role === "staff" ? "顾客队列" : "操作台";
     }
 
     function setFilter(filter) {
@@ -4835,14 +4883,14 @@
     function sidebarKeyForFilter(filter) {
       const map = {
         auto: "step_5",
-        order: "step_4",
+        order: "ai_reply",
         records: "step_5",
-        human_required: "step_4",
-        return_ai: "step_4",
-        pending_manual_reply: "step_4",
-        handoff_done: "step_4",
+        human_required: "ai_reply",
+        return_ai: "ai_reply",
+        pending_manual_reply: "ai_reply",
+        handoff_done: "ai_reply",
         returned_to_ai: "step_5",
-        approval_required: "step_4",
+        approval_required: "ai_reply",
         needs_attention: "ai_reply",
       };
       return map[filter] || "ai_reply";
@@ -4883,13 +4931,14 @@
         item.classList.toggle("active", item.dataset.workspaceView === view);
       });
 
-      $("sideConnection").textContent = connectionStatusLabel();
+      $("sideConnection").textContent = "审核优先";
       renderSideUsage();
+      $("modeTag").textContent = state.role === "staff" ? "顾客队列" : view === "learning" ? "复盘" : view === "operations" ? "Segment" : "操作台";
       $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
       $("statusStrip").classList.toggle("hidden", state.role === "staff");
       $("statusStrip").innerHTML = state.role === "staff" ? "" : statusStripHtml();
-      $("setupPanel").classList.toggle("hidden", view !== "operations" || state.role === "staff");
+      $("setupPanel").classList.toggle("hidden", true);
 
       $("demoBar").classList.toggle("hidden", !isCases || !canUseDemoMode());
       $("loadDemo").disabled = !canUseDemoMode();
@@ -4913,8 +4962,8 @@
           subtitle: "点开处理。",
         },
         operations: {
-          title: "设置",
-          subtitle: "连接与规则。",
+          title: state.activeSetupStep === "7" ? "Segment" : "Setting",
+          subtitle: state.activeSetupStep === "7" ? "按分群看顾客。" : "连接、SOP、FAQ。",
         },
         learning: {
           title: "复盘",
@@ -5052,8 +5101,8 @@
     }
 
     function roleName(role) {
-      const map = { owner: "管理者", admin: "运营主管", staff: "客服人员" };
-      return map[role] || "管理者";
+      const map = { owner: "操作员", admin: "操作员", staff: "客服人员" };
+      return map[role] || "操作员";
     }
 
     function workspaceName(workspace) {
@@ -5064,20 +5113,20 @@
 
     function roleSubtitle(role) {
       if (role === "staff") return "只看待处理顾客。";
-      if (role === "admin") return "审核、异常、复盘。";
-      return "全局管理。";
+      return "只看操作台、复盘和 Segment。";
     }
 
 	    function connectionStatusLabel() {
+	      if (state.role === "staff") return "审核优先";
 	      if (state.demoMode) return "演示";
-	      if (canUseQaMode()) return "QA";
-	      return state.role === "staff" ? "审核优先" : "真实";
+	      return "审核优先";
 	    }
 
 	    function activeModeLabel() {
+	      if (state.role === "staff") return "顾客队列";
 	      if (state.demoMode || canUseDemoMode()) return "演示";
-	      if (canUseQaMode()) return "QA 测试";
-	      return state.role === "staff" ? "顾客队列" : "真实系统";
+	      if (canUseQaMode()) return "操作台";
+	      return "操作台";
 	    }
 
     function casesForRole(cases) {
@@ -6410,7 +6459,7 @@
         },
         "7": {
           kicker: "STEP 7",
-          title: "Default Segment",
+          title: "Segment",
           body: "每个项目默认要有统一标签，后面才可以复盘和复制到其他公司。",
           rows: [
             ["Purchase", "确认成交才打购买标签", "成交"],
@@ -7990,17 +8039,11 @@
               ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
             </div>
           </div>
-	          ${cardEvidenceChainHtml(item)}
-	          ${cardPreviousContextHtml(item)}
 	          <div class="case-insight ${escapeHtml(verdictSummary.className)}">
-	            <span>${escapeHtml(verdictSummary.label)}</span>
+	            <span>处理摘要</span>
 	            <strong>${escapeHtml(verdictSummary.title)}</strong>
 	            <small>${escapeHtml(verdictSummary.body)}</small>
 	          </div>
-		          ${cardNextActionHtml(item)}
-		          ${caseWorkModeHtml(item)}
-		          ${cardFlowMiniHtml(item)}
-		          ${caseAutomationBoundaryHtml(item)}
 		          ${cardQuickActionsHtml(item)}
 		          <div class="case-foot">
 	            <span>${escapeHtml(formatDate(item.updated_at))}</span>
