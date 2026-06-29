@@ -3038,6 +3038,39 @@
       top: 12px;
     }
 
+    .quick-action-card {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: grid;
+      gap: 10px;
+      border: 1px solid rgba(16,185,157,.30);
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(237,251,247,.98));
+      padding: 12px;
+      box-shadow:
+        0 18px 42px rgba(8, 23, 29, .14),
+        0 1px 0 rgba(255,255,255,.92) inset;
+    }
+
+    .quick-action-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      color: var(--green-deep);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .quick-action-head small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 860;
+      white-space: nowrap;
+    }
+
     .action-card {
       background:
         linear-gradient(90deg, rgba(0,183,216,.08) 1px, transparent 1px),
@@ -3202,7 +3235,12 @@
 
     .side-actions {
       display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
+    }
+
+    .side-actions #learnBtn {
+      grid-column: 1 / -1;
     }
 
     .purchase-panel {
@@ -4019,6 +4057,38 @@
           </div>
         </div>
         <aside class="action-stack">
+          <div class="quick-action-card" aria-label="客服操作按钮">
+            <div class="quick-action-head">
+              <span>客服操作</span>
+              <small>检查后才按</small>
+            </div>
+            <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
+              <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
+              <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
+              <button class="btn danger" id="shortVersionHandoffBtn" type="button">转人工</button>
+            </div>
+            <button class="btn primary" id="approveBtn" style="width: 100%;">发送 / 批准发送</button>
+            <div class="side-actions">
+              <button class="btn" id="manualResolveBtn">记录人工回复</button>
+              <button class="btn" id="returnAiBtn">退回 AI 重写</button>
+              <button class="btn danger" id="handoffBtn">转人工</button>
+              <button class="btn" id="learnBtn">同类少审</button>
+            </div>
+            <div class="purchase-panel" id="purchasePanel">
+              <div class="purchase-panel-head">
+                <span>Mark as Paid</span>
+                <small>回流 Ads Manager</small>
+              </div>
+              <div class="purchase-row">
+                <label class="purchase-input-wrap">
+                  <span>RM</span>
+                  <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="378" />
+                </label>
+                <button class="btn primary" id="markPurchaseBtn" type="button">Mark as Paid</button>
+              </div>
+              <div class="purchase-note" id="purchaseNote">收到付款或 COD 确认才按；成交会记录并回流 Ads Manager / Meta CAPI。</div>
+            </div>
+          </div>
           <div class="action-card">
             <span>Agent Action</span>
             <b id="actionTitle">按「批准发送」</b>
@@ -4040,32 +4110,6 @@
               </div>
             </div>
             <div class="approval-first-reminder">Approval-first：AI 不会自己发；只有客服检查后点按钮才执行当前动作。不能确定就退回 AI 或转人工。</div>
-            <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
-              <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
-              <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
-              <button class="btn danger" id="shortVersionHandoffBtn" type="button">转人工</button>
-            </div>
-            <button class="btn primary" id="approveBtn" style="width: 100%;">批准发送</button>
-          </div>
-          <div class="side-actions">
-            <button class="btn" id="learnBtn">同类少审</button>
-            <button class="btn" id="manualResolveBtn">记录人工回复</button>
-            <button class="btn" id="returnAiBtn">退回 AI</button>
-            <button class="btn danger" id="handoffBtn">转人工</button>
-          </div>
-          <div class="purchase-panel" id="purchasePanel">
-            <div class="purchase-panel-head">
-              <span>确认成交</span>
-              <small>收到钱才按</small>
-            </div>
-            <div class="purchase-row">
-              <label class="purchase-input-wrap">
-                <span>RM</span>
-                <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="378" />
-              </label>
-              <button class="btn primary" id="markPurchaseBtn" type="button">记录成交</button>
-            </div>
-            <div class="purchase-note" id="purchaseNote">收到付款或 COD 确认才按；Meta 接好后才会回流广告。</div>
           </div>
           <div class="box">
             <h3>重点词</h3>
@@ -8105,7 +8149,7 @@
       }
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
 	      $("panelStatusPill").textContent = caseStatusLabel(item, decision.risk);
-      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "批准短版" : readOnly ? "已记录" : isFlowOnly ? "只审Flow/追单" : decision.action === "review_receipt" ? "已审核付款" : item.status === "order" ? "确认处理" : "批准发送";
+      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "批准短版" : readOnly ? "已记录" : isFlowOnly ? "只审Flow/追单" : decision.action === "review_receipt" ? "已审核付款" : item.status === "order" ? "确认处理" : "发送 / 批准发送";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
       $("manualResolveBtn").disabled = state.actionBusy || !canManualResolve;
       $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : "记录人工回复";
@@ -8119,7 +8163,7 @@
       $("purchaseAmountInput").value = existingPurchaseAmount ? String(existingPurchaseAmount) : "";
       updatePurchaseNote(item);
       $("markPurchaseBtn").disabled = state.actionBusy || isFlowOnly || (readOnly && !canResendPurchase);
-      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流 Meta" : "记录成交";
+      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流 Ads" : "Mark as Paid";
       $("caseDetails").innerHTML = caseDetailsHtml(item);
 
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
@@ -8149,19 +8193,19 @@
     function purchaseMetaStatusForCase(item = {}) {
       if (item.status === "purchase_confirmed") {
         if (casePurchaseMetaDone(item)) return { text: "这张 Case 已回流或已去重。", tone: "ok" };
-        return { text: "已成交，Meta 接好后可补回流。", tone: "warn" };
+        return { text: "已 Mark as Paid，Meta 接好后可补回流 Ads。", tone: "warn" };
       }
       if (state.demoMode) {
         return { text: "演示模式只记录画面，不会回流广告。", tone: "warn" };
       }
       const meta = state.metaCapiStatus;
       if (meta?.configured) {
-        return { text: "记录成交后会发送 Purchase + RM 到 Meta。", tone: "ok" };
+        return { text: "Mark as Paid 后会发送 Purchase + RM 到 Meta / Ads Manager。", tone: "ok" };
       }
       if (meta && !meta.configured) {
-        return { text: "只会记录成交；广告回流未接 Meta Pixel/CAPI。", tone: "warn" };
+        return { text: "只会 Mark as Paid；广告回流未接 Meta Pixel/CAPI。", tone: "warn" };
       }
-      return { text: "先记录成交；广告回流状态读取中。", tone: "warn" };
+      return { text: "先 Mark as Paid；广告回流状态读取中。", tone: "warn" };
     }
 
     function initialsFor(name) {
@@ -11284,7 +11328,7 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "退回 AI 中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录成交中..." : action === "manual_resolve" ? "记录人工回复中..." : "发送中...");
+          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "退回 AI 中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "Mark as Paid 中..." : action === "manual_resolve" ? "记录人工回复中..." : "发送中...");
         }
         const isApproval = active?.source === "approval";
         const endpoint = action === "mark_purchase"
@@ -11393,10 +11437,10 @@
         $("markPurchaseBtn").textContent = label;
         return;
       }
-      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "批准短版" : readOnly ? "已记录" : isFlowOnly ? "只审Flow/追单" : decision.action === "review_receipt" ? "已审核付款" : state.active.status === "order" ? "确认处理" : "批准发送";
+      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "批准短版" : readOnly ? "已记录" : isFlowOnly ? "只审Flow/追单" : decision.action === "review_receipt" ? "已审核付款" : state.active.status === "order" ? "确认处理" : "发送 / 批准发送";
       $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录人工回复";
       $("returnAiBtn").textContent = approvalGuard.blocked ? "退回 AI 重写" : readOnly ? "已记录" : "退回 AI";
-      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流 Meta" : readOnly ? "已成交" : "记录成交";
+      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流 Ads" : readOnly ? "已 Mark as Paid" : "Mark as Paid";
     }
 
     function approvalActionEndpoint(api, caseId, action, project) {
