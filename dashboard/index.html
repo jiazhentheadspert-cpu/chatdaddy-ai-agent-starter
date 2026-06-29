@@ -45,6 +45,18 @@
       color: var(--ink);
     }
 
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0 auto 0 0;
+      width: 300px;
+      background:
+        linear-gradient(180deg, rgba(7, 18, 24, .99), rgba(8, 40, 43, .98)),
+        #081217;
+      pointer-events: none;
+      z-index: 0;
+    }
+
     button, input, textarea, select {
       font: inherit;
     }
@@ -57,6 +69,8 @@
       grid-template-columns: 300px minmax(0, 1fr);
       gap: 0;
       overflow-x: hidden;
+      position: relative;
+      z-index: 1;
     }
 
     .sidebar {
@@ -323,6 +337,10 @@
 
     .side-meter-row.cost strong {
       color: #b8fff3;
+    }
+
+    .frontend-only-card {
+      display: none;
     }
 
     .frontend-only-card .side-meter {
@@ -1744,9 +1762,11 @@
 
     .queue-tools {
       display: grid;
-      grid-template-columns: minmax(270px, auto) minmax(180px, 1fr) 160px;
+      grid-template-columns: minmax(260px, 1.1fr) minmax(180px, .9fr) minmax(140px, 160px);
       gap: 10px;
       align-items: center;
+      min-width: 0;
+      width: 100%;
     }
 
     .queue-tools input,
@@ -1773,6 +1793,7 @@
       align-items: center;
       gap: 8px;
       min-width: 0;
+      max-width: 100%;
       padding: 4px;
       border: 1px solid var(--line);
       border-radius: 16px;
@@ -1782,7 +1803,7 @@
 
     .queue-date-label {
       display: grid;
-      grid-template-columns: auto minmax(132px, 1fr);
+      grid-template-columns: auto minmax(118px, 1fr);
       align-items: center;
       gap: 7px;
       min-width: 0;
@@ -1825,6 +1846,13 @@
     .queue-date-button:disabled {
       opacity: .54;
       cursor: default;
+    }
+
+    @media (max-width: 1500px) {
+      .queue-head {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
     }
 
     .queue-sync-note {
@@ -3317,6 +3345,7 @@
     }
 
     @media (max-width: 1180px) {
+      body::before { display: none; }
       .app-shell { grid-template-columns: 1fr; }
       .sidebar {
         position: static;
@@ -3536,7 +3565,7 @@
 
     body.staff-mode .queue-tools {
       width: 100%;
-      grid-template-columns: minmax(270px, auto) minmax(220px, 1fr) 170px;
+      grid-template-columns: minmax(260px, 1.1fr) minmax(180px, .9fr) minmax(140px, 160px);
       justify-self: stretch;
     }
 
@@ -3761,7 +3790,7 @@
       <nav class="side-nav" aria-label="主导航">
         <div class="side-section">客服</div>
         <button class="active" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
-          <span class="side-label"><b class="side-code">顾</b><em>顾客队列</em></span>
+          <span class="side-label"><b class="side-code">台</b><em>操作台</em></span>
           <small id="navCasesBadge">0</small>
         </button>
         <button data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
@@ -3778,15 +3807,15 @@
           <summary><span class="side-label"><b class="side-code">设</b><em>Setting</em></span></summary>
           <div class="side-settings-panel">
             <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
-              <span class="side-label"><b class="side-code">1</b><em>ChatDaddy Connect</em></span>
+              <span class="side-label"><b class="side-code">1</b><em>讯息连接</em></span>
               <small id="navStep1Badge">✅</small>
             </button>
             <button data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
-              <span class="side-label"><b class="side-code">2</b><em>Reply SOP</em></span>
+              <span class="side-label"><b class="side-code">2</b><em>回复 SOP</em></span>
               <small id="navStep2Badge">✅</small>
             </button>
             <button data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
-              <span class="side-label"><b class="side-code">3</b><em>FAQ Upload</em></span>
+              <span class="side-label"><b class="side-code">3</b><em>FAQ 资料</em></span>
               <small id="navStep3Badge">✅</small>
             </button>
           </div>
@@ -3794,14 +3823,14 @@
       </nav>
 
       <div class="side-card frontend-only-card">
-        <strong id="sideRole">顾客队列</strong>
+        <strong id="sideRole">客服工作台</strong>
         <span id="sideHint">只看需要处理的顾客；自动记录只读。</span>
         <div class="side-meter">
-          <div class="side-meter-row"><span>工作区</span><strong id="sideWorkspace">DEMO</strong></div>
+          <div class="side-meter-row"><span>入口</span><strong id="sideWorkspace">DEMO</strong></div>
           <div class="side-meter-row"><span>模式</span><strong id="sideConnection">审核优先</strong></div>
           <div class="side-meter-divider" aria-hidden="true"></div>
-          <div class="side-meter-row cost owner-meter-row"><span>今日 AI 成本</span><strong id="sideCostToday">US$0.00</strong></div>
-          <div class="side-meter-row cost owner-meter-row"><span>本月 AI 成本</span><strong id="sideCostMonth">US$0.00</strong></div>
+          <div class="side-meter-row cost owner-meter-row"><span>今日记录</span><strong id="sideCostToday">US$0.00</strong></div>
+          <div class="side-meter-row cost owner-meter-row"><span>本月记录</span><strong id="sideCostMonth">US$0.00</strong></div>
           <div class="side-meter-row owner-meter-row"><span>今日增强</span><strong id="sideEnhancedToday">0 次</strong></div>
           <div class="side-meter-row owner-meter-row"><span>模式</span><strong id="sideSpendMode">省钱模式</strong></div>
         </div>
@@ -3811,8 +3840,8 @@
     <section class="workspace">
       <header class="topbar">
         <div>
-          <span class="mode-tag" id="modeTag">顾客队列</span>
-          <h1 id="workspaceTitle">顾客</h1>
+          <span class="mode-tag" id="modeTag">操作台</span>
+          <h1 id="workspaceTitle">操作台</h1>
           <div class="subtitle" id="dashboardSubtitle">只看需要处理的顾客。</div>
         </div>
         <div class="setup" id="setupPanel">
@@ -3829,7 +3858,7 @@
           <div class="session-subtitle" id="sessionSubtitle">客服只看待处理顾客。</div>
         </div>
         <div class="session-actions">
-          <button class="btn danger" id="pauseAgentBtn" type="button">Pause Agent</button>
+          <button class="btn danger" id="pauseAgentBtn" type="button">暂停接管</button>
           <a class="btn" href="../login.html">切换账号</a>
           <button class="btn ghost" id="logoutBtn">退出</button>
         </div>
@@ -4740,14 +4769,14 @@
         state.filter = "needs_attention";
       }
 
-      const titleParts = ["Beyoute", state.role === "staff" ? "顾客队列" : "客服工作台"];
+      const titleParts = ["Beyoute", "客服工作台"];
 
       $("sessionTitle").textContent = titleParts.join(" · ");
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
-      $("sideRole").textContent = state.role === "staff" ? "顾客队列" : "客服工作台";
+      $("sideRole").textContent = "客服工作台";
       $("sideWorkspace").textContent = "安全模式";
       $("sideConnection").textContent = "审核优先";
-      $("modeTag").textContent = state.role === "staff" ? "顾客队列" : state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "Setting") : "操作台";
+      $("modeTag").textContent = state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "Setting") : "操作台";
       $("sideHint").textContent = "只看需要处理的顾客；自动记录只读。";
       renderSideUsage();
 
@@ -4765,9 +4794,9 @@
       const label = mainButton?.querySelector(".side-label em");
       const code = mainButton?.querySelector(".side-code");
       if (!label || !code) return;
-      code.textContent = state.role === "staff" ? "顾" : "台";
+      code.textContent = "台";
       code.style.display = "";
-      label.textContent = state.role === "staff" ? "顾客队列" : "操作台";
+      label.textContent = "操作台";
     }
 
     function setFilter(filter) {
@@ -4779,7 +4808,7 @@
     }
 
     function setWorkspaceView(view) {
-      state.workspaceView = view || "overview";
+      state.workspaceView = view || "cases";
       render();
     }
 
@@ -4931,7 +4960,7 @@
     }
 
     function syncWorkspaceView() {
-      const view = state.workspaceView || "overview";
+      const view = state.workspaceView || "cases";
       const isCases = view === "cases";
       const isOverview = view === "overview";
       const viewMeta = workspaceMeta(view);
@@ -4942,8 +4971,8 @@
 
       $("sideConnection").textContent = "审核优先";
       renderSideUsage();
-      $("modeTag").textContent = state.role === "staff" ? "顾客队列" : view === "learning" ? "复盘" : view === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "Setting") : "操作台";
-      $("workspaceTitle").textContent = state.role === "staff" ? "顾客" : viewMeta.title;
+      $("modeTag").textContent = view === "learning" ? "复盘" : view === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "Setting") : "操作台";
+      $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
       $("statusStrip").classList.toggle("hidden", true);
       $("statusStrip").innerHTML = "";
@@ -5130,9 +5159,9 @@
 	    }
 
 	    function activeModeLabel() {
-	      if (state.role === "staff") return "顾客队列";
+	      if (state.role === "staff") return "操作台";
 	      if (state.demoMode || canUseDemoMode()) return "演示";
-	      if (canUseQaMode()) return "QA 测试";
+	      if (canUseQaMode()) return "操作台";
 	      return "操作台";
 	    }
 
@@ -5253,7 +5282,7 @@
 
 	      try {
 	        const qaMode = canUseQaMode();
-	        setLoadingQueue(qaMode ? "正在读取 QA / 训练 Case，请等几秒。" : "正在读取顾客讯息，请等几秒。");
+	        setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
 	        const visibility = dashboardApprovalVisibilityParams();
 	        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=${visibility.includeTests ? "1" : "0"}&real_only=${visibility.realOnly ? "1" : "0"}&limit=30&scan_limit=300`;
 	        let res = await fetch(approvalUrl, { headers: authHeaders(token) });
@@ -5440,7 +5469,7 @@
       state.agentPaused = Boolean(isPaused);
       const button = $("pauseAgentBtn");
       if (!button) return;
-      button.textContent = state.agentPaused ? "Resume Agent" : "Pause Agent";
+      button.textContent = state.agentPaused ? "恢复接管" : "暂停接管";
       button.classList.toggle("danger", !state.agentPaused);
       button.classList.toggle("primary", state.agentPaused);
     }
@@ -5453,7 +5482,7 @@
         : adminTokenEl.value.trim();
       const targetPaused = !state.agentPaused;
       if (!api || !token) {
-        showToast("Pause Agent 需要管理者安全码。客服入口不会显示后台密钥。");
+        showToast("暂停接管需要管理者安全码。客服入口不会显示后台密钥。");
         return;
       }
       const button = $("pauseAgentBtn");
@@ -5475,7 +5504,7 @@
         updatePauseAgentUi(targetPaused);
         showToast(targetPaused ? "AI 自动回复和 Flow 已暂停。" : "AI 自动回复和 Flow 已恢复。");
       } catch (error) {
-        alert(`Pause Agent 失败：${error.message || error}`);
+        alert(`暂停接管失败：${error.message || error}`);
       } finally {
         button.disabled = false;
       }
@@ -6289,7 +6318,7 @@
               ${compactRow("记录", "审批 / 人工 / 学习", "OK")}
             </div>
             <div class="quick-actions">
-              <button class="quick-action primary" data-dashboard-action="cases">打开顾客队列</button>
+              <button class="quick-action primary" data-dashboard-action="cases">打开操作台</button>
             </div>
           </section>
           <section class="command-panel">
@@ -6369,8 +6398,8 @@
       const panels = {
         "1": {
           kicker: "Setting",
-          title: "ChatDaddy Connect",
-          body: "确认 ChatDaddy 的顾客讯息能进 Dashboard。设置好一次，客服日常不用碰。",
+          title: "讯息连接",
+          body: "确认顾客讯息能进操作台。设置好一次，客服日常不用碰。",
           rows: [
             ["连接", "新讯息可以进 Dashboard", "OK"],
             ["顾客", "同一个顾客会合并成一叠", "OK"],
@@ -6381,7 +6410,7 @@
         },
         "2": {
           kicker: "Setting",
-          title: "Reply SOP",
+          title: "回复 SOP",
           body: "AI 回复要像真人客服：先看顾客上一句在回答什么，再回答问题，价格前接下一步，价格后做成交。",
           rows: [
             ["Step 1", "精简自我介绍 + USP + 定位，问顾客想解决什么", "开场"],
@@ -6394,7 +6423,7 @@
         },
         "3": {
           kicker: "Setting",
-          title: "FAQ Upload",
+          title: "FAQ 资料",
           body: "AI 只用项目方给过的资料回答。资料不够就问清楚或转人工，不要硬编。",
           rows: [
             ["产品", "用法、效果、成分、适合谁", "FAQ"],
@@ -6452,7 +6481,7 @@
             ${panel.rows.map((row) => compactRow(row[0], row[1], row[2])).join("")}
           </div>
           <div class="quick-actions">
-            <button class="quick-action primary" data-dashboard-action="cases" type="button">打开顾客队列</button>
+            <button class="quick-action primary" data-dashboard-action="cases" type="button">打开操作台</button>
             <button class="quick-action" data-dashboard-action="learning" type="button">看复盘</button>
           </div>
         </section>
@@ -6461,7 +6490,7 @@
           <strong class="command-title">${escapeHtml(panel.footer)}</strong>
           <div class="steps">
             ${stepHtml("一次性", "项目上线前由管理者设置好。")}
-            ${stepHtml("日常", "客服主要看顾客队列。")}
+            ${stepHtml("日常", "客服主要看操作台。")}
             ${stepHtml("优化", "出错的 Case 在复盘里改规则。")}
           </div>
         </section>
@@ -7010,7 +7039,7 @@
             <div class="settings-box">
               <h3>保存后系统会怎样用</h3>
               <div class="compact-list">
-                ${compactRow("顾客进来", "ChatDaddy 讯息进入顾客队列", "接收")}
+                ${compactRow("顾客进来", "ChatDaddy 讯息进入操作台", "接收")}
                 ${compactRow("AI 判断", "按 Runtime Flow ID 和强制安全规则决定下一步", "判断")}
                 ${compactRow("团队确认", "需要人的才显示给客服处理", "闭环")}
               </div>
@@ -11553,7 +11582,7 @@
       state.query = id;
       if (caseSearchEl) caseSearchEl.value = id;
       render();
-      showToast("已用 Case ID 搜索队列；如果还看不到，请刷新顾客队列。");
+      showToast("已用顾客编号搜索操作台；如果还看不到，请刷新操作台。");
     }
 
     function emptyHtml() {
