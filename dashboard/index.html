@@ -3852,6 +3852,24 @@
         padding: 6px 9px;
       }
     }
+
+    /* Queue cards stay scan-first; the detail panel keeps the full judgment. */
+    .case-card {
+      min-height: 150px;
+    }
+
+    .case-word-block {
+      min-height: 64px;
+      margin-bottom: 8px;
+    }
+
+    .case-word-mini span:nth-child(n+4) {
+      display: none;
+    }
+
+    body.staff-mode .case-card {
+      min-height: 138px;
+    }
   </style>
 </head>
 <body>
@@ -8097,7 +8115,6 @@
 	      const statusText = caseStatusLabel(item, decision.risk);
 	      const footPillText = learningFollowup ? learningFollowup.pill : item.seen_by_operator ? "已看" : sla.text;
 	      const footPillTone = learningFollowup ? learningFollowup.tone : sla.tone;
-	      const verdictSummary = cardVerdictSummary(item, learningFollowup);
 
 	      return `
 	        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}">
@@ -8123,12 +8140,6 @@
               ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
             </div>
           </div>
-	          <div class="case-insight ${escapeHtml(verdictSummary.className)}">
-	            <span>处理摘要</span>
-	            <strong>${escapeHtml(verdictSummary.title)}</strong>
-	            <small>${escapeHtml(verdictSummary.body)}</small>
-	          </div>
-		          ${cardQuickActionsHtml(item)}
 		          <div class="case-foot">
 	            <span>${escapeHtml(formatDate(item.updated_at))}</span>
 	            <span class="sla-pill ${escapeHtml(footPillTone)}">${escapeHtml(footPillText)}</span>
