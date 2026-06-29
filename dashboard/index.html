@@ -3491,7 +3491,8 @@
     body.staff-mode .app-shell {
       width: 100%;
       max-width: none;
-      grid-template-columns: 300px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr);
+      padding-left: 300px;
       position: relative;
       z-index: 1;
     }
@@ -3510,11 +3511,14 @@
 
     body.staff-mode .sidebar {
       display: grid;
-      position: sticky;
+      position: fixed;
       top: 0;
+      left: 0;
+      width: 300px;
       height: 100vh;
       min-height: 100vh;
       min-width: 300px;
+      z-index: 4;
     }
 
     body.staff-mode .workspace {
@@ -3536,12 +3540,15 @@
       justify-self: stretch;
     }
 
+      #pauseAgentBtn {
+        display: none !important;
+      }
+
 	    body.staff-mode [data-owner-nav],
 	    body.staff-mode [data-owner-section],
 	    body.staff-mode .side-settings,
 	    body.staff-mode [data-side-key]:not([data-side-key="ai_reply"]),
 	    body.staff-mode .owner-meter-row,
-	    body.staff-mode #pauseAgentBtn,
 	    body.staff-mode #learnBtn,
 	    body.staff-mode #demoBar {
 	      display: none !important;
@@ -3549,11 +3556,13 @@
 
     @media (max-width: 1180px) and (min-width: 821px) {
       body.staff-mode .app-shell {
-        grid-template-columns: 260px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
+        padding-left: 260px;
       }
 
       body.staff-mode .sidebar {
-        position: sticky;
+        position: fixed;
+        width: 260px;
         height: 100vh;
         min-height: 100vh;
         min-width: 260px;
@@ -3573,6 +3582,7 @@
         display: flex;
         flex-direction: column;
         grid-template-columns: 1fr;
+        padding-left: 0;
       }
 
       body.staff-mode .sidebar {
@@ -3744,7 +3754,7 @@
         <div class="brand-mark">RP</div>
         <div>
           <b>ReplyPilot AI</b>
-          <span>客服运营中控台</span>
+          <span>客服运营台</span>
         </div>
       </div>
 
@@ -3801,9 +3811,9 @@
     <section class="workspace">
       <header class="topbar">
         <div>
-          <span class="mode-tag" id="modeTag">演示</span>
-          <h1 id="workspaceTitle">AI 客服中控台</h1>
-          <div class="subtitle" id="dashboardSubtitle">先处理红色和橙色。</div>
+          <span class="mode-tag" id="modeTag">顾客队列</span>
+          <h1 id="workspaceTitle">顾客</h1>
+          <div class="subtitle" id="dashboardSubtitle">只看需要处理的顾客。</div>
         </div>
         <div class="setup" id="setupPanel">
           <input id="apiUrl" placeholder="系统接口地址" />
@@ -3906,7 +3916,7 @@
             <button id="listView">列表</button>
           </div>
         </div>
-        <div class="qa-guide-strip hidden" id="qaGuideStrip" aria-label="Owner QA 测试标准"></div>
+        <div class="qa-guide-strip hidden" id="qaGuideStrip" aria-label="测试提示"></div>
         <div class="bulk-bar hidden" id="bulkBar" aria-label="批量处理">
           <div class="bulk-summary"><b id="bulkCount">0</b><span>已选</span></div>
           <div class="bulk-actions">
@@ -4046,7 +4056,7 @@
   <script>
     const state = {
       cases: [],
-      filter: "all",
+      filter: "needs_attention",
       active: null,
       demoMode: false,
       scenario: "ecommerce",
@@ -4054,7 +4064,7 @@
       session: {},
       query: "",
       sort: "priority",
-      workspaceView: "overview",
+      workspaceView: "cases",
       selected: new Set(),
       visibleCases: [],
       settings: null,
@@ -4357,7 +4367,8 @@
     state.role = params.get("role") || state.session.role || "owner";
     document.body.classList.toggle("staff-mode", state.role === "staff");
     document.body.dataset.role = state.role;
-    state.workspaceView = params.get("view") || state.workspaceView;
+    const requestedView = params.get("view") || "";
+    state.workspaceView = ["cases", "learning", "operations"].includes(requestedView) ? requestedView : state.workspaceView;
     state.pendingCaseId = params.get("case_id") || null;
     state.selectedDate = normalizeIsoDate(params.get("date")) || todayISO;
     syncDateControls();
@@ -4722,33 +4733,31 @@
     }
 
     function applySessionShell() {
-      const roleLabel = roleName(state.role);
-      const titleParts = ["Beyoute", state.role === "staff" ? "顾客队列" : "客服工作台"];
-
-      $("sessionTitle").textContent = titleParts.join(" · ");
-      $("sessionSubtitle").textContent = roleSubtitle(state.role);
-      $("sideRole").textContent = state.role === "staff" ? "顾客队列" : "客服工作区";
-      $("sideWorkspace").textContent = "安全模式";
-      $("sideConnection").textContent = "审核优先";
-      $("modeTag").textContent = state.role === "staff" ? "顾客队列" : state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? "Segment" : "操作台";
-      $("sideHint").textContent = state.role === "staff" ? "只看需要处理的顾客；自动记录只读。" : "只看操作台、复盘和 Segment。";
-      renderSideUsage();
-
-      $("dashboardSubtitle").textContent = state.role === "staff"
-        ? "处理待确认，追踪已自动回复。"
-        : "只看需要处理的顾客。";
-
-      $("setupPanel").classList.toggle("hidden", true);
-      $("autoFilterBtn").classList.toggle("hidden", false);
-      $("learnBtn").classList.toggle("hidden", state.role === "staff");
-      applySidebarRoleLabels();
-
       if (state.role === "staff") {
         state.workspaceView = "cases";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
         state.filter = "needs_attention";
       }
+
+      const titleParts = ["Beyoute", state.role === "staff" ? "顾客队列" : "客服工作台"];
+
+      $("sessionTitle").textContent = titleParts.join(" · ");
+      $("sessionSubtitle").textContent = roleSubtitle(state.role);
+      $("sideRole").textContent = state.role === "staff" ? "顾客队列" : "客服工作台";
+      $("sideWorkspace").textContent = "安全模式";
+      $("sideConnection").textContent = "审核优先";
+      $("modeTag").textContent = state.role === "staff" ? "顾客队列" : state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "Setting") : "操作台";
+      $("sideHint").textContent = "只看需要处理的顾客；自动记录只读。";
+      renderSideUsage();
+
+      $("dashboardSubtitle").textContent = "只看需要处理的顾客。";
+
+      $("setupPanel").classList.toggle("hidden", true);
+      $("autoFilterBtn").classList.toggle("hidden", false);
+      $("learnBtn").classList.toggle("hidden", state.role === "staff");
+      applySidebarRoleLabels();
+
     }
 
     function applySidebarRoleLabels() {
@@ -4933,11 +4942,11 @@
 
       $("sideConnection").textContent = "审核优先";
       renderSideUsage();
-      $("modeTag").textContent = state.role === "staff" ? "顾客队列" : view === "learning" ? "复盘" : view === "operations" ? "Segment" : "操作台";
-      $("workspaceTitle").textContent = viewMeta.title;
+      $("modeTag").textContent = state.role === "staff" ? "顾客队列" : view === "learning" ? "复盘" : view === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "Setting") : "操作台";
+      $("workspaceTitle").textContent = state.role === "staff" ? "顾客" : viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
-      $("statusStrip").classList.toggle("hidden", state.role === "staff");
-      $("statusStrip").innerHTML = state.role === "staff" ? "" : statusStripHtml();
+      $("statusStrip").classList.toggle("hidden", true);
+      $("statusStrip").innerHTML = "";
       $("setupPanel").classList.toggle("hidden", true);
 
       $("demoBar").classList.toggle("hidden", !isCases || !canUseDemoMode());
@@ -4958,8 +4967,8 @@
           subtitle: "看数量，进队列。",
         },
         cases: {
-          title: "顾客",
-          subtitle: "点开处理。",
+          title: "操作台",
+          subtitle: "只看需要处理的顾客。",
         },
         operations: {
           title: state.activeSetupStep === "7" ? "Segment" : "Setting",
@@ -4975,16 +4984,14 @@
 
     function statusStripHtml() {
       const connectionTone = state.demoMode ? "warn" : "";
-      const connectionText = state.demoMode ? "演示" : "真实";
-      const roleText = state.role === "staff" ? "客服" : state.role === "admin" ? "运营" : "管理";
-      const maturity = state.demoMode ? "Demo" : "Pilot";
+      const connectionText = state.demoMode ? "演示资料" : "真实顾客";
+      const maturity = state.demoMode ? "演示" : "客服工作台";
       const maturityTone = state.demoMode ? "warn" : "";
       return `
         <span class="status-chip ${maturityTone}">${maturity}</span>
         <span class="status-chip ${connectionTone}">${connectionText}</span>
         <span class="status-chip">客服批准</span>
-        <span class="status-chip">自动发送关</span>
-        <span class="status-chip">${roleText}</span>
+        <span class="status-chip">自动记录只读</span>
       `;
     }
 
@@ -5043,21 +5050,21 @@
     function handleDashboardAction(action) {
       if (action === "approval") {
         state.filter = "approval_required";
-        state.sidebarKey = "step_4";
+        state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
         setWorkspaceView("cases");
         return;
       }
       if (action === "orders") {
         state.filter = "order";
-        state.sidebarKey = "step_4";
+        state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
         setWorkspaceView("cases");
         return;
       }
       if (action === "human") {
         state.filter = "human_required";
-        state.sidebarKey = "step_4";
+        state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
         setWorkspaceView("cases");
         return;
@@ -5125,7 +5132,7 @@
 	    function activeModeLabel() {
 	      if (state.role === "staff") return "顾客队列";
 	      if (state.demoMode || canUseDemoMode()) return "演示";
-	      if (canUseQaMode()) return "操作台";
+	      if (canUseQaMode()) return "QA 测试";
 	      return "操作台";
 	    }
 
@@ -6161,7 +6168,7 @@
     function renderQueueSummary(visibleCount, filteredCount, totalCount, counts = {}) {
       const queryText = state.query ? ` · 搜索「${state.query}」` : "";
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新" : "名字";
-      const qaText = canUseQaMode() ? " · QA 测试：老板压测，不给客服" : "";
+      const qaText = "";
       const staffGuide = state.role === "staff"
         ? ` · 先人工 ${counts.human || 0}，退回 AI ${counts.returnAi || 0}，补回复 ${counts.pendingManualReplies || 0}，可批准 ${counts.approval || 0}`
         : "";
@@ -6223,44 +6230,8 @@
     function renderOwnerQaGuide(counts = {}) {
       const element = $("qaGuideStrip");
       if (!element) return;
-      if (!canUseQaMode()) {
-        element.classList.add("hidden");
-        element.innerHTML = "";
-        return;
-      }
-      element.classList.remove("hidden");
-      element.innerHTML = `
-        <div class="qa-guide-head">
-          <div>
-            <span>Owner QA 测试标准</span>
-            <b>这里是老板压测：看什么能过、什么不能过；不会发 WhatsApp，也不会触发 Flow。</b>
-          </div>
-          <small>可批准 ${Number(counts.approval || 0)} · 要人工 ${Number(counts.human || 0)} · 退回 AI ${Number(counts.returnAi || 0)} · 测试资料不进客服真实入口</small>
-        </div>
-        <div class="qa-guide-grid">
-          <div class="qa-guide-column">
-            <strong>价格图前：先答问题</strong>
-            <span>问价、喝法、口味、适合度：先回答顾客最后一句，再接对应教育 / 信任 Flow。</span>
-            <span>能过：答案清楚 + Flow Step 正确 + 仍留 Dashboard 审批。</span>
-          </div>
-          <div class="qa-guide-column">
-            <strong>价格图后：信心 + CTA</strong>
-            <span>问一盒/配套/免邮/COD：先答当前价和边界，再给信心与下单动作。</span>
-            <span>不能过：倒回教育 Flow、旧活动、乱折扣、没回答就接价格图。</span>
-          </div>
-          <div class="qa-guide-column">
-            <strong>售后/订单：先人工</strong>
-            <span>付款、Receipt、改地址、退款、投诉、想吐、没人跟进：停止普通销售 Flow。</span>
-            <span>客服处理完必须贴最终回复，Hermas 才能复盘边界。</span>
-          </div>
-          <div class="qa-guide-column">
-            <strong>学习：问题 -> 回复 -> 下一步</strong>
-            <span>真实学习单位：顾客问题 -> 人工回复 -> 接 Flow / CTA；截图要往上看顾客原话。</span>
-            <span>只学好样本：顾客原话、上一段 Flow、AI 草稿、人工最终回复都要留。</span>
-            <span>不要只学 ManyChat 主动发出的 Flow 文案；Flow 是下一步，不是答案。</span>
-          </div>
-        </div>
-      `;
+      element.classList.add("hidden");
+      element.innerHTML = "";
     }
 
     function renderWorkspaceViews(cases, counts, learned) {
@@ -6397,19 +6368,19 @@
       const orders = counts.orders || 0;
       const panels = {
         "1": {
-          kicker: "STEP 1",
+          kicker: "Setting",
           title: "ChatDaddy Connect",
-          body: "把 ChatDaddy 的 Webhook / 顾客资料接进 Dashboard。设置好一次，后面每个项目只换品牌资料和 Flow ID。",
+          body: "确认 ChatDaddy 的顾客讯息能进 Dashboard。设置好一次，客服日常不用碰。",
           rows: [
-            ["Webhook", "新讯息可以进 Dashboard", "✅"],
-            ["Contact / Chat ID", "同一个顾客可以合并成一叠", "✅"],
-            ["Name / Phone", "列表先看名字，电话点开才看", "✅"],
-            ["Flow / Button", "顾客点到哪一步，AI 才知道下一步", "✅"],
+            ["连接", "新讯息可以进 Dashboard", "OK"],
+            ["顾客", "同一个顾客会合并成一叠", "OK"],
+            ["名字", "列表先看名字，电话点开才看", "OK"],
+            ["动作", "顾客走到哪一步会留下记录", "OK"],
           ],
-          footer: "客服不用碰 Token；断线时只看这里是不是 OK。",
+          footer: "断线时只看这里是不是 OK；不要重复批准旧 Case。",
         },
         "2": {
-          kicker: "STEP 2",
+          kicker: "Setting",
           title: "Reply SOP",
           body: "AI 回复要像真人客服：先看顾客上一句在回答什么，再回答问题，价格前接下一步，价格后做成交。",
           rows: [
@@ -6422,7 +6393,7 @@
           footer: "客服只需要看建议回复，改顺后按批准；不要让 AI 乱确认订单。",
         },
         "3": {
-          kicker: "STEP 3",
+          kicker: "Setting",
           title: "FAQ Upload",
           body: "AI 只用项目方给过的资料回答。资料不够就问清楚或转人工，不要硬编。",
           rows: [
@@ -6434,7 +6405,7 @@
           footer: "以后每个项目都用同一张 FAQ 表，只换项目资料。",
         },
         "5": {
-          kicker: "STEP 5",
+          kicker: "复盘",
           title: "复盘总结",
           body: "每天看一眼：谁有回复、谁成交、谁没回、谁需要 Follow Up。",
           rows: [
@@ -6446,7 +6417,7 @@
           footer: "明天要同步到 Google Sheet：Purchase、No Reply、Follow Up、No Reply。",
         },
         "6": {
-          kicker: "STEP 6",
+          kicker: "复盘",
           title: "优化建议",
           body: "从重复问题和客服修改里找出底层问题，反过来优化 FAQ、SOP、广告回流和 Flow。",
           rows: [
@@ -6458,7 +6429,7 @@
           footer: "这里不是给客服硬看数据，是告诉项目方下一步要改什么。",
         },
         "7": {
-          kicker: "STEP 7",
+          kicker: "Segment",
           title: "Segment",
           body: "每个项目默认要有统一标签，后面才可以复盘和复制到其他公司。",
           rows: [
@@ -6490,7 +6461,7 @@
           <strong class="command-title">${escapeHtml(panel.footer)}</strong>
           <div class="steps">
             ${stepHtml("一次性", "项目上线前由管理者设置好。")}
-            ${stepHtml("日常", "客服主要看第 4 项顾客队列。")}
+            ${stepHtml("日常", "客服主要看顾客队列。")}
             ${stepHtml("优化", "出错的 Case 在复盘里改规则。")}
           </div>
         </section>
@@ -6786,13 +6757,13 @@
         <section class="ops-command" aria-label="运营主控台">
           <div class="ops-command-main">
             <div>
-              <div class="command-kicker">CONTROL</div>
+              <div class="command-kicker">今日状态</div>
               <strong>${escapeHtml(title)}</strong>
             </div>
             <div class="ops-command-status">
-              <span>Flow 自动</span>
-              <span>AI 拦截</span>
-              <span>留痕</span>
+              <span>待处理</span>
+              <span>自动记录</span>
+              <span>人工优先</span>
             </div>
           </div>
           <div class="ops-command-grid">
@@ -6960,7 +6931,7 @@
       const api = apiUrlEl.value.trim() || localStorage.getItem("agent_api_url") || "";
       url.searchParams.set("project_key", projectKeyEl.value.trim() || "demo");
       url.searchParams.set("role", role || "staff");
-      url.searchParams.set("view", role === "staff" ? "cases" : "overview");
+      url.searchParams.set("view", "cases");
       url.searchParams.delete("staff_token");
       url.searchParams.delete("operator_token");
       if (api) url.searchParams.set("api", api);
