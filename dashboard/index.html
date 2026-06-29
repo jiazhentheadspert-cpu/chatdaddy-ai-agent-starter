@@ -7749,8 +7749,9 @@
       }
       const closer = closerVerdict(item);
       const titleReason = `${closer.title || ""} ${closer.reason || ""}`;
-      if (/Flow后问一盒|问一盒可审|CTA改安排一盒/i.test(titleReason)) {
-        return "下一步：改CTA为「你要我先帮你安排一盒试喝吗？」";
+      const oneGlanceHint = cardOneGlanceContextHint(item, closer);
+      if (/Flow后问一盒|问一盒可审|CTA改安排一盒|多段Broadcast|624后问价/i.test(`${titleReason} ${oneGlanceHint}`)) {
+        return "下一步：先答1盒RM150/15小包；改CTA为「你要我先帮你安排一盒试喝吗？」";
       }
       const raw = closerVerdictNextAction(closer, item)
         .replace(/^客服下一步：/, "")
