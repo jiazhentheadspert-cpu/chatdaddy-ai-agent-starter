@@ -2221,6 +2221,46 @@
       overflow-wrap: anywhere;
     }
 
+    .case-evidence-chain {
+      margin-top: 8px;
+      border: 1px solid rgba(0,183,216,.18);
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(245,253,254,.92), rgba(255,255,255,.86));
+      padding: 8px 9px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .case-evidence-row {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 8px;
+      align-items: baseline;
+      min-height: 18px;
+      color: #394850;
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.28;
+      overflow: hidden;
+    }
+
+    .case-evidence-row span {
+      color: var(--green-deep);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .case-evidence-row b {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow-wrap: anywhere;
+    }
+
     .case-message {
       color: var(--muted);
       font-weight: 700;
@@ -2618,6 +2658,7 @@
 
     .grid.list .case-head,
     .grid.list .word-cloud,
+    .grid.list .case-evidence-chain,
     .grid.list .case-insight,
     .grid.list .case-work-mode,
     .grid.list .case-flow-mini,
@@ -2629,6 +2670,7 @@
     }
 
     .grid.list .case-work-mode,
+    .grid.list .case-evidence-chain,
     .grid.list .case-flow-mini,
     .grid.list .case-auto-boundary {
       grid-column: 1 / -1;
@@ -7641,6 +7683,45 @@
       `;
     }
 
+    function cardEvidenceContextLine(item = {}) {
+      const decision = item.latest_decision || {};
+      const sourceText = firstContextText(
+        decision.previous_agent_text,
+        decision.previousAgentText,
+        item.previous_agent_text,
+        item.previousAgentText,
+        decision.operator_instruction,
+        item.operator_instruction,
+        item.raw_context,
+        item.rawContext,
+        item.context_text,
+        item.customer_history_text,
+        decision.flow_name,
+        decision.next_flow_name,
+        decision.target_flow_name,
+        decision.flow_key,
+        decision.next_flow_key,
+        decision.target_flow_key
+      );
+      const inferred = inferFlowContextNameFromText(sourceText);
+      if (inferred) return `上一段自动/Flow：${inferred}`;
+      if (sourceText) return `上一段自动/Flow：${contextSnippet(sourceText, 92)}`;
+      return "上一段自动/Flow：没有明显上下文";
+    }
+
+    function cardEvidenceChainHtml(item = {}) {
+      const customer = contextSnippet(customerPreviewText(item), 76);
+      const contextLine = contextSnippet(cardEvidenceContextLine(item).replace(/^上一段自动\/Flow：/, ""), 84);
+      const actionLine = contextSnippet(cardNextActionMiniText(item).replace(/^下一步：/, ""), 70);
+      return `
+        <div class="case-evidence-chain" aria-label="顾客证据链">
+          <div class="case-evidence-row"><span>顾客问</span><b>${escapeHtml(customer)}</b></div>
+          <div class="case-evidence-row"><span>上一段</span><b>${escapeHtml(contextLine)}</b></div>
+          <div class="case-evidence-row"><span>客服做</span><b>${escapeHtml(actionLine)}</b></div>
+        </div>
+      `;
+    }
+
     function cardVerdictSummary(item = {}, learningFollowup = null) {
       if (learningFollowup) {
         return {
@@ -7908,6 +7989,7 @@
               ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
             </div>
           </div>
+	          ${cardEvidenceChainHtml(item)}
 	          ${cardPreviousContextHtml(item)}
 	          <div class="case-insight ${escapeHtml(verdictSummary.className)}">
 	            <span>${escapeHtml(verdictSummary.label)}</span>
