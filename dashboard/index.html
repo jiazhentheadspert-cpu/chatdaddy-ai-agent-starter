@@ -5165,8 +5165,6 @@
 
 	    body.staff-mode [data-owner-nav],
 	    body.staff-mode [data-owner-section],
-	    body.staff-mode .side-settings,
-	    body.staff-mode [data-side-key]:not([data-side-key="ai_reply"]),
 	    body.staff-mode .owner-meter-row,
 	    body.staff-mode #learnBtn,
 	    body.staff-mode #demoBar {
@@ -15528,7 +15526,7 @@
 	    }
 
 	    function requiresManualReplyForManualResolve(item = {}) {
-	      return canManualResolveCase(item);
+	      return ["handoff_done", "returned_to_ai"].includes(String(item.status || ""));
 	    }
 
 	    function isPlaceholderManualReply(value = "") {
