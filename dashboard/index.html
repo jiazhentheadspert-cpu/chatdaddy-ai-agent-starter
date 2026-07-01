@@ -5084,20 +5084,25 @@
       .summary-index { display: none; }
     }
 
+    body.staff-mode {
+      --staff-sidebar-width: 300px;
+    }
+
     body.staff-mode .app-shell {
-      width: 100%;
-      max-width: none;
+      width: 100vw;
+      max-width: 100vw;
       grid-template-columns: minmax(0, 1fr);
-      padding-left: 300px;
+      padding-left: var(--staff-sidebar-width);
       position: relative;
       z-index: 1;
+      margin: 0;
     }
 
     body.staff-mode::before {
       content: "";
       position: fixed;
       inset: 0 auto 0 0;
-      width: 300px;
+      width: var(--staff-sidebar-width);
       background:
         linear-gradient(180deg, rgba(7, 18, 24, .99), rgba(8, 40, 43, .98)),
         #081217;
@@ -5108,17 +5113,22 @@
     body.staff-mode .sidebar {
       display: grid;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 300px;
+      inset: 0 auto 0 0;
+      width: var(--staff-sidebar-width);
+      max-width: var(--staff-sidebar-width);
       height: 100vh;
       min-height: 100vh;
-      min-width: 300px;
-      z-index: 4;
+      min-width: var(--staff-sidebar-width);
+      z-index: 20;
+      transform: none !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
 
     body.staff-mode .workspace {
       min-width: 0;
+      width: 100%;
+      max-width: calc(100vw - var(--staff-sidebar-width));
     }
 
     body.staff-mode .status-strip {
@@ -5173,21 +5183,21 @@
 	    }
 
     @media (max-width: 1180px) and (min-width: 821px) {
+      body.staff-mode {
+        --staff-sidebar-width: 260px;
+      }
+
       body.staff-mode .app-shell {
         grid-template-columns: minmax(0, 1fr);
-        padding-left: 260px;
       }
 
       body.staff-mode .sidebar {
         position: fixed;
-        width: 260px;
+        width: var(--staff-sidebar-width);
+        max-width: var(--staff-sidebar-width);
         height: 100vh;
         min-height: 100vh;
-        min-width: 260px;
-      }
-
-      body.staff-mode::before {
-        width: 260px;
+        min-width: var(--staff-sidebar-width);
       }
 
       body.staff-mode .side-nav {
