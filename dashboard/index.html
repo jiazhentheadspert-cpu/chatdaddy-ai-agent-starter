@@ -205,6 +205,10 @@
       min-width: 0;
     }
 
+    .side-label-plain {
+      gap: 0;
+    }
+
     .side-code {
       width: 28px;
       color: rgba(255,255,255,.78);
@@ -5414,21 +5418,21 @@
       <nav class="side-nav" aria-label="主导航">
         <div class="side-section">客服</div>
         <button class="active" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
-          <span class="side-label"><b class="side-code">台</b><em>操作台</em></span>
+          <span class="side-label side-label-plain"><em>操作台</em></span>
           <small id="navCasesBadge">0</small>
         </button>
         <button data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
-          <span class="side-label"><b class="side-code">盘</b><em>复盘</em></span>
+          <span class="side-label side-label-plain"><em>复盘</em></span>
           <small id="navLearningBadge">0</small>
         </button>
         <button data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
-          <span class="side-label"><b class="side-code">S</b><em>Segment</em></span>
+          <span class="side-label side-label-plain"><em>Segment</em></span>
           <small id="navStep7Badge">待</small>
         </button>
         <div class="side-note">客服只看需要处理的顾客；已自动继续的记录进自动记录。</div>
 
         <details class="side-settings" open>
-          <summary><span class="side-label"><b class="side-code">设</b><em>设置</em></span></summary>
+          <summary><span class="side-label side-label-plain"><em>设置</em></span></summary>
           <div class="side-settings-panel">
             <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
               <span class="side-label"><b class="side-code">1</b><em>讯息连接</em></span>
