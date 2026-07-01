@@ -7074,6 +7074,7 @@
         if (["whatsapp customer", "customer", "live case", "demo customer", "test customer", "unknown", "undefined", "null", "未知顾客", "未命名顾客", "未知客户", "未命名客户"].includes(normalized)) continue;
         if (/^(?:未知|未命名)?(?:顾客|客户|customer)$/i.test(text)) continue;
         if (/^(?:未知|未命名)(?:顾客|客户)\s*(?:#|编号|id)?\s*[\w-]+$/i.test(text)) continue;
+        if (/^(?:顾客|客户)\s*\d{3,}$/i.test(text)) continue;
         if (/^customer\s*(?:#|no\.?|id)?\s*\d{2,}$/i.test(text)) continue;
         if (/^(?:顾客|客户)\s*(?:#|编号|id)\s*[\w-]+$/i.test(text)) continue;
         if (/^customer(?:\s*(?:#|no\.?|id)?\s*[\w-]+)?$/i.test(text)) continue;
@@ -7083,7 +7084,20 @@
       return "";
     }
 
+    function customerPhoneDisplayFromDigits(digits = "") {
+      const cleanDigits = String(digits || "").replace(/\D/g, "");
+      if (cleanDigits.length < 7) return "";
+      if (cleanDigits.startsWith("60")) {
+        const local = cleanDigits.slice(2);
+        if (local.length === 9) return `+60 ${local.slice(0, 2)}-${local.slice(2, 5)} ${local.slice(5)}`;
+        if (local.length === 10) return `+60 ${local.slice(0, 2)}-${local.slice(2, 6)} ${local.slice(6)}`;
+      }
+      return `+${cleanDigits}`;
+    }
+
     function fallbackCustomerNameFromDigits(digits) {
+      const phoneDisplay = customerPhoneDisplayFromDigits(digits);
+      if (phoneDisplay) return phoneDisplay;
       const suffix = String(digits || "").replace(/\D/g, "").slice(-4);
       if (!suffix) return "顾客";
       return `顾客 ${suffix}`;
@@ -7261,7 +7275,7 @@
     function customerDisplayLabel(item = {}) {
       const digits = approvalContactDigits(item) || customerIdentitySuffixFromCase(item);
       return firstCleanCustomerName(
-        customerNameOverrideFromDigits(digits),
+        customerNameOverrideFromDigits(digits, customerPhoneDisplayFromDigits(digits)),
         customerContactNameFromMap(state.contactNames, digits),
         ...customerNameCandidateValuesFromItem(item),
         item.contact?.name,
@@ -7303,6 +7317,7 @@
 
     function customerDisplayMetaHtml(item = {}, displayName = "") {
       if (firstCleanCustomerName(displayName)) return "";
+      if (/^\+?\d[\d\s().-]{5,}$/.test(String(displayName || "").trim())) return "";
       if (/^顾客\s+\w{3,}$/i.test(String(displayName || "").trim())) return "";
       const suffix = customerIdentitySuffixFromCase(item);
       return suffix ? `<div class="case-name-meta">${escapeHtml(`末四位 ${suffix}`)}</div>` : "";
@@ -7384,7 +7399,7 @@
       const digits = approvalContactDigits(item) || customerIdentitySuffixFromCase(item);
       const customFields = item.decision?.signals?.custom_fields || {};
       const name = firstCleanCustomerName(
-        customerNameOverrideFromDigits(digits),
+        customerNameOverrideFromDigits(digits, customerPhoneDisplayFromDigits(digits)),
         customerContactNameFromMap(contactNames, digits),
         ...customerNameCandidateValuesFromItem(item),
         item.customer?.name,
