@@ -85,10 +85,11 @@
       color: rgba(255,255,255,.86);
       border-right: 1px solid rgba(255,255,255,.08);
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto auto auto;
+      align-content: start;
       gap: 20px;
       align-self: stretch;
-      overflow-y: auto;
+      overflow-y: visible;
       overscroll-behavior: contain;
     }
 
@@ -155,8 +156,7 @@
       gap: 8px;
     }
 
-    .side-settings summary {
-      list-style: none;
+    .side-settings-title {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
@@ -169,28 +169,19 @@
       color: rgba(255,255,255,.76);
       padding: 9px 10px;
       font-weight: 900;
-      cursor: pointer;
     }
 
-    .side-settings summary::-webkit-details-marker {
-      display: none;
-    }
-
-    .side-settings summary::after {
-      content: "⌄";
+    .side-settings-title::after {
+      content: "固定";
       display: inline-grid;
       place-items: center;
-      width: 26px;
+      min-width: 42px;
       height: 26px;
       border-radius: 999px;
       background: rgba(255,255,255,.08);
       color: rgba(255,255,255,.72);
-      font-size: 14px;
-      transition: transform .16s ease;
-    }
-
-    .side-settings[open] summary::after {
-      transform: rotate(180deg);
+      font-size: 11px;
+      font-weight: 950;
     }
 
     .side-settings-panel {
@@ -5431,8 +5422,8 @@
         </button>
         <div class="side-note">客服只看需要处理的顾客；已自动继续的记录进自动记录。</div>
 
-        <details class="side-settings" open>
-          <summary><span class="side-label side-label-plain"><em>设置</em></span></summary>
+        <div class="side-settings" aria-label="设置">
+          <div class="side-settings-title"><span class="side-label side-label-plain"><em>设置</em></span></div>
           <div class="side-settings-panel">
             <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
               <span class="side-label"><b class="side-code">1</b><em>讯息连接</em></span>
@@ -5447,7 +5438,7 @@
               <small id="navStep3Badge">✅</small>
             </button>
           </div>
-        </details>
+        </div>
       </nav>
 
       <div class="side-card frontend-only-card">
