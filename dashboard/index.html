@@ -5798,6 +5798,7 @@
       metaCapiStatus: null,
       contactNames: {},
       selectedDate: "",
+      queueDateScope: "date",
     };
 
     const DEFAULT_SETTINGS = {
@@ -6083,7 +6084,9 @@
     const requestedView = params.get("view") || "";
     state.workspaceView = ["cases", "learning", "operations"].includes(requestedView) ? requestedView : state.workspaceView;
     state.pendingCaseId = params.get("case_id") || null;
-    state.selectedDate = normalizeIsoDate(params.get("date")) || todayISO;
+    const requestedDate = normalizeIsoDate(params.get("date"));
+    state.selectedDate = requestedDate || todayISO;
+    state.queueDateScope = state.role === "staff" && !requestedDate ? "open_backlog" : "date";
     syncDateControls();
 
     const requestedApiUrl = params.get("api") || "";
@@ -6165,7 +6168,16 @@
     }
     if (casePrevDateEl) casePrevDateEl.addEventListener("click", () => shiftSelectedDate(-1));
     if (caseNextDateEl) caseNextDateEl.addEventListener("click", () => shiftSelectedDate(1));
-    if (caseTodayDateEl) caseTodayDateEl.addEventListener("click", () => setSelectedDate(todayISO));
+    if (caseTodayDateEl) {
+      caseTodayDateEl.addEventListener("click", () => {
+        const selected = normalizeIsoDate(state.selectedDate) || todayISO;
+        if (state.role === "staff" && state.queueDateScope === "date" && selected === todayISO) {
+          setOpenBacklogDateScope();
+          return;
+        }
+        setSelectedDate(todayISO);
+      });
+    }
 
     $("gridView").addEventListener("click", () => setView("grid"));
     $("listView").addEventListener("click", () => setView("list"));
@@ -6222,6 +6234,9 @@
         state.sidebarKey = button.dataset.sideKey || "ai_reply";
         if (button.dataset.stepView) state.activeSetupStep = button.dataset.stepView;
         state.filter = button.dataset.sideFilter || (state.activeSetupStep === "4" ? "needs_attention" : "all");
+        if (state.role === "staff" && button.dataset.workspaceTarget === "cases" && (button.dataset.sideFilter || "") === "needs_attention") {
+          state.queueDateScope = "open_backlog";
+        }
         setWorkspaceView(button.dataset.workspaceTarget || workspaceViewForSidebarKey(state.sidebarKey));
       });
     });
@@ -6604,12 +6619,19 @@
       return selected;
     }
 
+    function queueDateScopeLabel() {
+      return useOpenBacklogDateScope() ? "待处理全部" : selectedDateLabel();
+    }
+
     function syncDateControls() {
       const selected = normalizeIsoDate(state.selectedDate) || todayISO;
       state.selectedDate = selected;
       if (caseDateFilterEl) {
         caseDateFilterEl.value = selected;
         caseDateFilterEl.max = todayISO;
+        caseDateFilterEl.title = useOpenBacklogDateScope()
+          ? "当前显示全部未完成待处理；选择日期后只看指定日期。"
+          : "当前只看这个日期的 Case。";
       }
       const nextDate = shiftIsoDate(selected, 1);
       const atToday = !nextDate || nextDate > todayISO || selected >= todayISO;
@@ -6619,13 +6641,27 @@
         caseNextDateEl.title = atToday ? "已经是今天" : "后一天";
       }
       if (caseTodayDateEl) {
-        caseTodayDateEl.textContent = selected === todayISO ? "今天" : "回今天";
-        caseTodayDateEl.classList.toggle("active", selected === todayISO);
+        caseTodayDateEl.textContent = useOpenBacklogDateScope()
+          ? "看今天"
+          : selected === todayISO
+            ? "全部待处理"
+            : "回今天";
+        caseTodayDateEl.classList.toggle("active", useOpenBacklogDateScope() || selected === todayISO);
       }
+    }
+
+    function setOpenBacklogDateScope() {
+      if (state.role !== "staff") return setSelectedDate(todayISO);
+      state.queueDateScope = "open_backlog";
+      state.selectedDate = normalizeIsoDate(state.selectedDate) || todayISO;
+      state.selected.clear();
+      syncDateControls();
+      render();
     }
 
     function setSelectedDate(nextDate) {
       const normalized = normalizeIsoDate(nextDate) || todayISO;
+      state.queueDateScope = "date";
       state.selectedDate = normalized > todayISO ? todayISO : normalized;
       state.selected.clear();
       syncDateControls();
@@ -6674,6 +6710,19 @@
     function filterCasesBySelectedDate(cases = []) {
       const selected = normalizeIsoDate(state.selectedDate) || todayISO;
       return cases.filter((item) => caseDateKey(item) === selected);
+    }
+
+    function useOpenBacklogDateScope(filter = state.filter) {
+      if (state.role !== "staff" || state.queueDateScope !== "open_backlog") return false;
+      return ["all", "needs_attention", "human_first", "approval_required", "return_ai", "human_required", "pending_manual_reply", "order"].includes(filter || "needs_attention");
+    }
+
+    function isOpenBacklogCase(item = {}) {
+      return ["approval_required", "human_required", "order", "send_failed"].includes(item.status) || needsManualReplyAfterHandoff(item);
+    }
+
+    function casesForCurrentQueueDateScope(cases = []) {
+      return useOpenBacklogDateScope() ? cases.filter(isOpenBacklogCase) : filterCasesBySelectedDate(cases);
     }
 
     function syncFilterControls() {
@@ -6847,6 +6896,7 @@
         state.filter = "approval_required";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
+        if (state.role === "staff") state.queueDateScope = "open_backlog";
         setWorkspaceView("cases");
         return;
       }
@@ -6854,6 +6904,7 @@
         state.filter = "order";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
+        if (state.role === "staff") state.queueDateScope = "open_backlog";
         setWorkspaceView("cases");
         return;
       }
@@ -6861,6 +6912,7 @@
         state.filter = "human_required";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
+        if (state.role === "staff") state.queueDateScope = "open_backlog";
         setWorkspaceView("cases");
         return;
       }
@@ -6880,6 +6932,7 @@
         state.filter = "needs_attention";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
+        if (state.role === "staff") state.queueDateScope = "open_backlog";
         setWorkspaceView("cases");
       }
     }
@@ -8297,7 +8350,7 @@
 
     function render() {
       const allForRole = casesForRole(state.cases);
-      const rawAll = filterCasesBySelectedDate(allForRole);
+      const rawAll = casesForCurrentQueueDateScope(allForRole);
       state.contactStats = buildContactStats(rawAll);
       const all = state.role === "staff" ? collapseStaffActionableCasesByCustomer(rawAll) : rawAll;
       const counts = countCases(all);
@@ -8441,7 +8494,7 @@
       if (filter === "needs_attention") {
         return staffCaseSectionHtml({
           title: "要处理",
-          body: "客服今天先看的顾客：批准、人工、订单、失败和待补人工回复。",
+          body: "客服先看的顾客：批准、人工、订单、失败和待补人工回复。",
           items: visible,
         });
       }
@@ -8842,7 +8895,7 @@
       const staffGuide = state.role === "staff"
         ? ` · 先人工 ${counts.human || 0}，退回 AI ${counts.returnAi || 0}，补回复 ${counts.pendingManualReplies || 0}，可批准 ${counts.approval || 0}`
         : "";
-      $("queueSummary").textContent = `${selectedDateLabel()} · ${visibleCount}/${filteredCount} 位${queryText}${focusText} · ${sortText}${qaText}${staffGuide}`;
+      $("queueSummary").textContent = `${queueDateScopeLabel()} · ${visibleCount}/${filteredCount} 位${queryText}${focusText} · ${sortText}${qaText}${staffGuide}`;
     }
 
     function renderStaffPriorityQueue(counts = {}) {
@@ -17492,9 +17545,9 @@
         : state.demoMode
           ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。"
           : state.filter === "auto"
-            ? `${selectedDateLabel()}没有自动记录；AI 已回复或外部流程已继续的 Case 会放在这里，只读复盘。`
+            ? `${queueDateScopeLabel()}没有自动记录；AI 已回复或外部流程已继续的 Case 会放在这里，只读复盘。`
             : state.role === "staff"
-              ? `${selectedDateLabel()}没有待处理顾客；有新讯息或需要人工的 Case 会显示在这里。`
+              ? `${queueDateScopeLabel()}没有待处理顾客；有新讯息或需要人工的 Case 会显示在这里。`
               : "确认顾客讯息入口已经连接，然后用真实 WhatsApp 发一条测试消息。";
       return `
         <div class="box" style="grid-column: 1 / -1;">
