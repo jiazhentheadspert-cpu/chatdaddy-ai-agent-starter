@@ -5416,8 +5416,8 @@
         </button>
         <div class="side-note">客服只看需要处理的顾客；已自动继续的记录进自动记录。</div>
 
-        <details class="side-settings">
-          <summary><span class="side-label"><b class="side-code">设</b><em>Setting</em></span></summary>
+        <details class="side-settings" open>
+          <summary><span class="side-label"><b class="side-code">设</b><em>设置</em></span></summary>
           <div class="side-settings-panel">
             <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
               <span class="side-label"><b class="side-code">1</b><em>讯息连接</em></span>
@@ -6526,7 +6526,7 @@
       $("sideRole").textContent = "客服工作台";
       $("sideWorkspace").textContent = "安全模式";
       $("sideConnection").textContent = "审核优先";
-      $("modeTag").textContent = state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "Setting") : "操作台";
+      $("modeTag").textContent = state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
       $("sideHint").textContent = "只看需要处理的顾客；自动记录只读。";
       renderSideUsage();
 
@@ -6736,7 +6736,7 @@
 
       $("sideConnection").textContent = "审核优先";
       renderSideUsage();
-      $("modeTag").textContent = view === "learning" ? "复盘" : view === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "Setting") : "操作台";
+      $("modeTag").textContent = view === "learning" ? "复盘" : view === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
       $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
       $("statusStrip").classList.toggle("hidden", true);
@@ -6765,7 +6765,7 @@
           subtitle: "只看需要处理的顾客。",
         },
         operations: {
-          title: state.activeSetupStep === "7" ? "Segment" : "Setting",
+          title: state.activeSetupStep === "7" ? "Segment" : "设置",
           subtitle: state.activeSetupStep === "7" ? "按分群看顾客。" : "连接、SOP、FAQ。",
         },
         learning: {
@@ -7791,12 +7791,17 @@
       const at = item.updated_at || item.created_at || inbound.message_at || new Date().toISOString();
       const rawFinalReply = item.final_text || item.manual_reply_text || reply.text || "";
       const unverifiedAttachment = dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item);
-      const finalReply = unverifiedAttachment ? dashboardSafeAttachmentReply() : rawFinalReply;
-      const originalAiReply = unverifiedAttachment
+      const externalFlowRecord = status === "external_flow_continued";
+      const finalReply = externalFlowRecord
+        ? externalFlowReadOnlyMessage(item)
+        : unverifiedAttachment ? dashboardSafeAttachmentReply() : rawFinalReply;
+      const originalAiReply = externalFlowRecord
+        ? (reply.text || rawFinalReply || "")
+        : unverifiedAttachment
         ? (reply.text || rawFinalReply || "")
         : (item.manual_reply_text || item.final_text) ? (reply.text || "") : "";
       const manualLearningCandidate = item.manual_learning_candidate || item.manualLearningCandidate || item.manual_resolution?.learning_candidate || null;
-      const sentLike = ["auto_sent", "external_flow_continued", "sent", "send_failed", "manual_resolved"].includes(status);
+      const sentLike = ["auto_sent", "sent", "send_failed", "manual_resolved"].includes(status);
       const contactDigits = approvalContactDigits(item);
       const contactName = customerDisplayNameFromApproval(item, contactNames);
       const history = [
@@ -8117,6 +8122,10 @@
 
     function dashboardSafeAttachmentReply() {
       return "亲，我先打开图片/附件确认内容，确认后再回复你。";
+    }
+
+    function externalFlowReadOnlyMessage() {
+      return "ChatDaddy 已继续下一段 Flow；这条只读记录不用处理，也不会再发送旧回复。";
     }
 
     function approvalAction(item) {
@@ -9251,7 +9260,7 @@
       const orders = counts.orders || 0;
       const panels = {
         "1": {
-          kicker: "Setting",
+          kicker: "设置",
           title: "讯息连接",
           body: "确认顾客讯息能进操作台。设置好一次，客服日常不用碰。",
           rows: [
@@ -9263,7 +9272,7 @@
           footer: "断线时只看这里是不是 OK；不要重复批准旧 Case。",
         },
         "2": {
-          kicker: "Setting",
+          kicker: "设置",
           title: "回复 SOP",
           body: "AI 回复要像真人客服：先看顾客上一句在回答什么，再回答问题，价格前接下一步，价格后做成交。",
           rows: [
@@ -9276,7 +9285,7 @@
           footer: "客服只需要看建议回复，改顺后按批准；不要让 AI 乱确认订单。",
         },
         "3": {
-          kicker: "Setting",
+          kicker: "设置",
           title: "FAQ 资料",
           body: "AI 只用项目方给过的资料回答。资料不够就问清楚或转人工，不要硬编。",
           rows: [
@@ -12485,17 +12494,18 @@
 	      const canManualResolve = canManualResolveCase(item);
 	      const isManualFollowUp = requiresManualReplyForManualResolve(item);
 	      const statusTone = riskTone(item);
-	      const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound");
-	      const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve;
-	      const displayName = customerDisplayLabel(item);
+      const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound");
+      const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve;
+      const externalFlowReadOnly = item.status === "external_flow_continued";
+      const displayName = customerDisplayLabel(item);
 	      $("panelName").textContent = displayName;
 	      $("panelAvatar").textContent = initialsFor(displayName);
-	      $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
+      $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
       $("replyCard").classList.toggle("hidden", hideReplyCard);
-      $("replyBox").value = hideReplyCard || isManualFollowUp ? "" : decision.reply_message || "";
-      $("replyBox").placeholder = isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : "";
+      $("replyBox").value = hideReplyCard || isManualFollowUp ? "" : externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
+      $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : "";
       $("replyBox").readOnly = readOnly && !canManualResolve;
-      $("replyModeLabel").textContent = isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工，只读" : item.status === "returned_to_ai" ? "已退回 AI，只读" : readOnly ? "已记录，只读" : "可修改";
+      $("replyModeLabel").textContent = externalFlowReadOnly ? "Flow 已继续，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工，只读" : item.status === "returned_to_ai" ? "已退回 AI，只读" : readOnly ? "已记录，只读" : "可修改";
       $("replyTools").classList.toggle("hidden", readOnly && !canManualResolve);
       const canOptimizeCase = state.role !== "staff";
       $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
