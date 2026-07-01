@@ -5195,27 +5195,34 @@
     }
 
     @media (max-width: 820px) {
+      body.staff-mode {
+        --staff-sidebar-width: clamp(220px, 34vw, 260px);
+      }
+
       body.staff-mode .app-shell {
-        display: flex;
-        flex-direction: column;
+        display: grid;
         grid-template-columns: 1fr;
-        padding-left: 0;
+        padding-left: var(--staff-sidebar-width);
       }
 
       body.staff-mode .sidebar {
-        order: 2;
-        position: static;
-        height: auto;
-        min-height: 0;
-        min-width: 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: var(--staff-sidebar-width) !important;
+        max-width: var(--staff-sidebar-width) !important;
+        min-width: var(--staff-sidebar-width);
+        height: 100vh;
+        min-height: 100vh;
       }
 
       body.staff-mode::before {
-        display: none;
+        display: block;
+        width: var(--staff-sidebar-width);
       }
 
       body.staff-mode .workspace {
-        order: 1;
+        min-width: 0;
       }
     }
 
