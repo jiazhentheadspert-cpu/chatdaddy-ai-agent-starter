@@ -49,11 +49,14 @@ IT 开发交接主文档：
 ```text
 docs/AI_REPLY_SYSTEM_FLOW_ZH.md
 docs/IT_DEVELOPMENT_HANDOFF_AI_REPLY_HERMAS_ZH.md
+docs/HERMAS_CLOUDFLARE_AGENTS_SDK_ROADMAP.md
 ```
 
 `AI_REPLY_SYSTEM_FLOW_ZH.md` 是老板真实 Flow：客服只盯 Dashboard、价格图前后怎么回答和接 Flow、什么时候人工、人工后怎么复盘学习、ManyChat 怎么对标、Mark as Paid 怎么回流 Ads Manager。
 
 这份文档解释完整流程：Hermas approval-first、Dashboard 操作、ChatDaddy/Manychat adapter、Case 状态、学习复盘、Meta Purchase 回流、API 合约、上线 gate、以及哪些内容不能进入 GitHub。
+
+`HERMAS_CLOUDFLARE_AGENTS_SDK_ROADMAP.md` 是下一步 Cloudflare Agents SDK 迁移路线：Agent runtime、Supabase、ChatDaddy webhook、onboarding 框架、自动回复等级和老板/Tech Team 需要提供的资料。
 
 Dashboard demo:
 

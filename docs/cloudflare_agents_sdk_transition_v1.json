@@ -1,0 +1,188 @@
+{
+  "schema_version": "hermas.cloudflare_agents_sdk_transition.v1",
+  "purpose": "Transition Hermas from raw Worker fetch orchestration to Cloudflare Agents SDK while preserving approval-first safety.",
+  "current_mode": {
+    "default_send_mode": "approval_first",
+    "auto_send_enabled": false,
+    "auto_trigger_flows_enabled": false,
+    "chatdaddy_keyword_and_button_owner": "ChatDaddy",
+    "hermas_intervention_owner": "free_text_after_flow_stops"
+  },
+  "target_runtime": {
+    "edge": "Cloudflare Worker",
+    "agent_runtime": "Cloudflare Agents SDK",
+    "business_database": "Supabase/Postgres",
+    "agent_hot_state": "Agent local SQL and state",
+    "channel_adapter": "ChatDaddy first, replaceable later",
+    "model_provider": "Configurable; OpenAI or Workers AI are both acceptable"
+  },
+  "agent_classes": [
+    {
+      "class_name": "HermasProjectAgent",
+      "instance_key_pattern": "project:{project_key}",
+      "owns": [
+        "project package cache",
+        "project readiness",
+        "channel connection routing",
+        "approval-first guard",
+        "daily quality and usage counters"
+      ],
+      "must_not": [
+        "send customer messages directly in approval-first mode",
+        "return provider secrets",
+        "expose backend diagnostics to staff UI"
+      ]
+    },
+    {
+      "class_name": "HermasConversationAgent",
+      "instance_key_pattern": "conv:{project_key}:{stable_contact_hash}",
+      "owns": [
+        "provider event idempotency",
+        "conversation stage cache",
+        "free-text question decision",
+        "approval case creation",
+        "auto record creation",
+        "AI decision logging"
+      ],
+      "must_not": [
+        "use phone number as public instance name",
+        "guess image or receipt meaning without evidence",
+        "trigger ChatDaddy Flow for button clicks",
+        "bypass staff approval"
+      ]
+    },
+    {
+      "class_name": "HermasOpsAgent",
+      "instance_key_pattern": "ops:{company_key}",
+      "owns": [
+        "scheduled quality review",
+        "failed job summary",
+        "learning candidate generation",
+        "usage and cost summary",
+        "admin-only diagnostics"
+      ],
+      "must_not": [
+        "appear in staff UI",
+        "expose secrets",
+        "perform live send actions without explicit gate"
+      ]
+    }
+  ],
+  "required_cloudflare_changes": [
+    "install agents package",
+    "add nodejs_compat compatibility flag",
+    "export Agent classes from Worker entry",
+    "add Durable Object bindings for HermasProjectAgent, HermasConversationAgent, HermasOpsAgent",
+    "add new_sqlite_classes migration for the Agent classes",
+    "route ChatDaddy webhook to Agent instances with getAgentByName or routeAgentRequest",
+    "enable observability"
+  ],
+  "approval_first_tools": [
+    "get_project_package",
+    "search_faq",
+    "get_recent_messages",
+    "normalize_chatdaddy_event",
+    "create_approval_case",
+    "record_auto_event",
+    "mark_needs_human",
+    "write_ai_decision",
+    "write_learning_candidate",
+    "get_flow_map",
+    "suggest_next_flow"
+  ],
+  "restricted_tools": [
+    "send_message",
+    "trigger_provider_flow",
+    "mark_paid",
+    "update_order"
+  ],
+  "restricted_tool_requirements": [
+    "explicit staff or admin action",
+    "operator_id from HttpOnly session",
+    "project membership check",
+    "idempotency key",
+    "audit event",
+    "approval-first guard"
+  ],
+  "decision_output_required_fields": [
+    "schema_version",
+    "project_key",
+    "customer_id",
+    "conversation_id",
+    "message_id",
+    "intent",
+    "stage",
+    "risk_level",
+    "reply_text",
+    "next_action",
+    "flow_key",
+    "send_now",
+    "trigger_flow_now",
+    "needs_human",
+    "reason",
+    "source_refs",
+    "learning_candidate"
+  ],
+  "owner_inputs_needed": {
+    "cloudflare": [
+      "deployment owner access",
+      "Worker project access",
+      "permission for Durable Object bindings and migrations",
+      "production and staging routes",
+      "observability or log destination"
+    ],
+    "supabase": [
+      "production project",
+      "staging project",
+      "SUPABASE_URL",
+      "SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "pooled connection string",
+      "direct connection string",
+      "private storage buckets",
+      "first admin email",
+      "staff emails and project assignments"
+    ],
+    "chatdaddy_per_brand": [
+      "account ID",
+      "API key",
+      "webhook secret",
+      "Flow/Bot IDs",
+      "Step map and price stage",
+      "rate limit info",
+      "real webhook payload samples"
+    ],
+    "business_content_per_brand": [
+      "FAQ",
+      "Reply SOP",
+      "prices and packages",
+      "offer and promotion rules",
+      "proof and review assets",
+      "risk and handoff rules",
+      "order and payment rules",
+      "good human replies",
+      "bad replies to avoid",
+      "test cases"
+    ]
+  },
+  "release_gates": [
+    "project package validated",
+    "channel connected",
+    "payload samples normalized",
+    "staff auth and membership verified",
+    "staff UI boundary passes",
+    "approval-first checks pass",
+    "no secrets returned",
+    "webhook ack below 1 second",
+    "queue p95 below 2 seconds",
+    "case detail p95 below 2 seconds"
+  ],
+  "official_references": [
+    "https://developers.cloudflare.com/agents/",
+    "https://developers.cloudflare.com/agents/getting-started/add-to-existing-project/",
+    "https://developers.cloudflare.com/agents/runtime/agents-api/",
+    "https://developers.cloudflare.com/agents/communication-channels/webhooks/",
+    "https://developers.cloudflare.com/agents/concepts/calling-llms/",
+    "https://developers.cloudflare.com/agents/runtime/operations/configuration/"
+  ]
+}
