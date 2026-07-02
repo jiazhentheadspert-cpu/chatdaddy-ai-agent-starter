@@ -387,9 +387,17 @@ function rulesDecision(inbound) {
     }, "rules");
   }
 
-  if (/(怀孕|药|病|医生|医院|diabetes|pregnant|medicine|medical)/i.test(text)) {
+  if (/(怀孕|药|病|医生|医院|胃酸|胃痛|胃病|胃炎|胃溃疡|骨髓|造血|血小板|血液|严重便秘|长期便秘|diabetes|pregnant|medicine|medical|gastric|stomach|platelet|bone\s*marrow|severe\s*constipation)/i.test(text)) {
+    const gastric = /(胃酸|胃痛|胃病|胃炎|胃溃疡|gastric|stomach)/i.test(text);
+    const serious = /(骨髓|造血|血小板|血液|严重便秘|长期便秘|platelet|bone\s*marrow|severe\s*constipation)/i.test(text);
+    const healthReply = [
+      gastric ? "有胃酸、胃痛或胃不舒服，不建议空腹喝；通常会先建议饭后或吃了东西后再喝。" : "",
+      serious ? "你提到的血小板、骨髓造血或严重便秘这类情况比较敏感，我不能直接判断适不适合；建议先问医生，或让我先确认清楚再回复你。" : "",
+      !gastric && !serious ? "这个涉及身体状况和体质，我不乱答。你先给我一点时间，我确认清楚再回复你。" : "",
+      "这类情况我先不推配套，确认安全比较重要。",
+    ].filter(Boolean).join("\n\n");
     return normalizeDecision({
-      reply_message: "亲，这个我不乱回答。我先确认清楚你的情况，安全一点再回复你。",
+      reply_message: `亲，${healthReply}`,
       intent: "health_sensitive",
       stage: "HUMAN",
       risk: "high",
@@ -410,6 +418,19 @@ function rulesDecision(inbound) {
       send_now: false,
       reason: "PWP/RM68/add-on 需要确认活动资格和当前订单，不能套普通价格图。",
       keywords: ["PWP/RM68", "特别加购", "先确认资格"],
+    }, "rules");
+  }
+
+  if (isFuturePaymentPromise(text)) {
+    return normalizeDecision({
+      reply_message: "可以的，你等下/今天方便付款就好。付款后记得发我截图或通知我，我这边会再核对金额和订单资料，然后继续帮你安排。",
+      intent: "future_payment",
+      stage: "ORDER",
+      risk: "medium",
+      action: "approve_reply",
+      send_now: false,
+      reason: "顾客只是说稍后付款，不是已付款；记录日期/时间并等付款截图或通知。",
+      keywords: ["等付款", "提醒截图", "不当已付款"],
     }, "rules");
   }
 
@@ -591,12 +612,22 @@ function isStepOneKeywordLead(text) {
   return keywordLeads.some((keyword) => value.includes(keyword));
 }
 
+function isFuturePaymentPromise(text) {
+  const value = String(text || "").trim();
+  if (!value) return false;
+  const futureTime = /(今天|等下|待会|待會|晚点|晚點|迟点|遲點|稍后|稍後|下午|今晚|晚上|明天|后天|後天|tomorrow|later|tonight|today)/i;
+  const payWord = /(付款|付钱|付錢|过钱|過錢|汇款|匯款|转账|轉賬|支付|pay|payment|make\s+payment|bank\s*in|transfer)/i;
+  if (futureTime.test(value) && payWord.test(value)) return true;
+  return /(?:我|会|會|will|going\s+to|gonna).{0,18}(?:付款|付钱|付錢|过钱|過錢|汇款|匯款|转账|轉賬|支付|pay|make\s+payment).{0,18}(?:等下|待会|待會|晚点|晚點|迟点|遲點|稍后|稍後|下午|今晚|晚上|明天|tomorrow|later|tonight|today)/i.test(value);
+}
+
 function isExplicitPaymentReceiptMessage(text) {
   const value = String(text || "").trim();
   if (!value) return false;
   if (/^\s*[\[【(（]?\s*(?:付款截图|付款證明|付款证明|收据|收據|receipt|payment\s*proof|image|photo)\s*[\]】)）]?\s*$/i.test(value)) {
     return false;
   }
+  if (isFuturePaymentPromise(value)) return false;
   return /(?:我|已|已经|已經|刚|剛|刚刚|剛剛).{0,12}(?:付款|付钱|付錢|转账|轉賬|汇款|匯款|bank\s*in|transfer|paid)|(?:付款|付钱|付錢|转账|轉賬|汇款|匯款).{0,12}(?:了|啦|咯|好了|过了|過了|done|completed)|\b(?:paid|already\s+paid|paid\s+already|banked\s*in|transferred|payment\s*(?:already\s*)?made|payment\s*done|payment\s*completed)\b/i.test(value);
 }
 
