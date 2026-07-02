@@ -1,0 +1,152 @@
+{
+  "schema_version": "hermas.chatdaddy_payload_samples_required.v1",
+  "purpose": "Required real ChatDaddy webhook samples before scaling Hermas to 20 brands.",
+  "redaction_policy": {
+    "may_mask": [
+      "phone numbers",
+      "customer names",
+      "message text",
+      "tokens",
+      "api keys",
+      "webhook secrets",
+      "attachment URLs after keeping the field name and URL-like shape"
+    ],
+    "must_not_remove": [
+      "field names",
+      "nesting",
+      "arrays",
+      "provider ids",
+      "account id fields",
+      "chat/thread/contact id fields",
+      "message direction fields",
+      "message type fields",
+      "timestamp fields",
+      "flow/bot/button fields",
+      "attachment metadata fields",
+      "delivery/failure status fields"
+    ]
+  },
+  "samples": [
+    {
+      "sample_key": "inbound_text",
+      "why_needed": "Detect a real free-text customer question after ChatDaddy Flow stops.",
+      "must_identify": [
+        "account_id",
+        "contact_id",
+        "chat_or_thread_id",
+        "message_id",
+        "customer_display_name",
+        "customer_phone",
+        "text",
+        "timestamp",
+        "from_me"
+      ]
+    },
+    {
+      "sample_key": "button_click",
+      "why_needed": "Confirm ChatDaddy owns button-to-next-Flow and Hermas should not create a customer-service case.",
+      "must_identify": [
+        "button_text_or_payload",
+        "flow_id_or_bot_id",
+        "step_id_or_step_name",
+        "contact_id",
+        "message_id",
+        "timestamp"
+      ]
+    },
+    {
+      "sample_key": "image_or_receipt",
+      "why_needed": "Separate visual evidence from text-only questions; do not assume a receipt without evidence.",
+      "must_identify": [
+        "message_type",
+        "attachment_url_or_media_id",
+        "caption",
+        "contact_id",
+        "chat_or_thread_id",
+        "timestamp"
+      ]
+    },
+    {
+      "sample_key": "audio_or_voice_note",
+      "why_needed": "Avoid fake understanding when the Dashboard has no transcript.",
+      "must_identify": [
+        "message_type",
+        "attachment_url_or_media_id",
+        "duration_if_available",
+        "transcript_if_available",
+        "contact_id",
+        "timestamp"
+      ]
+    },
+    {
+      "sample_key": "outbound_by_chatdaddy",
+      "why_needed": "Store Flow context without letting Hermas reply to its own or ChatDaddy's outbound message.",
+      "must_identify": [
+        "from_me",
+        "sender_type",
+        "text",
+        "flow_id_or_bot_id",
+        "message_id",
+        "timestamp"
+      ]
+    },
+    {
+      "sample_key": "flow_continued",
+      "why_needed": "Move stale approval cases to automatic records when external Flow already continued.",
+      "must_identify": [
+        "flow_id_or_bot_id",
+        "step_id_or_step_name",
+        "contact_id",
+        "chat_or_thread_id",
+        "event_type",
+        "timestamp"
+      ]
+    },
+    {
+      "sample_key": "paid_or_cod",
+      "why_needed": "Confirm payment/order events without sending a customer message or guessing the amount.",
+      "must_identify": [
+        "payment_status",
+        "order_id",
+        "amount",
+        "currency",
+        "payment_method",
+        "evidence_or_receipt_ref",
+        "contact_id",
+        "timestamp"
+      ]
+    },
+    {
+      "sample_key": "failed_message",
+      "why_needed": "Show admin-only sync failure and avoid hiding failed sends from operations.",
+      "must_identify": [
+        "failed_message_id",
+        "failure_reason",
+        "status",
+        "contact_id",
+        "timestamp"
+      ]
+    },
+    {
+      "sample_key": "contact_update",
+      "why_needed": "Backfill real customer names without blocking Dashboard first render.",
+      "must_identify": [
+        "contact_id",
+        "display_name",
+        "profile_name",
+        "phone",
+        "tags",
+        "custom_fields",
+        "updated_at"
+      ]
+    }
+  ],
+  "normalized_event_contract": "hermas.channel_adapter.v1",
+  "default_handling": {
+    "keyword_and_button": "ChatDaddy owns Step 1 and button-to-next-Flow.",
+    "free_text_after_flow_stops": "Hermas answers or creates approval case.",
+    "attachments_without_text": "Record context; do not guess customer intent.",
+    "flow_continued": "Automatic record, not staff queue.",
+    "payment_confirmation": "Requires visual/evidence review and amount before mark-paid."
+  }
+}
