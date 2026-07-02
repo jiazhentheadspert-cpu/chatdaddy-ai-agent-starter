@@ -98,6 +98,7 @@ https://YOUR_WORKER.workers.dev/api/channels/chatdaddy/webhook/{connection_id}?p
 
 不要把 `OPENAI_API_KEY`、`SUPABASE_SERVICE_ROLE_KEY`、`CHATDADDY_API_KEY`、`CHATDADDY_WEBHOOK_SECRET` 放进 GitHub；全部用 `wrangler secret put`。
 如果 Worker 设置了 `CHATDADDY_WEBHOOK_SECRET`，ChatDaddy webhook 请求必须带 `x-webhook-secret` 或 `Authorization: Bearer ...`。
+ChatDaddy payload 样本可以用 `/api/agents/runtime/payload-samples` 查看，但必须先设置 `ADMIN_TOKEN` 或 `HERMAS_ADMIN_TOKEN`，否则接口会锁住。
 
 Dashboard demo:
 

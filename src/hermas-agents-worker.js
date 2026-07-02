@@ -29,6 +29,34 @@ export class HermasProjectAgent extends Agent {
       });
     }
 
+    if (request.method === "GET" && url.pathname === "/samples") {
+      this.ensureTables();
+      const connectionId = url.searchParams.get("connection_id");
+      const rows = connectionId
+        ? this.sql`
+          SELECT id, project_key, connection_id, event_type, message_type, payload_shape, normalized_preview, created_at
+          FROM webhook_payload_samples
+          WHERE connection_id = ${connectionId}
+          ORDER BY created_at DESC
+          LIMIT 20
+        `
+        : this.sql`
+          SELECT id, project_key, connection_id, event_type, message_type, payload_shape, normalized_preview, created_at
+          FROM webhook_payload_samples
+          ORDER BY created_at DESC
+          LIMIT 20
+        `;
+      return json({
+        ok: true,
+        runtime: "HermasProjectAgent",
+        samples: rows.map((row) => ({
+          ...row,
+          payload_shape: safeJsonParse(row.payload_shape),
+          normalized_preview: safeJsonParse(row.normalized_preview)
+        }))
+      });
+    }
+
     if (request.method === "POST" && url.pathname === "/intake/chatdaddy") {
       this.ensureTables();
       const connectionId = url.searchParams.get("connection_id") || "default";
@@ -45,6 +73,7 @@ export class HermasProjectAgent extends Agent {
       });
 
       this.recordLocalEvent(normalized);
+      this.recordPayloadSample(normalized, payload);
       await persistSupabaseMessage(this.env, normalized, payload);
 
       const contactKey = await stableContactKey(normalized);
@@ -92,6 +121,18 @@ export class HermasProjectAgent extends Agent {
         created_at TEXT NOT NULL
       )
     `;
+    this.sql`
+      CREATE TABLE IF NOT EXISTS webhook_payload_samples (
+        id TEXT PRIMARY KEY,
+        project_key TEXT NOT NULL,
+        connection_id TEXT NOT NULL,
+        event_type TEXT,
+        message_type TEXT,
+        payload_shape TEXT NOT NULL,
+        normalized_preview TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    `;
   }
 
   recordLocalEvent(normalized) {
@@ -115,6 +156,32 @@ export class HermasProjectAgent extends Agent {
         ${normalized.event_type},
         ${normalized.message_type},
         ${normalized.text || ""},
+        ${new Date().toISOString()}
+      )
+    `;
+  }
+
+  recordPayloadSample(normalized, rawPayload) {
+    const id = `${normalized.project_key}:${normalized.connection_id}:${normalized.provider_message_id || normalized.event_id}`;
+    this.sql`
+      INSERT OR REPLACE INTO webhook_payload_samples (
+        id,
+        project_key,
+        connection_id,
+        event_type,
+        message_type,
+        payload_shape,
+        normalized_preview,
+        created_at
+      )
+      VALUES (
+        ${id},
+        ${normalized.project_key},
+        ${normalized.connection_id},
+        ${normalized.event_type},
+        ${normalized.message_type},
+        ${JSON.stringify(toPayloadShape(rawPayload))},
+        ${JSON.stringify(publicNormalizedEvent(normalized))},
         ${new Date().toISOString()}
       )
     `;
@@ -262,6 +329,19 @@ export default {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ normalized, payload })
+      }));
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/agents/runtime/payload-samples") {
+      const authError = verifyAdminToken(request, env);
+      if (authError) return authError;
+
+      const projectKey = normalizeProjectKey(url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
+      const connectionId = url.searchParams.get("connection_id") || "";
+      const projectAgent = await getAgentByName(env.HermasProjectAgent, `project:${projectKey}`);
+      return projectAgent.fetch(new Request(`https://agent.local/samples?connection_id=${encodeURIComponent(connectionId)}`, {
+        method: "GET",
+        headers: request.headers
       }));
     }
 
@@ -727,6 +807,20 @@ function hasSupabase(env) {
   return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY && !String(env.SUPABASE_URL).includes("YOUR_PROJECT"));
 }
 
+function verifyAdminToken(request, env) {
+  const expected = env.ADMIN_TOKEN || env.HERMAS_ADMIN_TOKEN;
+  if (!expected) return json({ ok: false, error: "admin_token_not_configured" }, 503);
+
+  const authorization = request.headers.get("authorization") || "";
+  const bearer = authorization.toLowerCase().startsWith("bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+  const provided = request.headers.get("x-admin-token") || bearer;
+
+  if (provided && provided === expected) return null;
+  return json({ ok: false, error: "invalid_admin_token" }, 401);
+}
+
 function verifyWebhookSecret(request, env) {
   const expected = env.CHATDADDY_WEBHOOK_SECRET;
   if (!expected) return null;
@@ -739,6 +833,50 @@ function verifyWebhookSecret(request, env) {
 
   if (provided && provided === expected) return null;
   return json({ ok: false, error: "invalid_webhook_secret" }, 401);
+}
+
+function toPayloadShape(value, depth = 0) {
+  if (depth > 6) return { type: "max_depth" };
+  if (value === null) return { type: "null" };
+  if (Array.isArray(value)) {
+    return {
+      type: "array",
+      length: value.length,
+      first: value.length ? toPayloadShape(value[0], depth + 1) : null
+    };
+  }
+  if (typeof value !== "object") {
+    return scalarShape(value);
+  }
+
+  const out = {};
+  for (const key of Object.keys(value).sort().slice(0, 80)) {
+    if (isSensitiveKey(key)) {
+      out[key] = { type: "redacted" };
+    } else {
+      out[key] = toPayloadShape(value[key], depth + 1);
+    }
+  }
+  return { type: "object", fields: out };
+}
+
+function scalarShape(value) {
+  const type = typeof value;
+  if (type !== "string") return { type };
+  const text = value.trim();
+  if (!text) return { type: "string", empty: true };
+  if (/^https?:\/\//i.test(text)) return { type: "string", kind: "url" };
+  if (/^\+?\d[\d\s().-]{6,}$/.test(text)) return { type: "string", kind: "phone_like" };
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(text)) return { type: "string", kind: "email_like" };
+  return {
+    type: "string",
+    kind: text.length > 120 ? "long_text" : "short_text",
+    length: text.length
+  };
+}
+
+function isSensitiveKey(key) {
+  return /(token|secret|authorization|password|api[_-]?key|access[_-]?key|refresh|cookie|signature|phone|mobile|email|address)/i.test(key);
 }
 
 function publicNormalizedEvent(normalized) {
@@ -761,6 +899,14 @@ function publicNormalizedEvent(normalized) {
     stage: normalized.stage,
     message_at: normalized.message_at
   };
+}
+
+function safeJsonParse(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
 }
 
 async function stableContactKey(normalized) {

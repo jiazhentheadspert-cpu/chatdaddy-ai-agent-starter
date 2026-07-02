@@ -418,6 +418,9 @@ or give controlled account access.
   Supabase persistence.
 - ChatDaddy webhook auth is enforced when `CHATDADDY_WEBHOOK_SECRET` is configured.
   The request must include `x-webhook-secret` or `Authorization: Bearer ...`.
+- A safe ChatDaddy payload recorder is included. It stores payload field shapes
+  and a normalized preview, not raw customer secrets. Admin can read samples via:
+  `GET /api/agents/runtime/payload-samples?project_key=beyoute&connection_id=...`.
 - Existing production `worker-v2.js` remains the live fallback until the owner
   and Tech Team decide to cut over.
 - Keep existing `/api/hermas/...` endpoints.
@@ -438,6 +441,23 @@ curl -s -X POST http://127.0.0.1:8787/api/agents/runtime/decide-test \
   -H 'content-type: application/json' \
   -d '{"text":"等下付款","contact":{"name":"Test Customer","id":"demo_contact"}}'
 ```
+
+ChatDaddy sample capture, in plain terms:
+
+1. Deploy the Agents Worker to staging.
+2. Put the staging webhook URL into ChatDaddy:
+   `/api/channels/chatdaddy/webhook/{connection_id}?project_key=beyoute`.
+3. Send a few test WhatsApp messages:
+   - plain text question
+   - keyword that starts Step 1
+   - button click
+   - image or receipt
+   - "I will pay later" style payment intent
+   - outbound/Flow continued event if ChatDaddy exposes it
+   - failed message event if ChatDaddy exposes it
+4. Read the sanitized samples with admin token:
+   `/api/agents/runtime/payload-samples?project_key=beyoute&connection_id=...`.
+   If `ADMIN_TOKEN` or `HERMAS_ADMIN_TOKEN` is not configured, this endpoint stays locked.
 
 ### Phase 2: Webhook route through agents
 
