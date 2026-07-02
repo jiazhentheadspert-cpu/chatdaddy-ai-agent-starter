@@ -4458,6 +4458,25 @@
       border-radius: 14px;
     }
 
+    .panel.open .panel-body {
+      padding-bottom: 110px;
+    }
+
+    .panel.open .reply-command-bar {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      width: min(760px, calc(100vw - 56px));
+      transform: translateX(-50%);
+      z-index: 60;
+      border: 1px solid rgba(16,185,157,.34);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.99), rgba(236,251,247,.99));
+      box-shadow:
+        0 24px 70px rgba(8,23,29,.24),
+        0 1px 0 rgba(255,255,255,.92) inset;
+    }
+
     .reply-command-bar .quick-action-head {
       margin-right: auto;
     }
@@ -5620,7 +5639,7 @@
             <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
               <div class="quick-action-head">
                 <span>客服操作</span>
-                <small>检查后才按</small>
+                <small>修改好就按发送</small>
               </div>
               <button class="btn primary composer-send-button" id="approveBtn" type="button">发送当前回复</button>
               <details class="function-menu" id="functionMenu">
