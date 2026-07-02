@@ -58,6 +58,46 @@ docs/HERMAS_CLOUDFLARE_AGENTS_SDK_ROADMAP.md
 
 `HERMAS_CLOUDFLARE_AGENTS_SDK_ROADMAP.md` 是下一步 Cloudflare Agents SDK 迁移路线：Agent runtime、Supabase、ChatDaddy webhook、onboarding 框架、自动回复等级和老板/Tech Team 需要提供的资料。
 
+## Cloudflare Agents SDK Runtime
+
+这个 starter 已经带一个公开安全的 Agents SDK runtime scaffold：
+
+```text
+src/hermas-agents-worker.js
+wrangler.agents.example.toml
+```
+
+它默认还是 approval-first：
+
+```text
+send_now=false
+trigger_flow_now=false
+```
+
+本地试跑：
+
+```bash
+npm install
+npm run dev:agents
+```
+
+测试：
+
+```bash
+curl http://127.0.0.1:8787/health
+curl -X POST http://127.0.0.1:8787/api/agents/runtime/decide-test \
+  -H 'content-type: application/json' \
+  --data '{"project_key":"demo","text":"我等下付款","contact":{"name":"Ester Fan","id":"c1"},"message_id":"m1"}'
+```
+
+等 Supabase、ChatDaddy account、webhook secret 和项目包准备好后，才把 ChatDaddy webhook 指到：
+
+```text
+https://YOUR_WORKER.workers.dev/api/channels/chatdaddy/webhook/{connection_id}?project_key=demo
+```
+
+不要把 `OPENAI_API_KEY`、`SUPABASE_SERVICE_ROLE_KEY`、`CHATDADDY_API_KEY`、`CHATDADDY_WEBHOOK_SECRET` 放进 GitHub；全部用 `wrangler secret put`。
+
 Dashboard demo:
 
 ```text

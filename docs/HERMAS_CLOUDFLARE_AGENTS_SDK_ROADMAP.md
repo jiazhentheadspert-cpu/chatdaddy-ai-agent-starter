@@ -404,15 +404,38 @@ or give controlled account access.
 
 ### Phase 1: Agent runtime scaffold
 
-- Add package setup for `agents`.
-- Convert or wrap Worker entry to export Agent classes.
-- Add Durable Object bindings:
+- Added first runnable scaffold:
+  - `chatdaddy_platform/worker/package.json`
+  - `chatdaddy_platform/worker/src/hermas-agents-worker.js`
+  - `chatdaddy_platform/worker/wrangler.agents.example.toml`
+  - `CHECK_Hermas_Cloudflare_Agents_Runtime.command`
+- The scaffold exports:
   - `HermasProjectAgent`
   - `HermasConversationAgent`
   - `HermasOpsAgent`
-- Add `nodejs_compat`.
-- Add SQLite migrations for Agent classes.
+- The scaffold has Durable Object bindings, `new_sqlite_classes`, `nodejs_compat`,
+  local SQL state, ChatDaddy webhook routing, decision-test endpoint, and optional
+  Supabase persistence.
+- Existing production `worker-v2.js` remains the live fallback until the owner
+  and Tech Team decide to cut over.
 - Keep existing `/api/hermas/...` endpoints.
+
+Run locally after installing dependencies:
+
+```bash
+cd chatdaddy_platform/worker
+npm install
+npm run dev:agents
+```
+
+Then test:
+
+```bash
+curl -s http://127.0.0.1:8787/api/agents/runtime/health
+curl -s -X POST http://127.0.0.1:8787/api/agents/runtime/decide-test \
+  -H 'content-type: application/json' \
+  -d '{"text":"等下付款","contact":{"name":"Test Customer","id":"demo_contact"}}'
+```
 
 ### Phase 2: Webhook route through agents
 

@@ -1,0 +1,37 @@
+name = "chatdaddy-ai-agent-starter-agents"
+main = "src/hermas-agents-worker.js"
+compatibility_date = "2026-07-02"
+compatibility_flags = [ "nodejs_compat" ]
+
+[vars]
+AGENT_PROJECT_KEY = "demo"
+HERMAS_AGENT_LLM_ENABLED = "false"
+HERMAS_AGENT_MODEL = "gpt-5.4-mini"
+AGENT_AUTO_SEND = "false"
+AGENT_AUTO_TRIGGER_FLOWS = "false"
+SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
+
+# Set with wrangler secret put. Do not commit real values.
+# OPENAI_API_KEY
+# SUPABASE_SERVICE_ROLE_KEY
+# CHATDADDY_API_KEY
+# CHATDADDY_WEBHOOK_SECRET
+
+[[durable_objects.bindings]]
+name = "HermasProjectAgent"
+class_name = "HermasProjectAgent"
+
+[[durable_objects.bindings]]
+name = "HermasConversationAgent"
+class_name = "HermasConversationAgent"
+
+[[durable_objects.bindings]]
+name = "HermasOpsAgent"
+class_name = "HermasOpsAgent"
+
+[[migrations]]
+tag = "hermas_agents_v1"
+new_sqlite_classes = [ "HermasProjectAgent", "HermasConversationAgent", "HermasOpsAgent" ]
+
+[observability]
+enabled = true
