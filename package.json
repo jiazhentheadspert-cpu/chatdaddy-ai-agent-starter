@@ -15,7 +15,9 @@
     "secret:sheet": "wrangler secret put GOOGLE_SHEET_SECRET",
     "dev:agents": "wrangler dev --config wrangler.agents.example.toml",
     "deploy:agents": "wrangler deploy --config wrangler.agents.example.toml",
-    "check:agents": "node --check src/hermas-agents-worker.js"
+    "check:agents": "node --check src/hermas-agents-worker.js",
+    "check:live-launch": "node scripts/check_agents_live_launch_preflight.mjs",
+    "seed:beyoute": "node scripts/apply_supabase_beyoute_seed_via_rest.mjs"
   },
   "dependencies": {
     "agents": "^0.17.3"

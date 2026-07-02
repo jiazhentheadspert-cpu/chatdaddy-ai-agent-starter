@@ -1,6 +1,6 @@
 # Hermas SaaS v1 Scale Implementation
 
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 
 ## Goal
 
@@ -35,11 +35,17 @@ Webhook handlers should acknowledge quickly. Do not wait for contact enrichment,
 
 ## Implemented In This Repo
 
-- Supabase migration: `hermas_ai/migrations/0003_supabase_saas_scale.sql`
-- Beyoute dev seed: `hermas_ai/migrations/0004_supabase_beyoute_dev_seed.sql`
+- Supabase migration: `migrations/0004_supabase_saas_scale.sql`
+- Beyoute dev seed: `migrations/0005_beyoute_dev_seed.sql`
   - creates non-secret CTG/Beyoute project rows
   - creates a non-secret `beyoute-chatdaddy` channel connection placeholder
   - adds idempotency indexes for channel connections, conversations, and approval cases
+- Safe seed runner: `setup/run_supabase_beyoute_seed.command`
+  - uses Supabase REST with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
+  - avoids pasting SQL into the browser editor
+  - does not print secrets
+- Live preflight runner: `setup/check_agents_live_launch.command`
+  - checks Agents SDK, Supabase linkage, approval-first defaults, and secret boundaries
 - Public staff API aliases:
   - `GET /api/projects/{project_key}/queue`
   - `GET /api/projects/{project_key}/cases/{case_id}`
@@ -197,13 +203,14 @@ Acceptance targets for the first 20 brands:
 ## Rollout Order
 
 1. Create staging Supabase project.
-2. Apply base schema, then `0003_supabase_saas_scale.sql`.
-3. For the Beyoute dev pilot, apply `0004_supabase_beyoute_dev_seed.sql`.
+2. Apply base schema, then `migrations/0004_supabase_saas_scale.sql`.
+3. For the Beyoute dev pilot, run `setup/run_supabase_beyoute_seed.command` after setting Supabase env locally; avoid manual browser SQL paste unless there is no other option.
 4. Create first admin and staff users.
 5. Seed the remaining 19 `projects` and `channel_connections`.
 6. Connect one ChatDaddy account in staging and collect payload samples.
 7. Verify adapter normalization for text, button, image, audio, Flow, payment, failed message.
 8. Run Dashboard staff boundary checks.
 9. Load test 20 projects at 2,000 inbound/day equivalent.
-10. Repeat on production.
-11. Give staff the production login URL only. Do not give tokens or backend endpoints.
+10. Run `setup/check_agents_live_launch.command`.
+11. Repeat on production.
+12. Give staff the production login URL only. Do not give tokens or backend endpoints.
