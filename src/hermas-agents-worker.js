@@ -74,8 +74,8 @@ export class HermasProjectAgent extends Agent {
 
       this.recordLocalEvent(normalized);
       this.recordPayloadSample(normalized, payload);
-      const messagePersistence = await persistSupabaseMessage(this.env, normalized, payload);
-      const backgroundJob = await persistSupabaseBackgroundJob(this.env, normalized);
+      const intakePersistence = await persistSupabaseIntakeRecords(this.env, normalized, payload);
+      const backgroundJob = await persistSupabaseBackgroundJob(this.env, normalized, intakePersistence.refs);
 
       const contactKey = await stableContactKey(normalized);
       const conversationAgent = await getAgentByName(
@@ -85,7 +85,7 @@ export class HermasProjectAgent extends Agent {
       const decisionResponse = await conversationAgent.fetch(new Request("https://agent.local/decide", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ normalized, payload })
+        body: JSON.stringify({ normalized, payload, supabase_refs: intakePersistence.refs })
       }));
       const decisionBody = await decisionResponse.json();
 
@@ -103,7 +103,7 @@ export class HermasProjectAgent extends Agent {
         normalized: publicNormalizedEvent(normalized),
         decision: decisionBody.decision,
         persistence: {
-          message: messagePersistence,
+          intake: intakePersistence,
           background_job: backgroundJob,
           decision: decisionBody.persistence || null
         }
@@ -214,11 +214,11 @@ export class HermasConversationAgent extends Agent {
 
     if (request.method === "POST" && url.pathname === "/decide") {
       this.ensureTables();
-      const { normalized, payload } = await readJson(request);
+      const { normalized, payload, supabase_refs: supabaseRefs } = await readJson(request);
       const deterministicDecision = decideApprovalFirst(normalized);
       const decision = await maybeImproveDraftWithModel(this.env, normalized, deterministicDecision);
       this.recordDecision(normalized, decision);
-      const persistence = await persistSupabaseDecision(this.env, normalized, decision, payload);
+      const persistence = await persistSupabaseDecision(this.env, normalized, decision, payload, supabaseRefs || {});
       this.setState({
         ...this.state,
         last_decision_at: new Date().toISOString(),
@@ -712,8 +712,209 @@ function normalizeAttachment(value) {
 
 async function persistSupabaseMessage(env, normalized, rawPayload) {
   if (!hasSupabase(env)) return { attempted: false, reason: "supabase_not_configured" };
+  return persistSupabaseMessageWithRefs(env, normalized, rawPayload, {});
+}
+
+async function persistSupabaseIntakeRecords(env, normalized, rawPayload) {
+  const out = {
+    attempted: false,
+    ok: false,
+    refs: {},
+    project: null,
+    connection: null,
+    customer: null,
+    conversation: null,
+    message: null
+  };
+  if (!hasSupabase(env)) {
+    return { ...out, reason: "supabase_not_configured" };
+  }
+
+  out.attempted = true;
+  out.project = await lookupSupabaseProject(env, normalized.project_key);
+  if (!out.project?.id) {
+    return {
+      ...out,
+      reason: "project_not_seeded",
+      error: `Project ${normalized.project_key} must exist before webhook intake.`
+    };
+  }
+
+  out.connection = await lookupSupabaseChannelConnection(env, normalized.project_key, normalized.connection_id);
+  const channelConnectionId = out.connection?.id || null;
+
+  out.customer = await upsertSupabaseCustomer(env, normalized, channelConnectionId);
+  const customerId = firstReturnedId(out.customer);
+
+  out.conversation = await upsertSupabaseConversation(env, normalized, {
+    customer_id: customerId,
+    channel_connection_id: channelConnectionId
+  });
+  const conversationId = firstReturnedId(out.conversation);
+
+  const refs = {
+    project_id: out.project.id,
+    channel_connection_id: channelConnectionId,
+    customer_id: customerId,
+    conversation_id: conversationId
+  };
+
+  out.message = await persistSupabaseMessageWithRefs(env, normalized, rawPayload, refs);
+  refs.message_id = firstReturnedId(out.message);
+  out.refs = refs;
+  out.ok = Boolean(out.message?.ok || out.message?.skipped_existing);
+  return out;
+}
+
+async function lookupSupabaseProject(env, projectKey) {
+  const rows = await supabaseSelectRows(
+    env,
+    `projects?project_key=eq.${encodeURIComponent(projectKey)}&select=id,project_key,name,status&limit=1`
+  );
+  return rows[0] || null;
+}
+
+async function lookupSupabaseChannelConnection(env, projectKey, connectionId) {
+  if (!connectionId) return null;
+  const byKey = await supabaseSelectRows(
+    env,
+    `channel_connections?project_key=eq.${encodeURIComponent(projectKey)}&connection_key=eq.${encodeURIComponent(connectionId)}&select=id,project_key,connection_key,provider_connection_id,status&limit=1`
+  );
+  if (byKey[0]) return byKey[0];
+  const byProviderId = await supabaseSelectRows(
+    env,
+    `channel_connections?project_key=eq.${encodeURIComponent(projectKey)}&provider_connection_id=eq.${encodeURIComponent(connectionId)}&select=id,project_key,connection_key,provider_connection_id,status&limit=1`
+  );
+  return byProviderId[0] || null;
+}
+
+async function upsertSupabaseCustomer(env, normalized, channelConnectionId) {
+  const existing = await findSupabaseCustomer(env, normalized, channelConnectionId);
+  const payload = withoutUndefined({
+    project_key: normalized.project_key,
+    channel_connection_id: channelConnectionId || undefined,
+    external_customer_id: normalized.external_customer_id || undefined,
+    phone_e164: normalized.phone || undefined,
+    display_name: normalized.display_name || undefined,
+    source: normalized.provider,
+    last_seen_at: normalized.message_at,
+    profile: {
+      provider: normalized.provider,
+      connection_id: normalized.connection_id,
+      external_conversation_id: normalized.external_conversation_id || null
+    }
+  });
+
+  if (existing?.id) {
+    const patch = withoutUndefined({
+      external_customer_id: normalized.external_customer_id || undefined,
+      phone_e164: normalized.phone || undefined,
+      display_name: normalized.display_name || undefined,
+      last_seen_at: normalized.message_at,
+      profile: payload.profile
+    });
+    const patched = await supabasePatch(env, `customers?id=eq.${existing.id}`, patch);
+    return { ...patched, existing: true, data: patched.data?.length ? patched.data : [existing] };
+  }
+
+  if (!payload.external_customer_id && !payload.phone_e164 && !payload.display_name) {
+    return { attempted: false, skipped: true, reason: "no_customer_identifier" };
+  }
+  return supabaseInsert(env, "customers", payload);
+}
+
+async function findSupabaseCustomer(env, normalized, channelConnectionId) {
+  if (normalized.external_customer_id && channelConnectionId) {
+    const rows = await supabaseSelectRows(
+      env,
+      `customers?project_key=eq.${encodeURIComponent(normalized.project_key)}&channel_connection_id=eq.${channelConnectionId}&external_customer_id=eq.${encodeURIComponent(normalized.external_customer_id)}&select=id,display_name,phone_e164,external_customer_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  if (normalized.external_customer_id) {
+    const rows = await supabaseSelectRows(
+      env,
+      `customers?project_key=eq.${encodeURIComponent(normalized.project_key)}&external_customer_id=eq.${encodeURIComponent(normalized.external_customer_id)}&select=id,display_name,phone_e164,external_customer_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  if (normalized.phone) {
+    const rows = await supabaseSelectRows(
+      env,
+      `customers?project_key=eq.${encodeURIComponent(normalized.project_key)}&phone_e164=eq.${encodeURIComponent(normalized.phone)}&select=id,display_name,phone_e164,external_customer_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  return null;
+}
+
+async function upsertSupabaseConversation(env, normalized, refs) {
+  const existing = await findSupabaseConversation(env, normalized, refs);
+  const payload = withoutUndefined({
+    project_key: normalized.project_key,
+    customer_id: refs.customer_id || undefined,
+    channel_connection_id: refs.channel_connection_id || undefined,
+    external_conversation_id: normalized.external_conversation_id || undefined,
+    status: "open",
+    stage: normalized.stage || undefined,
+    last_message_at: normalized.message_at,
+    last_customer_message_at: normalized.direction === "inbound" ? normalized.message_at : undefined,
+    last_agent_message_at: normalized.direction === "outbound" ? normalized.message_at : undefined,
+    metadata: {
+      provider: normalized.provider,
+      connection_id: normalized.connection_id
+    }
+  });
+
+  if (existing?.id) {
+    const patched = await supabasePatch(env, `conversations?id=eq.${existing.id}`, payload);
+    return { ...patched, existing: true, data: patched.data?.length ? patched.data : [existing] };
+  }
+
+  return supabaseInsert(env, "conversations", payload);
+}
+
+async function findSupabaseConversation(env, normalized, refs) {
+  if (normalized.external_conversation_id) {
+    const rows = await supabaseSelectRows(
+      env,
+      `conversations?project_key=eq.${encodeURIComponent(normalized.project_key)}&external_conversation_id=eq.${encodeURIComponent(normalized.external_conversation_id)}&select=id,external_conversation_id,customer_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  if (refs.customer_id) {
+    const rows = await supabaseSelectRows(
+      env,
+      `conversations?project_key=eq.${encodeURIComponent(normalized.project_key)}&customer_id=eq.${refs.customer_id}&status=eq.open&select=id,external_conversation_id,customer_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  return null;
+}
+
+async function persistSupabaseMessageWithRefs(env, normalized, rawPayload, refs = {}) {
+  if (!hasSupabase(env)) return { attempted: false, reason: "supabase_not_configured" };
+  const existing = await findSupabaseMessage(env, normalized);
+  if (existing?.id) {
+    return {
+      attempted: true,
+      ok: true,
+      table: "messages",
+      skipped_existing: true,
+      rows: 1,
+      data: [existing]
+    };
+  }
+
   const payload = {
     project_key: normalized.project_key,
+    conversation_id: refs.conversation_id || null,
+    customer_id: refs.customer_id || null,
     direction: normalized.direction,
     sender_type: normalized.direction === "inbound" ? "customer" : "provider",
     provider: normalized.provider,
@@ -727,13 +928,25 @@ async function persistSupabaseMessage(env, normalized, rawPayload) {
     metadata: {
       connection_id: normalized.connection_id,
       event_id: normalized.event_id,
+      display_name: normalized.display_name || null,
+      external_customer_id: normalized.external_customer_id || null,
+      external_conversation_id: normalized.external_conversation_id || null,
       raw_payload_shape_seen: Boolean(rawPayload)
     }
   };
   return supabaseInsert(env, "messages", payload);
 }
 
-async function persistSupabaseBackgroundJob(env, normalized) {
+async function findSupabaseMessage(env, normalized) {
+  if (!normalized.provider_message_id) return null;
+  const rows = await supabaseSelectRows(
+    env,
+    `messages?project_key=eq.${encodeURIComponent(normalized.project_key)}&provider=eq.${encodeURIComponent(normalized.provider)}&provider_message_id=eq.${encodeURIComponent(normalized.provider_message_id)}&select=id,provider_message_id&limit=1`
+  );
+  return rows[0] || null;
+}
+
+async function persistSupabaseBackgroundJob(env, normalized, refs = {}) {
   if (!hasSupabase(env)) return { attempted: false, reason: "supabase_not_configured" };
   const jobType = normalized.direction === "inbound"
     ? "chatdaddy_inbound_decision"
@@ -743,6 +956,18 @@ async function persistSupabaseBackgroundJob(env, normalized) {
     normalized.provider,
     normalized.provider_message_id || normalized.event_id
   ].join(":");
+
+  const existing = await findSupabaseBackgroundJob(env, normalized.project_key, dedupeKey);
+  if (existing?.id) {
+    return {
+      attempted: true,
+      ok: true,
+      table: "background_jobs",
+      skipped_existing: true,
+      rows: 1,
+      data: [existing]
+    };
+  }
 
   return supabaseInsert(env, "background_jobs", {
     project_key: normalized.project_key,
@@ -759,12 +984,22 @@ async function persistSupabaseBackgroundJob(env, normalized) {
       provider: normalized.provider,
       provider_message_id: normalized.provider_message_id,
       event_type: normalized.event_type,
-      message_type: normalized.message_type
+      message_type: normalized.message_type,
+      refs
     }
   });
 }
 
-async function persistSupabaseDecision(env, normalized, decision, rawPayload) {
+async function findSupabaseBackgroundJob(env, projectKey, dedupeKey) {
+  if (!dedupeKey) return null;
+  const rows = await supabaseSelectRows(
+    env,
+    `background_jobs?project_key=eq.${encodeURIComponent(projectKey)}&dedupe_key=eq.${encodeURIComponent(dedupeKey)}&select=id,dedupe_key,status&limit=1`
+  );
+  return rows[0] || null;
+}
+
+async function persistSupabaseDecision(env, normalized, decision, rawPayload, refs = {}) {
   const out = {
     ai_decision: { attempted: false, reason: "supabase_not_configured" },
     approval_case: { attempted: false, reason: "not_required" }
@@ -773,6 +1008,8 @@ async function persistSupabaseDecision(env, normalized, decision, rawPayload) {
 
   out.ai_decision = await supabaseInsert(env, "ai_decisions", {
     project_key: normalized.project_key,
+    conversation_id: refs.conversation_id || null,
+    trigger_message_id: refs.message_id || null,
     model: decision.source_refs?.includes("model:openai_in_agent") ? (env.HERMAS_AGENT_MODEL || env.OPENAI_SALES_BRAIN_MODEL || "openai") : "deterministic-agent",
     prompt_version: "hermas.cloudflare_agents_sdk.v1",
     decision: decision.next_action,
@@ -794,8 +1031,11 @@ async function persistSupabaseDecision(env, normalized, decision, rawPayload) {
       : decision.next_action === "order_payment_review"
         ? "order_payment"
         : "approvable";
-    out.approval_case = await supabaseInsert(env, "approval_cases", {
+    out.approval_case = await insertOrFindSupabaseApprovalCase(env, {
       project_key: normalized.project_key,
+      customer_id: refs.customer_id || null,
+      conversation_id: refs.conversation_id || null,
+      trigger_message_id: refs.message_id || null,
       status: decision.next_action === "handoff" ? "handoff" : "needs_approval",
       queue_bucket: queueBucket,
       stage: decision.stage || normalized.stage || null,
@@ -820,6 +1060,9 @@ async function persistSupabaseDecision(env, normalized, decision, rawPayload) {
   if (decision.next_action === "record_auto_event") {
     await supabaseInsert(env, "flow_events", {
       project_key: normalized.project_key,
+      customer_id: refs.customer_id || null,
+      conversation_id: refs.conversation_id || null,
+      channel_connection_id: refs.channel_connection_id || null,
       provider: normalized.provider,
       provider_event_id: normalized.provider_message_id || normalized.event_id,
       flow_id: normalized.metadata?.flow_id || null,
@@ -838,6 +1081,26 @@ async function persistSupabaseDecision(env, normalized, decision, rawPayload) {
   return out;
 }
 
+async function insertOrFindSupabaseApprovalCase(env, payload) {
+  if (payload.idempotency_key) {
+    const existing = await supabaseSelectRows(
+      env,
+      `approval_cases?project_key=eq.${encodeURIComponent(payload.project_key)}&idempotency_key=eq.${encodeURIComponent(payload.idempotency_key)}&select=id,status,queue_bucket,idempotency_key&limit=1`
+    );
+    if (existing[0]) {
+      return {
+        attempted: true,
+        ok: true,
+        table: "approval_cases",
+        skipped_existing: true,
+        rows: 1,
+        data: existing
+      };
+    }
+  }
+  return supabaseInsert(env, "approval_cases", payload);
+}
+
 async function supabaseInsert(env, table, payload) {
   try {
     const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}`, {
@@ -854,10 +1117,66 @@ async function supabaseInsert(env, table, payload) {
     if (!response.ok) {
       return { attempted: true, ok: false, table, status: response.status, error: compactError(body) };
     }
-    return { attempted: true, ok: true, table, rows: body ? JSON.parse(body).length : 0 };
+    const data = body ? JSON.parse(body) : [];
+    return { attempted: true, ok: true, table, rows: Array.isArray(data) ? data.length : 0, data };
   } catch (error) {
     return { attempted: true, ok: false, table, error: error.message || String(error) };
   }
+}
+
+async function supabasePatch(env, tableAndQuery, payload) {
+  try {
+    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${tableAndQuery}`, {
+      method: "PATCH",
+      headers: supabaseHeaders(env, "return=representation"),
+      body: JSON.stringify(payload)
+    });
+    const body = await response.text();
+    if (!response.ok) {
+      return { attempted: true, ok: false, table: tableAndQuery.split("?")[0], status: response.status, error: compactError(body) };
+    }
+    const data = body ? JSON.parse(body) : [];
+    return { attempted: true, ok: true, table: tableAndQuery.split("?")[0], rows: Array.isArray(data) ? data.length : 0, data };
+  } catch (error) {
+    return { attempted: true, ok: false, table: tableAndQuery.split("?")[0], error: error.message || String(error) };
+  }
+}
+
+async function supabaseSelectRows(env, tableAndQuery) {
+  if (!hasSupabase(env)) return [];
+  try {
+    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${tableAndQuery}`, {
+      method: "GET",
+      headers: supabaseHeaders(env)
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+function supabaseHeaders(env, prefer = "") {
+  const headers = {
+    apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+    authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+    "content-type": "application/json"
+  };
+  if (prefer) headers.prefer = prefer;
+  return headers;
+}
+
+function firstReturnedId(result) {
+  return Array.isArray(result?.data) && result.data[0]?.id ? result.data[0].id : null;
+}
+
+function withoutUndefined(value) {
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (item !== undefined) out[key] = item;
+  }
+  return out;
 }
 
 function hasSupabase(env) {

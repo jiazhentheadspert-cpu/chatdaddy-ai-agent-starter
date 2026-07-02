@@ -12,6 +12,7 @@ Support the first 20 brands with about 2,000 total inbound messages per day whil
 - Keep `auto_send_enabled=false`.
 - Keep `auto_trigger_flows_enabled=false`.
 - Use Supabase/Postgres for durable business data.
+- Use Cloudflare Agents SDK as the next stateful agent runtime layer; see `hermas_ai/docs/HERMAS_CLOUDFLARE_AGENTS_SDK_ROADMAP.md`.
 - Use background jobs for AI decisions, name enrichment, Flow sync, review, and retries.
 - Keep staff UI free of backend words, tokens, webhooks, D1, KV, raw payload, and secrets.
 
@@ -35,6 +36,10 @@ Webhook handlers should acknowledge quickly. Do not wait for contact enrichment,
 ## Implemented In This Repo
 
 - Supabase migration: `hermas_ai/migrations/0003_supabase_saas_scale.sql`
+- Beyoute dev seed: `hermas_ai/migrations/0004_supabase_beyoute_dev_seed.sql`
+  - creates non-secret CTG/Beyoute project rows
+  - creates a non-secret `beyoute-chatdaddy` channel connection placeholder
+  - adds idempotency indexes for channel connections, conversations, and approval cases
 - Public staff API aliases:
   - `GET /api/projects/{project_key}/queue`
   - `GET /api/projects/{project_key}/cases/{case_id}`
@@ -193,11 +198,12 @@ Acceptance targets for the first 20 brands:
 
 1. Create staging Supabase project.
 2. Apply base schema, then `0003_supabase_saas_scale.sql`.
-3. Create first admin and staff users.
-4. Seed 20 `projects` and `channel_connections`.
-5. Connect one ChatDaddy account in staging and collect payload samples.
-6. Verify adapter normalization for text, button, image, audio, Flow, payment, failed message.
-7. Run Dashboard staff boundary checks.
-8. Load test 20 projects at 2,000 inbound/day equivalent.
-9. Repeat on production.
-10. Give staff the production login URL only. Do not give tokens or backend endpoints.
+3. For the Beyoute dev pilot, apply `0004_supabase_beyoute_dev_seed.sql`.
+4. Create first admin and staff users.
+5. Seed the remaining 19 `projects` and `channel_connections`.
+6. Connect one ChatDaddy account in staging and collect payload samples.
+7. Verify adapter normalization for text, button, image, audio, Flow, payment, failed message.
+8. Run Dashboard staff boundary checks.
+9. Load test 20 projects at 2,000 inbound/day equivalent.
+10. Repeat on production.
+11. Give staff the production login URL only. Do not give tokens or backend endpoints.
