@@ -391,7 +391,7 @@ function rulesDecision(inbound) {
     const gastric = /(胃酸|胃痛|胃病|胃炎|胃溃疡|gastric|stomach)/i.test(text);
     const serious = /(骨髓|造血|血小板|血液|严重便秘|长期便秘|platelet|bone\s*marrow|severe\s*constipation)/i.test(text);
     const healthReply = [
-      gastric ? "有胃酸、胃痛或胃不舒服，不建议空腹喝；通常会先建议饭后或吃了东西后再喝。" : "",
+      gastric ? "有胃酸、胃痛或胃不舒服，不建议空腹喝；通常建议饭后或吃了东西后再喝。如果本身有胃病、长期病史或正在吃药，我先帮你确认身体情况，再建议适不适合。" : "",
       serious ? "你提到的血小板、骨髓造血或严重便秘这类情况比较敏感，我不能直接判断适不适合；建议先问医生，或让我先确认清楚再回复你。" : "",
       !gastric && !serious ? "这个涉及身体状况和体质，我不乱答。你先给我一点时间，我确认清楚再回复你。" : "",
       "这类情况我先不推配套，确认安全比较重要。",
