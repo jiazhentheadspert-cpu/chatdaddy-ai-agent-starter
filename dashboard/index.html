@@ -7406,12 +7406,14 @@
     async function loadContactNameMap(items, token) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       if (!api || (!token && !hasAccountSession()) || !Array.isArray(items) || !items.length) return {};
-      const contacts = [...new Set(items.map(approvalContactDigits).filter(Boolean))].slice(0, 120);
+      const contacts = [...new Set(items.map(approvalContactDigits).filter(Boolean))].slice(0, 30);
       if (!contacts.length) return {};
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
       try {
         const endpoint = `${api}/api/channels/chatdaddy/contacts?contacts=${encodeURIComponent(contacts.join(","))}`;
-        const res = await fetch(endpoint, { headers: authHeaders(token) });
+        const res = await fetch(endpoint, { headers: authHeaders(token), signal: controller.signal });
         const data = await res.json();
         if (!res.ok || !data.ok) return {};
 
@@ -7472,6 +7474,8 @@
         return names;
       } catch (_error) {
         return {};
+      } finally {
+        clearTimeout(timeout);
       }
     }
 
@@ -7694,14 +7698,24 @@
 	        const liveItems = Array.isArray(data.items)
 	          ? data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
 	          : [];
-        const contactNames = await loadContactNameMap(liveItems, token);
-        state.contactNames = contactNames;
-        state.cases = liveItems.map((item) => approvalToCase(item, contactNames));
-        if (state.role !== "staff") await loadRuntimeSettings({ silent: true });
-        await loadMetaCapiStatus();
-        await loadUsageSummary(token);
-        if (state.role !== "staff") await loadOwnerAdminSummaries(token);
-        else {
+        state.contactNames = {};
+        state.cases = liveItems.map((item) => approvalToCase(item, {}));
+        render();
+
+        loadContactNameMap(liveItems, token).then((contactNames) => {
+          if (!contactNames || !Object.keys(contactNames).length) return;
+          state.contactNames = contactNames;
+          state.cases = liveItems.map((item) => approvalToCase(item, contactNames));
+          render();
+        }).catch(() => {});
+
+        if (state.role !== "staff") {
+          await loadRuntimeSettings({ silent: true });
+          await loadMetaCapiStatus();
+          await loadUsageSummary(token);
+          await loadOwnerAdminSummaries(token);
+          render();
+        } else {
           state.projectVersions = null;
           state.qualityReview = null;
           state.handoffLearningReview = null;
@@ -7712,8 +7726,9 @@
           state.operatingActionQueue = null;
           state.qualityLiftRepairQueue = null;
           state.learningNotes = null;
+          loadMetaCapiStatus().catch(() => null);
+          loadUsageSummary(token).catch(() => null);
         }
-        render();
       } catch (error) {
         errorEl.textContent = `连接失败：${error.message}`;
         setRealQueueEmpty(`连接失败：${error.message}`);
