@@ -11832,6 +11832,7 @@
       if (text) return text;
       if (dashboardIsUnverifiedAttachmentApproval(item)) return "顾客发了图片/附件，需人工打开确认";
       if ((decision.intent === "receipt" || decision.action === "review_receipt") && dashboardHasExplicitPaymentReceiptEvidence(item)) return "顾客表示已付款，需审核资料";
+      if (item.status === "external_flow_continued" || isExternalFlowRecord(item)) return "无新文字问题，Flow 已继续";
       return "顾客没有文字讯息";
     }
 
@@ -12015,7 +12016,7 @@
       if (infoGapPackageContext) {
         return "资料缺口：只答已确认价；老板补FAQ/SOP";
       }
-      const noCustomerTextForContext = !String(customerText || "").trim() || /^(?:顾客没有文字讯息|顾客没有文字信息|no\s+customer\s+text|no\s+customer\s+message)$/i.test(String(customerText || "").trim());
+      const noCustomerTextForContext = !String(customerText || "").trim() || /^(?:顾客没有文字讯息|顾客没有文字信息|无新文字问题[，, ]*Flow\s*已继续|no\s+customer\s+text|no\s+customer\s+message)$/i.test(String(customerText || "").trim());
       const noCustomerPromoRecoveryContext = noCustomerTextForContext
         && /(?:promo_recovery|follow[_\s-]?up|Smart delay|Broadcast|Automation sent|订单资料|訂單資料|订单提醒|訂單提醒|订单正在|訂單正在|保留状态|保留狀態|SHOPEE|Shopee)/i.test(sourceText)
         && /(?:RM\s*150|RM\s*258|RM\s*378|新人限时优惠|新人限時優惠|全马免邮|全馬免郵|货到付款|貨到付款|安排哪个配套|安排哪個配套|LAST\s*CALL|优惠|優惠|活动|活動|promo|promotion)/i.test(sourceText);
@@ -13363,7 +13364,7 @@
 	      const paymentOrService = /(付款|付钱|付錢|汇款|匯款|receipt|payment|payex|grabpay|ewallet|银行卡|信用卡|送货|送貨|delivery|shipping|订单|訂單|下单|下單|refund|退款|没效果|沒效果|不舒服|想吐|售后|售後|after_sales|complaint|order|receipt|payment_method)/i.test(signalText);
 	      const flowAction = action.includes("flow");
 	      const postPriceStage = stage === "STEP_4" || stage === "S4" || /(price|early_price|objection|discount|promotion|promo|trust_after_price)/i.test(intent);
-	      const noCustomerText = !String(customerText || "").trim() || /^(?:顾客没有文字讯息|顾客没有文字信息|没有顾客文字|no\s+customer\s+(?:text|message))$/i.test(String(customerText || "").trim());
+	      const noCustomerText = !String(customerText || "").trim() || /^(?:顾客没有文字讯息|顾客没有文字信息|没有顾客文字|无新文字问题[，, ]*Flow\s*已继续|no\s+customer\s+(?:text|message))$/i.test(String(customerText || "").trim());
 	      const automationOnlyFlowContext = noCustomerText && (
 	        flowAction || /(Smart delay|Automation sent|Broadcast|user_current_step|Custom field changed|Flow|Step\s*\d|STEP_\d|Promo|Sequence)/i.test(`${sourceText} ${nextFlow} ${intent} ${action}`)
 	      );
