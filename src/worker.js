@@ -1,14 +1,20 @@
 const VERSION = "chatdaddy-ai-agent-starter-0.1.0";
 
 const CORS_HEADERS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET,POST,OPTIONS",
-  "access-control-allow-headers": "content-type,authorization,x-admin-token,x-staff-token,x-webhook-secret",
+  "access-control-allow-origin": "https://jiazhentheadspert-cpu.github.io",
+  "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
+  "access-control-allow-headers": "content-type,authorization,x-admin-token,x-staff-token,x-operator-token,x-webhook-secret",
+  "access-control-allow-credentials": "true",
+  vary: "Origin",
 };
+
+const HERMAS_SESSION_COOKIE = "hermas_session";
+const HERMAS_SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
+const HERMAS_PASSWORD_ITERATIONS = 120000;
 
 export default {
   async fetch(request, env, ctx) {
-    if (request.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+    if (request.method === "OPTIONS") return new Response(null, { headers: corsHeadersForRequest(request) });
 
     const url = new URL(request.url);
     const projectKey = url.searchParams.get("project_key") || env.PROJECT_KEY || "demo";
@@ -23,17 +29,67 @@ export default {
         });
       }
 
+      if (url.pathname === "/api/auth/login" && request.method === "POST") {
+        const payload = await readJson(request);
+        return handleAuthLogin(payload, env, request);
+      }
+
+      if (url.pathname === "/api/auth/logout" && request.method === "POST") {
+        return handleAuthLogout(env, request);
+      }
+
+      if (url.pathname === "/api/auth/session" && request.method === "GET") {
+        return handleAuthSession(env, request);
+      }
+
+      if (url.pathname === "/api/me/projects" && request.method === "GET") {
+        const auth = await requireOperator(request, env, { returnAuth: true });
+        return authJson({ ok: true, projects: await listProjectsForUser(env, auth.user || null, projectKey, auth.role) }, 200, request);
+      }
+
+      if (url.pathname === "/api/admin/users" && request.method === "GET") {
+        await requireAdmin(request, env);
+        return handleAdminUsersList(env, request);
+      }
+
+      if (url.pathname === "/api/admin/users" && request.method === "POST") {
+        const auth = await requireAdmin(request, env, { returnAuth: true });
+        const payload = await readJson(request);
+        return handleAdminUserCreate(payload, env, request, auth);
+      }
+
+      const adminUserMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/);
+      if (adminUserMatch && request.method === "PATCH") {
+        const auth = await requireAdmin(request, env, { returnAuth: true });
+        const payload = await readJson(request);
+        return handleAdminUserPatch(decodeURIComponent(adminUserMatch[1]), payload, env, request, auth);
+      }
+
+      const adminUserResetMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)\/reset-password$/);
+      if (adminUserResetMatch && request.method === "POST") {
+        const auth = await requireAdmin(request, env, { returnAuth: true });
+        const payload = await readJson(request);
+        return handleAdminUserResetPassword(decodeURIComponent(adminUserResetMatch[1]), payload, env, request, auth);
+      }
+
+      const adminMemberMatch = url.pathname.match(/^\/api\/admin\/projects\/([^/]+)\/members$/);
+      if (adminMemberMatch && request.method === "POST") {
+        const auth = await requireAdmin(request, env, { returnAuth: true });
+        const payload = await readJson(request);
+        return handleAdminProjectMemberSave(decodeURIComponent(adminMemberMatch[1]), payload, env, request, auth);
+      }
+
       if (url.pathname === "/api/channels/chatdaddy/webhook" && request.method === "POST") {
         return handleChatDaddyWebhook(request, env, projectKey);
       }
 
       if (url.pathname === "/api/cases" && request.method === "GET") {
-        requireAdmin(request, env);
+        await requireAdmin(request, env);
         return listCases(env, projectKey);
       }
 
       if (url.pathname === "/api/approvals/pending" && request.method === "GET") {
-        requireOperator(request, env);
+        await requireOperator(request, env);
         return listApprovalItems(env, projectKey, url);
       }
 
@@ -42,32 +98,37 @@ export default {
       }
 
       if (url.pathname === "/api/usage/summary" && request.method === "GET") {
-        requireOperator(request, env);
+        await requireOperator(request, env);
         return usageSummary(env, projectKey);
+      }
+
+      const hermasMarkPurchaseMatch = url.pathname.match(/^\/api\/hermas\/projects\/([^/]+)\/cases\/([^/]+)\/mark-purchase$/);
+      if (hermasMarkPurchaseMatch && request.method === "POST") {
+        const auth = await requireOperator(request, env, { returnAuth: true });
+        return markPurchaseCase(request, env, decodeURIComponent(hermasMarkPurchaseMatch[1]), decodeURIComponent(hermasMarkPurchaseMatch[2]), auth);
+      }
+
+      const hermasProjectMatch = url.pathname.match(/^\/api\/hermas\/projects\/([^/]+)\/(.+)$/);
+      if (hermasProjectMatch) {
+        return handleHermasProjectAdminApi(request, env, decodeURIComponent(hermasProjectMatch[1]), hermasProjectMatch[2], url);
       }
 
       const approveMatch = url.pathname.match(/^\/api\/cases\/([^/]+)\/approve$/);
       if (approveMatch && request.method === "POST") {
-        requireAdmin(request, env);
-        return approveCase(request, env, projectKey, decodeURIComponent(approveMatch[1]));
+        const auth = await requireAdmin(request, env, { returnAuth: true });
+        return approveCase(request, env, projectKey, decodeURIComponent(approveMatch[1]), auth);
       }
 
       const learnMatch = url.pathname.match(/^\/api\/cases\/([^/]+)\/learn$/);
       if (learnMatch && request.method === "POST") {
-        requireAdmin(request, env);
+        await requireAdmin(request, env);
         return learnCase(request, env, projectKey, decodeURIComponent(learnMatch[1]));
       }
 
       const handoffMatch = url.pathname.match(/^\/api\/cases\/([^/]+)\/handoff$/);
       if (handoffMatch && request.method === "POST") {
-        requireAdmin(request, env);
-        return markHandoff(request, env, projectKey, decodeURIComponent(handoffMatch[1]));
-      }
-
-      const markPurchaseMatch = url.pathname.match(/^\/api\/hermas\/projects\/([^/]+)\/cases\/([^/]+)\/mark-purchase$/);
-      if (markPurchaseMatch && request.method === "POST") {
-        requireOperator(request, env);
-        return markPurchaseCase(request, env, decodeURIComponent(markPurchaseMatch[1]), decodeURIComponent(markPurchaseMatch[2]));
+        const auth = await requireAdmin(request, env, { returnAuth: true });
+        return markHandoff(request, env, projectKey, decodeURIComponent(handoffMatch[1]), auth);
       }
 
       return json({ ok: false, error: "not_found" }, 404);
@@ -82,6 +143,11 @@ async function handleChatDaddyWebhook(request, env, projectKey) {
 
   const payload = await readJson(request);
   const inbound = extractInboundMessage(payload);
+  const purchaseWebhook = extractPurchaseFromWebhook(payload, inbound, projectKey);
+
+  if (purchaseWebhook.detected) {
+    return handleChatDaddyPurchaseWebhook(env, projectKey, inbound, purchaseWebhook, payload);
+  }
 
   if (!inbound.text) {
     return json({ ok: true, ignored: true, reason: "no_customer_text" });
@@ -115,6 +181,97 @@ async function handleChatDaddyWebhook(request, env, projectKey) {
   });
 }
 
+async function handleChatDaddyPurchaseWebhook(env, projectKey, inbound, purchaseWebhook, payload) {
+  const config = metaCapiConfig(env);
+  if (!purchaseWebhook.amount_rm) {
+    return json({
+      ok: true,
+      ignored: true,
+      purchase_detected: true,
+      reason: "purchase_status_detected_but_amount_missing",
+      required: ["amount_rm", "order_value", "currency", "order_id"],
+    });
+  }
+
+  const now = new Date().toISOString();
+  const purchase = {
+    amount_rm: purchaseWebhook.amount_rm,
+    value: purchaseWebhook.amount_rm,
+    currency: purchaseWebhook.currency,
+    order_id: purchaseWebhook.order_id,
+    payment_status: purchaseWebhook.payment_status,
+    purchase_status: purchaseWebhook.purchase_status,
+    order_status: purchaseWebhook.order_status,
+    confirmed_at: now,
+    confirmed_by: "chatdaddy_webhook",
+    source: "chatdaddy_paid_webhook",
+  };
+  const caseId = purchaseWebhook.case_id;
+  const record = {
+    id: caseId,
+    project_key: projectKey,
+    status: "purchase_confirmed",
+    created_at: now,
+    updated_at: now,
+    contact: inbound.contact,
+    messages: inbound.text ? [{
+      id: inbound.messageId,
+      direction: "inbound",
+      text: inbound.text,
+      at: inbound.createdAt,
+    }] : [],
+    last_message: inbound.text || purchaseWebhook.last_message || "",
+    last_message_at: inbound.createdAt || now,
+    latest_decision: {
+      intent: "purchase_confirmed",
+      stage: "ORDER",
+      risk: "low",
+      action: "purchase_confirmed",
+      keywords: ["purchase", "paid", "confirmed"],
+      source: "chatdaddy_webhook",
+    },
+    amount_rm: purchase.amount_rm,
+    order_value: purchase.value,
+    currency: purchase.currency,
+    order_id: purchase.order_id,
+    payment_status: purchase.payment_status,
+    purchase_status: purchase.purchase_status,
+    order_status: purchase.order_status,
+    purchase,
+    raw_webhook: payload,
+    history: [{
+      type: "chatdaddy_purchase_confirmed",
+      at: now,
+      amount_rm: purchase.amount_rm,
+      currency: purchase.currency,
+      order_id: purchase.order_id,
+    }],
+  };
+
+  await getKV(env).put(caseKey(projectKey, caseId), JSON.stringify(record), { expirationTtl: 60 * 60 * 24 * 90 });
+  const metaCapi = await sendPurchaseToMetaCapi(env, record, purchase, {
+    confirmMetaSend: config.purchaseAutoTrack,
+  });
+  const updated = {
+    ...record,
+    meta_capi_purchase_result: metaCapi,
+  };
+  await getKV(env).put(caseKey(projectKey, caseId), JSON.stringify(updated), { expirationTtl: 60 * 60 * 24 * 90 });
+
+  return json({
+    ok: true,
+    purchase_detected: true,
+    project_key: projectKey,
+    case_id: caseId,
+    item: caseToApprovalItem(updated),
+    purchase,
+    meta_capi: metaCapi,
+    next: config.purchaseAutoTrack
+      ? "Purchase webhook was recorded and sent or attempted through Meta CAPI."
+      : "Purchase webhook was recorded. META_CAPI_PURCHASE_AUTO_TRACK is off, so Meta was not sent.",
+  });
+}
+
 async function decide(env, projectKey, inbound) {
   if (isStepOneKeywordLead(inbound.text || "")) {
     return rulesDecision(inbound);
@@ -142,6 +299,7 @@ async function decideWithOpenAI(env, projectKey, inbound) {
     "Classify stage, intent, risk, and whether a human must approve.",
     "Use a concise Malaysian Chinese tone if the customer uses Chinese.",
     "Never make medical/legal/financial guarantees.",
+    "PWP/RM68/add-on is a special promo eligibility question. Do not answer with the normal package price ladder; ask staff to confirm eligibility/current order first.",
     "Return valid JSON only.",
   ].join("\n");
 
@@ -152,7 +310,7 @@ async function decideWithOpenAI(env, projectKey, inbound) {
     customer_message: inbound.text,
     required_json_shape: {
       reply_message: "string",
-      intent: "faq | price_objection | buy_intent | order_info | receipt | complaint | health_sensitive | unclear",
+      intent: "faq | price_objection | buy_intent | order_info | receipt | complaint | health_sensitive | special_promo_addon | unclear",
       stage: "S1 | S2 | S3 | CLOSING | ORDER | FOLLOW_UP | HUMAN",
       risk: "low | medium | high",
       action: "send_reply | approve_reply | ask_human | collect_order | review_receipt | trigger_flow | wait",
@@ -218,7 +376,7 @@ function rulesDecision(inbound) {
 
   if (/(投诉|生气|骗子|退款|退钱|cancel|refund|complaint)/i.test(text)) {
     return normalizeDecision({
-      reply_message: "我先帮你转给人工同事处理，这类情况我们需要看清楚记录后再回复你。",
+      reply_message: "亲，我先帮你看清楚记录再回复你。这类情况我不会乱承诺，确认后再给你准确处理。",
       intent: "complaint",
       stage: "HUMAN",
       risk: "high",
@@ -231,7 +389,7 @@ function rulesDecision(inbound) {
 
   if (/(怀孕|药|病|医生|医院|diabetes|pregnant|medicine|medical)/i.test(text)) {
     return normalizeDecision({
-      reply_message: "这个我不乱回答，我先帮你转给同事确认比较安全。",
+      reply_message: "亲，这个我不乱回答。我先确认清楚你的情况，安全一点再回复你。",
       intent: "health_sensitive",
       stage: "HUMAN",
       risk: "high",
@@ -242,7 +400,33 @@ function rulesDecision(inbound) {
     }, "rules");
   }
 
-  if (/(receipt|收据|付款|转账|bank|transfer|paid|已付)/i.test(lower)) {
+  if (/(\bpwp\b|rm\s*68|rm68|add[\s-]?on|addon|加购|加購|换购|換購|only\s+can\s+buy\s+here|can\s+buy\s+here\s+only)/i.test(text)) {
+    return normalizeDecision({
+      reply_message: "PWP RM68 add-on 是特别加购，不是普通配套价钱。它通常只限指定活动或符合条件的订单，我先不要乱确认资格；我这边会先看当前活动和订单能不能加购，再继续安排。",
+      intent: "special_promo_addon",
+      stage: "CLOSING",
+      risk: "medium",
+      action: "approve_reply",
+      send_now: false,
+      reason: "PWP/RM68/add-on 需要确认活动资格和当前订单，不能套普通价格图。",
+      keywords: ["PWP/RM68", "特别加购", "先确认资格"],
+    }, "rules");
+  }
+
+  if (/(电子钱包|電子钱包|電子錢包|e\s*-?\s*wallet|ewallet|grab\s*pay|grabpay|tng|touch\s*['’]?\s*n\s*go|duitnow|fpx|qr\s*pay|payment\s*link|payex|有收.*(?:银行卡|銀行卡|信用卡|debit|credit|card)|(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card|card\s*payment).*(?:可以|能|收|accept|pay|payment)|(?:可以|能|收|accept).*(?:银行卡|銀行卡|信用卡|debit\s*card|credit\s*card|bank\s*card)|(?:can|could|do\s+you|u|you|accept|take|pay|payment|use).{0,30}(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|card|e\s*-?\s*wallet|ewallet|grab\s*pay|grabpay)|(?:credit\s*card|debit\s*card|bank\s*card|card\s*payment|e\s*-?\s*wallet|ewallet|grab\s*pay|grabpay).{0,30}(?:can|pay|accept|use|payment|ok|available|allowed|right|correct))/i.test(text)) {
+    return normalizeDecision({
+      reply_message: "付款方式我先不要乱确认。电子钱包/GrabPay、线上付款、银行卡、分期或 COD 都要看当前订单、金额、地区和付款渠道安排；我这边先确认清楚，避免你填错或重复付款。",
+      intent: "payment_method_issue",
+      stage: "ORDER",
+      risk: "medium",
+      action: "ask_human",
+      send_now: false,
+      reason: "付款方式需要确认当前订单、金额和渠道，不能直接承诺。",
+      keywords: ["付款方式", "eWallet/GrabPay", "先确认"],
+    }, "rules");
+  }
+
+  if (isExplicitPaymentReceiptMessage(text)) {
     return normalizeDecision({
       reply_message: "收到，我先帮你检查付款资料。确认好了会继续帮你处理订单。",
       intent: "receipt",
@@ -255,7 +439,7 @@ function rulesDecision(inbound) {
     }, "rules");
   }
 
-  if (/(下单|我要|留一套|cod|地址|电话|名字|order|buy)/i.test(lower)) {
+  if (isExplicitOrderIntent(text)) {
     return normalizeDecision({
       reply_message: "可以，我帮你处理。麻烦发我：名字、电话、地址、要的配套，我确认后再提交订单。",
       intent: "buy_intent",
@@ -268,7 +452,22 @@ function rulesDecision(inbound) {
     }, "rules");
   }
 
-  if (/(贵|便宜|考虑|想想|问老公|问老婆|问家人|expensive|price|cheap|consider)/i.test(lower)) {
+  if (/(贵|便宜|考虑|想想|问老公|问老婆|问家人|expensive|price|cheap|cheaper|discount|lower\s+price|best\s+price|think\s+about|think\s+first|decide\s+later|later\s+first|consider)/i.test(lower)) {
+    if (looksMostlyEnglish(text)) {
+      const isConsider = /(consider|think\s+about|think\s+first|decide\s+later|later)/i.test(lower);
+      return normalizeDecision({
+        reply_message: isConsider
+          ? "No worries, you can think about it first. Beyoute Plus+ is more suitable when your goal is belly, bowel movement or weight management, because it supports carb control, fat-burning support, bowel movement and skin glow in one plan. To decide easier: 1 box RM150 is for trying first, 2 boxes RM258 is lighter on budget, and 3 boxes RM378 is better for a proper beginner course. Do you want me to reserve one first, or should I suggest based on your target?"
+          : "I understand, budget is important. Beyoute Plus+ is not just about one box price; the value is that one plan supports carb control, fat-burning support, bowel movement and skin glow together. If you want to keep it light, start with 1 box RM150. If you want better value, 2 boxes RM258 is easier on budget. If you want a proper course, 3 boxes RM378 is the main beginner course. Which one would you like me to arrange for you?",
+        intent: isConsider ? "consider" : "price_objection",
+        stage: "CLOSING",
+        risk: "medium",
+        action: "approve_reply",
+        send_now: false,
+        reason: "English post-price objection/consideration should be handled in English with value proof and CTA.",
+        keywords: ["English", "price objection", "CTA"],
+      }, "rules");
+    }
     return normalizeDecision({
       reply_message: "明白的，价钱会考虑是正常的。你先不要单看价格，重点是它能不能解决你现在最在意的问题。你最担心的是效果、价格，还是安全？",
       intent: "price_objection",
@@ -294,6 +493,19 @@ function rulesDecision(inbound) {
     }, "rules");
   }
 
+  if (looksMostlyEnglish(text) && /(what\s+is\s+(this|it|the\s+product)|what\s+does\s+it\s+do|explain|product|beyoute|kombucha)/i.test(lower)) {
+    return normalizeDecision({
+      reply_message: "Hi, let me explain it simply. Beyoute Plus+ is a slimming and beauty Kombucha. It mainly supports carb control, fat-burning support, bowel movement and skin glow in one plan. It is not a normal meal replacement, and you can check product details, brand info and customer feedback before deciding.",
+      intent: "faq",
+      stage: "S1",
+      risk: "low",
+      action: "trigger_flow",
+      send_now: true,
+      reason: "English product-intro question can be answered in English before continuing the education flow.",
+      keywords: ["English", "product intro", "Step 1"],
+    }, "rules");
+  }
+
   return normalizeDecision({
     reply_message: "收到，我先看你的情况再回复你。你现在最在意的是效果、价格，还是安全感？",
     intent: "unclear",
@@ -304,6 +516,13 @@ function rulesDecision(inbound) {
     reason: "顾客讯息需要人工确认语境，不自动回复。",
     keywords: ["需要判断", "手动回复", "待批准"],
   }, "rules");
+}
+
+function looksMostlyEnglish(text = "") {
+  const value = String(text || "");
+  const chineseChars = (value.match(/[\u4e00-\u9fff]/g) || []).length;
+  const englishWords = (value.match(/[a-zA-Z]{2,}/g) || []).length;
+  return chineseChars === 0 && englishWords >= 2;
 }
 
 function normalizeDecision(input, source) {
@@ -345,7 +564,7 @@ function enforceReplyPolicy(decision, inbound, env) {
       risk: decision.risk === "high" ? "high" : "medium",
       action: decision.action === "ask_human" ? "ask_human" : "approve_reply",
       send_now: false,
-      reason: `顾客有疑问或需要语境判断，先让客服确认。原判断：${decision.reason}`,
+      reason: `顾客有疑问或需要语境判断，先人工检查。原判断：${decision.reason}`,
       keywords: uniqueWords([...(decision.keywords || []), "手动回复", "待批准"]).slice(0, 8),
     };
   }
@@ -370,6 +589,22 @@ function isStepOneKeywordLead(text) {
   ];
 
   return keywordLeads.some((keyword) => value.includes(keyword));
+}
+
+function isExplicitPaymentReceiptMessage(text) {
+  const value = String(text || "").trim();
+  if (!value) return false;
+  if (/^\s*[\[【(（]?\s*(?:付款截图|付款證明|付款证明|收据|收據|receipt|payment\s*proof|image|photo)\s*[\]】)）]?\s*$/i.test(value)) {
+    return false;
+  }
+  return /(?:我|已|已经|已經|刚|剛|刚刚|剛剛).{0,12}(?:付款|付钱|付錢|转账|轉賬|汇款|匯款|bank\s*in|transfer|paid)|(?:付款|付钱|付錢|转账|轉賬|汇款|匯款).{0,12}(?:了|啦|咯|好了|过了|過了|done|completed)|\b(?:paid|already\s+paid|paid\s+already|banked\s*in|transferred|payment\s*(?:already\s*)?made|payment\s*done|payment\s*completed)\b/i.test(value);
+}
+
+function isExplicitOrderIntent(text) {
+  const value = String(text || "").trim();
+  if (!value || isStepOneKeywordLead(value)) return false;
+  if (/我要了解|想了解|了解\s*beyoute|beyoute\+?阻碳|阻碳\s*kombucha/i.test(value)) return false;
+  return /(?:我要|要|想|帮我|幫我|可以).{0,10}(?:下单|下單|买|買|订|訂|order|购买|購買|安排)(?:.{0,12}(?:一套|一盒|配套|cod|货到付款|貨到付款))?|(?:下单|下單|留一套|留一盒|帮我安排|幫我安排|cod|货到付款|貨到付款|order\s+now|i\s+want\s+to\s+(?:order|buy)|i['’]?ll\s+(?:take|buy|order))/i.test(value);
 }
 
 function normalizeText(text) {
@@ -470,13 +705,14 @@ async function listApprovalItems(env, projectKey, url) {
   });
 }
 
-async function approveCase(request, env, projectKey, caseId) {
+async function approveCase(request, env, projectKey, caseId, auth = null) {
   const kv = getKV(env);
   const key = caseKey(projectKey, caseId);
   const record = safeJsonParse(await kv.get(key), null);
   if (!record) return json({ ok: false, error: "case_not_found" }, 404);
 
   const body = await readJson(request);
+  const operator = runtimeOperatorIdentity(auth, body);
   const reply = String(body.reply_message || record.latest_decision?.reply_message || "").trim();
   if (!reply) return json({ ok: false, error: "reply_message_required" }, 400);
 
@@ -491,10 +727,18 @@ async function approveCase(request, env, projectKey, caseId) {
     ...record,
     status: sendResult.ok ? "sent" : "send_failed",
     updated_at: now,
+    approved_at: now,
+    approved_by: operator.name,
+    approved_by_id: operator.id,
+    operator_id: operator.id,
+    operator_name: operator.name,
+    operator_role: operator.role,
     latest_reply_sent: reply,
     history: [...(record.history || []), {
       type: sendResult.ok ? "approved_sent" : "approved_send_failed",
       at: now,
+      operator_id: operator.id,
+      operator_name: operator.name,
       reply_message: reply,
       send_result: sendResult,
     }].slice(-50),
@@ -533,21 +777,30 @@ async function learnCase(request, env, projectKey, caseId) {
   return json({ ok: true, rule });
 }
 
-async function markHandoff(request, env, projectKey, caseId) {
+async function markHandoff(request, env, projectKey, caseId, auth = null) {
   const kv = getKV(env);
   const key = caseKey(projectKey, caseId);
   const record = safeJsonParse(await kv.get(key), null);
   if (!record) return json({ ok: false, error: "case_not_found" }, 404);
 
   const body = await readJson(request);
+  const operator = runtimeOperatorIdentity(auth, body);
   const now = new Date().toISOString();
   const updated = {
     ...record,
     status: "human_required",
     updated_at: now,
+    handoff_at: now,
+    handoff_by: operator.name,
+    handoff_by_id: operator.id,
+    operator_id: operator.id,
+    operator_name: operator.name,
+    operator_role: operator.role,
     history: [...(record.history || []), {
       type: "marked_handoff",
       at: now,
+      operator_id: operator.id,
+      operator_name: operator.name,
       note: body.note || "",
     }].slice(-50),
   };
@@ -556,13 +809,14 @@ async function markHandoff(request, env, projectKey, caseId) {
   return json({ ok: true, case: updated });
 }
 
-async function markPurchaseCase(request, env, projectKey, caseId) {
+async function markPurchaseCase(request, env, projectKey, caseId, auth = null) {
   const kv = getKV(env);
   const key = caseKey(projectKey, caseId);
   const record = safeJsonParse(await kv.get(key), null);
   if (!record) return json({ ok: false, error: "case_not_found" }, 404);
 
   const body = await readJson(request);
+  const operator = runtimeOperatorIdentity(auth, body);
   const amount = purchaseAmountFromBody(body);
   if (!amount) {
     return json({ ok: false, error: "purchase_amount_required", next: "Enter amount_rm, for example 378." }, 400);
@@ -580,7 +834,8 @@ async function markPurchaseCase(request, env, projectKey, caseId) {
     purchase_status: "confirmed",
     order_status: "confirmed",
     confirmed_at: now,
-    confirmed_by: body.confirmedBy || "operator",
+    confirmed_by: operator.name,
+    confirmed_by_id: operator.id,
     source: body.source || "dashboard_mark_purchase",
   };
 
@@ -588,6 +843,12 @@ async function markPurchaseCase(request, env, projectKey, caseId) {
     ...record,
     status: "purchase_confirmed",
     updated_at: now,
+    purchase_confirmed_at: now,
+    purchase_confirmed_by: operator.name,
+    purchase_confirmed_by_id: operator.id,
+    operator_id: operator.id,
+    operator_name: operator.name,
+    operator_role: operator.role,
     amount_rm: amount,
     order_value: amount,
     currency,
@@ -602,6 +863,8 @@ async function markPurchaseCase(request, env, projectKey, caseId) {
       amount_rm: amount,
       currency,
       order_id: orderId,
+      operator_id: operator.id,
+      operator_name: operator.name,
     }].slice(-50),
   };
 
@@ -720,7 +983,7 @@ function approvalCategoryFromCase(record = {}) {
 function actionLabel(action) {
   if (action === "ask_human") return "转人工";
   if (action === "collect_order") return "收资料";
-  if (action === "review_receipt") return "审核收据";
+  if (action === "review_receipt") return "审付款截图";
   if (action === "trigger_flow") return "接 Flow";
   if (action === "send_reply") return "AI 自动回复";
   return "批准发送";
@@ -766,6 +1029,244 @@ function metaCapiStatus(env) {
       access_token_present: Boolean(config.accessToken),
       graph_version: config.graphVersion,
     },
+  });
+}
+
+async function handleHermasProjectAdminApi(request, env, projectKey, routePath, url) {
+  const route = String(routePath || "").replace(/^\/+|\/+$/g, "");
+  if (route === "learning-notes" && request.method === "POST") {
+    await requireAdmin(request, env);
+    return createHermasLearningNote(request, env, projectKey);
+  }
+
+  if (request.method !== "GET") return json({ ok: false, error: "method_not_allowed" }, 405);
+  await requireAdmin(request, env);
+
+  if (route === "learning-notes") {
+    return listHermasLearningNotes(env, projectKey, url);
+  }
+
+  if (route === "package/versions") {
+    return hermasDashboardReport(env, projectKey, "package_versions");
+  }
+
+  const routeToReport = {
+    "quality-review": "quality_review",
+    "handoff-learning-review": "handoff_learning_review",
+    "owner-review-workbench": "owner_review_workbench",
+    "owner-decision-signoff-packet": "owner_decision_signoff_packet",
+    "owner-decision-signoff-audit": "owner_decision_signoff_audit",
+    "daily-operating-brief": "daily_operating_brief",
+    "operating-action-queue": "operating_action_queue",
+    "quality-lift-repair-queue": "quality_lift_repair_queue",
+  };
+  const reportKey = routeToReport[route];
+  if (!reportKey) return json({ ok: false, error: "not_found" }, 404);
+  return hermasDashboardReport(env, projectKey, reportKey);
+}
+
+async function hermasDashboardReport(env, projectKey, reportKey) {
+  const config = HERMAS_REPORT_CONFIG[reportKey];
+  if (!config) return json({ ok: false, error: "unknown_report" }, 404);
+  const raw = await readHermasDashboardReport(env, projectKey, config);
+  const fallback = config.empty ? config.empty(projectKey) : {};
+  const payload = raw ? sanitizeDashboardReport(raw) : fallback;
+  return json({
+    ok: true,
+    project_key: projectKey,
+    configured: Boolean(raw),
+    ...payload,
+    sends_messages: false,
+    uses_openai: false,
+    writes_dashboard: false,
+    writes_decisions: false,
+    changes_business_brain: false,
+    changes_runtime: false,
+    pushes_git: false,
+  });
+}
+
+const HERMAS_REPORT_CONFIG = {
+  package_versions: {
+    key: "package_versions",
+    env: "HERMAS_PACKAGE_VERSIONS_JSON",
+    empty: () => ({ versions: [] }),
+  },
+  quality_review: {
+    key: "quality_review",
+    env: "HERMAS_QUALITY_REVIEW_JSON",
+    empty: () => ({ summary: {}, scorecard: null, reviews: [] }),
+  },
+  handoff_learning_review: {
+    key: "handoff_learning_review",
+    env: "HERMAS_HANDOFF_LEARNING_REVIEW_JSON",
+    empty: () => ({ summary: {}, needs_fix: [], recommendations: [] }),
+  },
+  owner_review_workbench: {
+    key: "owner_review_workbench",
+    env: "HERMAS_OWNER_REVIEW_WORKBENCH_JSON",
+    empty: () => ({ summary: {}, decision_cards: [], review_batches: [], owner_fast_queue: { items: [] } }),
+  },
+  owner_decision_signoff_packet: {
+    key: "owner_decision_signoff_packet",
+    env: "HERMAS_OWNER_DECISION_SIGNOFF_PACKET_JSON",
+    empty: () => ({
+      preview_only: true,
+      owner_signoff: { required: true, present: false },
+      summary: {
+        owner_signature_present: false,
+        ready_for_owner_signature: false,
+        ready_for_it_manual_template_edit_after_owner_signature: false,
+        source_pending: 0,
+        pending_after_preview: 0,
+        source_p0_pending: 0,
+        p0_pending_after_preview: 0,
+      },
+    }),
+  },
+  owner_decision_signoff_audit: {
+    key: "owner_decision_signoff_audit",
+    env: "HERMAS_OWNER_DECISION_SIGNOFF_AUDIT_JSON",
+    empty: () => ({
+      preview_only: true,
+      summary: {
+        audit_status: "WAITING_OWNER_SIGNOFF_DATA",
+        owner_signature_present: false,
+        blocked_signature_count: 0,
+        official_template_pending_decisions: 0,
+        ready_for_completion_gate_rerun: false,
+        ready_for_learning_preview: false,
+      },
+      audit_items: [],
+    }),
+  },
+  daily_operating_brief: {
+    key: "daily_operating_brief",
+    env: "HERMAS_DAILY_OPERATING_BRIEF_JSON",
+    empty: () => ({ summary: {}, owner_today: {}, staff_today: {}, it_today: {} }),
+  },
+  operating_action_queue: {
+    key: "operating_action_queue",
+    env: "HERMAS_OPERATING_ACTION_QUEUE_JSON",
+    empty: () => ({ summary: {}, today_sequence: [], operating_contract: {} }),
+  },
+  quality_lift_repair_queue: {
+    key: "quality_lift_repair_queue",
+    env: "HERMAS_QUALITY_LIFT_REPAIR_QUEUE_JSON",
+    empty: () => ({
+      summary: {},
+      queue_items: [],
+      handoff_self_optimization_contract: { stages: [] },
+    }),
+  },
+};
+
+async function readHermasDashboardReport(env, projectKey, config) {
+  const kvValue = await readHermasDashboardReportFromKv(env, projectKey, config);
+  if (kvValue) return kvValue;
+  for (const envName of hermasReportEnvNames(projectKey, config.env)) {
+    const value = env[envName];
+    const parsed = safeJsonParse(value, null);
+    if (parsed) return parsed;
+  }
+  return null;
+}
+
+async function readHermasDashboardReportFromKv(env, projectKey, config) {
+  if (!env.AGENT_KV) return null;
+  const keys = [
+    `hermas:${projectKey}:${config.key}`,
+    `hermas:${projectKey}:${config.key.replace(/_/g, "-")}`,
+    `hermas_report:${projectKey}:${config.key}`,
+  ];
+  for (const key of keys) {
+    const parsed = safeJsonParse(await env.AGENT_KV.get(key), null);
+    if (parsed) return parsed;
+  }
+  return null;
+}
+
+function hermasReportEnvNames(projectKey, envName) {
+  const project = String(projectKey || "demo").toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+  const suffix = String(envName || "").replace(/^HERMAS_/, "");
+  return [`HERMAS_${project}_${suffix}`, envName];
+}
+
+function sanitizeDashboardReport(value, key = "", depth = 0) {
+  if (depth > 20) return null;
+  if (Array.isArray(value)) return value.map((item) => sanitizeDashboardReport(item, key, depth + 1));
+  if (value && typeof value === "object") {
+    const output = {};
+    for (const [entryKey, entryValue] of Object.entries(value)) {
+      if (isDashboardReportInternalKey(entryKey)) continue;
+      const sanitized = sanitizeDashboardReport(entryValue, entryKey, depth + 1);
+      if (sanitized !== undefined) output[entryKey] = sanitized;
+    }
+    return output;
+  }
+  if (typeof value === "string" && looksLikeLocalOrSecretPath(value)) return "";
+  return value;
+}
+
+function isDashboardReportInternalKey(key = "") {
+  return /^(schema_version|source_.+|artifacts?|raw_.+|secret|token)$/i.test(String(key || ""));
+}
+
+function looksLikeLocalOrSecretPath(value = "") {
+  const text = String(value || "");
+  return /\/Users\/|\/var\/folders\/|\\Users\\|hermas_ai\/|secrets\/|\.env\b/i.test(text);
+}
+
+async function listHermasLearningNotes(env, projectKey, url) {
+  const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit") || 6), 50));
+  const report = await readHermasDashboardReport(env, projectKey, {
+    key: "learning_notes",
+    env: "HERMAS_LEARNING_NOTES_JSON",
+  });
+  const notes = Array.isArray(report?.learning_notes)
+    ? report.learning_notes
+    : Array.isArray(report)
+      ? report
+      : [];
+  return json({
+    ok: true,
+    project_key: projectKey,
+    learning_notes: sanitizeDashboardReport(notes).slice(0, limit),
+    sends_messages: false,
+    writes_decisions: false,
+    changes_runtime: false,
+  });
+}
+
+async function createHermasLearningNote(request, env, projectKey) {
+  const body = await readJson(request);
+  const now = new Date().toISOString();
+  const note = sanitizeDashboardReport({
+    ...body,
+    note_id: body.note_id || crypto.randomUUID(),
+    project_key: projectKey,
+    status: body.status || "reviewed",
+    created_at: body.created_at || now,
+    sends_messages: false,
+    writes_decisions: false,
+    changes_runtime: false,
+  });
+
+  if (env.AGENT_KV) {
+    const key = `hermas:${projectKey}:learning_notes`;
+    const existing = safeJsonParse(await env.AGENT_KV.get(key), {});
+    const current = Array.isArray(existing.learning_notes) ? existing.learning_notes : Array.isArray(existing) ? existing : [];
+    const learningNotes = [note, ...current].slice(0, 100);
+    await env.AGENT_KV.put(key, JSON.stringify({ learning_notes: learningNotes, updated_at: now }));
+    return json({ ok: true, recorded: true, storage: "kv", learning_note: note });
+  }
+
+  return json({
+    ok: true,
+    recorded: false,
+    storage: "none",
+    learning_note: note,
+    next: "Bind AGENT_KV or set HERMAS_LEARNING_NOTES_JSON to persist learning notes.",
   });
 }
 
@@ -1006,6 +1507,120 @@ function extractInboundMessage(payload) {
   };
 }
 
+function extractPurchaseFromWebhook(payload = {}, inbound = {}, projectKey = "demo") {
+  const fields = extractWebhookCustomFields(payload);
+  const paymentStatus = normalizeStatus(firstString(
+    fields.payment_status,
+    fields.paymentStatus,
+    payload.payment_status,
+    payload.paymentStatus,
+    payload.data?.payment_status,
+  ));
+  const purchaseStatus = normalizeStatus(firstString(
+    fields.purchase_status,
+    fields.purchaseStatus,
+    payload.purchase_status,
+    payload.purchaseStatus,
+    payload.data?.purchase_status,
+  ));
+  const orderStatus = normalizeStatus(firstString(
+    fields.order_status,
+    fields.orderStatus,
+    payload.order_status,
+    payload.orderStatus,
+    payload.data?.order_status,
+  ));
+  const amount = purchaseAmountFromBody({
+    amount_rm: fields.amount_rm ?? fields.amountRm ?? payload.amount_rm ?? payload.data?.amount_rm,
+    amount: fields.amount ?? payload.amount,
+    order_value: fields.order_value ?? fields.orderValue ?? payload.order_value ?? payload.data?.order_value,
+    value: fields.value ?? payload.value,
+  });
+  const currency = normalizeCurrency(firstString(fields.currency, payload.currency, payload.data?.currency, "MYR"));
+  const orderId = firstString(
+    fields.order_id,
+    fields.orderId,
+    payload.order_id,
+    payload.orderId,
+    payload.data?.order_id,
+    payload.data?.orderId,
+  );
+  const explicitPaid = ["paid", "payment_paid", "payment_confirmed", "cod_confirmed", "cash_on_delivery_confirmed"].includes(paymentStatus);
+  const explicitPurchase = ["confirmed", "purchase_confirmed", "purchased", "complete", "completed", "won"].includes(purchaseStatus);
+  const explicitOrder = ["confirmed", "paid", "cod_confirmed", "complete", "completed"].includes(orderStatus);
+  const eventText = normalizeStatus(firstString(payload.event, payload.type, payload.data?.event_type, payload.data?.eventType));
+  const eventLooksPurchase = /purchase|payment_confirmed|paid|cod_confirmed|order_confirmed/.test(eventText);
+  const statusDetected = explicitPaid || explicitPurchase || explicitOrder || eventLooksPurchase;
+  const fallbackId = firstString(
+    payload.data?.event_id,
+    payload.event_id,
+    payload.id,
+    inbound.messageId,
+    orderId,
+  ) || crypto.randomUUID();
+  const safeOrderId = String(orderId || `${projectKey}_${fallbackId}`)
+    .replace(/[^a-zA-Z0-9_-]+/g, "_")
+    .slice(0, 120);
+
+  return {
+    detected: statusDetected,
+    amount_rm: amount,
+    currency,
+    order_id: safeOrderId,
+    payment_status: paymentStatus || (explicitPurchase ? "paid" : ""),
+    purchase_status: purchaseStatus || (explicitPaid ? "confirmed" : ""),
+    order_status: orderStatus || "confirmed",
+    case_id: `purchase_${safeOrderId}`.replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 140),
+    last_message: firstString(payload.data?.message?.text, payload.message?.text, payload.text, ""),
+    custom_fields: fields,
+  };
+}
+
+function extractWebhookCustomFields(payload = {}) {
+  const contact = payload.contact || payload.customer || payload.data?.contact || {};
+  const data = payload.data || {};
+  const candidates = [
+    payload.custom_fields,
+    payload.customFields,
+    payload.fields,
+    payload.customFieldValues,
+    data.custom_fields,
+    data.customFields,
+    data.fields,
+    data.customFieldValues,
+    contact.custom_fields,
+    contact.customFields,
+    contact.fields,
+    contact.customFieldValues,
+  ];
+  const output = {};
+  for (const candidate of candidates) {
+    Object.assign(output, normalizeCustomFieldObject(candidate));
+  }
+  return output;
+}
+
+function normalizeCustomFieldObject(value) {
+  if (!value) return {};
+  if (Array.isArray(value)) {
+    return value.reduce((acc, field) => {
+      const key = firstString(field?.name, field?.key, field?.id, field?.field);
+      if (key) acc[key] = field?.value ?? field?.text ?? field?.raw_value ?? "";
+      return acc;
+    }, {});
+  }
+  if (typeof value === "object") return { ...value };
+  return {};
+}
+
+function normalizeStatus(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_/-]+/g, "");
+}
+
 function verifyWebhook(request, env) {
   if (!env.CHATDADDY_WEBHOOK_SECRET) return;
   const url = new URL(request.url);
@@ -1179,15 +1794,386 @@ function roundCost(value) {
   return Math.round(number * 10000) / 10000;
 }
 
-function requireAdmin(request, env) {
+async function ensureAuthSchema(env) {
+  if (!env.APPROVAL_DB) return;
+  await env.APPROVAL_DB.prepare(`
+    CREATE TABLE IF NOT EXISTS users (
+      user_id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      password_hash TEXT NOT NULL,
+      password_updated_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      last_login_at TEXT,
+      data TEXT NOT NULL DEFAULT '{}'
+    )
+  `).run();
+  await env.APPROVAL_DB.prepare(`
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      session_id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      session_hash TEXT NOT NULL UNIQUE,
+      role TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      last_seen_at TEXT,
+      data TEXT NOT NULL DEFAULT '{}'
+    )
+  `).run();
+  await env.APPROVAL_DB.prepare(`
+    CREATE TABLE IF NOT EXISTS project_memberships (
+      membership_id TEXT PRIMARY KEY,
+      project_key TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      data TEXT NOT NULL DEFAULT '{}',
+      UNIQUE(project_key, user_id)
+    )
+  `).run();
+  await env.APPROVAL_DB.prepare(`
+    CREATE TABLE IF NOT EXISTS audit_events (
+      event_id TEXT PRIMARY KEY,
+      project_key TEXT,
+      actor_id TEXT,
+      actor_role TEXT,
+      action TEXT NOT NULL,
+      entity_type TEXT,
+      entity_id TEXT,
+      event_at TEXT NOT NULL,
+      data TEXT NOT NULL DEFAULT '{}'
+    )
+  `).run();
+  await env.APPROVAL_DB.prepare(`CREATE INDEX IF NOT EXISTS users_email_idx ON users (email)`).run();
+  await env.APPROVAL_DB.prepare(`CREATE INDEX IF NOT EXISTS user_sessions_hash_idx ON user_sessions (session_hash)`).run();
+  await env.APPROVAL_DB.prepare(`CREATE INDEX IF NOT EXISTS project_memberships_user_idx ON project_memberships (user_id, status)`).run();
+  await env.APPROVAL_DB.prepare(`CREATE INDEX IF NOT EXISTS project_memberships_project_idx ON project_memberships (project_key, status)`).run();
+  await env.APPROVAL_DB.prepare(`CREATE INDEX IF NOT EXISTS audit_events_project_time_idx ON audit_events (project_key, event_at DESC)`).run();
+}
+
+function corsHeadersForRequest(request) {
+  const origin = request?.headers?.get?.("origin") || "";
+  if (!origin || origin === "null") return { ...CORS_HEADERS, "access-control-allow-credentials": "true" };
+  return { ...CORS_HEADERS, "access-control-allow-origin": origin, "access-control-allow-credentials": "true", vary: "Origin" };
+}
+
+function authJson(data, status = 200, request = null, extraHeaders = {}) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      ...(request ? corsHeadersForRequest(request) : CORS_HEADERS),
+      "content-type": "application/json; charset=utf-8",
+      ...extraHeaders,
+    },
+  });
+}
+
+function normalizeEmail(value = "") {
+  return String(value || "").trim().toLowerCase();
+}
+
+function cleanProjectKey(value = "") {
+  return String(value || "demo").trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_") || "demo";
+}
+
+function cookieValue(request, name) {
+  const cookie = String(request.headers.get("cookie") || "");
+  for (const part of cookie.split(";").map((item) => item.trim())) {
+    const eq = part.indexOf("=");
+    if (eq > 0 && part.slice(0, eq) === name) return decodeURIComponent(part.slice(eq + 1));
+  }
+  return "";
+}
+
+function sessionCookie(token, request) {
+  const url = new URL(request.url);
+  const secure = url.protocol === "https:" ? "; Secure" : "";
+  const sameSite = url.hostname === "localhost" ? "Lax" : "None";
+  return `${HERMAS_SESSION_COOKIE}=${encodeURIComponent(token)}; HttpOnly; Path=/; Max-Age=${HERMAS_SESSION_TTL_SECONDS}; SameSite=${sameSite}${secure}`;
+}
+
+function clearSessionCookie(request) {
+  const url = new URL(request.url);
+  const secure = url.protocol === "https:" ? "; Secure" : "";
+  const sameSite = url.hostname === "localhost" ? "Lax" : "None";
+  return `${HERMAS_SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=${sameSite}${secure}`;
+}
+
+function randomId(prefix) {
+  return `${prefix}_${crypto.randomUUID().replace(/-/g, "")}`;
+}
+
+function base64UrlEncode(bytes) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlDecode(value = "") {
+  const padded = String(value || "").replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(String(value || "").length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function randomToken(bytes = 32) {
+  const values = new Uint8Array(bytes);
+  crypto.getRandomValues(values);
+  return base64UrlEncode(values);
+}
+
+function temporaryPassword() {
+  return `${randomToken(9)}A1`;
+}
+
+async function hashPassword(password) {
+  const clean = String(password || "");
+  if (clean.length < 8) {
+    const error = new Error("PASSWORD_TOO_SHORT");
+    error.status = 400;
+    throw error;
+  }
+  const salt = new Uint8Array(16);
+  crypto.getRandomValues(salt);
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(clean), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: HERMAS_PASSWORD_ITERATIONS, hash: "SHA-256" }, key, 256);
+  return `pbkdf2_sha256$${HERMAS_PASSWORD_ITERATIONS}$${base64UrlEncode(salt)}$${base64UrlEncode(new Uint8Array(bits))}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  const parts = String(storedHash || "").split("$");
+  if (parts.length !== 4 || parts[0] !== "pbkdf2_sha256") return false;
+  const iterations = Number(parts[1]);
+  const salt = base64UrlDecode(parts[2]);
+  const expected = base64UrlDecode(parts[3]);
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(password || "")), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, key, expected.length * 8);
+  const actual = new Uint8Array(bits);
+  if (actual.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < actual.length; i += 1) diff |= actual[i] ^ expected[i];
+  return diff === 0;
+}
+
+function safeUser(row = {}) {
+  return {
+    user_id: row.user_id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+    status: row.status,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    last_login_at: row.last_login_at || null,
+  };
+}
+
+function requestProjectKey(request) {
+  const url = new URL(request.url);
+  const hermasMatch = url.pathname.match(/^\/api\/hermas\/projects\/([^/]+)/);
+  if (hermasMatch) return cleanProjectKey(decodeURIComponent(hermasMatch[1]));
+  const adminProjectMatch = url.pathname.match(/^\/api\/admin\/projects\/([^/]+)/);
+  if (adminProjectMatch) return cleanProjectKey(decodeURIComponent(adminProjectMatch[1]));
+  return cleanProjectKey(url.searchParams.get("project_key") || envProjectFallback(url));
+}
+
+function envProjectFallback(url) {
+  return url.searchParams.get("projectKey") || "demo";
+}
+
+async function listProjectsForUser(env, user, fallbackProject = "demo", fallbackRole = "staff") {
+  await ensureAuthSchema(env);
+  if (user?.role === "admin") {
+    const rows = await env.APPROVAL_DB.prepare(`SELECT project_key, project_name FROM projects ORDER BY updated_at DESC LIMIT 200`).all().catch(() => ({ results: [] }));
+    const projects = (rows?.results || []).map((row) => ({
+      project_key: cleanProjectKey(row.project_key),
+      project_name: row.project_name || row.project_key,
+      role: "admin",
+      status: "active",
+    }));
+    if (projects.length) return projects;
+  }
+  if (user?.user_id) {
+    const rows = await env.APPROVAL_DB.prepare(`
+      SELECT project_key, role, status FROM project_memberships
+      WHERE user_id = ? AND status = 'active'
+      ORDER BY updated_at DESC
+    `).bind(user.user_id).all();
+    const projects = (rows?.results || []).map((row) => ({
+      project_key: cleanProjectKey(row.project_key),
+      project_name: cleanProjectKey(row.project_key),
+      role: row.role || user.role || "staff",
+      status: row.status || "active",
+    }));
+    if (projects.length) return projects;
+  }
+  return [{
+    project_key: cleanProjectKey(fallbackProject),
+    project_name: cleanProjectKey(fallbackProject),
+    role: fallbackRole || "staff",
+    status: "active",
+  }];
+}
+
+async function sessionAuth(request, env, options = {}) {
+  if (!env.APPROVAL_DB) return null;
+  const token = cookieValue(request, HERMAS_SESSION_COOKIE);
+  if (!token) return null;
+  await ensureAuthSchema(env);
+  const sessionHash = await sha256Hex(token);
+  const row = await env.APPROVAL_DB.prepare(`
+    SELECT s.session_id, s.user_id, s.role AS session_role, s.status AS session_status, s.expires_at,
+           u.email, u.name, u.role, u.status, u.created_at, u.updated_at, u.last_login_at
+    FROM user_sessions s
+    JOIN users u ON u.user_id = s.user_id
+    WHERE s.session_hash = ?
+    LIMIT 1
+  `).bind(sessionHash).first();
+  if (!row || row.session_status !== "active" || row.status !== "active" || new Date(row.expires_at).getTime() <= Date.now()) {
+    return { ok: false, status: 401, error: "Session expired. Please login again." };
+  }
+  const user = safeUser(row);
+  const role = user.role === "admin" ? "admin" : "staff";
+  if (options.requireAdmin && role !== "admin") return { ok: false, status: 403, error: "Admin access required." };
+  const projectKey = requestProjectKey(request);
+  if (projectKey && role !== "admin") {
+    const member = await env.APPROVAL_DB.prepare(`
+      SELECT role FROM project_memberships
+      WHERE user_id = ? AND project_key = ? AND status = 'active'
+      LIMIT 1
+    `).bind(user.user_id, projectKey).first();
+    if (!member) return { ok: false, status: 403, error: "No access to this project.", project_key: projectKey };
+  }
+  await env.APPROVAL_DB.prepare(`UPDATE user_sessions SET last_seen_at = ? WHERE session_id = ?`).bind(new Date().toISOString(), row.session_id).run().catch(() => null);
+  return { ok: true, subject: user.email, user_id: user.user_id, display_name: user.name, role, user, auth_type: "session" };
+}
+
+async function handleAuthLogin(payload, env, request) {
+  if (!env.APPROVAL_DB) return authJson({ ok: false, error: "APPROVAL_DB D1 is not configured." }, 503, request);
+  await ensureAuthSchema(env);
+  const email = normalizeEmail(payload.email);
+  const password = String(payload.password || "");
+  const row = email ? await env.APPROVAL_DB.prepare(`SELECT * FROM users WHERE email = ? LIMIT 1`).bind(email).first() : null;
+  if (!row || row.status !== "active" || !(await verifyPassword(password, row.password_hash))) {
+    return authJson({ ok: false, error: "Invalid email or password." }, 401, request);
+  }
+  const now = new Date();
+  const token = randomToken(36);
+  const sessionId = randomId("sess");
+  await env.APPROVAL_DB.prepare(`
+    INSERT INTO user_sessions (session_id, user_id, session_hash, role, status, expires_at, created_at, last_seen_at, data)
+    VALUES (?, ?, ?, ?, 'active', ?, ?, ?, '{}')
+  `).bind(sessionId, row.user_id, await sha256Hex(token), row.role, new Date(now.getTime() + HERMAS_SESSION_TTL_SECONDS * 1000).toISOString(), now.toISOString(), now.toISOString()).run();
+  await env.APPROVAL_DB.prepare(`UPDATE users SET last_login_at = ?, updated_at = ? WHERE user_id = ?`).bind(now.toISOString(), now.toISOString(), row.user_id).run();
+  const user = safeUser({ ...row, last_login_at: now.toISOString() });
+  return authJson({ ok: true, authenticated: true, user, projects: await listProjectsForUser(env, user) }, 200, request, { "set-cookie": sessionCookie(token, request) });
+}
+
+async function handleAuthLogout(env, request) {
+  if (env.APPROVAL_DB) {
+    const token = cookieValue(request, HERMAS_SESSION_COOKIE);
+    if (token) {
+      await ensureAuthSchema(env);
+      await env.APPROVAL_DB.prepare(`UPDATE user_sessions SET status = 'revoked', last_seen_at = ? WHERE session_hash = ?`).bind(new Date().toISOString(), await sha256Hex(token)).run().catch(() => null);
+    }
+  }
+  return authJson({ ok: true, authenticated: false }, 200, request, { "set-cookie": clearSessionCookie(request) });
+}
+
+async function handleAuthSession(env, request) {
+  const auth = await sessionAuth(request, env);
+  if (!auth?.ok) return authJson({ ok: true, authenticated: false, reason: auth?.error || "not_logged_in" }, 200, request);
+  return authJson({ ok: true, authenticated: true, user: auth.user, projects: await listProjectsForUser(env, auth.user) }, 200, request);
+}
+
+async function upsertMembership(env, projectKey, userId, role = "staff", status = "active") {
+  await env.APPROVAL_DB.prepare(`
+    INSERT INTO project_memberships (membership_id, project_key, user_id, role, status, created_at, updated_at, data)
+    VALUES (?, ?, ?, ?, ?, ?, ?, '{}')
+    ON CONFLICT(project_key, user_id)
+    DO UPDATE SET role = excluded.role, status = excluded.status, updated_at = excluded.updated_at
+  `).bind(randomId("member"), cleanProjectKey(projectKey), userId, role === "admin" ? "admin" : "staff", status === "active" ? "active" : "disabled", new Date().toISOString(), new Date().toISOString()).run();
+}
+
+async function handleAdminUsersList(env, request) {
+  await ensureAuthSchema(env);
+  const result = await env.APPROVAL_DB.prepare(`SELECT user_id, email, name, role, status, created_at, updated_at, last_login_at FROM users ORDER BY updated_at DESC LIMIT 300`).all();
+  return authJson({ ok: true, users: (result?.results || []).map(safeUser) }, 200, request);
+}
+
+async function handleAdminUserCreate(payload, env, request, auth) {
+  await ensureAuthSchema(env);
+  const email = normalizeEmail(payload.email);
+  if (!email) return authJson({ ok: false, error: "email_required" }, 400, request);
+  const password = String(payload.password || "") || temporaryPassword();
+  const userId = randomId("user");
+  const now = new Date().toISOString();
+  const role = String(payload.role || "staff") === "admin" ? "admin" : "staff";
+  await env.APPROVAL_DB.prepare(`
+    INSERT INTO users (user_id, email, name, role, status, password_hash, password_updated_at, created_at, updated_at, data)
+    VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)
+  `).bind(userId, email, String(payload.name || email.split("@")[0]), role, await hashPassword(password), now, now, now, JSON.stringify({ created_by: auth?.subject || "admin" })).run();
+  const projects = Array.isArray(payload.project_keys) ? payload.project_keys : payload.project_key ? [payload.project_key] : [];
+  for (const project of projects) await upsertMembership(env, project, userId, role);
+  return authJson({ ok: true, user: safeUser({ user_id: userId, email, name: payload.name || email, role, status: "active", created_at: now, updated_at: now }), temporary_password: payload.password ? null : password }, 201, request);
+}
+
+async function handleAdminUserPatch(rawUserId, payload, env, request) {
+  await ensureAuthSchema(env);
+  const key = String(rawUserId || "").trim();
+  const row = await env.APPROVAL_DB.prepare(`SELECT * FROM users WHERE user_id = ? OR email = ? LIMIT 1`).bind(key, normalizeEmail(key)).first();
+  if (!row) return authJson({ ok: false, error: "user_not_found" }, 404, request);
+  const role = payload.role !== undefined ? (String(payload.role) === "admin" ? "admin" : "staff") : row.role;
+  const status = payload.status !== undefined && String(payload.status) !== "active" ? "disabled" : "active";
+  const name = payload.name !== undefined ? String(payload.name || row.name).trim() : row.name;
+  const now = new Date().toISOString();
+  await env.APPROVAL_DB.prepare(`UPDATE users SET name = ?, role = ?, status = ?, updated_at = ? WHERE user_id = ?`).bind(name, role, status, now, row.user_id).run();
+  if (status !== "active") await env.APPROVAL_DB.prepare(`UPDATE user_sessions SET status = 'revoked' WHERE user_id = ?`).bind(row.user_id).run();
+  return authJson({ ok: true, user: safeUser({ ...row, name, role, status, updated_at: now }) }, 200, request);
+}
+
+async function handleAdminUserResetPassword(rawUserId, payload, env, request) {
+  await ensureAuthSchema(env);
+  const key = String(rawUserId || "").trim();
+  const row = await env.APPROVAL_DB.prepare(`SELECT * FROM users WHERE user_id = ? OR email = ? LIMIT 1`).bind(key, normalizeEmail(key)).first();
+  if (!row) return authJson({ ok: false, error: "user_not_found" }, 404, request);
+  const password = String(payload.password || "") || temporaryPassword();
+  const now = new Date().toISOString();
+  await env.APPROVAL_DB.prepare(`UPDATE users SET password_hash = ?, password_updated_at = ?, updated_at = ? WHERE user_id = ?`).bind(await hashPassword(password), now, now, row.user_id).run();
+  await env.APPROVAL_DB.prepare(`UPDATE user_sessions SET status = 'revoked' WHERE user_id = ?`).bind(row.user_id).run();
+  return authJson({ ok: true, user: safeUser(row), temporary_password: payload.password ? null : password }, 200, request);
+}
+
+async function handleAdminProjectMemberSave(rawProjectKey, payload, env, request) {
+  await ensureAuthSchema(env);
+  const key = String(payload.user_id || payload.email || "").trim();
+  const row = await env.APPROVAL_DB.prepare(`SELECT * FROM users WHERE user_id = ? OR email = ? LIMIT 1`).bind(key, normalizeEmail(key)).first();
+  if (!row) return authJson({ ok: false, error: "user_not_found" }, 404, request);
+  await upsertMembership(env, rawProjectKey, row.user_id, payload.role || row.role || "staff", payload.status || "active");
+  return authJson({ ok: true, project_key: cleanProjectKey(rawProjectKey), member: { user: safeUser(row), role: payload.role || row.role || "staff", status: payload.status || "active" } }, 200, request);
+}
+
+async function requireAdmin(request, env, options = {}) {
   if (!env.ADMIN_TOKEN) {
-    const error = new Error("ADMIN_TOKEN is not configured");
-    error.status = 500;
+    const session = await sessionAuth(request, env, { requireAdmin: true });
+    if (session?.ok) return options.returnAuth ? session : undefined;
+    const error = new Error(session?.error || "ADMIN_TOKEN is not configured");
+    error.status = session?.status || 500;
     throw error;
   }
 
   const url = new URL(request.url);
   const token = request.headers.get("x-admin-token") || url.searchParams.get("token");
+  if (token === env.ADMIN_TOKEN) return options.returnAuth ? { ok: true, subject: "runtime_admin", role: "admin", auth_type: "legacy_token" } : undefined;
+  const session = await sessionAuth(request, env, { requireAdmin: true });
+  if (session?.ok) return options.returnAuth ? session : undefined;
   if (token !== env.ADMIN_TOKEN) {
     const error = new Error("unauthorized");
     error.status = 401;
@@ -1195,15 +2181,72 @@ function requireAdmin(request, env) {
   }
 }
 
-function requireOperator(request, env) {
+async function requireOperator(request, env, options = {}) {
   const url = new URL(request.url);
   const adminToken = request.headers.get("x-admin-token") || url.searchParams.get("token");
   const staffToken = request.headers.get("x-staff-token") || url.searchParams.get("staff_token");
-  if (env.ADMIN_TOKEN && adminToken === env.ADMIN_TOKEN) return;
-  if (env.STAFF_TOKEN && staffToken === env.STAFF_TOKEN) return;
+  if (env.ADMIN_TOKEN && adminToken === env.ADMIN_TOKEN) return options.returnAuth ? { ok: true, subject: "runtime_admin", role: "admin", auth_type: "legacy_token" } : undefined;
+  if (env.STAFF_TOKEN && staffToken === env.STAFF_TOKEN) return options.returnAuth ? { ok: true, subject: "staff_operator", role: "staff", auth_type: "legacy_token" } : undefined;
+  const session = await sessionAuth(request, env);
+  if (session?.ok) return options.returnAuth ? session : undefined;
   const error = new Error("unauthorized");
-  error.status = 401;
+  error.status = session?.status || 401;
   throw error;
+}
+
+function firstText(...values) {
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function runtimeOperatorIdentity(auth = null, payload = {}) {
+  const sessionBacked = auth?.auth_type === "session" || Boolean(auth?.user_id || auth?.user?.user_id);
+  const fallbackName = firstText(
+    payload.operator_name,
+    payload.operatorName,
+    payload.display_name,
+    payload.displayName,
+    payload.approvedBy,
+    payload.rejectedBy,
+    payload.resolvedBy,
+    payload.confirmedBy,
+    payload.user,
+    payload.staff,
+  );
+  const fallbackId = firstText(
+    payload.operator_id,
+    payload.operatorId,
+    payload.user_id,
+    payload.userId,
+    payload.staff_id,
+    payload.staffId,
+    fallbackName,
+  );
+  const id = firstText(
+    sessionBacked ? auth?.user_id : "",
+    sessionBacked ? auth?.user?.user_id : "",
+    sessionBacked ? auth?.subject : "",
+    fallbackId,
+    auth?.subject,
+    "operator",
+  );
+  const name = firstText(
+    sessionBacked ? auth?.display_name : "",
+    sessionBacked ? auth?.user?.name : "",
+    fallbackName,
+    auth?.display_name,
+    auth?.subject,
+    id,
+  );
+  return {
+    id: id || "operator",
+    name: name || id || "operator",
+    role: auth?.role || payload.operator_role || payload.operatorRole || "operator",
+    auth_type: auth?.auth_type || "unknown",
+  };
 }
 
 function getKV(env) {

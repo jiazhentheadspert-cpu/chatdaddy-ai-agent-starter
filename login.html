@@ -896,49 +896,58 @@
 
       <div class="form">
         <div class="field">
-          <label for="workspace">项目</label>
+          <label for="apiUrl">系统接口地址</label>
+          <input id="apiUrl" placeholder="https://your-system-url.com" autocomplete="url" />
+        </div>
+
+        <div class="field">
+          <label for="email">邮箱</label>
+          <input id="email" placeholder="staff@company.com" autocomplete="email" inputmode="email" />
+        </div>
+
+        <div class="field">
+          <label for="password">密码</label>
+          <input id="password" placeholder="输入账号密码" type="password" autocomplete="current-password" />
+        </div>
+
+        <div class="field">
+          <label for="workspace">默认项目</label>
           <select id="workspace">
             <option value="demo">演示项目</option>
             <option value="beyoute">Beyoute</option>
           </select>
         </div>
 
-        <div class="field">
-          <label for="displayName">姓名</label>
-          <input id="displayName" value="Jia Zhen" autocomplete="name" />
-        </div>
-
-        <div class="field">
-          <label>选择身份</label>
-          <div class="roles">
-            <button class="role active" data-role="owner" type="button">管理者</button>
-            <button class="role" data-role="admin" type="button">运营主管</button>
-            <button class="role" data-role="staff" type="button">客服人员</button>
-          </div>
-          <div class="role-help" id="roleHelp">可查看全部顾客、连接状态、团队权限和 AI 规则。</div>
-          <div class="permission-preview" id="permissionPreview"></div>
-        </div>
-
-        <div class="field">
-          <label for="staffToken">团队安全码</label>
-          <input id="staffToken" placeholder="客服 / 运营输入安全码" type="password" />
-        </div>
-
         <details class="advanced">
-          <summary>系统连接（管理者设置一次即可）</summary>
+          <summary>演示 / 临时安全码入口</summary>
           <div class="advanced-body">
             <div class="field">
-              <label for="apiUrl">系统接口地址</label>
-              <input id="apiUrl" placeholder="https://your-system-url.com" />
+              <label for="displayName">显示姓名</label>
+              <input id="displayName" value="Jia Zhen" autocomplete="name" />
             </div>
             <div class="field">
-              <label for="adminToken">管理密钥</label>
-              <input id="adminToken" placeholder="只给管理者 / 运营使用" type="password" />
+              <label>演示身份</label>
+              <div class="roles">
+                <button class="role active" data-role="owner" type="button">管理者</button>
+                <button class="role" data-role="admin" type="button">运营主管</button>
+                <button class="role" data-role="staff" type="button">客服人员</button>
+              </div>
+              <div class="role-help" id="roleHelp">可查看全部顾客、连接状态、团队权限和 AI 规则。</div>
+              <div class="permission-preview" id="permissionPreview"></div>
+            </div>
+            <div class="field">
+              <label for="staffToken">旧团队安全码</label>
+              <input id="staffToken" placeholder="临时 fallback，正式客服不用输入" type="password" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="adminToken">旧管理密钥</label>
+              <input id="adminToken" placeholder="临时 fallback，正式登录不用输入" type="password" autocomplete="off" />
             </div>
           </div>
         </details>
 
         <button class="primary" id="loginBtn">进入工作台</button>
+        <div class="security-note" id="loginMessage">正式使用请用邮箱密码登录；安全码只保留给旧入口过渡。</div>
 
         <div class="links">
           <a href="dashboard/index.html">跳过身份选择</a>
@@ -946,7 +955,7 @@
           <a href="docs/PRODUCTION_READINESS_ZH.md">成熟度清单</a>
         </div>
 
-        <div class="security-note">公开演示不保存真实密钥。正式使用时，系统连接只给管理者看到；客服入口不显示密钥和部署设置。</div>
+        <div class="security-note">客服账号只进入顾客操作台；后台密钥、webhook、Flow ID 和部署设置不会显示给客服。</div>
       </div>
     </section>
   </main>
@@ -992,15 +1001,79 @@
     setSelectedRole(params.get("role") || "owner");
 
     document.getElementById("apiUrl").value = params.get("api") || localStorage.getItem("agent_api_url") || "";
+    document.getElementById("email").value = localStorage.getItem("agent_login_email") || "";
     document.getElementById("adminToken").value = localStorage.getItem("agent_admin_token") || "";
     document.getElementById("staffToken").value = params.get("staff_token") || localStorage.getItem("agent_staff_token") || "";
 
-    document.getElementById("loginBtn").addEventListener("click", () => {
+    function setLoginMessage(message, tone = "") {
+      const node = document.getElementById("loginMessage");
+      node.textContent = message;
+      node.style.color = tone === "error" ? "#b42318" : tone === "ok" ? "#087568" : "";
+    }
+
+    function normalizeApiUrl(value) {
+      return String(value || "").trim().replace(/\/$/, "");
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", async () => {
       const workspace = document.getElementById("workspace").value || "demo";
-      const apiUrl = document.getElementById("apiUrl").value.trim();
+      const apiUrl = normalizeApiUrl(document.getElementById("apiUrl").value);
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const password = document.getElementById("password").value;
       const adminToken = document.getElementById("adminToken").value.trim();
       const staffToken = document.getElementById("staffToken").value.trim();
       const displayName = document.getElementById("displayName").value.trim() || "Team";
+
+      if (apiUrl && email && password) {
+        const button = document.getElementById("loginBtn");
+        button.disabled = true;
+        setLoginMessage("正在登录...");
+        try {
+          const res = await fetch(`${apiUrl}/api/auth/login`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok || !data.authenticated) {
+            throw new Error(data.error || `HTTP ${res.status}`);
+          }
+          const projects = Array.isArray(data.projects) ? data.projects : [];
+          const firstProject = projects.find((item) => item.project_key === workspace) || projects[0] || { project_key: workspace };
+          const role = data.user?.role === "admin" ? "admin" : "staff";
+          const session = {
+            authMode: "account",
+            workspace: firstProject.project_key || workspace,
+            projectKey: firstProject.project_key || workspace,
+            role,
+            displayName: data.user?.name || displayName,
+            email: data.user?.email || email,
+            apiUrl,
+            signedInAt: new Date().toISOString(),
+          };
+          localStorage.setItem("agent_session", JSON.stringify(session));
+          localStorage.setItem("agent_project_key", session.projectKey);
+          localStorage.setItem("agent_api_url", apiUrl);
+          localStorage.setItem("agent_login_email", email);
+          localStorage.removeItem("agent_admin_token");
+          localStorage.removeItem("agent_staff_token");
+          setLoginMessage("登录成功，正在进入工作台。", "ok");
+          const nextParams = new URLSearchParams({ project_key: session.projectKey, role });
+          nextParams.set("api", apiUrl);
+          if (role === "staff") {
+            nextParams.set("view", "cases");
+            window.location.href = `dashboard/index.html?${nextParams.toString()}`;
+          } else {
+            window.location.href = `admin.html?${nextParams.toString()}`;
+          }
+          return;
+        } catch (error) {
+          setLoginMessage(`登录失败：${error.message}`, "error");
+          button.disabled = false;
+          return;
+        }
+      }
 
       const session = {
         workspace,

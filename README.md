@@ -44,6 +44,17 @@ WhatsApp
 
 ## 快速开始
 
+IT 开发交接主文档：
+
+```text
+docs/AI_REPLY_SYSTEM_FLOW_ZH.md
+docs/IT_DEVELOPMENT_HANDOFF_AI_REPLY_HERMAS_ZH.md
+```
+
+`AI_REPLY_SYSTEM_FLOW_ZH.md` 是老板真实 Flow：客服只盯 Dashboard、价格图前后怎么回答和接 Flow、什么时候人工、人工后怎么复盘学习、ManyChat 怎么对标、Mark as Paid 怎么回流 Ads Manager。
+
+这份文档解释完整流程：Hermas approval-first、Dashboard 操作、ChatDaddy/Manychat adapter、Case 状态、学习复盘、Meta Purchase 回流、API 合约、上线 gate、以及哪些内容不能进入 GitHub。
+
 Dashboard demo:
 
 ```text
@@ -65,6 +76,43 @@ Staff: dashboard/?project_key=beyoute&role=staff&view=cases
 ```
 
 正式上线后，这些会换成真实账号登录；现在的公开版先用来确认操作流程和权限体验。
+
+## SaaS v1 登录和团队管理
+
+正式版本已经改成账号登录：
+
+```text
+login.html       管理员 / 客服邮箱密码登录
+admin.html       管理台：项目、成员、连接状态、上线准备
+dashboard/       客服操作台：待处理、批准、转人工、订单/付款、自动记录
+```
+
+账号登录使用 Worker + D1：
+
+```text
+POST /api/auth/login
+POST /api/auth/logout
+GET  /api/auth/session
+GET  /api/me/projects
+GET  /api/admin/users
+POST /api/admin/users
+PATCH /api/admin/users/{user_id}
+POST /api/admin/users/{user_id}/reset-password
+POST /api/admin/projects/{project_key}/members
+```
+
+session 存在 HttpOnly cookie。正式客服不需要知道安全码，也不应该在 URL、浏览器储存或客服页面看到 token。
+
+默认 CORS 来源是公开 demo 的 GitHub Pages 域名；如果生产前端改成其他域名，IT 要把 Worker 里的允许来源改成生产域名，或直接把前端和 Worker 放在同域。
+
+第一次建立 admin：
+
+1. 先跑 D1 migration：`migrations/0003_saas_auth.sql`。
+2. 用旧 `ADMIN_TOKEN` 只做一次 bootstrap，调用 `POST /api/admin/users` 创建 admin 账号。
+3. 之后 admin 用邮箱密码登录 `admin.html` 创建 staff、分配项目、停用账号或重置密码。
+4. staff 登录后默认进入 `dashboard/?role=staff&view=cases`，只看顾客处理，不看系统配置。
+
+新项目复制仍默认 `approval_first`。上线前必须通过项目资料、渠道连接、客服边界、测试 case 和 secrets 不外露检查。
 
 Owner/admin 新公司设置入口：
 
@@ -190,12 +238,17 @@ dashboard/index.html
 
 ```text
 src/worker.js                 Cloudflare Worker
+admin.html                    Admin 管理台
+login.html                    邮箱密码登录入口
 dashboard/index.html          客服 / Admin Dashboard
 google-sheets/Code.gs         Google Sheet Apps Script 记录表
+migrations/0003_saas_auth.sql D1 账号、session、项目成员和审计表
 docs/ONBOARDING_ZH.md         项目 onboarding 方式
 docs/CHATDADDY_SETUP_ZH.md    ChatDaddy 设置步骤
 docs/META_CAPI_PURCHASE_ZH.md Meta Purchase + RM 金额回流
 docs/AI_REPLY_RULES_ZH.md     AI 回复规则设计
+docs/AI_REPLY_SYSTEM_FLOW_ZH.md  老板真实 Flow 和 IT 开发方向
+docs/IT_DEVELOPMENT_HANDOFF_AI_REPLY_HERMAS_ZH.md  IT 开发交接总流程
 setup/check_ads_manager_purchase_go_live.command  Ads Manager 回流验收
 setup/set_meta_capi_purchase_auto_track.command   只开启 ChatDaddy paid -> Purchase 自动回流
 setup/test_chatdaddy_paid_webhook_purchase.command ChatDaddy paid webhook 测试
@@ -211,7 +264,6 @@ examples/*.json               测试 payload 和 runtime config
 - Staff 入口不应该显示 API URL、Admin Token、Webhook Secret 或 runtime 设置。
 - Pilot 阶段先保持 Flow 自动触发关闭，确认稳定后再逐步开放。
 - 全自动客服接管必须走 Hermas autonomous gate；复制项目时先保持客服批准优先。
-- Meta Purchase 必须用稳定 `order_id + currency + amount/order_value` 去重，同一成交不能重复回流 Ads Manager。
-- 已经记录成交但当时 Meta 未接好时，只能在同一张 Case 按「补回流 Meta」；不要新建第二笔成交。
+- Meta Purchase 必须用稳定 `order_id + currency + amount/order_value` 去重。同一成交不能重复回流 Ads Manager；已经记录成交但当时 Meta 未接好时，只能在同一张 Case 按「补回流 Meta」。
 
 详细看 [docs/SECURITY_ZH.md](docs/SECURITY_ZH.md)。

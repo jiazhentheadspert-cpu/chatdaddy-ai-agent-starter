@@ -5783,6 +5783,13 @@
     })();
   </script>
   <script>
+    const browserFetch = window.fetch.bind(window);
+    window.fetch = (input, init = {}) => browserFetch(input, {
+      credentials: "include",
+      ...init,
+      headers: init.headers || {},
+    });
+
     const state = {
       cases: [],
       filter: "needs_attention",
@@ -6153,15 +6160,24 @@
     $("saveAndLoad").addEventListener("click", () => {
       localStorage.setItem("agent_api_url", apiUrlEl.value.trim());
       localStorage.setItem("agent_project_key", projectKeyEl.value.trim());
-      if (state.role === "staff") localStorage.setItem("agent_staff_token", adminTokenEl.value.trim());
+      if (hasAccountSession()) {
+        localStorage.removeItem("agent_staff_token");
+        localStorage.removeItem("agent_admin_token");
+      } else if (state.role === "staff") localStorage.setItem("agent_staff_token", adminTokenEl.value.trim());
       else localStorage.setItem("agent_admin_token", adminTokenEl.value.trim());
       state.settings = readProjectSettings(projectKeyEl.value.trim() || "demo");
       state.auditEvents = readAuditEvents(projectKeyEl.value.trim() || "demo");
       loadCases();
     });
 
-    $("logoutBtn").addEventListener("click", () => {
+    $("logoutBtn").addEventListener("click", async () => {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      if (api && hasAccountSession()) {
+        await fetch(`${api}/api/auth/logout`, { method: "POST", headers: {} }).catch(() => null);
+      }
       localStorage.removeItem("agent_session");
+      localStorage.removeItem("agent_admin_token");
+      localStorage.removeItem("agent_staff_token");
       window.location.href = "../login.html";
     });
 
@@ -6395,6 +6411,59 @@
       }
     }
 
+    function hasAccountSession() {
+      return state.session?.authMode === "account" || Boolean(state.session?.email || state.session?.user?.email);
+    }
+
+    async function bootstrapSaasSession() {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      if (!api) return false;
+      try {
+        const res = await fetch(`${api}/api/auth/session`, { headers: {} });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok || !data.authenticated || !data.user) return false;
+        const projects = Array.isArray(data.projects) ? data.projects : [];
+        const currentProject = projectKeyEl.value.trim();
+        const selectedProject = projects.find((item) => item.project_key === currentProject) || projects[0] || { project_key: currentProject || "beyoute" };
+        state.session = {
+          ...state.session,
+          authMode: "account",
+          user: data.user,
+          email: data.user.email,
+          displayName: data.user.name,
+          role: data.user.role === "admin" ? "admin" : "staff",
+          projectKey: selectedProject.project_key,
+          workspace: selectedProject.project_key,
+          apiUrl: api,
+          projects,
+        };
+        state.role = state.session.role;
+        document.body.classList.toggle("staff-mode", state.role === "staff");
+        document.body.dataset.role = state.role;
+        projectKeyEl.value = selectedProject.project_key || projectKeyEl.value;
+        adminTokenEl.value = "";
+        adminTokenEl.placeholder = "已登录账号";
+        localStorage.setItem("agent_session", JSON.stringify({
+          authMode: "account",
+          email: state.session.email,
+          displayName: state.session.displayName,
+          role: state.role,
+          projectKey: projectKeyEl.value,
+          workspace: projectKeyEl.value,
+          apiUrl: api,
+          signedInAt: state.session.signedInAt || new Date().toISOString(),
+        }));
+        localStorage.setItem("agent_project_key", projectKeyEl.value);
+        localStorage.setItem("agent_api_url", api);
+        localStorage.removeItem("agent_admin_token");
+        localStorage.removeItem("agent_staff_token");
+        applySessionShell();
+        return true;
+      } catch (_error) {
+        return false;
+      }
+    }
+
     function settingsKey(project) {
       return `agent_project_settings_${project || "demo"}`;
     }
@@ -6448,11 +6517,12 @@
 
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const token = adminTokenEl.value.trim();
-      if (!state.demoMode && api && !token) {
-        alert("缺少管理密钥，不能保存到真实系统。");
+      const canAdminBySession = hasAccountSession() && state.role !== "staff";
+      if (!state.demoMode && api && !token && !canAdminBySession) {
+        alert("请先用管理员账号登录，不能保存到真实系统。");
         return;
       }
-      if (!state.demoMode && api && token) {
+      if (!state.demoMode && api && (token || canAdminBySession)) {
         try {
           showToast("正在保存到真实系统。");
           const endpoint = `${api}/api/agent-runtime/config?project_key=${encodeURIComponent(project)}`;
@@ -7335,7 +7405,7 @@
 
     async function loadContactNameMap(items, token) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
-      if (!api || !token || !Array.isArray(items) || !items.length) return {};
+      if (!api || (!token && !hasAccountSession()) || !Array.isArray(items) || !items.length) return {};
       const contacts = [...new Set(items.map(approvalContactDigits).filter(Boolean))].slice(0, 120);
       if (!contacts.length) return {};
 
@@ -7590,8 +7660,9 @@
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
       const token = adminTokenEl.value.trim();
+      const hasAuth = Boolean(token || hasAccountSession());
 
-      if (!api || !token) {
+      if (!api || !hasAuth) {
         if (canUseDemoMode()) {
           loadDemoCases();
           showToast("已载入演示。");
@@ -7602,8 +7673,8 @@
             ? "这个客服入口缺少连接资料，不能读取顾客讯息。请用最新客服入口链接重新打开，不要用旧收藏。"
             : "这个入口缺少系统接口地址，不能读取真实讯息。请用正式 Beyoute Dashboard 链接重新打开。"
           : state.role === "staff"
-            ? "这个客服入口缺少团队安全码，所以没有权限读取真实顾客。请用最新客服入口链接重新打开，不要用旧收藏。"
-            : "缺少管理密钥 / 团队安全码，不能读取真实讯息。";
+            ? "这个客服入口还没登录，所以没有权限读取真实顾客。请用正式客服账号重新登录。"
+            : "请先用账号密码登录，或临时输入管理密钥。";
         setRealQueueEmpty(missingMessage);
         return;
       }
@@ -7652,7 +7723,7 @@
     async function loadUsageSummary(token) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
-      if (!api || !token) {
+      if (!api || (!token && !hasAccountSession())) {
         state.usageSummary = null;
         renderSideUsage();
         return null;
@@ -7691,7 +7762,7 @@
     async function loadOwnerAdminSummaries(token) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
-      if (!api || !token || state.role === "staff") {
+      if (!api || (!token && !hasAccountSession()) || state.role === "staff") {
 	        state.projectVersions = null;
 	        state.qualityReview = null;
 	        state.handoffLearningReview = null;
@@ -7809,6 +7880,7 @@
     }
 
     function authHeaders(token) {
+      if (!token && hasAccountSession()) return {};
       if (state.role === "staff") return { "x-staff-token": token };
       return { "x-admin-token": token, "x-staff-token": token };
     }
@@ -7836,8 +7908,9 @@
         ? localStorage.getItem("agent_admin_token") || ""
         : adminTokenEl.value.trim();
       const targetPaused = !state.agentPaused;
-      if (!api || !token) {
-        showToast("暂停接管需要管理者安全码。客服入口不会显示后台密钥。");
+      const canAdminBySession = hasAccountSession() && state.role !== "staff";
+      if (!api || (!token && !canAdminBySession)) {
+        showToast("暂停接管需要管理员账号。客服入口不会显示后台密钥。");
         return;
       }
       const button = $("pauseAgentBtn");
@@ -11832,7 +11905,15 @@
       if (text) return text;
       if (dashboardIsUnverifiedAttachmentApproval(item)) return "顾客发了图片/附件，需人工打开确认";
       if ((decision.intent === "receipt" || decision.action === "review_receipt") && dashboardHasExplicitPaymentReceiptEvidence(item)) return "顾客表示已付款，需审核资料";
-      if (item.status === "external_flow_continued" || isExternalFlowRecord(item)) return "无新文字问题，Flow 已继续";
+      const actionType = String(item.action?.type || decision.action || "").toLowerCase();
+      const deliveryMode = String(item.decision?.delivery?.mode || decision.delivery?.mode || "").toLowerCase();
+      if (
+        item.status === "external_flow_continued" ||
+        actionType === "external_flow_continued" ||
+        deliveryMode === "external_flow_continued" ||
+        item.external_flow_event ||
+        item.external_flow_continued_at
+      ) return "无新文字问题，Flow 已继续";
       return "顾客没有文字讯息";
     }
 
@@ -16836,7 +16917,7 @@
 
     async function writeCaseOptimizerLearning(item = {}, feedback = "", generatedRule = "") {
       const payload = caseOptimizerLearningPayload(item, feedback, generatedRule);
-      if (state.demoMode || !apiUrlEl.value.trim() || !adminTokenEl.value.trim()) {
+      if (state.demoMode || !apiUrlEl.value.trim() || (!adminTokenEl.value.trim() && !hasAccountSession())) {
         const localRecord = storeLocalCaseOptimizerLearning(payload);
         return { ok: true, recorded: true, storage: "local", learning_note: localRecord };
       }
@@ -16865,8 +16946,7 @@
     }
 
     function learningRecordStatusText(result = {}) {
-      if (result?.recorded && result.storage === "d1") return "已写入 Hermas D1 学习记录";
-      if (result?.recorded && result.storage === "kv") return "已写入 Hermas KV 学习记录";
+      if (result?.recorded && result.storage) return "已保存到复盘记录";
       if (result?.recorded && result.storage === "local") return "已先存到本机浏览器";
       if (result?.ok) return "已记录";
       return "记录失败";
@@ -17004,7 +17084,7 @@
 
     async function writeLearningRecommendation(item = {}) {
       const payload = learningRecommendationPayload(item);
-      if (state.demoMode || !apiUrlEl.value.trim() || !adminTokenEl.value.trim()) {
+      if (state.demoMode || !apiUrlEl.value.trim() || (!adminTokenEl.value.trim() && !hasAccountSession())) {
         const localRecord = storeLocalCaseOptimizerLearning(payload);
         return { ok: true, recorded: true, storage: "local", learning_note: localRecord };
       }
@@ -17118,7 +17198,7 @@
         note: `Owner approved ${candidate.artifact_label || candidate.artifact_type} from Dashboard case review.`,
       };
 
-      if (state.demoMode || !apiUrlEl.value.trim() || !adminTokenEl.value.trim()) {
+      if (state.demoMode || !apiUrlEl.value.trim() || (!adminTokenEl.value.trim() && !hasAccountSession())) {
         const localRecord = storeLocalCaseOptimizerLearning({
           ...payload,
           source: "dashboard_learning_candidate_apply",
@@ -17758,7 +17838,10 @@
         .replaceAll("'", "&#039;");
     }
 
-    loadCases();
+    (async function bootDashboard() {
+      await bootstrapSaasSession();
+      await loadCases();
+    })();
   </script>
 </body>
 </html>

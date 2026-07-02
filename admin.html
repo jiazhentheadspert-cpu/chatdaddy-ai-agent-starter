@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ReplyPilot AI Admin</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #0b2824;
+      --muted: #64777c;
+      --line: #dbe7e5;
+      --soft: #f4fbf9;
+      --brand: #00b8a9;
+      --brand2: #2d82d8;
+      --warn: #b7791f;
+      --bad: #c2414b;
+      --good: #07866f;
+      --bg: #f8fcfb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #f7fcfb 0%, #eef7f5 100%);
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      min-height: 44px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button.primary {
+      border-color: transparent;
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+    }
+
+    button.danger {
+      color: var(--bad);
+      border-color: #f5c5ca;
+      background: #fff7f7;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 750;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-weight: 850;
+      font-size: 13px;
+    }
+
+    .shell {
+      width: min(1280px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 950;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 12px 28px rgba(0, 184, 169, 0.18);
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 32px;
+      line-height: 1.05;
+    }
+
+    h2 {
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-weight: 750;
+      margin-top: 5px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .api-field {
+      width: min(360px, 50vw);
+    }
+
+    .notice {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 14px 16px;
+      margin: 14px 0;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .notice.bad {
+      color: var(--bad);
+      border-color: #f4b8bf;
+      background: #fff7f7;
+    }
+
+    .notice.good {
+      color: var(--good);
+      border-color: #bdece0;
+      background: #f0fffb;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .metric, .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 18px 36px rgba(18, 52, 47, 0.06);
+    }
+
+    .metric {
+      padding: 16px;
+      min-height: 112px;
+      display: grid;
+      align-content: space-between;
+      gap: 10px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-weight: 850;
+    }
+
+    .metric b {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .form-grid .wide {
+      grid-column: 1 / -1;
+    }
+
+    .table {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr 0.8fr 1.2fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      min-height: 58px;
+    }
+
+    .row:first-child {
+      border-top: 0;
+      background: var(--soft);
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .person {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .person b, .person span {
+      overflow-wrap: anywhere;
+    }
+
+    .person span {
+      color: var(--muted);
+      font-weight: 750;
+      font-size: 13px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 6px 10px;
+      font-weight: 900;
+      width: fit-content;
+      background: #fff;
+    }
+
+    .pill.good {
+      color: var(--good);
+      background: #eefdf8;
+      border-color: #bdece0;
+    }
+
+    .pill.warn {
+      color: var(--warn);
+      background: #fff8ea;
+      border-color: #f2d7a4;
+    }
+
+    .pill.bad {
+      color: var(--bad);
+      background: #fff5f5;
+      border-color: #f4b8bf;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .actions button {
+      min-height: 36px;
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 10px;
+    }
+
+    .check {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--muted);
+      font-size: 13px;
+      font-weight: 950;
+      margin-top: 2px;
+    }
+
+    .dot.good { background: var(--good); }
+    .dot.warn { background: var(--warn); }
+    .dot.bad { background: var(--bad); }
+
+    .check b {
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .check span {
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(420px, calc(100vw - 36px));
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: #102c28;
+      color: #fff;
+      font-weight: 850;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .topbar, .main {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .api-field {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .shell {
+        width: min(100vw - 20px, 1280px);
+        padding-top: 14px;
+      }
+
+      .grid, .form-grid, .row {
+        grid-template-columns: 1fr;
+      }
+
+      .row:first-child {
+        display: none;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">RP</div>
+        <div>
+          <h1>管理台</h1>
+          <p class="sub">项目、成员、连接状态和上线准备。</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label class="api-field">系统网址
+          <input id="apiUrl" placeholder="https://your-system-url.com" autocomplete="url" />
+        </label>
+        <label>项目
+          <select id="projectSelect"></select>
+        </label>
+        <button id="refreshBtn" type="button">刷新</button>
+        <button id="openDashboardBtn" class="primary" type="button">打开操作台</button>
+        <button id="logoutBtn" type="button">退出</button>
+      </div>
+    </header>
+
+    <div id="notice" class="notice">请先用管理员账号登录。</div>
+
+    <section class="grid">
+      <article class="metric"><span>今日待处理</span><b id="pendingMetric">-</b><span id="pendingHint">等待读取</span></article>
+      <article class="metric"><span>质量分</span><b id="qualityMetric">-</b><span id="qualityHint">复盘结果</span></article>
+      <article class="metric"><span>今日 AI 成本</span><b id="costMetric">-</b><span id="costHint">按项目统计</span></article>
+      <article class="metric"><span>成员</span><b id="membersMetric">-</b><span id="membersHint">启用账号</span></article>
+    </section>
+
+    <section class="main">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>成员管理</h2>
+            <p class="sub">创建客服、分配项目、停用账号、重置密码。</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <label>姓名
+            <input id="staffName" placeholder="客服姓名" autocomplete="name" />
+          </label>
+          <label>邮箱
+            <input id="staffEmail" placeholder="staff@company.com" autocomplete="email" inputmode="email" />
+          </label>
+          <label>身份
+            <select id="staffRole">
+              <option value="staff">客服</option>
+              <option value="admin">管理员</option>
+            </select>
+          </label>
+          <label>分配项目
+            <input id="staffProject" placeholder="beyoute" />
+          </label>
+          <label class="wide">初始密码
+            <input id="staffPassword" placeholder="留空会生成临时密码" autocomplete="new-password" />
+          </label>
+          <button id="createUserBtn" class="primary wide" type="button">创建成员</button>
+        </div>
+
+        <div class="table" id="usersTable">
+          <div class="row"><div>成员</div><div>身份</div><div>状态</div><div>操作</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div>
+          <h2>上线准备</h2>
+          <p class="sub">复制到新项目之前，先通过这些 gate。</p>
+        </div>
+        <div class="checklist" id="readinessList"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const state = {
+      api: "",
+      user: null,
+      projects: [],
+      users: [],
+      selectedProject: "",
+    };
+
+    window.fetch = ((originalFetch) => (input, init = {}) => originalFetch(input, {
+      credentials: "include",
+      ...init,
+      headers: init.headers || {},
+    }))(window.fetch.bind(window));
+
+    function normalizeApiUrl(value) {
+      return String(value || "").trim().replace(/\/$/, "");
+    }
+
+    function projectKey() {
+      return $("projectSelect").value || state.selectedProject || "beyoute";
+    }
+
+    function setNotice(message, tone = "") {
+      const node = $("notice");
+      node.textContent = message;
+      node.className = `notice ${tone}`.trim();
+    }
+
+    function toast(message) {
+      const node = $("toast");
+      node.textContent = message;
+      node.classList.add("show");
+      window.clearTimeout(toast.timer);
+      toast.timer = window.setTimeout(() => node.classList.remove("show"), 2600);
+    }
+
+    async function fetchJson(path, options = {}) {
+      if (!state.api) throw new Error("请先填写系统网址");
+      const res = await fetch(`${state.api}${path}`, options);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) throw new Error(data.error || data.next || `HTTP ${res.status}`);
+      return data;
+    }
+
+    async function fetchJsonOptional(path, fallback = null) {
+      try {
+        return await fetchJson(path);
+      } catch (_) {
+        return fallback;
+      }
+    }
+
+    function renderProjects() {
+      const select = $("projectSelect");
+      const projects = state.projects.length ? state.projects : [{ project_key: state.selectedProject || "beyoute", project_name: state.selectedProject || "Beyoute" }];
+      select.innerHTML = projects.map((item) => {
+        const key = item.project_key || "beyoute";
+        const label = item.project_name || key;
+        return `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`;
+      }).join("");
+      select.value = state.selectedProject || projects[0].project_key || "beyoute";
+      $("staffProject").value = select.value;
+    }
+
+    function renderUsers() {
+      const rows = state.users.map((user) => {
+        const statusTone = user.status === "active" ? "good" : "bad";
+        const roleLabel = user.role === "admin" ? "管理员" : "客服";
+        const statusLabel = user.status === "active" ? "启用" : "停用";
+        return `
+          <div class="row">
+            <div class="person"><b>${escapeHtml(user.name || user.email || "成员")}</b><span>${escapeHtml(user.email || "")}</span></div>
+            <div><span class="pill">${roleLabel}</span></div>
+            <div><span class="pill ${statusTone}">${statusLabel}</span></div>
+            <div class="actions">
+              <button type="button" data-action="assign" data-user="${escapeHtml(user.user_id)}">分配项目</button>
+              <button type="button" data-action="reset" data-user="${escapeHtml(user.user_id)}">重置密码</button>
+              ${user.status === "active"
+                ? `<button class="danger" type="button" data-action="disable" data-user="${escapeHtml(user.user_id)}">停用</button>`
+                : `<button type="button" data-action="enable" data-user="${escapeHtml(user.user_id)}">启用</button>`}
+            </div>
+          </div>
+        `;
+      }).join("");
+      $("usersTable").innerHTML = `<div class="row"><div>成员</div><div>身份</div><div>状态</div><div>操作</div></div>${rows || `<div class="row"><div class="person"><b>还没有成员</b><span>先创建第一个客服账号。</span></div><div></div><div></div><div></div></div>`}`;
+      $("membersMetric").textContent = String(state.users.filter((user) => user.status === "active").length);
+    }
+
+    function renderReadiness(readiness) {
+      const checks = [
+        {
+          title: "项目资料完整",
+          ok: readiness?.readiness?.project_package_ready === true || readiness?.package_ready === true,
+          pending: readiness == null,
+          text: "FAQ、价格、Flow map、风险规则和测试 case 要齐。",
+        },
+        {
+          title: "渠道已连接",
+          ok: readiness?.readiness?.channel_connected === true || readiness?.channel_connected === true,
+          pending: readiness == null,
+          text: "顾客讯息能进入 Dashboard，回复动作有明确出口。",
+        },
+        {
+          title: "客服边界干净",
+          ok: readiness?.readiness?.staff_dashboard_boundary === true || readiness?.staff_dashboard_boundary === true,
+          pending: readiness == null,
+          text: "客服页面只显示顾客、回复、订单和复盘，不显示系统配置。",
+        },
+        {
+          title: "Approval-first",
+          ok: readiness?.readiness?.approval_first === true || readiness?.automation_mode === "approval_first" || readiness == null,
+          pending: false,
+          text: "新项目默认先审批，不默认全自动发送或接 Flow。",
+        },
+      ];
+      $("readinessList").innerHTML = checks.map((item) => {
+        const tone = item.pending ? "warn" : item.ok ? "good" : "bad";
+        const icon = item.pending ? "?" : item.ok ? "✓" : "!";
+        return `
+          <div class="check">
+            <div class="dot ${tone}">${icon}</div>
+            <div><b>${escapeHtml(item.title)}</b><span>${escapeHtml(item.text)}</span></div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    async function loadSession() {
+      state.api = normalizeApiUrl($("apiUrl").value || localStorage.getItem("agent_api_url"));
+      $("apiUrl").value = state.api;
+      if (!state.api) {
+        setNotice("请填写系统网址，再用管理员账号登录。", "bad");
+        return false;
+      }
+      const data = await fetchJson("/api/auth/session");
+      if (!data.authenticated || data.user?.role !== "admin") {
+        setNotice("请先用管理员账号登录。", "bad");
+        return false;
+      }
+      state.user = data.user;
+      state.projects = Array.isArray(data.projects) ? data.projects : [];
+      state.selectedProject = localStorage.getItem("agent_project_key") || state.projects[0]?.project_key || "beyoute";
+      localStorage.setItem("agent_api_url", state.api);
+      renderProjects();
+      setNotice(`${data.user.name || data.user.email} 已登录。`, "good");
+      return true;
+    }
+
+    async function loadAdminData() {
+      const ok = await loadSession();
+      if (!ok) return;
+      const project = projectKey();
+      localStorage.setItem("agent_project_key", project);
+      $("staffProject").value = project;
+
+      const [users, queue, usage, readiness, quality] = await Promise.all([
+        fetchJson("/api/admin/users").catch((error) => ({ users: [], error: error.message })),
+        fetchJsonOptional(`/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&limit=100`, { items: [] }),
+        fetchJsonOptional(`/api/hermas/projects/${encodeURIComponent(project)}/usage-summary`, null)
+          .then((data) => data || fetchJsonOptional(`/api/usage/summary?project_key=${encodeURIComponent(project)}`, null)),
+        fetchJsonOptional(`/api/hermas/projects/${encodeURIComponent(project)}/readiness`, null),
+        fetchJsonOptional(`/api/hermas/projects/${encodeURIComponent(project)}/quality-review?limit=20&scan_limit=500&real_only=1`, null),
+      ]);
+
+      state.users = Array.isArray(users.users) ? users.users : [];
+      renderUsers();
+
+      const items = Array.isArray(queue?.items) ? queue.items : [];
+      const pending = items.filter((item) => !["sent", "auto_sent", "manual_resolved", "purchase_confirmed", "external_flow_continued"].includes(String(item.status || ""))).length;
+      $("pendingMetric").textContent = String(pending);
+      $("pendingHint").textContent = `${items.length} 条今日记录`;
+
+      const dailyCost = usage?.today?.estimated_cost_usd ?? usage?.daily?.estimated_cost_usd ?? usage?.estimated_cost_usd;
+      $("costMetric").textContent = Number.isFinite(Number(dailyCost)) ? `US$${Number(dailyCost).toFixed(2)}` : "-";
+      $("costHint").textContent = usage ? "已读取" : "待连接";
+
+      const score = quality?.score ?? quality?.quality_score ?? quality?.summary?.score;
+      $("qualityMetric").textContent = Number.isFinite(Number(score)) ? `${Math.round(Number(score))}` : "-";
+      $("qualityHint").textContent = quality ? "已读取" : "待复盘";
+
+      renderReadiness(readiness);
+    }
+
+    async function createUser() {
+      const payload = {
+        name: $("staffName").value.trim(),
+        email: $("staffEmail").value.trim().toLowerCase(),
+        role: $("staffRole").value,
+        password: $("staffPassword").value,
+        project_keys: [$("staffProject").value.trim() || projectKey()],
+      };
+      if (!payload.email) {
+        toast("请填写邮箱。");
+        return;
+      }
+      const data = await fetchJson("/api/admin/users", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      $("staffName").value = "";
+      $("staffEmail").value = "";
+      $("staffPassword").value = "";
+      toast(data.temporary_password ? `成员已创建。临时密码：${data.temporary_password}` : "成员已创建。");
+      await loadAdminData();
+    }
+
+    async function handleUserAction(event) {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      const userId = button.dataset.user;
+      const action = button.dataset.action;
+      if (!userId || !action) return;
+      if (action === "assign") {
+        await fetchJson(`/api/admin/projects/${encodeURIComponent(projectKey())}/members`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ user_id: userId, role: "staff", status: "active" }),
+        });
+        toast("已分配到当前项目。");
+      }
+      if (action === "disable" || action === "enable") {
+        await fetchJson(`/api/admin/users/${encodeURIComponent(userId)}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ status: action === "enable" ? "active" : "disabled" }),
+        });
+        toast(action === "enable" ? "账号已启用。" : "账号已停用。");
+      }
+      if (action === "reset") {
+        const data = await fetchJson(`/api/admin/users/${encodeURIComponent(userId)}/reset-password`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        toast(`新临时密码：${data.temporary_password}`);
+      }
+      await loadAdminData();
+    }
+
+    async function logout() {
+      if (state.api) {
+        await fetch(`${state.api}/api/auth/logout`, { method: "POST" }).catch(() => null);
+      }
+      localStorage.removeItem("agent_session");
+      localStorage.removeItem("agent_admin_token");
+      localStorage.removeItem("agent_staff_token");
+      window.location.href = "login.html";
+    }
+
+    $("refreshBtn").addEventListener("click", () => loadAdminData().catch((error) => setNotice(error.message, "bad")));
+    $("createUserBtn").addEventListener("click", () => createUser().catch((error) => toast(error.message)));
+    $("usersTable").addEventListener("click", (event) => handleUserAction(event).catch((error) => toast(error.message)));
+    $("projectSelect").addEventListener("change", () => loadAdminData().catch((error) => setNotice(error.message, "bad")));
+    $("openDashboardBtn").addEventListener("click", () => {
+      const params = new URLSearchParams({ role: "admin", project_key: projectKey() });
+      if (state.api) params.set("api", state.api);
+      window.location.href = `dashboard/index.html?${params.toString()}`;
+    });
+    $("logoutBtn").addEventListener("click", logout);
+
+    $("apiUrl").value = new URLSearchParams(window.location.search).get("api") || localStorage.getItem("agent_api_url") || "";
+    loadAdminData().catch((error) => setNotice(error.message, "bad"));
+  </script>
+</body>
+</html>
