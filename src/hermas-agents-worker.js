@@ -74,7 +74,8 @@ export class HermasProjectAgent extends Agent {
 
       this.recordLocalEvent(normalized);
       this.recordPayloadSample(normalized, payload);
-      await persistSupabaseMessage(this.env, normalized, payload);
+      const messagePersistence = await persistSupabaseMessage(this.env, normalized, payload);
+      const backgroundJob = await persistSupabaseBackgroundJob(this.env, normalized);
 
       const contactKey = await stableContactKey(normalized);
       const conversationAgent = await getAgentByName(
@@ -101,7 +102,11 @@ export class HermasProjectAgent extends Agent {
         connection_id: connectionId,
         normalized: publicNormalizedEvent(normalized),
         decision: decisionBody.decision,
-        persistence: decisionBody.persistence || null
+        persistence: {
+          message: messagePersistence,
+          background_job: backgroundJob,
+          decision: decisionBody.persistence || null
+        }
       });
     }
 
@@ -307,6 +312,7 @@ export default {
         version: VERSION,
         mode: "approval_first",
         cloudflare_agents_sdk: true,
+        webhook_ack_mode: webhookAckMode(env),
         has_supabase: Boolean(hasSupabase(env)),
         auto_send_enabled: false,
         auto_trigger_flows_enabled: false
@@ -354,11 +360,31 @@ export default {
       const body = await request.text();
       const projectKey = normalizeProjectKey(url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
       const projectAgent = await getAgentByName(env.HermasProjectAgent, `project:${projectKey}`);
-      return projectAgent.fetch(new Request(`https://agent.local/intake/chatdaddy?connection_id=${encodeURIComponent(connectionId)}`, {
+      const intakeRequest = new Request(`https://agent.local/intake/chatdaddy?connection_id=${encodeURIComponent(connectionId)}`, {
         method: "POST",
         headers: request.headers,
         body
-      }));
+      });
+
+      if (shouldFastAckWebhook(env, url)) {
+        ctx.waitUntil(projectAgent.fetch(intakeRequest).catch((error) => {
+          console.error("Hermas ChatDaddy webhook background intake failed", error);
+        }));
+        return json({
+          ok: true,
+          accepted: true,
+          runtime: "HermasProjectAgent",
+          mode: "approval_first",
+          webhook_ack_mode: "fast",
+          project_key: projectKey,
+          connection_id: connectionId,
+          decision_status: "queued",
+          auto_send_enabled: false,
+          auto_trigger_flows_enabled: false
+        }, 202);
+      }
+
+      return projectAgent.fetch(intakeRequest);
     }
 
     return (
@@ -707,6 +733,37 @@ async function persistSupabaseMessage(env, normalized, rawPayload) {
   return supabaseInsert(env, "messages", payload);
 }
 
+async function persistSupabaseBackgroundJob(env, normalized) {
+  if (!hasSupabase(env)) return { attempted: false, reason: "supabase_not_configured" };
+  const jobType = normalized.direction === "inbound"
+    ? "chatdaddy_inbound_decision"
+    : "chatdaddy_context_record";
+  const dedupeKey = [
+    jobType,
+    normalized.provider,
+    normalized.provider_message_id || normalized.event_id
+  ].join(":");
+
+  return supabaseInsert(env, "background_jobs", {
+    project_key: normalized.project_key,
+    job_type: jobType,
+    status: "queued",
+    priority: normalized.direction === "inbound" ? 4 : 7,
+    attempt_count: 0,
+    max_attempts: 5,
+    next_run_at: new Date().toISOString(),
+    dedupe_key: dedupeKey,
+    payload: {
+      normalized: publicNormalizedEvent(normalized),
+      connection_id: normalized.connection_id,
+      provider: normalized.provider,
+      provider_message_id: normalized.provider_message_id,
+      event_type: normalized.event_type,
+      message_type: normalized.message_type
+    }
+  });
+}
+
 async function persistSupabaseDecision(env, normalized, decision, rawPayload) {
   const out = {
     ai_decision: { attempted: false, reason: "supabase_not_configured" },
@@ -833,6 +890,15 @@ function verifyWebhookSecret(request, env) {
 
   if (provided && provided === expected) return null;
   return json({ ok: false, error: "invalid_webhook_secret" }, 401);
+}
+
+function webhookAckMode(env) {
+  return env.HERMAS_WEBHOOK_ACK_MODE === "inline" ? "inline" : "fast";
+}
+
+function shouldFastAckWebhook(env, url) {
+  if (url.searchParams.get("wait_for_decision") === "1") return false;
+  return webhookAckMode(env) === "fast";
 }
 
 function toPayloadShape(value, depth = 0) {
