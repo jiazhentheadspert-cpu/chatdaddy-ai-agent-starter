@@ -267,6 +267,9 @@ export default {
 
     const webhookMatch = url.pathname.match(/^\/api\/channels\/chatdaddy\/webhook\/([^/]+)$/);
     if (request.method === "POST" && webhookMatch) {
+      const webhookAuthError = verifyWebhookSecret(request, env);
+      if (webhookAuthError) return webhookAuthError;
+
       const connectionId = decodeURIComponent(webhookMatch[1]);
       const body = await request.text();
       const projectKey = normalizeProjectKey(url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
@@ -722,6 +725,20 @@ async function supabaseInsert(env, table, payload) {
 
 function hasSupabase(env) {
   return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY && !String(env.SUPABASE_URL).includes("YOUR_PROJECT"));
+}
+
+function verifyWebhookSecret(request, env) {
+  const expected = env.CHATDADDY_WEBHOOK_SECRET;
+  if (!expected) return null;
+
+  const authorization = request.headers.get("authorization") || "";
+  const bearer = authorization.toLowerCase().startsWith("bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+  const provided = request.headers.get("x-webhook-secret") || bearer;
+
+  if (provided && provided === expected) return null;
+  return json({ ok: false, error: "invalid_webhook_secret" }, 401);
 }
 
 function publicNormalizedEvent(normalized) {

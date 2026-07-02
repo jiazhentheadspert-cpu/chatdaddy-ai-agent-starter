@@ -416,6 +416,8 @@ or give controlled account access.
 - The scaffold has Durable Object bindings, `new_sqlite_classes`, `nodejs_compat`,
   local SQL state, ChatDaddy webhook routing, decision-test endpoint, and optional
   Supabase persistence.
+- ChatDaddy webhook auth is enforced when `CHATDADDY_WEBHOOK_SECRET` is configured.
+  The request must include `x-webhook-secret` or `Authorization: Bearer ...`.
 - Existing production `worker-v2.js` remains the live fallback until the owner
   and Tech Team decide to cut over.
 - Keep existing `/api/hermas/...` endpoints.
