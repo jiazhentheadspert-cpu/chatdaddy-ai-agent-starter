@@ -1236,38 +1236,241 @@ async function handleSupabaseApprovalsPending(request, env) {
   const url = new URL(request.url);
   const projectKey = normalizeProjectKey(url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
   const limit = clampInteger(url.searchParams.get("limit"), 1, 250, 50);
+  const scanLimit = clampInteger(url.searchParams.get("scan_limit"), limit, 2000, Math.max(limit, 500));
+  const requestedStatus = String(url.searchParams.get("status") || "pending").trim().toLowerCase() || "pending";
+  const includeTests = ["1", "true", "yes"].includes(String(url.searchParams.get("include_tests") || "").toLowerCase());
+  const realOnly = !["0", "false", "no"].includes(String(url.searchParams.get("real_only") || "1").toLowerCase());
   const rows = await supabaseSelectRows(
     env,
-    `approval_cases?project_key=eq.${encodeURIComponent(projectKey)}&select=*&order=created_at.desc&limit=${limit}`
+    `approval_cases?project_key=eq.${encodeURIComponent(projectKey)}&select=*&order=created_at.desc&limit=${scanLimit}`
   );
 
   const customerIds = uniqueTruthy(rows.map((row) => row.customer_id));
   const messageIds = uniqueTruthy(rows.map((row) => row.trigger_message_id));
+  const conversationIds = uniqueTruthy(rows.map((row) => row.conversation_id));
   const customers = await selectSupabaseRowsByIds(env, "customers", customerIds, "id,external_customer_id,phone_e164,display_name,profile");
   const messages = await selectSupabaseRowsByIds(env, "messages", messageIds, "id,provider_message_id,text,message_at,metadata,content,customer_id");
+  const recentMessageRows = await selectSupabaseRecentMessagesByConversationIds(env, projectKey, conversationIds);
   const customerById = objectById(customers);
   const messageById = objectById(messages);
+  const recentMessagesByConversationId = groupSupabaseMessagesByConversationId(recentMessageRows);
 
   const items = rows.map((row) => approvalCaseRowToDashboardItem(row, {
     customer: customerById[row.customer_id] || null,
-    message: messageById[row.trigger_message_id] || null
+    message: messageById[row.trigger_message_id] || null,
+    recentMessages: recentMessagesByConversationId[row.conversation_id] || []
   }));
   const legacy = await fetchLegacyApprovalItems(request, env, projectKey);
   const mergedItems = mergeApprovalItems(items, legacy.items);
+  const cleanItems = (!includeTests || realOnly)
+    ? mergedItems.filter((item) => !isLikelyDashboardTestItem(item))
+    : mergedItems;
+  const statusFilteredItems = filterDashboardItemsByRequestedStatus(cleanItems, requestedStatus);
+  const visibleItems = shouldCollapseDashboardItemsForStatus(requestedStatus)
+    ? collapseDashboardItemsByConversation(statusFilteredItems)
+    : statusFilteredItems;
+  const limitedItems = visibleItems.slice(0, limit);
 
   return json({
     ok: true,
     source: legacy.items.length ? "supabase_approval_cases_plus_legacy" : "supabase_approval_cases",
     runtime: "HermasProjectAgent",
     project_key: projectKey,
-    items: mergedItems.slice(0, limit),
-    count: mergedItems.length,
+    status: requestedStatus,
+    items: limitedItems,
+    count: visibleItems.length,
+    raw_count: mergedItems.length,
     supabase_count: items.length,
     legacy_count: legacy.items.length,
+    filtered_count: statusFilteredItems.length,
+    scan_limit: scanLimit,
+    include_tests: includeTests,
+    real_only: realOnly,
     legacy_error: legacy.error || null,
     auto_send_enabled: false,
     auto_trigger_flows_enabled: false
   });
+}
+
+async function selectSupabaseRecentMessagesByConversationIds(env, projectKey, conversationIds = []) {
+  if (!conversationIds.length) return [];
+  const idList = conversationIds.map((id) => String(id || "").trim()).filter(Boolean).join(",");
+  if (!idList) return [];
+  return supabaseSelectRows(
+    env,
+    `messages?project_key=eq.${encodeURIComponent(projectKey)}&conversation_id=in.(${idList})&select=id,provider_message_id,text,message_at,metadata,content,customer_id,conversation_id,direction,sender_type,message_type,attachments,status,created_at&order=message_at.asc&limit=1200`
+  );
+}
+
+function groupSupabaseMessagesByConversationId(rows = []) {
+  const grouped = {};
+  for (const row of rows || []) {
+    const conversationId = String(row?.conversation_id || "").trim();
+    if (!conversationId) continue;
+    const list = grouped[conversationId] || [];
+    list.push(supabaseMessageRowToDashboardMessage(row));
+    grouped[conversationId] = list;
+  }
+  for (const key of Object.keys(grouped)) {
+    grouped[key] = grouped[key]
+      .sort((a, b) => new Date(a.at || 0) - new Date(b.at || 0))
+      .slice(-20);
+  }
+  return grouped;
+}
+
+function supabaseMessageRowToDashboardMessage(row = {}) {
+  const direction = String(row.direction || row.sender_type || "").toLowerCase();
+  const text = firstString(row.text, row.content?.text, row.content?.body, row.content?.caption);
+  const messageType = firstString(row.message_type, row.content?.type, "text").toLowerCase();
+  const attachments = Array.isArray(row.attachments) ? row.attachments : [];
+  return {
+    id: row.id || row.provider_message_id || "",
+    provider_message_id: row.provider_message_id || "",
+    direction: direction === "outbound" || direction === "agent" || direction === "assistant" || direction === "bot" ? "outbound" : "inbound",
+    role: direction === "outbound" || direction === "agent" || direction === "assistant" || direction === "bot" ? "agent" : "customer",
+    text,
+    type: attachments.length && !text ? "attachment" : messageType,
+    message_type: attachments.length && !text ? "attachment" : messageType,
+    at: row.message_at || row.created_at || "",
+    message_at: row.message_at || row.created_at || "",
+    is_attachment: attachments.length > 0
+  };
+}
+
+function latestVisibleCustomerMessage(messages = []) {
+  const normalized = (messages || [])
+    .filter((message) => {
+      const direction = String(message.direction || message.role || "").toLowerCase();
+      if (direction === "outbound" || direction === "agent" || direction === "assistant" || direction === "bot") return false;
+      const text = firstString(message.text, message.body, message.message);
+      const type = String(message.type || message.message_type || "").toLowerCase();
+      return Boolean(text) || /(attachment|image|photo|file|audio|voice)/.test(type) || message.is_attachment;
+    })
+    .sort((a, b) => new Date(a.at || a.message_at || 0) - new Date(b.at || b.message_at || 0));
+  return normalized.at(-1) || null;
+}
+
+function filterDashboardItemsByRequestedStatus(items = [], status = "pending") {
+  const normalized = String(status || "pending").toLowerCase();
+  if (normalized === "all") return items;
+  if (["pending", "open", "needs_attention"].includes(normalized)) {
+    return items.filter((item) => item.status === "pending");
+  }
+  if (["approval", "approvable", "needs_approval"].includes(normalized)) {
+    return items.filter((item) => item.status === "pending" && item.category === "approval");
+  }
+  if (["human", "handoff"].includes(normalized)) {
+    return items.filter((item) => item.status === "pending" && item.category === "human");
+  }
+  if (["order", "orders", "payment", "purchase"].includes(normalized)) {
+    return items.filter((item) => item.status === "pending" && item.category === "order");
+  }
+  if (["auto", "records", "auto_record", "external_flow_continued"].includes(normalized)) {
+    return items.filter((item) => item.status === "external_flow_continued");
+  }
+  if (["sent", "closed"].includes(normalized)) {
+    return items.filter((item) => ["sent", "manual_resolved", "purchase_confirmed"].includes(item.status));
+  }
+  return items;
+}
+
+function shouldCollapseDashboardItemsForStatus(status = "") {
+  const normalized = String(status || "pending").toLowerCase();
+  return ["pending", "open", "needs_attention", "approval", "approvable", "needs_approval", "human", "handoff", "order", "orders", "payment", "purchase"].includes(normalized);
+}
+
+function collapseDashboardItemsByConversation(items = []) {
+  const grouped = new Map();
+  const passthrough = [];
+  for (const item of items || []) {
+    const key = dashboardConversationKey(item);
+    if (!key) {
+      passthrough.push(item);
+      continue;
+    }
+    const group = grouped.get(key) || [];
+    group.push(item);
+    grouped.set(key, group);
+  }
+
+  for (const group of grouped.values()) {
+    if (group.length === 1) {
+      passthrough.push(group[0]);
+      continue;
+    }
+    const sorted = [...group].sort((a, b) => {
+      const priorityDiff = dashboardItemPriorityScore(b) - dashboardItemPriorityScore(a);
+      if (priorityDiff) return priorityDiff;
+      return dashboardItemTimestamp(b) - dashboardItemTimestamp(a);
+    });
+    const representative = {
+      ...sorted[0],
+      dashboard_grouped_case_count: group.length,
+      dashboard_grouped_case_ids: sorted.map((item) => item.id).filter(Boolean),
+      dashboard_grouped_open_count: sorted.filter((item) => item.status === "pending").length,
+      dashboard_grouped_cases: sorted.map((item) => ({
+        id: item.id || "",
+        status: item.status || "",
+        at: item.updated_at || item.last_message_at || item.created_at || "",
+        last_message: item.inbound?.text || item.last_message || "",
+        action: item.action?.type || item.next_action || ""
+      }))
+    };
+    passthrough.push(representative);
+  }
+  return passthrough.sort((a, b) => dashboardItemTimestamp(b) - dashboardItemTimestamp(a));
+}
+
+function dashboardConversationKey(item = {}) {
+  const values = [
+    item.customer?.chat_id,
+    item.customer?.id,
+    item.customer?.phone,
+    item.inbound?.chat_id,
+    item.inbound?.phone,
+    item.raw?.conversation_id,
+    item.raw?.case_id
+  ].map((value) => String(value || "").trim()).filter(Boolean);
+  const value = values.find((candidate) => !/^appr[_-]/i.test(candidate) && !/^case[_-]/i.test(candidate));
+  return value ? `contact:${value}` : "";
+}
+
+function dashboardItemTimestamp(item = {}) {
+  const date = new Date(item.updated_at || item.inbound?.message_at || item.last_message_at || item.created_at || 0);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function dashboardItemPriorityScore(item = {}) {
+  let score = 0;
+  if (item.category === "human") score += 400;
+  if (item.category === "order") score += 300;
+  if (item.category === "approval") score += 200;
+  if (item.status === "pending") score += 100;
+  if (String(item.risk_level || item.decision?.signals?.risk_level || "").toLowerCase() === "high") score += 50;
+  if (firstString(item.inbound?.text, item.last_message)) score += 10;
+  return score;
+}
+
+function isLikelyDashboardTestItem(item = {}) {
+  const text = [
+    item.id,
+    item.project_key,
+    item.source,
+    item.customer?.id,
+    item.customer?.chat_id,
+    item.customer?.name,
+    item.customer?.display_name,
+    item.inbound?.chat_id,
+    item.inbound?.customer_name,
+    item.inbound?.display_name,
+    item.raw?.case_id,
+    item.raw?.provider_case_id,
+    item.raw_approval?.customer?.name,
+    item.raw_approval?.inbound?.customer_name,
+    item.raw_approval?.inbound?.external_customer_id
+  ].map((value) => String(value || "").toLowerCase()).join(" ");
+  return /(smoke\s*test|debug-contact|codex_button_selftest|selftest|test customer|mock customer|demo customer)/i.test(text);
 }
 
 async function fetchLegacyApprovalItems(request, env, projectKey) {
@@ -1679,8 +1882,12 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
   const isLegacyImport = row.data?.legacy_import === true;
   const customer = refs.customer || {};
   const message = refs.message || {};
-  const inboundText = firstString(row.customer_last_text, message.text, normalized.text);
-  const messageAt = firstString(message.message_at, normalized.message_at, row.created_at);
+  const storedRecentMessages = Array.isArray(refs.recentMessages) ? refs.recentMessages : [];
+  const fallbackMessage = approvalCaseFallbackMessage(row, message, normalized);
+  const recentMessages = storedRecentMessages.length ? storedRecentMessages : (fallbackMessage ? [fallbackMessage] : []);
+  const latestCustomerMessage = latestVisibleCustomerMessage(recentMessages);
+  const inboundText = firstString(latestCustomerMessage?.text, row.customer_last_text, message.text, normalized.text);
+  const messageAt = firstString(latestCustomerMessage?.at, latestCustomerMessage?.message_at, message.message_at, normalized.message_at, row.created_at);
   const displayUpdatedAt = isLegacyImport
     ? firstString(messageAt, row.created_at, row.updated_at)
     : firstString(row.updated_at, messageAt, row.created_at);
@@ -1729,6 +1936,12 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
       label: row.reason || decision.reason || row.next_action || "等待客服确认",
       operator_instruction: row.reason || decision.reason || "检查后才发送。"
     },
+    chat_preview: recentMessages.length ? recentMessages : undefined,
+    conversation_context: recentMessages.length ? {
+      messages: recentMessages,
+      latest_customer_message: latestCustomerMessage || undefined
+    } : undefined,
+    latest_customer_message: latestCustomerMessage || undefined,
     decision: {
       signals: {
         intent: row.intent || decision.intent || "approval",
@@ -1754,10 +1967,33 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
     next_action: row.next_action || decision.next_action || "",
     raw: {
       case_id: row.id,
+      conversation_id: row.conversation_id || undefined,
       queue_bucket: row.queue_bucket,
       confidence: row.confidence
     }
   });
+}
+
+function approvalCaseFallbackMessage(row = {}, message = {}, normalized = {}) {
+  const text = firstString(row.customer_last_text, message.text, normalized.text);
+  const intent = String(row.intent || row.data?.decision?.intent || "").toLowerCase();
+  const stage = String(row.stage || row.data?.decision?.stage || "").toLowerCase();
+  const messageType = String(message.message_type || message.content?.type || normalized.message_type || "").toLowerCase();
+  const looksAttachment = /(receipt_upload|receipt|payment|upload|attachment|image|photo|file|audio|voice)/i.test(`${intent} ${stage} ${messageType}`);
+  if (!text && !looksAttachment) return null;
+  const type = text ? "text" : "attachment";
+  return {
+    id: firstString(message.id, row.trigger_message_id, row.provider_case_id, row.id),
+    provider_message_id: firstString(message.provider_message_id, row.provider_case_id, normalized.provider_message_id),
+    direction: "inbound",
+    role: "customer",
+    text: text || "顾客发送了附件",
+    type,
+    message_type: type,
+    at: firstString(message.message_at, normalized.message_at, row.created_at),
+    message_at: firstString(message.message_at, normalized.message_at, row.created_at),
+    is_attachment: !text && looksAttachment
+  };
 }
 
 function dashboardStatusFromApprovalCase(row) {
@@ -1779,7 +2015,7 @@ function dashboardCategoryFromApprovalCase(row) {
 
 function dashboardActionTypeFromApprovalCase(row, decision = {}) {
   const action = row.next_action || decision.next_action || "";
-  if (row.queue_bucket === "human" || row.status === "handoff" || action === "handoff") return "ask_team";
+  if (row.queue_bucket === "human" || row.status === "handoff" || action === "handoff") return "handoff";
   if (row.queue_bucket === "order_payment" || action === "order_payment_review") return "receipt_review";
   return "approve_reply";
 }

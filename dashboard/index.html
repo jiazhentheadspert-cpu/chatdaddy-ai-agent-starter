@@ -7996,10 +7996,14 @@
       const sentLike = ["auto_sent", "sent", "send_failed", "manual_resolved"].includes(status);
       const contactDigits = approvalContactDigits(item);
       const contactName = customerDisplayNameFromApproval(item, contactNames);
+      const contextMessages = approvalRecentContextMessages(item);
+      const latestContextCustomer = latestInboundContextMessage(contextMessages);
+      const displayInboundText = firstContextText(latestContextCustomer?.text, inbound.text);
+      const displayInboundAt = firstContextText(latestContextCustomer?.at, latestContextCustomer?.message_at, inbound.message_at, at);
       const history = [
         {
         type: status === "purchase_confirmed" ? "case_purchase_confirmed" : status === "manual_resolved" ? "manual_resolved" : status === "returned_to_ai" ? "returned_to_ai" : status === "external_flow_continued" ? "external_flow_continued" : status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : status === "handoff_done" ? "handoff_done" : status === "sending" ? "reply_sending" : "ai_decision",
-          at,
+          at: displayInboundAt || at,
           note: approvalReason(item, status, action),
         },
       ];
@@ -8018,7 +8022,7 @@
           note: opsTracking.note,
         });
       }
-      const messages = [
+      const fallbackMessages = [
         ...(previousAgentText ? [{
           id: `${item.id}-previous-agent`,
           direction: "outbound",
@@ -8028,10 +8032,11 @@
         {
           id: inbound.provider_message_id || inbound.event_id || `${item.id}-in`,
           direction: "inbound",
-          text: inbound.text || "",
-          at: inbound.message_at || at,
+          text: displayInboundText || "",
+          at: displayInboundAt || at,
         },
       ];
+      const messages = contextMessages.length ? contextMessages : fallbackMessages;
       if (sentLike && finalReply) {
         messages.push({
           id: `${item.id}-out`,
@@ -8051,9 +8056,9 @@
           name: contactName,
           phone: customer.phone || item.contact?.phone || inbound.phone || "",
         },
-        last_message: inbound.text || "",
-        last_message_at: inbound.message_at || at,
-        updated_at: at,
+        last_message: displayInboundText || "",
+        last_message_at: displayInboundAt || at,
+        updated_at: item.updated_at || displayInboundAt || at,
         created_at: item.created_at || at,
         word_cloud: words,
 	        latest_decision: {
@@ -8088,6 +8093,49 @@
 	        raw_approval: item,
 	      };
 	    }
+
+    function approvalRecentContextMessages(item = {}) {
+      const raw = [
+        item.chat_preview,
+        item.conversation_context?.messages,
+        item.recent_context?.messages,
+        item.latest_context?.messages,
+        item.decision?.signals?.recent_messages,
+      ].find(Array.isArray) || [];
+      return raw
+        .map((message, index) => {
+          const rawDirection = String(message?.direction || message?.role || message?.sender_type || message?.from || "").toLowerCase();
+          const isOutbound = rawDirection === "outbound" ||
+            rawDirection === "out" ||
+            rawDirection === "agent" ||
+            rawDirection === "assistant" ||
+            rawDirection === "bot" ||
+            message?.fromMe === true ||
+            message?.from_me === true ||
+            message?.is_from_me === true;
+          return {
+            id: message?.id || message?.provider_message_id || `${item.id || "case"}-context-${index}`,
+            direction: isOutbound ? "outbound" : "inbound",
+            role: isOutbound ? "agent" : "customer",
+            text: firstContextText(message?.text, message?.body, message?.caption, message?.content, message?.message),
+            type: message?.type || message?.message_type || "text",
+            at: firstContextText(message?.at, message?.message_at, message?.created_at, message?.timestamp),
+            message_at: firstContextText(message?.message_at, message?.at, message?.created_at, message?.timestamp),
+          };
+        })
+        .filter((message) => message.text || /attachment|image|photo|file|audio|voice/i.test(message.type));
+    }
+
+    function latestInboundContextMessage(messages = []) {
+      return [...(messages || [])]
+        .filter((message) => {
+          const direction = String(message.direction || message.role || "").toLowerCase();
+          if (direction === "outbound" || direction === "agent" || direction === "assistant" || direction === "bot") return false;
+          return Boolean(firstContextText(message.text)) || /attachment|image|photo|file|audio|voice/i.test(String(message.type || ""));
+        })
+        .sort((a, b) => new Date(a.at || a.message_at || 0) - new Date(b.at || b.message_at || 0))
+        .at(-1) || null;
+    }
 
     function approvalStatus(item) {
 		      if (item.status === "purchase_confirmed") return "purchase_confirmed";
@@ -11927,15 +11975,21 @@
 
     function customerPreviewText(item) {
       const decision = item.latest_decision || {};
-      const inboundMessage = Array.isArray(item.messages)
-        ? item.messages.find((msg) => msg?.direction === "inbound" || msg?.direction === "in" || msg?.role === "customer")
-        : null;
+      const inboundMessages = Array.isArray(item.messages)
+        ? item.messages.filter((msg) => msg?.direction === "inbound" || msg?.direction === "in" || msg?.role === "customer")
+        : [];
+      const inboundMessage = inboundMessages.at(-1) || null;
+      const raw = item.raw_approval || {};
+      const contextMessage = latestInboundContextMessage(approvalRecentContextMessages(raw));
       const text = [
         item.last_message,
         item.customer_text,
         item.inbound_text,
         item.incoming,
         item.message,
+        item.inbound?.text,
+        item.latest_customer_message?.text,
+        item.conversation_context?.latest_customer_message?.text,
         decision.customer_text,
         decision.inbound_text,
         decision.incoming,
@@ -11943,6 +11997,11 @@
         inboundMessage?.text,
         inboundMessage?.body,
         inboundMessage?.message,
+        raw.customer_last_text,
+        raw.inbound?.text,
+        raw.latest_customer_message?.text,
+        raw.conversation_context?.latest_customer_message?.text,
+        contextMessage?.text,
       ].map((value) => String(value || "").trim()).find(Boolean) || "";
       if (text) return text;
       if (dashboardIsUnverifiedAttachmentApproval(item)) return "顾客发了图片/附件，需人工打开确认";
