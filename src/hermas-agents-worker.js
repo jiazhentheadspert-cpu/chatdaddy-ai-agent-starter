@@ -723,6 +723,7 @@ async function persistSupabaseIntakeRecords(env, normalized, rawPayload) {
     project: null,
     connection: null,
     customer: null,
+    contact: null,
     conversation: null,
     message: null
   };
@@ -742,19 +743,31 @@ async function persistSupabaseIntakeRecords(env, normalized, rawPayload) {
 
   out.connection = await lookupSupabaseChannelConnection(env, normalized.project_key, normalized.connection_id);
   const channelConnectionId = out.connection?.id || null;
+  const legacyBrandId = out.connection?.brand_id || out.project?.brand_id || null;
 
   out.customer = await upsertSupabaseCustomer(env, normalized, channelConnectionId);
   const customerId = firstReturnedId(out.customer);
+  out.contact = legacyBrandId
+    ? await upsertSupabaseContact(env, normalized, {
+      brand_id: legacyBrandId,
+      channel_connection_id: channelConnectionId
+    })
+    : { attempted: false, reason: "legacy_brand_not_present" };
+  const contactId = firstReturnedId(out.contact);
 
   out.conversation = await upsertSupabaseConversation(env, normalized, {
+    brand_id: legacyBrandId,
+    contact_id: contactId,
     customer_id: customerId,
     channel_connection_id: channelConnectionId
   });
   const conversationId = firstReturnedId(out.conversation);
 
   const refs = {
+    brand_id: legacyBrandId,
     project_id: out.project.id,
     channel_connection_id: channelConnectionId,
+    contact_id: contactId,
     customer_id: customerId,
     conversation_id: conversationId
   };
@@ -778,14 +791,24 @@ async function lookupSupabaseChannelConnection(env, projectKey, connectionId) {
   if (!connectionId) return null;
   const byKey = await supabaseSelectRows(
     env,
-    `channel_connections?project_key=eq.${encodeURIComponent(projectKey)}&connection_key=eq.${encodeURIComponent(connectionId)}&select=id,project_key,connection_key,provider_connection_id,status&limit=1`
+    `channel_connections?project_key=eq.${encodeURIComponent(projectKey)}&connection_key=eq.${encodeURIComponent(connectionId)}&select=id,project_key,connection_key,provider_connection_id,status,brand_id&limit=1`
   );
   if (byKey[0]) return byKey[0];
+  const byKeyWithoutBrand = await supabaseSelectRows(
+    env,
+    `channel_connections?project_key=eq.${encodeURIComponent(projectKey)}&connection_key=eq.${encodeURIComponent(connectionId)}&select=id,project_key,connection_key,provider_connection_id,status&limit=1`
+  );
+  if (byKeyWithoutBrand[0]) return byKeyWithoutBrand[0];
   const byProviderId = await supabaseSelectRows(
+    env,
+    `channel_connections?project_key=eq.${encodeURIComponent(projectKey)}&provider_connection_id=eq.${encodeURIComponent(connectionId)}&select=id,project_key,connection_key,provider_connection_id,status,brand_id&limit=1`
+  );
+  if (byProviderId[0]) return byProviderId[0];
+  const byProviderIdWithoutBrand = await supabaseSelectRows(
     env,
     `channel_connections?project_key=eq.${encodeURIComponent(projectKey)}&provider_connection_id=eq.${encodeURIComponent(connectionId)}&select=id,project_key,connection_key,provider_connection_id,status&limit=1`
   );
-  return byProviderId[0] || null;
+  return byProviderIdWithoutBrand[0] || null;
 }
 
 async function upsertSupabaseCustomer(env, normalized, channelConnectionId) {
@@ -851,13 +874,86 @@ async function findSupabaseCustomer(env, normalized, channelConnectionId) {
   return null;
 }
 
+async function upsertSupabaseContact(env, normalized, refs = {}) {
+  if (!refs.brand_id) {
+    return { attempted: false, skipped: true, reason: "brand_id_required_for_legacy_contacts" };
+  }
+
+  const existing = await findSupabaseContact(env, normalized, refs);
+  const payload = withoutUndefined({
+    brand_id: refs.brand_id,
+    channel_connection_id: refs.channel_connection_id || undefined,
+    external_contact_id: normalized.external_customer_id || undefined,
+    phone_e164: normalized.phone || undefined,
+    display_name: normalized.display_name || undefined,
+    source: normalized.provider,
+    last_seen_at: normalized.message_at,
+    custom_fields: {
+      project_key: normalized.project_key,
+      provider: normalized.provider,
+      connection_id: normalized.connection_id,
+      external_conversation_id: normalized.external_conversation_id || null
+    }
+  });
+
+  if (existing?.id) {
+    const patch = withoutUndefined({
+      channel_connection_id: refs.channel_connection_id || undefined,
+      external_contact_id: normalized.external_customer_id || undefined,
+      phone_e164: normalized.phone || undefined,
+      display_name: normalized.display_name || undefined,
+      last_seen_at: normalized.message_at,
+      custom_fields: payload.custom_fields
+    });
+    const patched = await supabasePatch(env, `contacts?id=eq.${existing.id}`, patch);
+    return { ...patched, existing: true, data: patched.data?.length ? patched.data : [existing] };
+  }
+
+  if (!payload.external_contact_id && !payload.phone_e164 && !payload.display_name) {
+    return { attempted: false, skipped: true, reason: "no_contact_identifier" };
+  }
+  return supabaseInsert(env, "contacts", payload);
+}
+
+async function findSupabaseContact(env, normalized, refs = {}) {
+  if (!refs.brand_id) return null;
+  if (normalized.external_customer_id && refs.channel_connection_id) {
+    const rows = await supabaseSelectRows(
+      env,
+      `contacts?brand_id=eq.${refs.brand_id}&channel_connection_id=eq.${refs.channel_connection_id}&external_contact_id=eq.${encodeURIComponent(normalized.external_customer_id)}&select=id,display_name,phone_e164,external_contact_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  if (normalized.external_customer_id) {
+    const rows = await supabaseSelectRows(
+      env,
+      `contacts?brand_id=eq.${refs.brand_id}&external_contact_id=eq.${encodeURIComponent(normalized.external_customer_id)}&select=id,display_name,phone_e164,external_contact_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  if (normalized.phone) {
+    const rows = await supabaseSelectRows(
+      env,
+      `contacts?brand_id=eq.${refs.brand_id}&phone_e164=eq.${encodeURIComponent(normalized.phone)}&select=id,display_name,phone_e164,external_contact_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  return null;
+}
+
 async function upsertSupabaseConversation(env, normalized, refs) {
   const existing = await findSupabaseConversation(env, normalized, refs);
   const payload = withoutUndefined({
+    brand_id: refs.brand_id || undefined,
     project_key: normalized.project_key,
+    contact_id: refs.contact_id || undefined,
     customer_id: refs.customer_id || undefined,
     channel_connection_id: refs.channel_connection_id || undefined,
     external_conversation_id: normalized.external_conversation_id || undefined,
+    external_thread_id: normalized.external_conversation_id || undefined,
     status: "open",
     stage: normalized.stage || undefined,
     last_message_at: normalized.message_at,
@@ -882,6 +978,22 @@ async function findSupabaseConversation(env, normalized, refs) {
     const rows = await supabaseSelectRows(
       env,
       `conversations?project_key=eq.${encodeURIComponent(normalized.project_key)}&external_conversation_id=eq.${encodeURIComponent(normalized.external_conversation_id)}&select=id,external_conversation_id,customer_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  if (normalized.external_conversation_id && refs.brand_id) {
+    const rows = await supabaseSelectRows(
+      env,
+      `conversations?brand_id=eq.${refs.brand_id}&external_thread_id=eq.${encodeURIComponent(normalized.external_conversation_id)}&select=id,external_thread_id,contact_id&limit=1`
+    );
+    if (rows[0]) return rows[0];
+  }
+
+  if (refs.contact_id && refs.brand_id) {
+    const rows = await supabaseSelectRows(
+      env,
+      `conversations?brand_id=eq.${refs.brand_id}&contact_id=eq.${refs.contact_id}&status=eq.open&select=id,external_thread_id,contact_id&limit=1`
     );
     if (rows[0]) return rows[0];
   }
@@ -912,8 +1024,10 @@ async function persistSupabaseMessageWithRefs(env, normalized, rawPayload, refs 
   }
 
   const payload = {
+    ...withoutUndefined({ brand_id: refs.brand_id || undefined }),
     project_key: normalized.project_key,
     conversation_id: refs.conversation_id || null,
+    ...withoutUndefined({ contact_id: refs.contact_id || undefined }),
     customer_id: refs.customer_id || null,
     direction: normalized.direction,
     sender_type: normalized.direction === "inbound" ? "customer" : "provider",
@@ -1007,6 +1121,7 @@ async function persistSupabaseDecision(env, normalized, decision, rawPayload, re
   if (!hasSupabase(env)) return out;
 
   out.ai_decision = await supabaseInsert(env, "ai_decisions", {
+    ...withoutUndefined({ brand_id: refs.brand_id || undefined }),
     project_key: normalized.project_key,
     conversation_id: refs.conversation_id || null,
     trigger_message_id: refs.message_id || null,
@@ -1032,6 +1147,7 @@ async function persistSupabaseDecision(env, normalized, decision, rawPayload, re
         ? "order_payment"
         : "approvable";
     out.approval_case = await insertOrFindSupabaseApprovalCase(env, {
+      ...withoutUndefined({ brand_id: refs.brand_id || undefined }),
       project_key: normalized.project_key,
       customer_id: refs.customer_id || null,
       conversation_id: refs.conversation_id || null,
@@ -1059,6 +1175,7 @@ async function persistSupabaseDecision(env, normalized, decision, rawPayload, re
 
   if (decision.next_action === "record_auto_event") {
     await supabaseInsert(env, "flow_events", {
+      ...withoutUndefined({ brand_id: refs.brand_id || undefined }),
       project_key: normalized.project_key,
       customer_id: refs.customer_id || null,
       conversation_id: refs.conversation_id || null,
@@ -1103,7 +1220,7 @@ async function insertOrFindSupabaseApprovalCase(env, payload) {
 
 async function supabaseInsert(env, table, payload) {
   try {
-    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}`, {
+    let response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}`, {
       method: "POST",
       headers: {
         apikey: env.SUPABASE_SERVICE_ROLE_KEY,
@@ -1113,7 +1230,21 @@ async function supabaseInsert(env, table, payload) {
       },
       body: JSON.stringify(payload)
     });
-    const body = await response.text();
+    let body = await response.text();
+    if (!response.ok && payload?.brand_id && shouldRetryWithoutLegacyBrandId(body)) {
+      const retryPayload = withoutKey(payload, "brand_id");
+      response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}`, {
+        method: "POST",
+        headers: {
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          "content-type": "application/json",
+          prefer: "return=representation"
+        },
+        body: JSON.stringify(retryPayload)
+      });
+      body = await response.text();
+    }
     if (!response.ok) {
       return { attempted: true, ok: false, table, status: response.status, error: compactError(body) };
     }
@@ -1126,12 +1257,20 @@ async function supabaseInsert(env, table, payload) {
 
 async function supabasePatch(env, tableAndQuery, payload) {
   try {
-    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${tableAndQuery}`, {
+    let response = await fetch(`${env.SUPABASE_URL}/rest/v1/${tableAndQuery}`, {
       method: "PATCH",
       headers: supabaseHeaders(env, "return=representation"),
       body: JSON.stringify(payload)
     });
-    const body = await response.text();
+    let body = await response.text();
+    if (!response.ok && payload?.brand_id && shouldRetryWithoutLegacyBrandId(body)) {
+      response = await fetch(`${env.SUPABASE_URL}/rest/v1/${tableAndQuery}`, {
+        method: "PATCH",
+        headers: supabaseHeaders(env, "return=representation"),
+        body: JSON.stringify(withoutKey(payload, "brand_id"))
+      });
+      body = await response.text();
+    }
     if (!response.ok) {
       return { attempted: true, ok: false, table: tableAndQuery.split("?")[0], status: response.status, error: compactError(body) };
     }
@@ -1177,6 +1316,19 @@ function withoutUndefined(value) {
     if (item !== undefined) out[key] = item;
   }
   return out;
+}
+
+function withoutKey(value, keyToRemove) {
+  const out = {};
+  for (const [key, item] of Object.entries(value || {})) {
+    if (key !== keyToRemove) out[key] = item;
+  }
+  return out;
+}
+
+function shouldRetryWithoutLegacyBrandId(body) {
+  const text = typeof body === "string" ? body : JSON.stringify(body || "");
+  return /brand_id/i.test(text) && /(schema cache|could not find|does not exist|unknown|column)/i.test(text);
 }
 
 function hasSupabase(env) {
