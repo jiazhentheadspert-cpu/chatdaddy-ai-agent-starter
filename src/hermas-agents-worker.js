@@ -357,6 +357,12 @@ export default {
       return handleSupabaseApprovalsPending(request, env);
     }
 
+    if (request.method === "POST" && url.pathname === "/api/approvals/import-legacy-items") {
+      const authError = verifyStaffOrAdminToken(request, env);
+      if (authError) return authError;
+      return handleLegacyApprovalItemsImport(request, env);
+    }
+
     const webhookMatch = url.pathname.match(/^\/api\/channels\/chatdaddy\/webhook\/([^/]+)$/);
     if (request.method === "POST" && webhookMatch) {
       const webhookAuthError = verifyWebhookSecret(request, env);
@@ -1229,10 +1235,10 @@ async function handleSupabaseApprovalsPending(request, env) {
 
   const url = new URL(request.url);
   const projectKey = normalizeProjectKey(url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
-  const limit = clampInteger(url.searchParams.get("limit"), 1, 100, 50);
+  const limit = clampInteger(url.searchParams.get("limit"), 1, 250, 50);
   const rows = await supabaseSelectRows(
     env,
-    `approval_cases?project_key=eq.${encodeURIComponent(projectKey)}&select=*&order=updated_at.desc&limit=${limit}`
+    `approval_cases?project_key=eq.${encodeURIComponent(projectKey)}&select=*&order=created_at.desc&limit=${limit}`
   );
 
   const customerIds = uniqueTruthy(rows.map((row) => row.customer_id));
@@ -1246,26 +1252,438 @@ async function handleSupabaseApprovalsPending(request, env) {
     customer: customerById[row.customer_id] || null,
     message: messageById[row.trigger_message_id] || null
   }));
+  const legacy = await fetchLegacyApprovalItems(request, env, projectKey);
+  const mergedItems = mergeApprovalItems(items, legacy.items);
 
   return json({
     ok: true,
-    source: "supabase_approval_cases",
+    source: legacy.items.length ? "supabase_approval_cases_plus_legacy" : "supabase_approval_cases",
     runtime: "HermasProjectAgent",
     project_key: projectKey,
-    items,
-    count: items.length,
+    items: mergedItems.slice(0, limit),
+    count: mergedItems.length,
+    supabase_count: items.length,
+    legacy_count: legacy.items.length,
+    legacy_error: legacy.error || null,
     auto_send_enabled: false,
     auto_trigger_flows_enabled: false
   });
 }
 
+async function fetchLegacyApprovalItems(request, env, projectKey) {
+  const base = String(env.LEGACY_APPROVALS_API_BASE || "").trim().replace(/\/$/, "");
+  const includeLegacy = new URL(request.url).searchParams.get("include_legacy");
+  if (!base || !["1", "true", "yes"].includes(String(includeLegacy || "").toLowerCase())) {
+    return { items: [], error: null };
+  }
+
+  try {
+    const current = new URL(request.url);
+    const query = new URLSearchParams(current.search);
+    query.set("project_key", projectKey);
+    query.delete("include_legacy");
+    const legacyUrl = `${base}/api/approvals/pending?${query.toString()}`;
+    const token = request.headers.get("x-staff-token")
+      || request.headers.get("x-admin-token")
+      || env.HERMAS_STAFF_TOKEN
+      || env.STAFF_TOKEN
+      || env.AGENT_STAFF_TOKEN
+      || env.HERMAS_ADMIN_TOKEN
+      || env.ADMIN_TOKEN
+      || "";
+    const response = await fetch(legacyUrl, {
+      method: "GET",
+      headers: withoutUndefined({
+        accept: "application/json",
+        "user-agent": "Hermas-Agents-Legacy-Bridge/1.0",
+        "x-staff-token": token || undefined,
+        "x-admin-token": token || undefined
+      })
+    });
+    if (!response.ok) return { items: [], error: `legacy_http_${response.status}` };
+    const data = await response.json();
+    const items = Array.isArray(data.items)
+      ? data.items
+      : Array.isArray(data.approvals)
+        ? data.approvals
+        : Array.isArray(data.data)
+          ? data.data
+          : [];
+    return {
+      items: items.map((item) => ({
+        ...item,
+        source: item.source || "legacy_pilot_worker",
+        legacy_source: "pilot_worker"
+      })),
+      error: null
+    };
+  } catch (error) {
+    return { items: [], error: error?.message || String(error) };
+  }
+}
+
+async function handleLegacyApprovalItemsImport(request, env) {
+  if (!hasSupabase(env)) return json({ ok: false, error: "supabase_not_configured" }, 503);
+
+  const payload = await readJson(request);
+  const projectKey = normalizeProjectKey(payload.project_key || env.AGENT_PROJECT_KEY || "beyoute");
+  const connectionId = String(payload.connection_id || "beyoute-chatdaddy").trim() || "beyoute-chatdaddy";
+  const items = Array.isArray(payload.items) ? payload.items.slice(0, 250) : [];
+  const previewLimit = clampInteger(payload.preview_limit, 0, 20, 0);
+  if (!items.length) return json({ ok: false, error: "items_required" }, 400);
+
+  const project = await lookupSupabaseProject(env, projectKey);
+  if (!project?.id) return json({ ok: false, error: "project_not_seeded", project_key: projectKey }, 400);
+  const connection = await lookupSupabaseChannelConnection(env, projectKey, connectionId);
+  const baseRefs = {
+    brand_id: connection?.brand_id || project?.brand_id || null,
+    project_id: project.id,
+    channel_connection_id: connection?.id || null
+  };
+
+  const results = [];
+  for (const item of items) {
+    results.push(await importLegacyApprovalItem(env, item, { projectKey, connectionId, baseRefs, previewLimit }));
+  }
+
+  const counts = results.reduce((acc, item) => {
+    const key = item.status || "unknown";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  return json({
+    ok: results.every((item) => item.ok || item.status === "skipped"),
+    project_key: projectKey,
+    received: items.length,
+    imported_count: results.filter((item) => item.ok).length,
+    skipped_count: results.filter((item) => item.status === "skipped").length,
+    failed_count: results.filter((item) => item.status === "failed").length,
+    counts,
+    sends_messages: false,
+    triggers_flows: false,
+    results: results.slice(0, 50)
+  });
+}
+
+async function importLegacyApprovalItem(env, item = {}, options = {}) {
+  const legacyId = firstString(item.id, item.inbound?.provider_message_id, item.inbound?.event_id);
+  if (!legacyId) return { ok: false, status: "skipped", reason: "missing_legacy_id" };
+
+  const normalized = legacyApprovalItemToNormalized(item, options);
+  const intake = await persistLegacyApprovalCoreRecords(env, normalized, {
+    source: "legacy_pilot_worker",
+    legacy_approval_id: legacyId
+  }, options.baseRefs || {});
+  if (!intake?.refs?.customer_id) {
+    return {
+      ok: false,
+      status: "failed",
+      legacy_id: legacyId,
+      reason: intake?.reason || intake?.error || "customer_import_failed"
+    };
+  }
+
+  if (options.previewLimit > 0) {
+    await importLegacyChatPreviewMessages(env, item, normalized, intake.refs, options.previewLimit);
+  }
+
+  const mapped = mapLegacyApprovalCaseState(item);
+  const casePayload = withoutUndefined({
+    ...withoutUndefined({ brand_id: intake.refs.brand_id || undefined }),
+    project_key: options.projectKey,
+    customer_id: intake.refs.customer_id,
+    conversation_id: intake.refs.conversation_id || undefined,
+    trigger_message_id: intake.refs.message_id || undefined,
+    status: mapped.status,
+    queue_bucket: mapped.queue_bucket,
+    stage: normalized.stage || undefined,
+    intent: mapped.intent || undefined,
+    risk_level: mapped.risk_level,
+    customer_last_text: normalized.text || "",
+    suggested_reply: firstString(item.reply?.text, item.final_text),
+    next_action: mapped.next_action,
+    confidence: mapped.confidence,
+    reason: mapped.reason,
+    provider: "chatdaddy",
+    provider_case_id: legacyId,
+    idempotency_key: `legacy:${legacyId}`,
+    closed_at: mapped.closed_at,
+    data: {
+      legacy_import: true,
+      legacy_source: "pilot_worker",
+      legacy_approval_id: legacyId,
+      legacy_status: item.status || null,
+      legacy_category: item.category || null,
+      normalized,
+      decision: {
+        intent: mapped.intent,
+        risk_level: mapped.risk_level,
+        stage: normalized.stage || "",
+        next_action: mapped.next_action,
+        reply_text: firstString(item.reply?.text, item.final_text),
+        reason: mapped.reason,
+        source_refs: ["legacy:pilot_worker"]
+      },
+      chat_preview: Array.isArray(item.chat_preview) ? item.chat_preview.slice(-20) : [],
+      source_ids: item.source_ids || {},
+      customer: item.customer || {}
+    },
+    created_at: normalizeDate(item.created_at || normalized.message_at),
+    updated_at: normalizeDate(item.updated_at || item.created_at || normalized.message_at)
+  });
+
+  const existing = await supabaseSelectRows(
+    env,
+    `approval_cases?project_key=eq.${encodeURIComponent(options.projectKey)}&idempotency_key=eq.${encodeURIComponent(`legacy:${legacyId}`)}&select=id,status&limit=1`
+  );
+  const write = existing[0]?.id
+    ? await supabasePatch(env, `approval_cases?id=eq.${existing[0].id}`, casePayload)
+    : await supabaseInsert(env, "approval_cases", casePayload);
+
+  return {
+    ok: Boolean(write?.ok),
+    status: write?.ok ? (existing[0]?.id ? "updated" : "inserted") : "failed",
+    legacy_id: legacyId,
+    case_id: firstReturnedId(write) || existing[0]?.id || null,
+    queue_bucket: mapped.queue_bucket,
+    case_status: mapped.status,
+    error: write?.ok ? null : write?.error || "write_failed"
+  };
+}
+
+async function persistLegacyApprovalCoreRecords(env, normalized, rawPayload, baseRefs = {}) {
+  const out = {
+    attempted: false,
+    ok: false,
+    refs: {},
+    customer: null,
+    conversation: null,
+    message: null
+  };
+  if (!hasSupabase(env)) return { ...out, reason: "supabase_not_configured" };
+
+  out.attempted = true;
+  out.customer = await upsertSupabaseCustomer(env, normalized, baseRefs.channel_connection_id || null);
+  const customerId = firstReturnedId(out.customer);
+  if (!customerId) return { ...out, reason: "customer_import_failed" };
+
+  out.conversation = await upsertSupabaseConversation(env, normalized, {
+    brand_id: baseRefs.brand_id || undefined,
+    customer_id: customerId,
+    channel_connection_id: baseRefs.channel_connection_id || null
+  });
+  const conversationId = firstReturnedId(out.conversation);
+
+  const refs = {
+    brand_id: baseRefs.brand_id || null,
+    project_id: baseRefs.project_id || null,
+    channel_connection_id: baseRefs.channel_connection_id || null,
+    customer_id: customerId,
+    conversation_id: conversationId || null
+  };
+  out.message = await persistSupabaseMessageWithRefs(env, normalized, rawPayload, refs);
+  refs.message_id = firstReturnedId(out.message);
+  out.refs = refs;
+  out.ok = Boolean(out.message?.ok || out.message?.skipped_existing);
+  return out;
+}
+
+function legacyApprovalItemToNormalized(item = {}, options = {}) {
+  const inbound = typeof item.inbound === "object" && item.inbound ? item.inbound : {};
+  const customer = typeof item.customer === "object" && item.customer ? item.customer : {};
+  const text = typeof item.inbound === "string"
+    ? item.inbound
+    : firstString(inbound.text, item.customer_last_text);
+  const displayName = sanitizeDisplayName(firstString(
+    inbound.display_name,
+    inbound.customer_name,
+    inbound.contact_name,
+    customer.display_name,
+    customer.contact_name,
+    customer.name
+  ));
+  const externalCustomerId = firstString(
+    inbound.external_contact_id,
+    inbound.external_customer_id,
+    customer.contact_id,
+    customer.chat_id,
+    customer.thread_id,
+    customer.phone
+  );
+  const externalConversationId = firstString(
+    inbound.external_thread_id,
+    inbound.external_conversation_id,
+    customer.thread_id,
+    customer.chat_id,
+    customer.contact_id,
+    externalCustomerId
+  );
+  const legacyId = firstString(item.id, inbound.provider_message_id, inbound.event_id);
+  return {
+    project_key: options.projectKey,
+    provider: "chatdaddy",
+    connection_id: options.connectionId,
+    event_id: firstString(inbound.event_id, legacyId),
+    event_type: firstString(inbound.event_type, item.status, "legacy_approval_import"),
+    provider_message_id: firstString(inbound.provider_message_id, inbound.event_id, legacyId),
+    external_customer_id: externalCustomerId || `legacy:${legacyId}`,
+    external_conversation_id: externalConversationId || externalCustomerId || `legacy:${legacyId}`,
+    phone: firstString(customer.phone, inbound.phone),
+    display_name: displayName,
+    text,
+    direction: "inbound",
+    message_type: text ? "text" : "attachment",
+    attachments: [],
+    message_at: normalizeDate(inbound.message_at || item.updated_at || item.created_at),
+    stage: firstString(item.decision?.signals?.stage, item.reply?.stage_after, item.stage)
+  };
+}
+
+async function importLegacyChatPreviewMessages(env, item = {}, baseNormalized = {}, refs = {}, previewLimit = 0) {
+  const preview = Array.isArray(item.chat_preview) ? item.chat_preview.slice(-previewLimit) : [];
+  let imported = 0;
+  for (let index = 0; index < preview.length; index += 1) {
+    const msg = preview[index] || {};
+    const text = firstString(msg.text);
+    if (!text) continue;
+    const direction = String(msg.direction || "").toLowerCase() === "agent" ? "outbound" : "inbound";
+    const normalized = {
+      ...baseNormalized,
+      direction,
+      text,
+      message_type: firstString(msg.type, "text"),
+      message_at: normalizeDate(msg.at || msg.message_at || baseNormalized.message_at),
+      event_id: `legacy-preview:${item.id}:${index}`,
+      provider_message_id: `legacy-preview:${item.id}:${index}`
+    };
+    const result = await persistSupabaseMessageWithRefs(env, normalized, {
+      source: "legacy_pilot_worker_preview",
+      legacy_approval_id: item.id,
+      preview_index: index
+    }, refs);
+    if (result?.ok || result?.skipped_existing) imported += 1;
+  }
+  return imported;
+}
+
+function mapLegacyApprovalCaseState(item = {}) {
+  const legacyStatus = String(item.status || "").toLowerCase();
+  const category = String(item.category || "").toLowerCase();
+  const actionType = String(item.action?.type || item.reply?.next_action || "").toLowerCase();
+  const signals = item.decision?.signals || {};
+  const nowClosed = ["sent", "external_flow_continued", "auto_record", "closed"].includes(legacyStatus)
+    ? normalizeDate(item.updated_at || item.created_at)
+    : undefined;
+  const risk = normalizeRiskLevel(firstString(signals.risk_level, signals.risk, item.risk_level));
+  const confidence = Number(signals.confidence);
+
+  if (legacyStatus === "external_flow_continued" || category === "auto") {
+    return {
+      status: "auto_record",
+      queue_bucket: "auto_record",
+      next_action: "record_auto_event",
+      intent: firstString(signals.intent, "external_flow_continued"),
+      risk_level: risk,
+      confidence: Number.isFinite(confidence) ? confidence : undefined,
+      reason: "ChatDaddy/External Flow already continued; read-only record.",
+      closed_at: nowClosed
+    };
+  }
+
+  if (legacyStatus === "sent") {
+    return {
+      status: "sent",
+      queue_bucket: "closed",
+      next_action: "sent_record",
+      intent: firstString(signals.intent, actionType, "sent"),
+      risk_level: risk,
+      confidence: Number.isFinite(confidence) ? confidence : undefined,
+      reason: firstString(item.action?.operator_instruction, item.action?.label, "Already sent in legacy runtime."),
+      closed_at: nowClosed
+    };
+  }
+
+  if (category === "human" || actionType.includes("handoff")) {
+    return {
+      status: "handoff",
+      queue_bucket: "human",
+      next_action: "handoff",
+      intent: firstString(signals.intent, actionType, "human_required"),
+      risk_level: risk,
+      confidence: Number.isFinite(confidence) ? confidence : undefined,
+      reason: firstString(item.action?.operator_instruction, item.action?.label, "Needs human handling.")
+    };
+  }
+
+  if (category === "order" || /order|receipt|payment|paid/.test(actionType)) {
+    return {
+      status: "needs_approval",
+      queue_bucket: "order_payment",
+      next_action: "order_payment_review",
+      intent: firstString(signals.intent, actionType, "order_payment"),
+      risk_level: risk,
+      confidence: Number.isFinite(confidence) ? confidence : undefined,
+      reason: firstString(item.action?.operator_instruction, item.action?.label, "Order/payment needs staff confirmation.")
+    };
+  }
+
+  return {
+    status: "needs_approval",
+    queue_bucket: "approvable",
+    next_action: "create_approval_case",
+    intent: firstString(signals.intent, actionType, "approval"),
+    risk_level: risk,
+    confidence: Number.isFinite(confidence) ? confidence : undefined,
+    reason: firstString(item.action?.operator_instruction, item.action?.label, "Check before sending.")
+  };
+}
+
+function normalizeRiskLevel(value) {
+  const text = String(value || "").toLowerCase();
+  if (text === "low" || text === "medium" || text === "high") return text;
+  return "medium";
+}
+
+function mergeApprovalItems(primaryItems = [], legacyItems = []) {
+  const seen = new Set();
+  const out = [];
+  for (const item of [...primaryItems, ...legacyItems]) {
+    const key = approvalItemDedupeKey(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out.sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
+}
+
+function approvalItemDedupeKey(item = {}) {
+  return firstString(
+    item.id,
+    item.inbound?.provider_message_id,
+    item.inbound?.event_id,
+    item.raw?.provider_case_id,
+    item.raw_approval?.inbound?.provider_message_id,
+    item.raw_approval?.inbound?.event_id
+  ) || [
+    item.customer?.chat_id,
+    item.customer?.phone,
+    item.inbound?.text,
+    item.inbound?.message_at
+  ].map((value) => String(value || "")).join(":");
+}
+
 function approvalCaseRowToDashboardItem(row, refs = {}) {
   const decision = row.data?.decision || {};
   const normalized = row.data?.normalized || {};
+  const isLegacyImport = row.data?.legacy_import === true;
   const customer = refs.customer || {};
   const message = refs.message || {};
   const inboundText = firstString(row.customer_last_text, message.text, normalized.text);
   const messageAt = firstString(message.message_at, normalized.message_at, row.created_at);
+  const displayUpdatedAt = isLegacyImport
+    ? firstString(messageAt, row.created_at, row.updated_at)
+    : firstString(row.updated_at, messageAt, row.created_at);
   const displayName = sanitizeDisplayName(firstString(
     customer.display_name,
     customer.profile?.display_name,
@@ -1283,7 +1701,7 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
     category,
     provider: row.provider || normalized.provider || "chatdaddy",
     created_at: row.created_at,
-    updated_at: row.updated_at || row.created_at,
+    updated_at: displayUpdatedAt,
     customer: {
       id: externalCustomerId || row.customer_id || "",
       chat_id: externalCustomerId || "",
