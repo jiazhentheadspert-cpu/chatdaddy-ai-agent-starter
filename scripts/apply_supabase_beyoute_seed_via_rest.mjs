@@ -18,7 +18,7 @@ main().catch((error) => {
   if (isPermissionGrantError(error)) {
     console.error("");
     console.error("小白版：这个 key 是真的，但 Supabase 表还没授权给 service_role。");
-    console.error("先跑这个：./setup/copy_supabase_service_role_grants.command");
+    console.error("先跑这个：./COPY_Hermas_Supabase_Service_Role_Grants.command");
     console.error("然后去 Supabase SQL Editor 粘贴并 Run。成功后再跑 seed。");
   }
   process.exit(1);
@@ -58,7 +58,6 @@ async function main() {
     timezone: "Asia/Kuala_Lumpur",
     currency: "MYR",
     default_language: "zh-MY",
-    readiness_status: "testing",
     settings: {
       pilot: true,
       approval_first: true,
@@ -68,16 +67,20 @@ async function main() {
   });
   if (!project.id) throw new Error("projects seed 没有返回 id。");
 
+  const legacyBrandId = await ensureLegacyBrandIfNeeded();
+
   const existingConnection = await selectOne(
     `channel_connections?project_key=eq.${encode(PROJECT_KEY)}&connection_key=eq.${encode(CONNECTION_KEY)}&select=id,project_key,connection_key&limit=1`
   );
   const connectionPayload = {
+    ...(legacyBrandId ? { brand_id: legacyBrandId } : {}),
     project_key: PROJECT_KEY,
     connection_key: CONNECTION_KEY,
     provider: "chatdaddy",
+    provider_account_id: CONNECTION_KEY,
     provider_connection_id: CONNECTION_KEY,
     display_name: CONNECTION_NAME,
-    status: "testing",
+    status: "active",
     config: {
       approval_first: true,
       notes: "Non-secret placeholder. Keep real provider ids/secrets in Cloudflare or provider vault only."
@@ -94,9 +97,158 @@ async function main() {
   console.log(`- company: ${COMPANY_KEY}`);
   console.log(`- project: ${PROJECT_KEY} (${PROJECT_NAME})`);
   console.log(`- channel: ${CONNECTION_KEY}`);
+  if (legacyBrandId) console.log("- legacy brand_id: 已兼容旧 ChatDaddy schema");
   console.log("- mode: approval_first，auto send / auto flow 默认关闭");
   console.log("");
   console.log("下一步：把同一个 SUPABASE_URL 和 SERVICE_ROLE_KEY 放进 Cloudflare Worker secret/vars，再跑 Agents preflight。");
+}
+
+async function ensureLegacyBrandIfNeeded() {
+  const channelNeedsBrandId = await tableHasColumn("channel_connections", "brand_id");
+  if (!channelNeedsBrandId) return null;
+
+  const existingBrand = await findLegacyBrand();
+  if (existingBrand?.id) return existingBrand.id;
+
+  const organization = await ensureLegacyOrganization();
+  const brand = await createLegacyBrand(organization?.id || null);
+  if (brand?.id) return brand.id;
+
+  throw new Error(
+    "channel_connections 需要 brand_id，但 seed 找不到/建立不到 Beyoute brand。请确认 public.organizations 和 public.brands 已授权给 service_role。"
+  );
+}
+
+async function findLegacyBrand() {
+  const candidates = [
+    `brands?slug=eq.${encode(PROJECT_KEY)}&select=id,slug,name&limit=1`,
+    `brands?slug=eq.${encode(`${PROJECT_KEY}-chatdaddy-pilot`)}&select=id,slug,name&limit=1`,
+    `brands?name=eq.${encode(PROJECT_NAME)}&select=id,slug,name&limit=1`,
+    `brands?name=eq.${encode(`${PROJECT_NAME} ChatDaddy Pilot`)}&select=id,slug,name&limit=1`
+  ];
+
+  for (const query of candidates) {
+    const row = await trySelectOne(query);
+    if (row?.id) return row;
+  }
+  return null;
+}
+
+async function ensureLegacyOrganization() {
+  const existing = await trySelectOne(
+    `organizations?slug=eq.${encode(COMPANY_KEY)}&select=id,slug,name&limit=1`
+  );
+  if (existing?.id) return existing;
+
+  const payloads = [
+    {
+      name: COMPANY_NAME,
+      slug: COMPANY_KEY,
+      settings: { managed_saas: true, primary_market: "MY" }
+    },
+    {
+      name: COMPANY_NAME,
+      settings: { managed_saas: true, primary_market: "MY" }
+    }
+  ];
+
+  for (const payload of payloads) {
+    try {
+      const rows = await insertRows("organizations", payload);
+      const row = first(rows);
+      if (row?.id) return row;
+    } catch (error) {
+      const selected = await trySelectOne(
+        `organizations?slug=eq.${encode(COMPANY_KEY)}&select=id,slug,name&limit=1`
+      );
+      if (selected?.id) return selected;
+      if (isPermissionGrantError(error)) throw error;
+    }
+  }
+
+  return null;
+}
+
+async function createLegacyBrand(organizationId) {
+  const payloads = [
+    {
+      organization_id: organizationId,
+      name: PROJECT_NAME,
+      slug: PROJECT_KEY,
+      industry: "Health and beauty ecommerce",
+      timezone: "Asia/Kuala_Lumpur",
+      currency: "MYR",
+      status: "active",
+      settings: {
+        sales_channel: "whatsapp",
+        language: "zh-MY",
+        managed_saas_project_key: PROJECT_KEY
+      }
+    },
+    {
+      organization_id: organizationId,
+      name: `${PROJECT_NAME} ChatDaddy Pilot`,
+      slug: `${PROJECT_KEY}-chatdaddy-pilot`,
+      industry: "Health and beauty ecommerce",
+      timezone: "Asia/Kuala_Lumpur",
+      currency: "MYR",
+      status: "active",
+      settings: {
+        sales_channel: "whatsapp",
+        language: "zh-MY",
+        managed_saas_project_key: PROJECT_KEY
+      }
+    },
+    {
+      name: PROJECT_NAME,
+      slug: PROJECT_KEY,
+      status: "active",
+      settings: { managed_saas_project_key: PROJECT_KEY }
+    },
+    {
+      name: PROJECT_NAME,
+      status: "active"
+    }
+  ];
+
+  for (const payload of payloads) {
+    const cleanPayload = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== null && value !== undefined)
+    );
+    try {
+      const rows = await insertRows("brands", cleanPayload);
+      const row = first(rows);
+      if (row?.id) return row;
+    } catch (error) {
+      const selected = await findLegacyBrand();
+      if (selected?.id) return selected;
+      if (isPermissionGrantError(error)) throw error;
+    }
+  }
+
+  return null;
+}
+
+async function tableHasColumn(table, column) {
+  try {
+    await fetchJson(`${rest(table)}?select=${encode(column)}&limit=1`, {
+      method: "GET",
+      headers: headers()
+    });
+    return true;
+  } catch (error) {
+    if (isPermissionGrantError(error)) throw error;
+    return false;
+  }
+}
+
+async function trySelectOne(tableAndQuery) {
+  try {
+    return await selectOne(tableAndQuery);
+  } catch (error) {
+    if (isPermissionGrantError(error)) throw error;
+    return null;
+  }
 }
 
 async function upsertByUnique(table, conflictColumn, payload) {

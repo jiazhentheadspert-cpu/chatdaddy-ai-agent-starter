@@ -41,7 +41,6 @@ insert into public.projects (
   timezone,
   currency,
   default_language,
-  readiness_status,
   settings
 )
 select
@@ -53,7 +52,6 @@ select
   'Asia/Kuala_Lumpur',
   'MYR',
   'zh-MY',
-  'testing',
   '{
     "pilot": true,
     "approval_first": true,
@@ -90,7 +88,7 @@ values (
   'chatdaddy',
   'beyoute-chatdaddy',
   'Beyoute ChatDaddy',
-  'testing',
+  'active',
   '{
     "approval_first": true,
     "notes": "Non-secret placeholder. Replace provider ids/secrets in Cloudflare or provider vault only."
