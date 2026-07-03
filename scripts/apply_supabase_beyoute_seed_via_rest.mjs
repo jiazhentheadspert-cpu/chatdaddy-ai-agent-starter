@@ -15,6 +15,12 @@ main().catch((error) => {
   console.error("");
   console.error("不能继续：Supabase seed 失败。");
   console.error(error?.message || String(error));
+  if (isPermissionGrantError(error)) {
+    console.error("");
+    console.error("小白版：这个 key 是真的，但 Supabase 表还没授权给 service_role。");
+    console.error("先跑这个：./setup/copy_supabase_service_role_grants.command");
+    console.error("然后去 Supabase SQL Editor 粘贴并 Run。成功后再跑 seed。");
+  }
   process.exit(1);
 });
 
@@ -169,6 +175,13 @@ function encode(value) {
 
 function compact(value) {
   return String(value || "").replace(/\s+/g, " ").slice(0, 700);
+}
+
+function isPermissionGrantError(error) {
+  const message = String(error?.message || error || "");
+  return message.includes("permission denied for table")
+    || message.includes('"code":"42501"')
+    || message.includes("GRANT SELECT, INSERT, UPDATE");
 }
 
 function stopWithSetupHelp(reason) {

@@ -46,6 +46,11 @@ Webhook handlers should acknowledge quickly. Do not wait for contact enrichment,
   - does not print secrets
 - Live preflight runner: `setup/check_agents_live_launch.command`
   - checks Agents SDK, Supabase linkage, approval-first defaults, and secret boundaries
+- Live setup buttons:
+  - `setup/prepare_agents_live_config.command` writes local Cloudflare Agents config with Supabase URL only
+  - `setup/set_agents_live_secrets.command` puts Supabase/ChatDaddy/OpenAI keys into Cloudflare secrets
+  - `setup/deploy_agents_live.command` deploys the Agents Worker after manual `DEPLOY` confirmation
+  - `setup/test_agents_webhook_smoke.command` sends one safe test webhook and confirms approval-first output
 - Public staff API aliases:
   - `GET /api/projects/{project_key}/queue`
   - `GET /api/projects/{project_key}/cases/{case_id}`
@@ -204,13 +209,17 @@ Acceptance targets for the first 20 brands:
 
 1. Create staging Supabase project.
 2. Apply base schema, then `migrations/0004_supabase_saas_scale.sql`.
-3. For the Beyoute dev pilot, run `setup/run_supabase_beyoute_seed.command` after setting Supabase env locally; avoid manual browser SQL paste unless there is no other option.
-4. Create first admin and staff users.
-5. Seed the remaining 19 `projects` and `channel_connections`.
-6. Connect one ChatDaddy account in staging and collect payload samples.
-7. Verify adapter normalization for text, button, image, audio, Flow, payment, failed message.
-8. Run Dashboard staff boundary checks.
-9. Load test 20 projects at 2,000 inbound/day equivalent.
-10. Run `setup/check_agents_live_launch.command`.
-11. Repeat on production.
-12. Give staff the production login URL only. Do not give tokens or backend endpoints.
+3. Run `setup/prepare_agents_live_config.command` with Supabase URL.
+4. Run `setup/set_agents_live_secrets.command` to put server keys into Cloudflare secrets.
+5. For the Beyoute dev pilot, run `setup/run_supabase_beyoute_seed.command` after setting Supabase env locally; avoid manual browser SQL paste unless there is no other option.
+6. Create first admin and staff users.
+7. Seed the remaining 19 `projects` and `channel_connections`.
+8. Run `setup/check_agents_live_launch.command`.
+9. Run `setup/deploy_agents_live.command` for staging.
+10. Run `setup/test_agents_webhook_smoke.command`; confirm `send_now=false` and `trigger_flow_now=false`.
+11. Connect one ChatDaddy account in staging and collect payload samples.
+12. Verify adapter normalization for text, button, image, audio, Flow, payment, failed message.
+13. Run Dashboard staff boundary checks.
+14. Load test 20 projects at 2,000 inbound/day equivalent.
+15. Repeat on production.
+16. Give staff the production login URL only. Do not give tokens or backend endpoints.

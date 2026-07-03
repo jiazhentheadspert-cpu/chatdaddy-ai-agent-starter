@@ -17,7 +17,9 @@
     "deploy:agents": "wrangler deploy --config wrangler.agents.example.toml",
     "check:agents": "node --check src/hermas-agents-worker.js",
     "check:live-launch": "node scripts/check_agents_live_launch_preflight.mjs",
-    "seed:beyoute": "node scripts/apply_supabase_beyoute_seed_via_rest.mjs"
+    "seed:beyoute": "node scripts/apply_supabase_beyoute_seed_via_rest.mjs",
+    "prepare:agents-config": "node scripts/prepare_agents_live_config.mjs",
+    "deploy:agents:local": "wrangler deploy --config wrangler.agents.local.toml"
   },
   "dependencies": {
     "agents": "^0.17.3"

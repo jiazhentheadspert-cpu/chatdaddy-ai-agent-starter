@@ -16,3 +16,4 @@ customer-data/
 google-sheet-export/
 runtime-config.local.json
 wrangler.toml
+wrangler.agents.local.toml
