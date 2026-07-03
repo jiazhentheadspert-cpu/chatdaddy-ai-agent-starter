@@ -351,6 +351,12 @@ export default {
       }));
     }
 
+    if (request.method === "GET" && url.pathname === "/api/approvals/pending") {
+      const authError = verifyStaffOrAdminToken(request, env);
+      if (authError) return authError;
+      return handleSupabaseApprovalsPending(request, env);
+    }
+
     const webhookMatch = url.pathname.match(/^\/api\/channels\/chatdaddy\/webhook\/([^/]+)$/);
     if (request.method === "POST" && webhookMatch) {
       const webhookAuthError = verifyWebhookSecret(request, env);
@@ -1218,6 +1224,163 @@ async function insertOrFindSupabaseApprovalCase(env, payload) {
   return supabaseInsert(env, "approval_cases", payload);
 }
 
+async function handleSupabaseApprovalsPending(request, env) {
+  if (!hasSupabase(env)) return json({ ok: false, error: "supabase_not_configured" }, 503);
+
+  const url = new URL(request.url);
+  const projectKey = normalizeProjectKey(url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
+  const limit = clampInteger(url.searchParams.get("limit"), 1, 100, 50);
+  const rows = await supabaseSelectRows(
+    env,
+    `approval_cases?project_key=eq.${encodeURIComponent(projectKey)}&select=*&order=updated_at.desc&limit=${limit}`
+  );
+
+  const customerIds = uniqueTruthy(rows.map((row) => row.customer_id));
+  const messageIds = uniqueTruthy(rows.map((row) => row.trigger_message_id));
+  const customers = await selectSupabaseRowsByIds(env, "customers", customerIds, "id,external_customer_id,phone_e164,display_name,profile");
+  const messages = await selectSupabaseRowsByIds(env, "messages", messageIds, "id,provider_message_id,text,message_at,metadata,content,customer_id");
+  const customerById = objectById(customers);
+  const messageById = objectById(messages);
+
+  const items = rows.map((row) => approvalCaseRowToDashboardItem(row, {
+    customer: customerById[row.customer_id] || null,
+    message: messageById[row.trigger_message_id] || null
+  }));
+
+  return json({
+    ok: true,
+    source: "supabase_approval_cases",
+    runtime: "HermasProjectAgent",
+    project_key: projectKey,
+    items,
+    count: items.length,
+    auto_send_enabled: false,
+    auto_trigger_flows_enabled: false
+  });
+}
+
+function approvalCaseRowToDashboardItem(row, refs = {}) {
+  const decision = row.data?.decision || {};
+  const normalized = row.data?.normalized || {};
+  const customer = refs.customer || {};
+  const message = refs.message || {};
+  const inboundText = firstString(row.customer_last_text, message.text, normalized.text);
+  const messageAt = firstString(message.message_at, normalized.message_at, row.created_at);
+  const displayName = sanitizeDisplayName(firstString(
+    customer.display_name,
+    customer.profile?.display_name,
+    normalized.display_name
+  ));
+  const phone = firstString(customer.phone_e164, normalized.phone);
+  const externalCustomerId = firstString(customer.external_customer_id, normalized.external_customer_id, row.customer_id);
+  const category = dashboardCategoryFromApprovalCase(row);
+  const actionType = dashboardActionTypeFromApprovalCase(row, decision);
+
+  return withoutUndefined({
+    id: row.id,
+    project_key: row.project_key,
+    status: row.status,
+    category,
+    provider: row.provider || normalized.provider || "chatdaddy",
+    created_at: row.created_at,
+    updated_at: row.updated_at || row.created_at,
+    customer: {
+      id: externalCustomerId || row.customer_id || "",
+      chat_id: externalCustomerId || "",
+      phone: phone || "",
+      name: displayName || "",
+      display_name: displayName || ""
+    },
+    inbound: {
+      text: inboundText || "",
+      message_at: messageAt || row.created_at,
+      provider_message_id: firstString(message.provider_message_id, row.provider_case_id, normalized.provider_message_id),
+      event_id: firstString(row.provider_case_id, normalized.event_id),
+      phone: phone || "",
+      chat_id: externalCustomerId || "",
+      customer_name: displayName || "",
+      display_name: displayName || ""
+    },
+    reply: {
+      text: row.suggested_reply || decision.reply_text || "",
+      stage_after: row.stage || decision.stage || normalized.stage || "",
+      model: row.data?.decision?.source_refs?.includes("model:openai_in_agent") ? "openai" : "hermas_agents"
+    },
+    action: {
+      type: actionType,
+      label: row.reason || decision.reason || row.next_action || "等待客服确认",
+      operator_instruction: row.reason || decision.reason || "检查后才发送。"
+    },
+    decision: {
+      signals: {
+        intent: row.intent || decision.intent || "approval",
+        customer_intent: row.intent || decision.intent || "approval",
+        risk_level: row.risk_level || decision.risk_level || "medium",
+        risk: row.risk_level || decision.risk_level || "medium",
+        stage: row.stage || decision.stage || normalized.stage || "",
+        stage_key: row.stage || decision.stage || normalized.stage || "",
+        tags: uniqueTruthy([
+          row.intent || decision.intent,
+          row.risk_level || decision.risk_level,
+          row.stage || decision.stage || normalized.stage
+        ])
+      },
+      delivery: {
+        mode: "approval_first",
+        send_now: false,
+        trigger_flow_now: false
+      }
+    },
+    risk_level: row.risk_level || decision.risk_level || "medium",
+    source_status: row.status,
+    next_action: row.next_action || decision.next_action || "",
+    raw: {
+      case_id: row.id,
+      queue_bucket: row.queue_bucket,
+      confidence: row.confidence
+    }
+  });
+}
+
+function dashboardCategoryFromApprovalCase(row) {
+  if (row.queue_bucket === "human" || row.status === "handoff") return "human";
+  if (row.queue_bucket === "order_payment") return "order";
+  if (row.queue_bucket === "auto_record" || row.status === "auto_record") return "auto";
+  return "approval";
+}
+
+function dashboardActionTypeFromApprovalCase(row, decision = {}) {
+  const action = row.next_action || decision.next_action || "";
+  if (row.queue_bucket === "human" || row.status === "handoff" || action === "handoff") return "ask_team";
+  if (row.queue_bucket === "order_payment" || action === "order_payment_review") return "receipt_review";
+  return "approve_reply";
+}
+
+async function selectSupabaseRowsByIds(env, table, ids, select) {
+  if (!ids.length) return [];
+  const idList = ids.map((id) => String(id).trim()).filter(Boolean).join(",");
+  if (!idList) return [];
+  return supabaseSelectRows(env, `${table}?id=in.(${idList})&select=${encodeURIComponent(select)}`);
+}
+
+function objectById(rows) {
+  const out = {};
+  for (const row of rows || []) {
+    if (row?.id) out[row.id] = row;
+  }
+  return out;
+}
+
+function uniqueTruthy(values) {
+  return [...new Set((values || []).map((value) => String(value || "").trim()).filter(Boolean))];
+}
+
+function clampInteger(value, min, max, fallback) {
+  const parsed = Number.parseInt(String(value || ""), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(min, Math.min(max, parsed));
+}
+
 async function supabaseInsert(env, table, payload) {
   try {
     let response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}`, {
@@ -1347,6 +1510,30 @@ function verifyAdminToken(request, env) {
 
   if (provided && provided === expected) return null;
   return json({ ok: false, error: "invalid_admin_token" }, 401);
+}
+
+function verifyStaffOrAdminToken(request, env) {
+  const expectedStaff = env.HERMAS_STAFF_TOKEN || env.STAFF_TOKEN || env.AGENT_STAFF_TOKEN;
+  const expectedAdmin = env.ADMIN_TOKEN || env.HERMAS_ADMIN_TOKEN;
+  if (!expectedStaff && !expectedAdmin) {
+    return json({ ok: false, error: "staff_token_not_configured" }, 503);
+  }
+
+  const url = new URL(request.url);
+  const authorization = request.headers.get("authorization") || "";
+  const bearer = authorization.toLowerCase().startsWith("bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+  const providedStaff = request.headers.get("x-staff-token")
+    || request.headers.get("x-operator-token")
+    || url.searchParams.get("staff_token")
+    || url.searchParams.get("operator_token");
+  const providedAdmin = request.headers.get("x-admin-token")
+    || bearer;
+
+  if (expectedStaff && providedStaff && providedStaff === expectedStaff) return null;
+  if (expectedAdmin && providedAdmin && providedAdmin === expectedAdmin) return null;
+  return json({ ok: false, error: "invalid_staff_token" }, 401);
 }
 
 function verifyWebhookSecret(request, env) {
