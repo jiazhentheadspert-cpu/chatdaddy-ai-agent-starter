@@ -5784,11 +5784,22 @@
   </script>
   <script>
     const browserFetch = window.fetch.bind(window);
-    window.fetch = (input, init = {}) => browserFetch(input, {
-      credentials: "include",
-      ...init,
-      headers: init.headers || {},
-    });
+    window.fetch = (input, init = {}) => {
+      const requestUrl = typeof input === "string" ? input : input?.url || "";
+      let isCrossOrigin = false;
+      try {
+        isCrossOrigin = requestUrl
+          ? new URL(requestUrl, window.location.href).origin !== window.location.origin
+          : false;
+      } catch (_error) {
+        isCrossOrigin = false;
+      }
+      return browserFetch(input, {
+        ...init,
+        credentials: init.credentials || (isCrossOrigin ? "omit" : "include"),
+        headers: init.headers || {},
+      });
+    };
 
     const state = {
       cases: [],
