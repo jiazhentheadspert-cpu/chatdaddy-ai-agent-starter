@@ -8577,7 +8577,7 @@
 
     function shouldCollapseStaffCase(item = {}) {
       if (state.role !== "staff") return false;
-      return staffNeedsAttentionCase(item) || ["approval_required", "human_required", "order", "send_failed"].includes(item.status);
+      return Boolean(staffCaseCollapseKey(item));
     }
 
     function collapseStaffActionableCasesByCustomer(cases = []) {
@@ -8597,9 +8597,11 @@
 
       grouped.forEach((group) => {
         const sorted = [...group].sort((a, b) => {
-          const timeDiff = caseActivityTimestamp(b.item) - caseActivityTimestamp(a.item);
-          if (timeDiff) return timeDiff;
-          return priorityScore(b.item) - priorityScore(a.item);
+          const attentionDiff = Number(staffNeedsAttentionCase(b.item)) - Number(staffNeedsAttentionCase(a.item));
+          if (attentionDiff) return attentionDiff;
+          const priorityDiff = priorityScore(b.item) - priorityScore(a.item);
+          if (priorityDiff) return priorityDiff;
+          return caseActivityTimestamp(b.item) - caseActivityTimestamp(a.item);
         });
         const representative = sorted[0];
         const groupItems = sorted.map((entry) => entry.item);
@@ -8610,6 +8612,7 @@
             dashboard_grouped_case_count: groupItems.length,
             dashboard_grouped_case_ids: groupItems.map((record) => record.id).filter(Boolean),
             dashboard_grouped_open_count: groupItems.filter(staffNeedsAttentionCase).length,
+            dashboard_grouped_cases: groupItems.map(groupedCaseSummary),
           },
         });
       });
@@ -8617,6 +8620,18 @@
       return passthrough
         .sort((a, b) => a.index - b.index)
         .map((entry) => entry.item);
+    }
+
+    function groupedCaseSummary(item = {}) {
+      const decision = item.latest_decision || {};
+      return {
+        id: item.id || "",
+        status: item.status || "",
+        status_label: caseStatusLabel(item, decision.risk),
+        at: item.updated_at || item.last_message_at || item.created_at || "",
+        last_message: customerPreviewText(item),
+        action: actionLabel(decision.action),
+      };
     }
 
     function staffNeedsAttentionCase(item = {}) {
@@ -12686,7 +12701,8 @@
 	    }
 
     function openCase(caseId) {
-      const item = state.cases.find((record) => record.id === caseId);
+      const item = (state.visibleCases || []).find((record) => record.id === caseId)
+        || state.cases.find((record) => record.id === caseId);
       if (!item) return;
       state.active = item;
 
@@ -13045,6 +13061,7 @@
 	          <b>${escapeHtml(automationBoundary)}</b>
 	          <small>当前仍是 approval-first；这里只判断能不能学成未来低审规则。</small>
 	        </div>
+	        ${groupedCaseDetailHtml(item)}
 	        ${staffAction ? `
 	        <div class="detail-tile wide staff-action-recommendation ${escapeHtml(staffAction.tone || "")}">
 	          <span>处理建议</span>
@@ -13068,6 +13085,25 @@
 	        </div>
 	        ` : ""}
 	        ${caseLearningLoopHtml(item)}
+	      `;
+	    }
+
+	    function groupedCaseDetailHtml(item = {}) {
+	      const count = Number(item.dashboard_grouped_case_count || 0);
+	      const cases = Array.isArray(item.dashboard_grouped_cases) ? item.dashboard_grouped_cases : [];
+	      if (count <= 1 || !cases.length) return "";
+	      const rows = cases.slice(0, 8).map((record) => {
+	        const text = String(record.last_message || "无文字内容").trim();
+	        return `${formatDate(record.at)} · ${record.status_label || record.status || "记录"} · ${text}`;
+	      });
+	      const extra = count > rows.length ? `；还有 ${count - rows.length} 条已收起` : "";
+	      return `
+	        <div class="detail-tile wide">
+	          <span>同一聊天</span>
+	          <b>${escapeHtml(`已合并 ${count} 条记录${extra}`)}</b>
+	          <small>列表只显示这个顾客最新/最需要处理的一张卡；完整聊天和旧记录打开后看。</small>
+	          ${rows.map((row) => `<small>${escapeHtml(row)}</small>`).join("")}
+	        </div>
 	      `;
 	    }
 
