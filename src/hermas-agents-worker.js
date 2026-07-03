@@ -1201,11 +1201,16 @@ function verifyWebhookSecret(request, env) {
   const expected = env.CHATDADDY_WEBHOOK_SECRET;
   if (!expected) return null;
 
+  const url = new URL(request.url);
   const authorization = request.headers.get("authorization") || "";
   const bearer = authorization.toLowerCase().startsWith("bearer ")
     ? authorization.slice(7).trim()
     : "";
-  const provided = request.headers.get("x-webhook-secret") || bearer;
+  const provided = request.headers.get("x-webhook-secret")
+    || bearer
+    || url.searchParams.get("webhook_secret")
+    || url.searchParams.get("secret")
+    || url.searchParams.get("token");
 
   if (provided && provided === expected) return null;
   return json({ ok: false, error: "invalid_webhook_secret" }, 401);
