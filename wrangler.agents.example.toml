@@ -2,6 +2,8 @@ name = "chatdaddy-ai-agent-starter-agents"
 main = "src/hermas-agents-worker.js"
 compatibility_date = "2026-07-02"
 compatibility_flags = [ "nodejs_compat" ]
+workers_dev = true
+preview_urls = false
 
 [vars]
 AGENT_PROJECT_KEY = "demo"
