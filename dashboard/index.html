@@ -7966,7 +7966,7 @@
 
     function isDashboardVisibleApproval(item = {}) {
       const status = String(item.status || "").toLowerCase();
-      return ["pending", "sent", "send_failed", "sending", "rejected", "manual_resolved", "external_flow_continued", "purchase_confirmed"].includes(status);
+      return ["pending", "needs_approval", "handoff", "auto_record", "sent", "send_failed", "sending", "rejected", "manual_resolved", "external_flow_continued", "purchase_confirmed"].includes(status);
     }
 
     function approvalToCase(item, contactNames = {}) {
@@ -8098,6 +8098,7 @@
       if (item.status === "sent" && (item.auto_reply || item.category === "auto" || item.decision?.delivery?.mode === "auto_send" || item.approved_by === "agent_auto_send")) return "auto_sent";
       if (item.status === "sent") return "sent";
       if (item.status === "send_failed") return "send_failed";
+      if (item.status === "auto_record" || item.category === "auto") return "external_flow_continued";
       if (dashboardIsStepOneKeywordLeadApproval(item)) return "external_flow_continued";
       if (dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item)) return "human_required";
       if (item.category === "handoff" || item.category === "human") return "human_required";

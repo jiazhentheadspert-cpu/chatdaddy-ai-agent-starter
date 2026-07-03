@@ -1697,7 +1697,7 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
   return withoutUndefined({
     id: row.id,
     project_key: row.project_key,
-    status: row.status,
+    status: dashboardStatusFromApprovalCase(row),
     category,
     provider: row.provider || normalized.provider || "chatdaddy",
     created_at: row.created_at,
@@ -1758,6 +1758,16 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
       confidence: row.confidence
     }
   });
+}
+
+function dashboardStatusFromApprovalCase(row) {
+  const status = String(row.status || "").toLowerCase();
+  const bucket = String(row.queue_bucket || "").toLowerCase();
+  if (bucket === "auto_record" || status === "auto_record") return "external_flow_continued";
+  if (bucket === "human" || status === "handoff") return "pending";
+  if (bucket === "order_payment" || bucket === "approvable" || status === "needs_approval") return "pending";
+  if (status === "closed") return "sent";
+  return status || "pending";
 }
 
 function dashboardCategoryFromApprovalCase(row) {
