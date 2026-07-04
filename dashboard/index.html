@@ -7709,14 +7709,15 @@
 	        const liveItems = Array.isArray(data.items)
 	          ? data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
 	          : [];
+	        const compactLiveItems = compactApprovalsByConversation(liveItems);
         state.contactNames = {};
-        state.cases = liveItems.map((item) => approvalToCase(item, {}));
+        state.cases = compactLiveItems.map((item) => approvalToCase(item, {}));
         render();
 
-        loadContactNameMap(liveItems, token).then((contactNames) => {
+        loadContactNameMap(compactLiveItems, token).then((contactNames) => {
           if (!contactNames || !Object.keys(contactNames).length) return;
           state.contactNames = contactNames;
-          state.cases = liveItems.map((item) => approvalToCase(item, contactNames));
+          state.cases = compactLiveItems.map((item) => approvalToCase(item, contactNames));
           render();
         }).catch(() => {});
 
@@ -7890,6 +7891,147 @@
 		realOnly: !qaMode,
 	      };
 	    }
+
+    function approvalConversationKey(item = {}) {
+      const candidates = [
+        item.customer?.chat_id,
+        item.customer?.chatId,
+        item.inbound?.chat_id,
+        item.inbound?.chatId,
+        item.contact?.chat_id,
+        item.contact?.chatId,
+        item.customer?.id,
+        item.contact?.id,
+        item.inbound?.contact_id,
+        item.inbound?.contactId,
+        item.customer?.phone,
+        item.inbound?.phone,
+        item.contact?.phone,
+        item.raw?.conversation_id,
+        item.raw?.conversationId,
+        item.conversation?.id,
+        item.conversation_id,
+        item.conversationId,
+      ];
+      for (const value of candidates) {
+        const raw = String(value || "").trim();
+        if (!raw) continue;
+        if (/^appr[_-]/i.test(raw) || /^case[_-]/i.test(raw)) continue;
+        const clean = raw.toLowerCase().replace(/\s+/g, "");
+        if (clean) return clean;
+      }
+      const digits = approvalContactDigits(item);
+      return digits ? `phone:${digits}` : `case:${item.id || Math.random().toString(36).slice(2)}`;
+    }
+
+    function approvalSortTime(item = {}) {
+      const times = [
+        item.latest_customer_message?.message_at,
+        item.latest_customer_message?.at,
+        item.inbound?.message_at,
+        item.inbound?.at,
+        item.updated_at,
+        item.created_at,
+      ];
+      for (const value of times) {
+        const ts = new Date(value || "").getTime();
+        if (Number.isFinite(ts)) return ts;
+      }
+      return 0;
+    }
+
+    function approvalListPriority(item = {}) {
+      const status = approvalStatus(item);
+      if (["approval_required", "human_required", "order", "send_failed", "returned_to_ai"].includes(status)) return 40;
+      if (["sending", "handoff_done"].includes(status)) return 30;
+      if (["external_flow_continued", "auto_sent", "sent", "manual_resolved", "purchase_confirmed"].includes(status)) return 10;
+      return 20;
+    }
+
+    function messageMergeKey(message = {}) {
+      const ids = [
+        message.id,
+        message.provider_message_id,
+        message.event_id,
+      ].filter(Boolean);
+      if (ids.length) return ids.join("|");
+      return [
+        message.direction,
+        message.role,
+        message.at || message.message_at,
+        message.text,
+      ].filter(Boolean).join("|");
+    }
+
+    function mergedApprovalMessages(items = []) {
+      const rows = [];
+      for (const item of items) {
+        const context = approvalRecentContextMessages(item);
+        if (context.length) {
+          rows.push(...context);
+        } else if (item.inbound?.text || item.latest_customer_message?.text) {
+          rows.push({
+            id: item.inbound?.provider_message_id || item.latest_customer_message?.provider_message_id || `${item.id}-in`,
+            direction: "inbound",
+            role: "customer",
+            text: firstContextText(item.latest_customer_message?.text, item.inbound?.text),
+            type: item.latest_customer_message?.type || item.inbound?.type || "text",
+            at: firstContextText(item.latest_customer_message?.message_at, item.latest_customer_message?.at, item.inbound?.message_at, item.updated_at, item.created_at),
+            message_at: firstContextText(item.latest_customer_message?.message_at, item.latest_customer_message?.at, item.inbound?.message_at, item.updated_at, item.created_at),
+          });
+        }
+      }
+      const seen = new Set();
+      return rows
+        .filter((message) => {
+          const key = messageMergeKey(message);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .sort((a, b) => new Date(a.at || a.message_at || 0) - new Date(b.at || b.message_at || 0));
+    }
+
+    function compactApprovalsByConversation(items = []) {
+      const groups = new Map();
+      for (const item of items) {
+        const key = approvalConversationKey(item);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+      }
+      return [...groups.values()]
+        .map((group) => {
+          const sorted = [...group].sort((a, b) =>
+            approvalListPriority(b) - approvalListPriority(a) || approvalSortTime(b) - approvalSortTime(a)
+          );
+          const primary = { ...sorted[0] };
+          if (group.length <= 1) return primary;
+
+          const mergedMessages = mergedApprovalMessages(group);
+          const latestInbound = latestInboundContextMessage(mergedMessages);
+          primary.chat_preview = mergedMessages;
+          primary.conversation_context = {
+            ...(primary.conversation_context || {}),
+            messages: mergedMessages,
+            latest_customer_message: latestInbound || primary.conversation_context?.latest_customer_message || null,
+          };
+          primary.latest_customer_message = latestInbound || primary.latest_customer_message || null;
+          if (latestInbound) {
+            primary.inbound = {
+              ...(primary.inbound || {}),
+              text: latestInbound.text || primary.inbound?.text || "",
+              message_at: latestInbound.message_at || latestInbound.at || primary.inbound?.message_at,
+            };
+          }
+          primary.raw = {
+            ...(primary.raw || {}),
+            merged_case_count: group.length,
+            merged_case_ids: group.map((item) => item.id).filter(Boolean),
+          };
+          return primary;
+        })
+        .sort((a, b) => approvalSortTime(b) - approvalSortTime(a));
+    }
 
     function setRealQueueEmpty(message = "") {
       state.demoMode = false;
