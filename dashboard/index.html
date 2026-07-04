@@ -7698,7 +7698,7 @@
 	        const qaMode = canUseQaMode();
 	        setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
 	        const visibility = dashboardApprovalVisibilityParams();
-	        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=${visibility.includeTests ? "1" : "0"}&real_only=${visibility.realOnly ? "1" : "0"}&limit=250&scan_limit=1000`;
+	        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=${visibility.includeTests ? "1" : "0"}&real_only=${visibility.realOnly ? "1" : "0"}&compact_conversations=1&limit=250&scan_limit=1000`;
 	        let res = await fetch(approvalUrl, { headers: authHeaders(token) });
 	        const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
