@@ -719,7 +719,7 @@ async function maybeImproveDraftWithModel(env, normalized, decision) {
 }
 
 function normalizeChatDaddyPayload(payload, options = {}) {
-  const raw = payload || {};
+  const raw = Array.isArray(payload) ? (payload[0] || {}) : (payload || {});
   const data = raw.data || raw.message || raw.event || raw.payload || raw;
   const contact = raw.contact || data.contact || raw.customer || data.customer || {};
   const message = raw.message || data.message || data;
@@ -731,6 +731,7 @@ function normalizeChatDaddyPayload(payload, options = {}) {
     caption: firstString(raw.caption, data.caption, message.caption)
   };
   const text = firstString(
+    raw._raw_text,
     raw.text,
     raw.message_text,
     raw.messageText,
@@ -3485,7 +3486,20 @@ function extractOpenAIText(data) {
 async function readJson(request) {
   const text = await request.text();
   if (!text.trim()) return {};
-  return JSON.parse(text);
+  try {
+    return JSON.parse(text);
+  } catch {
+    const contentType = String(request.headers.get("content-type") || "").toLowerCase();
+    if (contentType.includes("application/x-www-form-urlencoded") || text.includes("=")) {
+      const params = new URLSearchParams(text);
+      const out = {};
+      for (const [key, value] of params.entries()) {
+        out[key] = value;
+      }
+      if (Object.keys(out).length) return out;
+    }
+    return { _raw_text: text };
+  }
 }
 
 function compactError(value) {
