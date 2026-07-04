@@ -3,11 +3,16 @@ import { Agent, getAgentByName, routeAgentRequest } from "agents";
 const VERSION = "hermas-cloudflare-agents-runtime-v0.1";
 
 const CORS_HEADERS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET,POST,OPTIONS",
+  "access-control-allow-origin": "https://jiazhentheadspert-cpu.github.io",
+  "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
   "access-control-allow-headers": "content-type,authorization,x-webhook-secret,x-admin-token,x-staff-token,x-operator-token",
-  "access-control-max-age": "86400"
+  "access-control-allow-credentials": "true",
+  "access-control-max-age": "86400",
+  "vary": "Origin"
 };
+
+const HERMAS_SESSION_COOKIE = "hermas_session";
+const HERMAS_SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 export class HermasProjectAgent extends Agent {
   initialState = {
@@ -302,7 +307,7 @@ export class HermasOpsAgent extends Agent {
 
 export default {
   async fetch(request, env, ctx) {
-    if (request.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+    if (request.method === "OPTIONS") return new Response(null, { headers: corsHeadersForRequest(request) });
 
     const url = new URL(request.url);
 
@@ -317,6 +322,25 @@ export default {
         auto_send_enabled: false,
         auto_trigger_flows_enabled: false
       });
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/auth/login") {
+      const payload = await readJson(request);
+      return handleSupabaseAuthLogin(payload, env, request);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/auth/logout") {
+      return handleSupabaseAuthLogout(env, request);
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/auth/session") {
+      return handleSupabaseAuthSession(env, request);
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/me/projects") {
+      const auth = await getSupabaseSessionAuth(request, env);
+      if (!auth?.ok) return authJson({ ok: false, error: auth?.error || "not_logged_in" }, auth?.status || 401, request);
+      return authJson({ ok: true, projects: await listSupabaseProjectsForUser(env, auth.user) }, 200, request);
     }
 
     if (request.method === "POST" && url.pathname === "/api/agents/runtime/decide-test") {
@@ -352,15 +376,55 @@ export default {
     }
 
     if (request.method === "GET" && url.pathname === "/api/approvals/pending") {
-      const authError = verifyStaffOrAdminToken(request, env);
+      const authError = await verifyStaffOrAdminToken(request, env);
       if (authError) return authError;
       return handleSupabaseApprovalsPending(request, env);
     }
 
     if (request.method === "POST" && url.pathname === "/api/approvals/import-legacy-items") {
-      const authError = verifyStaffOrAdminToken(request, env);
+      const authError = await verifyStaffOrAdminToken(request, env);
       if (authError) return authError;
       return handleLegacyApprovalItemsImport(request, env);
+    }
+
+    const hermasCaseActionMatch = url.pathname.match(/^\/api\/hermas\/projects\/([^/]+)\/cases\/([^/]+)\/(approve-send|return-ai|handoff|manual-resolve|mark-purchase|external-flow-continued)$/);
+    if (request.method === "POST" && hermasCaseActionMatch) {
+      const authError = await verifyStaffOrAdminToken(request, env);
+      if (authError) return authError;
+      return handleSupabaseCaseAction(request, env, {
+        projectKey: decodeURIComponent(hermasCaseActionMatch[1]),
+        caseId: decodeURIComponent(hermasCaseActionMatch[2]),
+        action: hermasCaseActionMatch[3]
+      });
+    }
+
+    const approvalActionMatch = url.pathname.match(/^\/api\/approvals\/([^/]+)\/(approve|reject|mark-seen|manual-resolve|mark-purchase)$/);
+    if (request.method === "POST" && approvalActionMatch) {
+      const authError = await verifyStaffOrAdminToken(request, env);
+      if (authError) return authError;
+      const projectKey = normalizeProjectKey(url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
+      const action = approvalActionMatch[2] === "approve"
+        ? "approve-send"
+        : approvalActionMatch[2] === "reject"
+          ? "handoff"
+          : approvalActionMatch[2];
+      return handleSupabaseCaseAction(request, env, {
+        projectKey,
+        caseId: decodeURIComponent(approvalActionMatch[1]),
+        action
+      });
+    }
+
+    const legacyCaseActionMatch = url.pathname.match(/^\/api\/cases\/([^/]+)\/([^/]+)$/);
+    if (request.method === "POST" && legacyCaseActionMatch) {
+      const authError = await verifyStaffOrAdminToken(request, env);
+      if (authError) return authError;
+      const projectKey = normalizeProjectKey(url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
+      return handleSupabaseCaseAction(request, env, {
+        projectKey,
+        caseId: decodeURIComponent(legacyCaseActionMatch[1]),
+        action: normalizeDashboardCaseActionName(legacyCaseActionMatch[2])
+      });
     }
 
     const webhookMatch = url.pathname.match(/^\/api\/channels\/chatdaddy\/webhook\/([^/]+)$/);
@@ -488,6 +552,19 @@ function decideApprovalFirst(normalized) {
     };
   }
 
+  if (isSafetyContradictionOrderText(lower)) {
+    return {
+      ...base,
+      intent: "health_boundary_pushback",
+      risk_level: "high",
+      reply_text: "亲，你说得对。既然已经涉及身体情况，我这边先不继续推配套，也不会叫你下单。我先把前面的情况核对清楚，再谨慎回复你。",
+      next_action: "handoff",
+      needs_human: true,
+      reason: "Customer is pushing back after being told not to drink or to ask a doctor. Do not treat as order intent.",
+      source_refs: ["risk:health_sensitive", "guard:no_order_after_do_not_drink"]
+    };
+  }
+
   if (containsAny(lower, ["怀孕", "孕妇", "胃痛", "胃酸", "胃病", "骨髓", "血小板", "便秘", "有病", "医生", "药", "medical"])) {
     return {
       ...base,
@@ -498,6 +575,18 @@ function decideApprovalFirst(normalized) {
       needs_human: true,
       reason: "Health-sensitive question requires safe boundary and human review.",
       source_refs: ["risk:health_sensitive"]
+    };
+  }
+
+  if (isDrinkUsageQuestion(text)) {
+    return {
+      ...base,
+      intent: "faq_drink_usage",
+      risk_level: "low",
+      reply_text: beyouteDrinkUsageReply(),
+      next_action: "create_approval_case",
+      reason: "Customer asked a direct product usage FAQ. Answer from Beyoute FAQ before any CTA or Flow decision.",
+      source_refs: ["faq:drink_usage", "policy:answer_first"]
     };
   }
 
@@ -1240,6 +1329,11 @@ async function handleSupabaseApprovalsPending(request, env) {
   const requestedStatus = String(url.searchParams.get("status") || "pending").trim().toLowerCase() || "pending";
   const includeTests = ["1", "true", "yes"].includes(String(url.searchParams.get("include_tests") || "").toLowerCase());
   const realOnly = !["0", "false", "no"].includes(String(url.searchParams.get("real_only") || "1").toLowerCase());
+  const compactConversations = ["1", "true", "yes"].includes(String(
+    url.searchParams.get("compact_conversations") ||
+    url.searchParams.get("compactConversations") ||
+    ""
+  ).toLowerCase());
   const rows = await supabaseSelectRows(
     env,
     `approval_cases?project_key=eq.${encodeURIComponent(projectKey)}&select=*&order=created_at.desc&limit=${scanLimit}`
@@ -1266,7 +1360,7 @@ async function handleSupabaseApprovalsPending(request, env) {
     ? mergedItems.filter((item) => !isLikelyDashboardTestItem(item))
     : mergedItems;
   const statusFilteredItems = filterDashboardItemsByRequestedStatus(cleanItems, requestedStatus);
-  const visibleItems = shouldCollapseDashboardItemsForStatus(requestedStatus)
+  const visibleItems = (compactConversations || shouldCollapseDashboardItemsForStatus(requestedStatus))
     ? collapseDashboardItemsByConversation(statusFilteredItems)
     : statusFilteredItems;
   const limitedItems = visibleItems.slice(0, limit);
@@ -1286,6 +1380,7 @@ async function handleSupabaseApprovalsPending(request, env) {
     scan_limit: scanLimit,
     include_tests: includeTests,
     real_only: realOnly,
+    compact_conversations: compactConversations,
     legacy_error: legacy.error || null,
     auto_send_enabled: false,
     auto_trigger_flows_enabled: false
@@ -1375,6 +1470,99 @@ function filterDashboardItemsByRequestedStatus(items = [], status = "pending") {
   return items;
 }
 
+function isSafetyContradictionOrderText(text = "") {
+  const lower = String(text || "").toLowerCase();
+  if (!lower) return false;
+  const hasDoNotDrinkBoundary = containsAny(lower, [
+    "建议不要喝",
+    "不要喝",
+    "不能喝",
+    "不适合喝",
+    "不建议喝",
+    "先问医生",
+    "询问医生",
+    "问医生",
+    "ask doctor",
+    "doctor first"
+  ]);
+  const hasOrderPushback = containsAny(lower, [
+    "还下单做什么",
+    "还下单",
+    "下单做什么",
+    "为什么还要买",
+    "为什么还买",
+    "还买做什么",
+    "那买来做什么",
+    "那下单做什么",
+    "营养师都建议",
+    "你们的营养师"
+  ]);
+  return hasDoNotDrinkBoundary && hasOrderPushback;
+}
+
+function isDrinkUsageQuestion(text = "") {
+  const clean = String(text || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!clean) return false;
+  if (/(一天|每日|每天|一日).{0,8}(喝|drink|吃|服用).{0,8}(几次|幾次|多少次|berapa|how many)/i.test(clean)) return true;
+  if (/(喝|drink|吃|服用).{0,8}(几次|幾次|多少次|berapa|how many)/i.test(clean)) return true;
+  if (/(怎么喝|怎麼喝|如何喝|怎样喝|怎樣喝|喝法|饭前饭后|飯前飯後|餐前|餐后|餐後|before meal|after meal)/i.test(clean)) return true;
+  const hasDrinkVerb = containsAny(clean, ["喝", "drink", "服用", "吃"]);
+  const hasUsageSignal = containsAny(clean, ["一天", "每天", "每日", "几次", "幾次", "怎么", "怎麼", "如何", "怎样", "怎樣", "饭前", "飯前", "饭后", "飯後", "餐前", "餐后", "餐後"]);
+  return hasDrinkVerb && hasUsageSignal;
+}
+
+function beyouteDrinkUsageReply() {
+  return [
+    "亲，一天 1 次就可以了。",
+    "",
+    "如果想见效快一点，也可以一天 2 次。",
+    "",
+    "建议选你吃最多的那一餐，餐前用 150-200ml 常温水冲泡，喝完 15-30 分钟后再吃饭。",
+    "",
+    "如果有吃西药或保健品，记得隔开 1-2 小时；茶或咖啡就隔开半小时哦。"
+  ].join("\n");
+}
+
+function isGenericConfirmationReply(text = "") {
+  return /(我明白你的问题|先根据资料帮你确认|先帮你确认清楚|再用最简单的方式回复|先让客服|客服看回上一句|避免答错)/i.test(String(text || ""));
+}
+
+function safeHandoffReplyFallback(inboundText = "", intent = "", nextAction = "") {
+  const haystack = `${inboundText || ""} ${intent || ""} ${nextAction || ""}`.toLowerCase();
+  const isHandoffLike = containsAny(haystack, [
+    "handoff",
+    "human",
+    "medical",
+    "health",
+    "complaint",
+    "refund",
+    "after_sales",
+    "order_payment_review",
+    "payment",
+    "receipt"
+  ]);
+  if (!isHandoffLike) return "";
+  if (/(等下付款|等下付|迟点付款|遲點付款|今晚付款|later pay|pay later)/i.test(haystack)) {
+    return "好的亲，没问题。你付款后把截图或汇款资料发我，我会先核对金额和订单资料，确认好再继续安排。";
+  }
+  if (/(付款截图|付款截圖|付款证明|付款證明|收据|收據|receipt|bank in|transfer|汇款|匯款|\[付款截图\]|\[附件\]|\[图片\]|\[image\])/i.test(haystack)) {
+    return "亲，收到你的付款/汇款讯息或截图。我先核对金额和订单资料，确认好后才会继续安排。";
+  }
+  if (/(自取|pickup|pick up|拿货|拿貨|过去拿|過去拿|取货|取貨|店拿|门市|門市|药店|藥店|西药店|西藥店)/i.test(haystack)) {
+    return "亲，可以，我先帮你确认取货/安排方式和库存。还没确认前我先不乱承诺地点，确认好再回复你。";
+  }
+  if (/(孕|怀孕|懷孕|哺乳|药|藥|胃酸|胃痛|胃病|糖尿|高血压|高血壓|骨髓|血小板|便秘严重|嚴重|过敏|過敏|医生|醫生|medical|health)/i.test(haystack)) {
+    return "亲，这个涉及身体情况，我先不乱答。你可以把目前情况告诉我，我会按资料帮你确认适不适合；如果正在治疗或严重不舒服，建议先问医生比较安心。";
+  }
+  if (/(refund|退款|退货|退貨|投诉|投訴|complain|scam|骗子|騙子)/i.test(haystack)) {
+    return "亲，我先了解清楚你的情况。你可以把订单资料和遇到的问题发我，我会认真核对后再处理。";
+  }
+  return "亲，我先把你的情况核对清楚，再给你一个准确回复。";
+}
+
 function shouldCollapseDashboardItemsForStatus(status = "") {
   const normalized = String(status || "pending").toLowerCase();
   return ["pending", "open", "needs_attention", "approval", "approvable", "needs_approval", "human", "handoff", "order", "orders", "payment", "purchase"].includes(normalized);
@@ -1399,11 +1587,7 @@ function collapseDashboardItemsByConversation(items = []) {
       passthrough.push(group[0]);
       continue;
     }
-    const sorted = [...group].sort((a, b) => {
-      const priorityDiff = dashboardItemPriorityScore(b) - dashboardItemPriorityScore(a);
-      if (priorityDiff) return priorityDiff;
-      return dashboardItemTimestamp(b) - dashboardItemTimestamp(a);
-    });
+    const sorted = [...group].sort((a, b) => dashboardItemTimestamp(b) - dashboardItemTimestamp(a));
     const representative = {
       ...sorted[0],
       dashboard_grouped_case_count: group.length,
@@ -1439,17 +1623,6 @@ function dashboardConversationKey(item = {}) {
 function dashboardItemTimestamp(item = {}) {
   const date = new Date(item.updated_at || item.inbound?.message_at || item.last_message_at || item.created_at || 0);
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
-function dashboardItemPriorityScore(item = {}) {
-  let score = 0;
-  if (item.category === "human") score += 400;
-  if (item.category === "order") score += 300;
-  if (item.category === "approval") score += 200;
-  if (item.status === "pending") score += 100;
-  if (String(item.risk_level || item.decision?.signals?.risk_level || "").toLowerCase() === "high") score += 50;
-  if (firstString(item.inbound?.text, item.last_message)) score += 10;
-  return score;
 }
 
 function isLikelyDashboardTestItem(item = {}) {
@@ -1567,6 +1740,599 @@ async function handleLegacyApprovalItemsImport(request, env) {
     triggers_flows: false,
     results: results.slice(0, 50)
   });
+}
+
+async function handleSupabaseCaseAction(request, env, options = {}) {
+  if (!hasSupabase(env)) return json({ ok: false, error: "supabase_not_configured" }, 503);
+
+  const payload = await readJson(request);
+  const projectKey = normalizeProjectKey(options.projectKey || payload.project_key || env.AGENT_PROJECT_KEY || "beyoute");
+  const caseId = String(options.caseId || "").trim();
+  const action = normalizeDashboardCaseActionName(options.action || payload.action);
+  const dryRun = truthyValue(payload.dry_run) || truthyValue(payload.dryRun) || truthyValue(payload.previewOnly) || truthyValue(payload.testOnly);
+  const operator = caseActionOperatorFromRequest(request, payload);
+  const now = new Date().toISOString();
+
+  if (!caseId) return json({ ok: false, error: "case_id_required" }, 400);
+  if (!action) return json({ ok: false, error: "action_required" }, 400);
+
+  const context = await loadSupabaseApprovalCaseContext(env, projectKey, caseId);
+  if (!context.case) {
+    return json({ ok: false, error: "case_not_found", project_key: projectKey, case_id: caseId }, 404);
+  }
+
+  const before = context.case;
+  if (isSupabaseApprovalCaseClosed(before) && !dryRun && action !== "mark-seen") {
+    return json({
+      ok: true,
+      already_handled: true,
+      sends_messages: false,
+      triggers_flows: false,
+      case: approvalCaseRowToDashboardItem(before, context.refs),
+      next: "这张 Case 已经处理过，不会重复发送或重复记录。"
+    });
+  }
+
+  const replyText = firstString(payload.text, payload.replyText, payload.reply_message, payload.manualReplyText, before.suggested_reply, before.data?.decision?.reply_text);
+  const note = firstString(payload.reason, payload.note, payload.handoff_reason);
+
+  if (action === "approve-send") {
+    const confirmedLiveSend = truthyValue(payload.confirmLiveSend) || truthyValue(payload.confirm_send);
+    if (!replyText.trim()) {
+      return json({ ok: false, error: "reply_text_required", sends_messages: false, triggers_flows: false }, 400);
+    }
+    const target = chatDaddyTargetFromCaseContext(before, context.refs);
+    const preview = {
+      action,
+      project_key: projectKey,
+      case_id: caseId,
+      to: maskPublicTarget(target.value),
+      target_type: target.type || "",
+      text_length: replyText.length,
+      sends_messages: !dryRun && confirmedLiveSend,
+      triggers_flows: false
+    };
+    if (dryRun) {
+      return json({
+        ok: true,
+        dry_run: true,
+        preview_only: true,
+        preview,
+        case: approvalCaseRowToDashboardItem(before, context.refs),
+        sends_messages: false,
+        triggers_flows: false,
+        next: "Dry-run only. Nothing was sent to ChatDaddy."
+      });
+    }
+    if (!confirmedLiveSend) {
+      return json({
+        ok: false,
+        blocked: true,
+        preview_only: true,
+        preview,
+        error: "confirmLiveSend_required",
+        message: "必须由客服确认发送后，系统才会发给真实顾客。",
+        sends_messages: false,
+        triggers_flows: false
+      }, 409);
+    }
+    if (!target.ok) {
+      return json({
+        ok: false,
+        blocked: true,
+        error: "missing_chatdaddy_reply_target",
+        message: "这张 Case 缺少真实 ChatDaddy contact/chat id，所以没有发送给顾客。",
+        reason: target.reason,
+        sends_messages: false,
+        triggers_flows: false,
+        case: approvalCaseRowToDashboardItem(before, context.refs)
+      }, 409);
+    }
+
+    const sendResult = await sendSupabaseApprovalViaLegacyChatDaddy(env, {
+      target: target.value,
+      text: replyText,
+      caseId,
+      projectKey,
+      providerMessageId: before.provider_case_id || context.refs.message?.provider_message_id || ""
+    });
+    if (!sendResult.sent) {
+      await recordSupabaseCaseAction(env, {
+        projectKey,
+        caseId,
+        operator,
+        action: "approve_send_failed",
+        beforeStatus: before.status,
+        afterStatus: before.status,
+        messageText: replyText,
+        note: sendResult.reason || sendResult.error || "ChatDaddy send failed.",
+        data: { send_result: sendResult }
+      });
+      return json({
+        ok: false,
+        error: "chatdaddy_send_failed",
+        message: "发送失败，Case 保持待处理，没有标记已发。",
+        result: publicSendResult(sendResult),
+        sends_messages: false,
+        triggers_flows: false,
+        case: approvalCaseRowToDashboardItem(before, context.refs)
+      }, 502);
+    }
+
+    const patch = {
+      status: "sent",
+      queue_bucket: "closed",
+      suggested_reply: replyText,
+      closed_at: now,
+      updated_at: now,
+      data: {
+        ...(before.data || {}),
+        final_text: replyText,
+        approved_by: operator.name,
+        approved_at: now,
+        send_result: publicSendResult(sendResult)
+      }
+    };
+    const updated = await patchSupabaseApprovalCase(env, caseId, patch);
+    if (!updated.ok) return json({ ok: false, error: "case_update_failed", message: updated.error }, 503);
+    await recordSupabaseCaseAction(env, {
+      projectKey,
+      caseId,
+      operator,
+      action: "approve_send",
+      beforeStatus: before.status,
+      afterStatus: "sent",
+      messageText: replyText,
+      data: { send_result: publicSendResult(sendResult) }
+    });
+    await insertSupabaseOutboundMessageForCase(env, updated.row, context.refs, {
+      text: replyText,
+      status: "sent",
+      providerMessageId: sendResult.provider_message_id || "",
+      metadata: {
+        source: "dashboard_approval",
+        operator_name: operator.name,
+        send_result: publicSendResult(sendResult)
+      }
+    });
+    return json({
+      ok: true,
+      case: approvalCaseRowToDashboardItem(updated.row, context.refs),
+      item: approvalCaseRowToDashboardItem(updated.row, context.refs),
+      result: publicSendResult(sendResult),
+      sends_messages: true,
+      triggers_flows: false,
+      next: "已发送给顾客，并记录在 Dashboard。"
+    });
+  }
+
+  if (action === "return-ai") {
+    const patch = {
+      status: "returned_ai",
+      queue_bucket: "pending",
+      updated_at: now,
+      data: {
+        ...(before.data || {}),
+        returned_ai: true,
+        returned_ai_by: operator.name,
+        returned_ai_at: now,
+        returned_ai_reason: note || "客服退回 AI 重写。"
+      }
+    };
+    return handleNonSendingSupabaseAction(env, { dryRun, before, context, patch, projectKey, caseId, operator, action, afterStatus: "returned_ai", note, messageText: replyText });
+  }
+
+  if (action === "handoff") {
+    const patch = {
+      status: "handoff",
+      queue_bucket: "human",
+      updated_at: now,
+      data: {
+        ...(before.data || {}),
+        handoff: true,
+        handoff_by: operator.name,
+        handoff_at: now,
+        handoff_reason: note || "客服选择转人工。"
+      }
+    };
+    return handleNonSendingSupabaseAction(env, { dryRun, before, context, patch, projectKey, caseId, operator, action, afterStatus: "handoff", note, messageText: "" });
+  }
+
+  if (action === "manual-resolve") {
+    const manualReplyText = firstString(payload.manualReplyText, payload.final_human_reply, payload.reply_message, payload.text);
+    const patch = {
+      status: "manual_resolved",
+      queue_bucket: "closed",
+      closed_at: now,
+      updated_at: now,
+      data: {
+        ...(before.data || {}),
+        manual_resolved: true,
+        manual_resolved_by: operator.name,
+        manual_resolved_at: now,
+        manual_reply_text: manualReplyText || null,
+        final_human_reply: firstString(payload.final_human_reply, manualReplyText) || null,
+        handoff_reason: payload.handoff_reason || null,
+        customer_outcome: payload.customer_outcome || null,
+        learning_outcome_note: payload.learning_outcome_note || null,
+        learnability: payload.learnability || null,
+        note: payload.note || null
+      }
+    };
+    const response = await handleNonSendingSupabaseAction(env, { dryRun, before, context, patch, projectKey, caseId, operator, action, afterStatus: "manual_resolved", note: payload.note || "", messageText: manualReplyText });
+    return response;
+  }
+
+  if (action === "mark-purchase") {
+    const amount = normalizeMoneyAmount(payload.amount_rm || payload.amount || payload.total_amount);
+    const patch = {
+      status: "closed",
+      queue_bucket: "closed",
+      closed_at: now,
+      updated_at: now,
+      data: {
+        ...(before.data || {}),
+        purchase_confirmed: true,
+        purchase_confirmed_by: operator.name,
+        purchase_confirmed_at: now,
+        amount_rm: amount,
+        currency: firstString(payload.currency, "MYR"),
+        order_id: firstString(payload.order_id, payload.orderId),
+        meta_capi_sent: false,
+        meta_capi_note: "Dashboard mark-paid records the payment; it does not send a customer message or trigger Flow."
+      }
+    };
+    const response = await handleNonSendingSupabaseAction(env, { dryRun, before, context, patch, projectKey, caseId, operator, action, afterStatus: "closed", note: "确认已付款", messageText: "", amount });
+    if (!dryRun) {
+      await insertSupabasePaymentForCase(env, before, context.refs, { amount, currency: patch.data.currency, operator, payload });
+    }
+    return response;
+  }
+
+  if (action === "external-flow-continued") {
+    const patch = {
+      status: "auto_record",
+      queue_bucket: "auto_record",
+      closed_at: now,
+      updated_at: now,
+      data: {
+        ...(before.data || {}),
+        external_flow_continued: true,
+        external_flow_confirmed_by: operator.name,
+        external_flow_confirmed_at: now,
+        external_flow_evidence: {
+          provider: payload.provider || "chatdaddy",
+          provider_event_type: payload.provider_event_type || "",
+          provider_event_id: payload.provider_event_id || "",
+          provider_flow_id: payload.provider_flow_id || "",
+          provider_message_id: payload.provider_message_id || "",
+          event_at: payload.event_at || "",
+          evidence_note: payload.evidence_note || payload.note || ""
+        }
+      }
+    };
+    return handleNonSendingSupabaseAction(env, { dryRun, before, context, patch, projectKey, caseId, operator, action, afterStatus: "auto_record", note: payload.evidence_note || payload.note || "", messageText: "" });
+  }
+
+  if (action === "mark-seen") {
+    const patch = {
+      updated_at: now,
+      data: {
+        ...(before.data || {}),
+        seen_by: operator.name,
+        seen_at: now,
+        seen_note: payload.note || "客服已看过。"
+      }
+    };
+    return handleNonSendingSupabaseAction(env, { dryRun, before, context, patch, projectKey, caseId, operator, action, afterStatus: before.status, note: payload.note || "", messageText: "" });
+  }
+
+  return json({ ok: false, error: "unknown_case_action", action }, 404);
+}
+
+async function handleNonSendingSupabaseAction(env, options = {}) {
+  const { dryRun, before, context, patch, projectKey, caseId, operator, action, afterStatus, note, messageText, amount } = options;
+  if (dryRun) {
+    return json({
+      ok: true,
+      dry_run: true,
+      preview_only: true,
+      action,
+      would_update_status: afterStatus,
+      sends_messages: false,
+      triggers_flows: false,
+      case: approvalCaseRowToDashboardItem(before, context.refs),
+      next: "Dry-run only. Nothing was sent and no Dashboard record was changed."
+    });
+  }
+
+  const updated = await patchSupabaseApprovalCase(env, caseId, patch);
+  if (!updated.ok) return json({ ok: false, error: "case_update_failed", message: updated.error, sends_messages: false, triggers_flows: false }, 503);
+  await recordSupabaseCaseAction(env, {
+    projectKey,
+    caseId,
+    operator,
+    action,
+    beforeStatus: before.status,
+    afterStatus,
+    messageText,
+    amount,
+    note,
+    data: {
+      sends_messages: false,
+      triggers_flows: false
+    }
+  });
+  const updatedItem = approvalCaseRowToDashboardItem(updated.row, context.refs);
+  return json({
+    ok: true,
+    action,
+    case: updatedItem,
+    item: updatedItem,
+    sends_messages: false,
+    triggers_flows: false,
+    next: action === "mark-purchase"
+      ? "已确认付款并记录；不会发送顾客讯息，也不会触发 Flow。"
+      : "已记录；没有发送顾客讯息，也没有触发 Flow。"
+  });
+}
+
+function normalizeDashboardCaseActionName(value = "") {
+  const action = String(value || "").trim().toLowerCase().replace(/_/g, "-");
+  const aliases = {
+    approve: "approve-send",
+    send: "approve-send",
+    "approve-send": "approve-send",
+    learn: "approve-send",
+    reject: "handoff",
+    handoff: "handoff",
+    "return-ai": "return-ai",
+    "manual-resolve": "manual-resolve",
+    "manual-reply": "manual-resolve",
+    "mark-purchase": "mark-purchase",
+    "mark-paid": "mark-purchase",
+    "mark-seen": "mark-seen",
+    "external-flow-continued": "external-flow-continued"
+  };
+  return aliases[action] || action;
+}
+
+async function loadSupabaseApprovalCaseContext(env, projectKey, caseId) {
+  const rows = await supabaseSelectRows(
+    env,
+    `approval_cases?project_key=eq.${encodeURIComponent(projectKey)}&id=eq.${encodeURIComponent(caseId)}&select=*&limit=1`
+  );
+  const row = rows[0] || null;
+  if (!row) return { case: null, refs: {} };
+  const customer = row.customer_id
+    ? (await selectSupabaseRowsByIds(env, "customers", [row.customer_id], "id,external_customer_id,phone_e164,display_name,profile"))[0] || null
+    : null;
+  const message = row.trigger_message_id
+    ? (await selectSupabaseRowsByIds(env, "messages", [row.trigger_message_id], "id,provider_message_id,text,message_at,metadata,content,customer_id,conversation_id,direction,sender_type,message_type,attachments,status,created_at"))[0] || null
+    : null;
+  const recentMessages = row.conversation_id
+    ? await selectSupabaseRecentMessagesByConversationIds(env, projectKey, [row.conversation_id])
+    : [];
+  return {
+    case: row,
+    refs: {
+      customer,
+      message,
+      recentMessages
+    }
+  };
+}
+
+async function patchSupabaseApprovalCase(env, caseId, patch) {
+  const result = await supabasePatch(env, `approval_cases?id=eq.${encodeURIComponent(caseId)}`, patch);
+  const row = Array.isArray(result.data) ? result.data[0] : null;
+  if (!result.ok || !row) {
+    return { ok: false, error: result.error || "approval_case_patch_failed", result };
+  }
+  return { ok: true, row };
+}
+
+async function recordSupabaseCaseAction(env, input = {}) {
+  const payload = withoutUndefined({
+    project_key: input.projectKey,
+    case_id: input.caseId,
+    action: input.action,
+    before_status: input.beforeStatus || undefined,
+    after_status: input.afterStatus || undefined,
+    message_text: input.messageText || undefined,
+    amount: input.amount === null || input.amount === undefined || input.amount === "" ? undefined : input.amount,
+    currency: input.currency || "MYR",
+    note: input.note || undefined,
+    data: {
+      operator_name: input.operator?.name || "",
+      operator_role: input.operator?.role || "staff",
+      ...(input.data || {})
+    }
+  });
+  return supabaseInsert(env, "case_actions", payload);
+}
+
+async function insertSupabaseOutboundMessageForCase(env, row = {}, refs = {}, input = {}) {
+  if (!input.text) return { attempted: false, skipped: true, reason: "empty_text" };
+  return supabaseInsert(env, "messages", withoutUndefined({
+    project_key: row.project_key,
+    conversation_id: row.conversation_id || undefined,
+    customer_id: row.customer_id || undefined,
+    direction: "outbound",
+    sender_type: "staff",
+    provider: row.provider || "chatdaddy",
+    provider_message_id: input.providerMessageId || undefined,
+    text: input.text,
+    message_type: "text",
+    attachments: [],
+    content: {
+      text: input.text
+    },
+    status: input.status || "recorded",
+    message_at: new Date().toISOString(),
+    metadata: {
+      ...(input.metadata || {}),
+      trigger_message_id: row.trigger_message_id || null,
+      customer_external_id: refs.customer?.external_customer_id || null
+    }
+  }));
+}
+
+async function insertSupabasePaymentForCase(env, row = {}, refs = {}, input = {}) {
+  const amount = normalizeMoneyAmount(input.amount);
+  return supabaseInsert(env, "payments", withoutUndefined({
+    project_key: row.project_key,
+    customer_id: row.customer_id || undefined,
+    conversation_id: row.conversation_id || undefined,
+    case_id: row.id,
+    amount: amount === null ? undefined : amount,
+    currency: input.currency || "MYR",
+    status: "confirmed",
+    evidence_type: "dashboard_staff_confirmed",
+    confirmed_at: new Date().toISOString(),
+    data: {
+      source: "dashboard_mark_purchase",
+      operator_name: input.operator?.name || "",
+      order_id: firstString(input.payload?.order_id, input.payload?.orderId),
+      meta_capi_sent: false
+    }
+  }));
+}
+
+async function sendSupabaseApprovalViaLegacyChatDaddy(env, input = {}) {
+  const base = String(env.LEGACY_APPROVALS_API_BASE || "").trim().replace(/\/$/, "");
+  if (!base) {
+    return { sent: false, reason: "legacy_chatdaddy_adapter_not_configured" };
+  }
+  try {
+    const response = await fetch(`${base}/api/channels/chatdaddy/action`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "user-agent": "Hermas-Agents-Live-Approval/1.0"
+      },
+      body: JSON.stringify({
+        action: "send_message",
+        force_live: true,
+        to: input.target,
+        contactId: input.target,
+        text: input.text,
+        parameters: {
+          idempotencyId: `agents:${input.projectKey}:${input.caseId}:approve-send`,
+          originalId: input.providerMessageId || input.caseId,
+          source: "hermas_agents_dashboard"
+        }
+      })
+    });
+    const text = await response.text();
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { body: text };
+    }
+    const result = data.result || data;
+    const mode = result.mode || data.provider || "legacy_chatdaddy_adapter";
+    return {
+      sent: Boolean(response.ok && (result.sent || data.ok) && mode !== "mock"),
+      status: response.status,
+      provider_message_id: result.provider_message_id || data.provider_message_id || "",
+      reason: mode === "mock" ? "Legacy ChatDaddy adapter is still in mock mode." : (result.reason || data.error || ""),
+      mode
+    };
+  } catch (error) {
+    return { sent: false, error: error?.message || String(error) };
+  }
+}
+
+function chatDaddyTargetFromCaseContext(row = {}, refs = {}) {
+  const normalized = row.data?.normalized || {};
+  const customer = refs.customer || {};
+  const message = refs.message || {};
+  const dataCustomer = row.data?.customer || {};
+  const candidates = [
+    normalized.external_conversation_id,
+    normalized.external_customer_id,
+    customer.external_customer_id,
+    customer.profile?.external_conversation_id,
+    customer.profile?.external_customer_id,
+    dataCustomer.chat_id,
+    dataCustomer.id,
+    dataCustomer.phone,
+    message.metadata?.external_conversation_id,
+    message.metadata?.external_customer_id,
+    message.content?.external_conversation_id,
+    message.content?.external_customer_id,
+    refs.recentMessages?.at?.(-1)?.metadata?.external_conversation_id,
+    refs.recentMessages?.at?.(-1)?.metadata?.external_customer_id,
+    customer.phone_e164
+  ];
+  for (const candidate of candidates) {
+    const value = normalizeChatDaddyTarget(candidate);
+    if (isSafeChatDaddyTarget(value)) {
+      return { ok: true, value, type: value.replace(/\D/g, "").length >= 8 ? "phone_or_chat_id" : "chat_id" };
+    }
+  }
+  return { ok: false, value: "", reason: "No safe ChatDaddy contact/chat id found on the case." };
+}
+
+function normalizeChatDaddyTarget(value) {
+  return String(value || "").trim().replace(/\s+/g, "");
+}
+
+function isSafeChatDaddyTarget(value = "") {
+  const text = normalizeChatDaddyTarget(value);
+  if (!text) return false;
+  if (/^(legacy:|appr_|case_|debug|demo|mock|test)/i.test(text)) return false;
+  if (/(contact-fix|debug|demo|mock|test|selftest)/i.test(text)) return false;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)) return false;
+  const digits = text.replace(/\D/g, "");
+  if (digits.length >= 8) return true;
+  return /^[A-Za-z0-9_.@:-]{8,}$/.test(text);
+}
+
+function publicSendResult(result = {}) {
+  return withoutUndefined({
+    sent: Boolean(result.sent),
+    status: result.status,
+    provider_message_id: result.provider_message_id || undefined,
+    mode: result.mode || undefined,
+    reason: result.reason || result.error || undefined
+  });
+}
+
+function maskPublicTarget(value = "") {
+  const text = String(value || "");
+  if (!text) return "";
+  if (text.length <= 4) return "****";
+  return `${text.slice(0, 2)}***${text.slice(-4)}`;
+}
+
+function normalizeMoneyAmount(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(String(value).replace(/[^\d.]/g, ""));
+  return Number.isFinite(number) ? number : null;
+}
+
+function isSupabaseApprovalCaseClosed(row = {}) {
+  const status = String(row.status || "").toLowerCase();
+  const bucket = String(row.queue_bucket || "").toLowerCase();
+  return ["sent", "manual_resolved", "closed", "auto_record"].includes(status) || bucket === "closed" || row.data?.purchase_confirmed === true;
+}
+
+function caseActionOperatorFromRequest(request, payload = {}) {
+  const headerName = firstString(request.headers.get("x-operator-name"), request.headers.get("x-staff-name"));
+  return {
+    id: firstString(payload.operator_id, payload.operatorId, payload.user_id, payload.userId),
+    name: firstString(payload.user, payload.approvedBy, payload.rejectedBy, payload.resolvedBy, payload.confirmedBy, headerName, "客服"),
+    role: firstString(payload.role, "staff")
+  };
+}
+
+function truthyValue(value) {
+  if (value === true) return true;
+  const text = String(value || "").trim().toLowerCase();
+  return ["1", "true", "yes", "y", "confirm", "confirmed"].includes(text);
 }
 
 async function importLegacyApprovalItem(env, item = {}, options = {}) {
@@ -1898,13 +2664,39 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
   ));
   const phone = firstString(customer.phone_e164, normalized.phone);
   const externalCustomerId = firstString(customer.external_customer_id, normalized.external_customer_id, row.customer_id);
-  const category = dashboardCategoryFromApprovalCase(row);
-  const actionType = dashboardActionTypeFromApprovalCase(row, decision);
+  const alreadyHandled = isSupabaseApprovalCaseClosed(row);
+  const safetyOverride = !alreadyHandled && isSafetyContradictionOrderText(inboundText);
+  const storedReplyText = row.suggested_reply || decision.reply_text || "";
+  const drinkUsageOverride = !alreadyHandled && !safetyOverride && isDrinkUsageQuestion(inboundText) && (!storedReplyText || isGenericConfirmationReply(storedReplyText));
+  const fallbackHandoffReply = !storedReplyText && !drinkUsageOverride
+    ? safeHandoffReplyFallback(inboundText, row.intent || decision.intent || "", row.next_action || decision.next_action || "")
+    : "";
+  const category = safetyOverride ? "human" : (drinkUsageOverride ? "approval" : dashboardCategoryFromApprovalCase(row));
+  const actionType = safetyOverride ? "handoff" : (drinkUsageOverride ? "approve_reply" : dashboardActionTypeFromApprovalCase(row, decision));
+  const dashboardStatus = safetyOverride ? "pending" : dashboardStatusFromApprovalCase(row);
+  const riskLevel = safetyOverride ? "high" : (drinkUsageOverride ? "low" : (row.risk_level || decision.risk_level || "medium"));
+  const intent = safetyOverride ? "health_boundary_pushback" : (drinkUsageOverride ? "faq_drink_usage" : (row.intent || decision.intent || "approval"));
+  const reason = safetyOverride
+    ? "Customer pushed back after a health boundary. Do not treat as order/payment; human must review."
+    : drinkUsageOverride
+      ? "Customer asked a direct drink-usage FAQ. Send the concrete FAQ answer after staff approval."
+    : (row.reason || decision.reason || row.next_action || "等待客服确认");
+  const operatorInstruction = safetyOverride
+    ? "先人工接手：承认前面健康边界，不继续推配套，不叫顾客下单。"
+    : drinkUsageOverride
+      ? "检查喝法答案完整后发送；不要接 Flow，不要叫顾客下单。"
+    : (row.reason || decision.reason || "检查后才发送。");
+  const replyText = safetyOverride
+    ? "亲，你说得对。既然已经涉及身体情况，我这边先不继续推配套，也不会叫你下单。我先把前面的情况核对清楚，再谨慎回复你。"
+    : drinkUsageOverride
+      ? beyouteDrinkUsageReply()
+      : (storedReplyText || fallbackHandoffReply);
 
   return withoutUndefined({
     id: row.id,
+    source: "approval",
     project_key: row.project_key,
-    status: dashboardStatusFromApprovalCase(row),
+    status: dashboardStatus,
     category,
     provider: row.provider || normalized.provider || "chatdaddy",
     created_at: row.created_at,
@@ -1927,14 +2719,14 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
       display_name: displayName || ""
     },
     reply: {
-      text: row.suggested_reply || decision.reply_text || "",
+      text: replyText,
       stage_after: row.stage || decision.stage || normalized.stage || "",
       model: row.data?.decision?.source_refs?.includes("model:openai_in_agent") ? "openai" : "hermas_agents"
     },
     action: {
       type: actionType,
-      label: row.reason || decision.reason || row.next_action || "等待客服确认",
-      operator_instruction: row.reason || decision.reason || "检查后才发送。"
+      label: reason,
+      operator_instruction: operatorInstruction
     },
     chat_preview: recentMessages.length ? recentMessages : undefined,
     conversation_context: recentMessages.length ? {
@@ -1944,15 +2736,15 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
     latest_customer_message: latestCustomerMessage || undefined,
     decision: {
       signals: {
-        intent: row.intent || decision.intent || "approval",
-        customer_intent: row.intent || decision.intent || "approval",
-        risk_level: row.risk_level || decision.risk_level || "medium",
-        risk: row.risk_level || decision.risk_level || "medium",
+        intent,
+        customer_intent: intent,
+        risk_level: riskLevel,
+        risk: riskLevel,
         stage: row.stage || decision.stage || normalized.stage || "",
         stage_key: row.stage || decision.stage || normalized.stage || "",
         tags: uniqueTruthy([
-          row.intent || decision.intent,
-          row.risk_level || decision.risk_level,
+          intent,
+          riskLevel,
           row.stage || decision.stage || normalized.stage
         ])
       },
@@ -1962,9 +2754,9 @@ function approvalCaseRowToDashboardItem(row, refs = {}) {
         trigger_flow_now: false
       }
     },
-    risk_level: row.risk_level || decision.risk_level || "medium",
-    source_status: row.status,
-    next_action: row.next_action || decision.next_action || "",
+    risk_level: riskLevel,
+    source_status: safetyOverride ? "handoff" : row.status,
+    next_action: safetyOverride ? "handoff" : (drinkUsageOverride ? "create_approval_case" : (row.next_action || decision.next_action || "")),
     raw: {
       case_id: row.id,
       conversation_id: row.conversation_id || undefined,
@@ -1999,6 +2791,7 @@ function approvalCaseFallbackMessage(row = {}, message = {}, normalized = {}) {
 function dashboardStatusFromApprovalCase(row) {
   const status = String(row.status || "").toLowerCase();
   const bucket = String(row.queue_bucket || "").toLowerCase();
+  if (row.data?.purchase_confirmed === true) return "purchase_confirmed";
   if (bucket === "auto_record" || status === "auto_record") return "external_flow_continued";
   if (bucket === "human" || status === "handoff") return "pending";
   if (bucket === "order_payment" || bucket === "approvable" || status === "needs_approval") return "pending";
@@ -2162,6 +2955,192 @@ function hasSupabase(env) {
   return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY && !String(env.SUPABASE_URL).includes("YOUR_PROJECT"));
 }
 
+async function handleSupabaseAuthLogin(payload, env, request) {
+  if (!hasSupabase(env)) {
+    return authJson({ ok: false, error: "supabase_not_configured" }, 503, request);
+  }
+  const email = normalizeEmail(payload.email);
+  const password = String(payload.password || "");
+  if (!email || !password) return authJson({ ok: false, error: "email_and_password_required" }, 400, request);
+
+  const users = await supabaseSelectRows(
+    env,
+    `users?email=eq.${encodeURIComponent(email)}&select=id,email,full_name,role,status,password_hash,last_login_at,created_at,updated_at&limit=1`
+  );
+  const user = users[0] || null;
+  const passwordOk = user?.status === "active" && user.password_hash && await verifyPassword(password, user.password_hash);
+  if (!passwordOk) return authJson({ ok: false, error: "invalid_email_or_password" }, 401, request);
+
+  const now = new Date();
+  const expires = new Date(now.getTime() + HERMAS_SESSION_TTL_SECONDS * 1000);
+  const token = randomToken(36);
+  const sessionHash = await sha256Hex(token);
+  const sessionInsert = await supabaseInsert(env, "user_sessions", {
+    user_id: user.id,
+    session_hash: sessionHash,
+    expires_at: expires.toISOString(),
+    created_at: now.toISOString()
+  });
+  if (!sessionInsert.ok) {
+    return authJson({ ok: false, error: "session_create_failed" }, 500, request);
+  }
+
+  await supabasePatch(env, `users?id=eq.${encodeURIComponent(user.id)}`, {
+    last_login_at: now.toISOString(),
+    updated_at: now.toISOString()
+  });
+
+  const safeUser = safeSupabaseUser({ ...user, last_login_at: now.toISOString() });
+  const projects = await listSupabaseProjectsForUser(env, safeUser);
+  return authJson({
+    ok: true,
+    authenticated: true,
+    user: safeUser,
+    projects,
+    session: {
+      expires_at: expires.toISOString(),
+      auth_type: "cookie"
+    }
+  }, 200, request, {
+    "set-cookie": sessionCookie(token, request)
+  });
+}
+
+async function handleSupabaseAuthLogout(env, request) {
+  if (hasSupabase(env)) {
+    const token = cookieValue(request, HERMAS_SESSION_COOKIE);
+    if (token) {
+      const sessionHash = await sha256Hex(token);
+      await supabasePatch(env, `user_sessions?session_hash=eq.${encodeURIComponent(sessionHash)}`, {
+        revoked_at: new Date().toISOString()
+      });
+    }
+  }
+  return authJson({ ok: true, authenticated: false }, 200, request, {
+    "set-cookie": clearSessionCookie(request)
+  });
+}
+
+async function handleSupabaseAuthSession(env, request) {
+  const auth = await getSupabaseSessionAuth(request, env);
+  if (!auth?.ok) {
+    return authJson({
+      ok: true,
+      authenticated: false,
+      reason: auth?.error || "not_logged_in"
+    }, 200, request);
+  }
+  return authJson({
+    ok: true,
+    authenticated: true,
+    user: auth.user,
+    projects: await listSupabaseProjectsForUser(env, auth.user)
+  }, 200, request);
+}
+
+async function getSupabaseSessionAuth(request, env, options = {}) {
+  if (!hasSupabase(env)) return null;
+  const token = cookieValue(request, HERMAS_SESSION_COOKIE);
+  if (!token) return null;
+
+  const sessionHash = await sha256Hex(token);
+  const sessions = await supabaseSelectRows(
+    env,
+    `user_sessions?session_hash=eq.${encodeURIComponent(sessionHash)}&select=id,user_id,expires_at,revoked_at,created_at&limit=1`
+  );
+  const session = sessions[0] || null;
+  if (!session) return { ok: false, status: 401, error: "session_expired" };
+  if (session.revoked_at) return { ok: false, status: 401, error: "session_revoked" };
+  if (new Date(session.expires_at || 0).getTime() <= Date.now()) {
+    return { ok: false, status: 401, error: "session_expired" };
+  }
+
+  const users = await supabaseSelectRows(
+    env,
+    `users?id=eq.${encodeURIComponent(session.user_id)}&select=id,email,full_name,role,status,last_login_at,created_at,updated_at&limit=1`
+  );
+  const user = safeSupabaseUser(users[0] || {});
+  if (!user.user_id || user.status !== "active") return { ok: false, status: 401, error: "user_disabled" };
+
+  const role = ["admin", "super_admin"].includes(String(user.role || "")) ? "admin" : "staff";
+  const projectKey = options.projectKey || authProjectKeyFromRequest(request);
+  if (projectKey && role !== "admin") {
+    const membership = await activeSupabaseMembershipForUser(env, user.user_id, projectKey);
+    if (!membership) {
+      return { ok: false, status: 403, error: "project_access_denied", project_key: projectKey };
+    }
+  }
+
+  return {
+    ok: true,
+    auth_type: "session",
+    subject: user.email,
+    user_id: user.user_id,
+    display_name: user.name,
+    role,
+    project_key: projectKey || null,
+    user,
+    session_id: session.id
+  };
+}
+
+async function activeSupabaseMembershipForUser(env, userId, projectKey) {
+  const memberships = await supabaseSelectRows(
+    env,
+    `project_memberships?user_id=eq.${encodeURIComponent(userId)}&project_key=eq.${encodeURIComponent(normalizeProjectKey(projectKey))}&status=eq.active&select=id,project_key,user_id,role,status&limit=1`
+  );
+  return memberships[0] || null;
+}
+
+async function listSupabaseProjectsForUser(env, user = {}) {
+  if (!hasSupabase(env) || !user?.user_id) return [];
+  const adminLike = ["admin", "super_admin"].includes(String(user.role || ""));
+  if (adminLike) {
+    const projects = await supabaseSelectRows(
+      env,
+      "projects?select=project_key,name,display_name,status,updated_at&order=updated_at.desc&limit=200"
+    );
+    if (projects.length) {
+      return projects.map((project) => ({
+        project_key: normalizeProjectKey(project.project_key),
+        project_name: project.display_name || project.name || project.project_key,
+        role: "admin",
+        status: project.status || "active"
+      }));
+    }
+    return [{
+      project_key: normalizeProjectKey(env.AGENT_PROJECT_KEY || "beyoute"),
+      project_name: env.PROJECT_LABEL || env.AGENT_PROJECT_KEY || "Beyoute",
+      role: "admin",
+      status: "active"
+    }];
+  }
+
+  const memberships = await supabaseSelectRows(
+    env,
+    `project_memberships?user_id=eq.${encodeURIComponent(user.user_id)}&status=eq.active&select=project_key,role,status&order=updated_at.desc&limit=200`
+  );
+  return memberships.map((membership) => ({
+    project_key: normalizeProjectKey(membership.project_key),
+    project_name: normalizeProjectKey(membership.project_key),
+    role: membership.role || "staff",
+    status: membership.status || "active"
+  }));
+}
+
+function safeSupabaseUser(row = {}) {
+  return {
+    user_id: row.id || row.user_id || "",
+    email: row.email || "",
+    name: row.full_name || row.name || row.email || "Team Member",
+    role: row.role || "staff",
+    status: row.status || "active",
+    last_login_at: row.last_login_at || null,
+    created_at: row.created_at || null,
+    updated_at: row.updated_at || null
+  };
+}
+
 function verifyAdminToken(request, env) {
   const expected = env.ADMIN_TOKEN || env.HERMAS_ADMIN_TOKEN;
   if (!expected) return json({ ok: false, error: "admin_token_not_configured" }, 503);
@@ -2176,12 +3155,9 @@ function verifyAdminToken(request, env) {
   return json({ ok: false, error: "invalid_admin_token" }, 401);
 }
 
-function verifyStaffOrAdminToken(request, env) {
+async function verifyStaffOrAdminToken(request, env) {
   const expectedStaff = env.HERMAS_STAFF_TOKEN || env.STAFF_TOKEN || env.AGENT_STAFF_TOKEN;
   const expectedAdmin = env.ADMIN_TOKEN || env.HERMAS_ADMIN_TOKEN;
-  if (!expectedStaff && !expectedAdmin) {
-    return json({ ok: false, error: "staff_token_not_configured" }, 503);
-  }
 
   const url = new URL(request.url);
   const authorization = request.headers.get("authorization") || "";
@@ -2197,7 +3173,131 @@ function verifyStaffOrAdminToken(request, env) {
 
   if (expectedStaff && providedStaff && providedStaff === expectedStaff) return null;
   if (expectedAdmin && providedAdmin && providedAdmin === expectedAdmin) return null;
+
+  const session = await getSupabaseSessionAuth(request, env, {
+    projectKey: authProjectKeyFromRequest(request)
+  });
+  if (session?.ok) return null;
+  if (session && !session.ok) {
+    return authJson({ ok: false, error: session.error || "session_invalid" }, session.status || 401, request);
+  }
+
+  if (!expectedStaff && !expectedAdmin && !hasSupabase(env)) {
+    return json({ ok: false, error: "staff_token_not_configured" }, 503);
+  }
   return json({ ok: false, error: "invalid_staff_token" }, 401);
+}
+
+function authProjectKeyFromRequest(request) {
+  const url = new URL(request.url);
+  const hermasMatch = url.pathname.match(/^\/api\/hermas\/projects\/([^/]+)/);
+  if (hermasMatch) return normalizeProjectKey(decodeURIComponent(hermasMatch[1]));
+  const queryProject = url.searchParams.get("project_key") || url.searchParams.get("projectKey");
+  return queryProject ? normalizeProjectKey(queryProject) : "";
+}
+
+function normalizeEmail(value = "") {
+  return String(value || "").trim().toLowerCase();
+}
+
+function cookieValue(request, name) {
+  const cookie = String(request.headers.get("cookie") || "");
+  const parts = cookie.split(";").map((part) => part.trim()).filter(Boolean);
+  for (const part of parts) {
+    const eq = part.indexOf("=");
+    if (eq <= 0) continue;
+    if (part.slice(0, eq) === name) return decodeURIComponent(part.slice(eq + 1));
+  }
+  return "";
+}
+
+function sessionCookie(token, request) {
+  const url = new URL(request.url);
+  const secure = url.protocol === "https:" ? "; Secure" : "";
+  const sameSite = url.hostname === "localhost" ? "Lax" : "None";
+  return `${HERMAS_SESSION_COOKIE}=${encodeURIComponent(token)}; HttpOnly; Path=/; Max-Age=${HERMAS_SESSION_TTL_SECONDS}; SameSite=${sameSite}${secure}`;
+}
+
+function clearSessionCookie(request) {
+  const url = new URL(request.url);
+  const secure = url.protocol === "https:" ? "; Secure" : "";
+  const sameSite = url.hostname === "localhost" ? "Lax" : "None";
+  return `${HERMAS_SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=${sameSite}${secure}`;
+}
+
+function randomToken(bytes = 32) {
+  const values = new Uint8Array(bytes);
+  crypto.getRandomValues(values);
+  return base64UrlEncode(values);
+}
+
+function base64UrlEncode(bytes) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlDecode(value = "") {
+  const source = String(value || "");
+  const padded = source.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(source.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function sha256Hex(value) {
+  const bytes = new TextEncoder().encode(String(value || ""));
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function verifyPassword(password, storedHash) {
+  const parts = String(storedHash || "").split("$");
+  if (parts.length !== 4 || parts[0] !== "pbkdf2_sha256") return false;
+  const iterations = Number(parts[1]);
+  if (!Number.isFinite(iterations) || iterations < 10000) return false;
+  const salt = base64UrlDecode(parts[2]);
+  const expected = base64UrlDecode(parts[3]);
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(password || "")), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({
+    name: "PBKDF2",
+    salt,
+    iterations,
+    hash: "SHA-256"
+  }, key, expected.length * 8);
+  const actual = new Uint8Array(bits);
+  if (actual.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < actual.length; i += 1) diff |= actual[i] ^ expected[i];
+  return diff === 0;
+}
+
+function authJson(data, status = 200, request = null, extraHeaders = {}) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      ...(request ? corsHeadersForRequest(request) : CORS_HEADERS),
+      "content-type": "application/json; charset=utf-8",
+      ...extraHeaders
+    }
+  });
+}
+
+function corsHeadersForRequest(request) {
+  const origin = request?.headers?.get?.("origin") || "";
+  if (!origin || origin === "null") {
+    return {
+      ...CORS_HEADERS,
+      "access-control-allow-origin": origin || CORS_HEADERS["access-control-allow-origin"]
+    };
+  }
+  return {
+    ...CORS_HEADERS,
+    "access-control-allow-origin": origin,
+    "access-control-allow-credentials": "true",
+    "vary": "Origin"
+  };
 }
 
 function verifyWebhookSecret(request, env) {

@@ -6184,7 +6184,7 @@
     $("logoutBtn").addEventListener("click", async () => {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       if (api && hasAccountSession()) {
-        await fetch(`${api}/api/auth/logout`, { method: "POST", headers: {} }).catch(() => null);
+        await fetch(`${api}/api/auth/logout`, { method: "POST", headers: {}, credentials: "include" }).catch(() => null);
       }
       localStorage.removeItem("agent_session");
       localStorage.removeItem("agent_admin_token");
@@ -6430,7 +6430,7 @@
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       if (!api) return false;
       try {
-        const res = await fetch(`${api}/api/auth/session`, { headers: {} });
+        const res = await fetch(`${api}/api/auth/session`, { headers: {}, credentials: "include" });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok || !data.authenticated || !data.user) return false;
         const projects = Array.isArray(data.projects) ? data.projects : [];
@@ -7424,7 +7424,7 @@
       const timeout = setTimeout(() => controller.abort(), 3500);
       try {
         const endpoint = `${api}/api/channels/chatdaddy/contacts?contacts=${encodeURIComponent(contacts.join(","))}`;
-        const res = await fetch(endpoint, { headers: authHeaders(token), signal: controller.signal });
+        const res = await fetch(endpoint, authRequestOptions(token, { signal: controller.signal }));
         const data = await res.json();
         if (!res.ok || !data.ok) return {};
 
@@ -7699,7 +7699,7 @@
 	        setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
 	        const visibility = dashboardApprovalVisibilityParams();
 	        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=${visibility.includeTests ? "1" : "0"}&real_only=${visibility.realOnly ? "1" : "0"}&compact_conversations=1&limit=250&scan_limit=1000`;
-	        let res = await fetch(approvalUrl, { headers: authHeaders(token) });
+		        let res = await fetch(approvalUrl, authRequestOptions(token));
 	        const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
@@ -7757,7 +7757,7 @@
       }
       try {
         const endpoint = `${api}/api/usage/summary?project_key=${encodeURIComponent(project)}`;
-        const res = await fetch(endpoint, { headers: authHeaders(token) });
+        const res = await fetch(endpoint, authRequestOptions(token));
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.usageSummary = data;
@@ -8051,6 +8051,17 @@
       if (!token && hasAccountSession()) return {};
       if (state.role === "staff") return { "x-staff-token": token };
       return { "x-admin-token": token, "x-staff-token": token };
+    }
+
+    function authRequestOptions(token, options = {}) {
+      return {
+        ...options,
+        credentials: hasAccountSession() ? "include" : options.credentials,
+        headers: {
+          ...(options.headers || {}),
+          ...authHeaders(token),
+        },
+      };
     }
 
     function syncPauseAgentStateFromRuntime(runtimeConfig = {}) {
@@ -17542,14 +17553,13 @@
           ? approvalActionEndpoint(api, caseId, action, project)
           : `${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`;
         const payload = isApproval ? approvalActionPayload(action, body) : body;
-        const res = await fetch(endpoint, {
+        const res = await fetch(endpoint, authRequestOptions(token, {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            ...authHeaders(token),
           },
           body: JSON.stringify(payload),
-        });
+        }));
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
         addAuditEvent(`case_${action}`, `真实顾客 ${caseId} 已执行 ${actionLabel(action)}。`);
