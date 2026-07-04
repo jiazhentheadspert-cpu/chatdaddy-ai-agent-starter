@@ -5598,6 +5598,7 @@
         </div>
 
         <div id="error" class="error"></div>
+        <div id="queueFreshnessAlert" class="channel-outage-alert hidden" role="status" aria-live="polite"></div>
         <div id="channelOutageAlert" class="channel-outage-alert hidden" role="status" aria-live="polite"></div>
         <section id="cases" class="grid"></section>
       </section>
@@ -5839,6 +5840,7 @@
       usageSummary: null,
       metaCapiStatus: null,
       contactNames: {},
+      queueSyncStatus: null,
       selectedDate: "",
       queueDateScope: "date",
     };
@@ -7704,6 +7706,7 @@
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
         state.loading = false;
+        state.queueSyncStatus = data.sync_status || null;
         state.selected.clear();
 	        $("modeTag").textContent = activeModeLabel();
 	        const liveItems = Array.isArray(data.items)
@@ -7866,6 +7869,7 @@
       errorEl.textContent = "";
       state.cases = [];
       state.loadingMessage = message;
+      state.queueSyncStatus = null;
       render();
     }
 
@@ -8717,6 +8721,7 @@
       renderStaffCleanupGuide(all, counts);
       renderStaffCleanupExecutionStrip(all, counts);
       renderOwnerQaGuide(counts);
+      renderQueueFreshnessAlert();
       renderChannelOutageAlert(all, counts);
       const useStaffSections = shouldUseStaffCaseSections();
       casesEl.classList.toggle("staff-sectioned", useStaffSections);
@@ -9524,6 +9529,30 @@
         <div>
           <b>WhatsApp / API 渠道异常：先修渠道，不要重复批准</b>
           <span>${escapeHtml(`ManyChat/ChatDaddy 显示 Data Use / WhatsApp channel off 迹象；当前 ${failedCount || outages.length} 条相关记录，例：${name}。修好 App Dashboard / WhatsApp 连接后再回 Dashboard 处理。`)}</span>
+        </div>
+      `;
+    }
+
+    function renderQueueFreshnessAlert() {
+      const element = $("queueFreshnessAlert");
+      if (!element) return;
+      const sync = state.queueSyncStatus || {};
+      const ageMinutes = Number(sync.age_minutes);
+      const latestAt = sync.latest_dashboard_event_at || sync.latest_message_at || sync.latest_case_at || "";
+      const lookingAtToday = useOpenBacklogDateScope() || (normalizeIsoDate(state.selectedDate) || todayISO) === todayISO;
+      const isStale = sync.is_stale === true || (Number.isFinite(ageMinutes) && ageMinutes > Number(sync.stale_after_minutes || 240));
+      if (!lookingAtToday || state.demoMode || !latestAt || !isStale) {
+        element.classList.add("hidden");
+        element.innerHTML = "";
+        return;
+      }
+      const timeText = formatDate(latestAt);
+      element.classList.remove("hidden");
+      element.innerHTML = `
+        <span class="alert-dot" aria-hidden="true"></span>
+        <div>
+          <b>同步提醒：先确认今天的新讯息有没有进来</b>
+          <span>${escapeHtml(`Dashboard 最新收到的顾客讯息停在 ${timeText}。如果 ChatDaddy 现在有新聊天，请先确认讯息连接；不要把这里当成今天真的没有顾客。`)}</span>
         </div>
       `;
     }

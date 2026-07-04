@@ -1365,6 +1365,11 @@ async function handleSupabaseApprovalsPending(request, env) {
     ? collapseDashboardItemsByConversation(statusFilteredItems)
     : statusFilteredItems;
   const limitedItems = visibleItems.slice(0, limit);
+  const syncStatus = await loadSupabaseDashboardSyncStatus(env, projectKey, {
+    rows,
+    recentMessageRows,
+    mergedItems
+  });
 
   return json({
     ok: true,
@@ -1382,10 +1387,59 @@ async function handleSupabaseApprovalsPending(request, env) {
     include_tests: includeTests,
     real_only: realOnly,
     compact_conversations: compactConversations,
+    sync_status: syncStatus,
     legacy_error: legacy.error || null,
     auto_send_enabled: false,
     auto_trigger_flows_enabled: false
   });
+}
+
+async function loadSupabaseDashboardSyncStatus(env, projectKey, context = {}) {
+  const now = new Date();
+  const latestMessages = await supabaseSelectRows(
+    env,
+    `messages?project_key=eq.${encodeURIComponent(projectKey)}&select=message_at,created_at,direction,sender_type,message_type&order=message_at.desc&limit=1`
+  );
+  const latestCases = await supabaseSelectRows(
+    env,
+    `approval_cases?project_key=eq.${encodeURIComponent(projectKey)}&select=created_at,updated_at,status,queue_bucket&order=updated_at.desc&limit=1`
+  );
+  const latestMessageAt = latestDateString([
+    latestMessages[0]?.message_at,
+    latestMessages[0]?.created_at,
+    ...(context.recentMessageRows || []).map((row) => row.message_at || row.created_at)
+  ]);
+  const latestCaseAt = latestDateString([
+    latestCases[0]?.updated_at,
+    latestCases[0]?.created_at,
+    ...(context.rows || []).map((row) => row.updated_at || row.created_at),
+    ...(context.mergedItems || []).map((item) => item.updated_at || item.created_at || item.last_message_at)
+  ]);
+  const freshnessAnchorAt = latestMessageAt || latestCaseAt;
+  const latestMessageAgeMinutes = latestMessageAt
+    ? Math.max(0, Math.floor((now.getTime() - new Date(latestMessageAt).getTime()) / 60000))
+    : null;
+  const latestCaseAgeMinutes = latestCaseAt
+    ? Math.max(0, Math.floor((now.getTime() - new Date(latestCaseAt).getTime()) / 60000))
+    : null;
+  const staleAfterMinutes = 240;
+  return {
+    ok: true,
+    source: "supabase_messages_and_approval_cases",
+    server_time: now.toISOString(),
+    latest_message_at: latestMessageAt || null,
+    latest_case_at: latestCaseAt || null,
+    latest_dashboard_event_at: freshnessAnchorAt || null,
+    age_minutes: latestMessageAgeMinutes,
+    case_update_age_minutes: latestCaseAgeMinutes,
+    stale_after_minutes: staleAfterMinutes,
+    is_stale: latestMessageAgeMinutes === null ? true : latestMessageAgeMinutes > staleAfterMinutes,
+    note: latestMessageAgeMinutes === null
+      ? "No dashboard message event found."
+      : latestMessageAgeMinutes > staleAfterMinutes
+        ? "Dashboard has not received a recent message within the freshness window."
+        : "Dashboard has received a recent event within the freshness window."
+  };
 }
 
 async function selectSupabaseRecentMessagesByConversationIds(env, projectKey, conversationIds = []) {
@@ -3448,6 +3502,18 @@ function normalizeDate(value) {
   if (!value) return new Date().toISOString();
   const date = new Date(Number.isFinite(Number(value)) ? Number(value) : value);
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
+function latestDateString(values = []) {
+  let latest = null;
+  for (const value of values.flat()) {
+    const text = String(value || "").trim();
+    if (!text) continue;
+    const date = new Date(Number.isFinite(Number(text)) ? Number(text) : text);
+    if (!Number.isFinite(date.getTime())) continue;
+    if (!latest || date.getTime() > latest.getTime()) latest = date;
+  }
+  return latest ? latest.toISOString() : "";
 }
 
 function sanitizeDisplayName(value) {
