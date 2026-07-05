@@ -324,6 +324,28 @@ export default {
       });
     }
 
+    if (request.method === "GET" && url.pathname === "/api/meta-capi/status") {
+      const projectKey = normalizeProjectKey(url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
+      return json({
+        ok: true,
+        meta_capi: await metaCapiPublicStatus(env, url.origin, projectKey),
+        event_map: META_CAPI_EVENT_MAP,
+        next: "确认已付款 / COD 确认后，Dashboard 才会发送 Purchase；普通询问、等下付款、截图占位不会当成交。"
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/meta-capi/test") {
+      return handleMetaCapiTest(request, env);
+    }
+
+    const adminAdsConnectionMatch = url.pathname.match(/^\/api\/admin\/projects\/([^/]+)\/ads-connection(?:\/(test))?$/);
+    if (adminAdsConnectionMatch && ["GET", "POST", "PUT"].includes(request.method)) {
+      return handleAdminAdsConnection(request, env, {
+        projectKey: decodeURIComponent(adminAdsConnectionMatch[1]),
+        subAction: adminAdsConnectionMatch[2] || ""
+      });
+    }
+
     if (request.method === "POST" && url.pathname === "/api/auth/login") {
       const payload = await readJson(request);
       return handleSupabaseAuthLogin(payload, env, request);
@@ -373,6 +395,28 @@ export default {
         method: "GET",
         headers: request.headers
       }));
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/channels/chatdaddy/contacts") {
+      const authError = await verifyStaffOrAdminToken(request, env);
+      if (authError) return authError;
+      return handleChatDaddyContacts(request, env);
+    }
+
+    const conversationHistoryImportMatch = url.pathname.match(/^\/api\/hermas\/projects\/([^/]+)\/conversation-history\/import$/);
+    if (request.method === "POST" && conversationHistoryImportMatch) {
+      const authError = await verifyStaffOrAdminToken(request, env);
+      if (authError) return authError;
+      const payload = await readJson(request);
+      return handleHermasConversationHistoryImport(decodeURIComponent(conversationHistoryImportMatch[1]), payload, env);
+    }
+
+    const conversationHistorySyncMatch = url.pathname.match(/^\/api\/hermas\/projects\/([^/]+)\/conversation-history\/sync-chatdaddy$/);
+    if (request.method === "POST" && conversationHistorySyncMatch) {
+      const authError = await verifyStaffOrAdminToken(request, env);
+      if (authError) return authError;
+      const payload = await readJson(request);
+      return handleHermasConversationHistorySyncChatDaddy(decodeURIComponent(conversationHistorySyncMatch[1]), payload, env);
     }
 
     if (request.method === "GET" && url.pathname === "/api/approvals/pending") {
@@ -1442,6 +1486,223 @@ async function loadSupabaseDashboardSyncStatus(env, projectKey, context = {}) {
   };
 }
 
+async function handleChatDaddyContacts(request, env) {
+  const config = chatDaddyConfig(env);
+  if (!config.apiKey) {
+    return json({ ok: false, error: "chatdaddy_api_not_configured" }, 503);
+  }
+
+  const url = new URL(request.url);
+  const requestedContacts = [
+    ...url.searchParams.getAll("contact"),
+    ...url.searchParams.getAll("contact_id"),
+    ...url.searchParams.getAll("chat_id"),
+    ...String(url.searchParams.get("contacts") || "").split(/[,\s]+/)
+  ].map(normalizeChatDaddyToContact).filter(Boolean);
+  const contacts = [...new Set(requestedContacts)].slice(0, 80);
+  if (!contacts.length) {
+    return json({
+      ok: false,
+      error: "contacts_query_required",
+      example: "/api/channels/chatdaddy/contacts?contacts=60123456789"
+    }, 400);
+  }
+
+  const results = [];
+  const concurrency = 6;
+  for (let index = 0; index < contacts.length; index += concurrency) {
+    const batch = contacts.slice(index, index + concurrency);
+    results.push(...await Promise.all(batch.map((contactId) => fetchChatDaddyContact(config, contactId))));
+  }
+
+  const names = {};
+  const items = results.map((result) => {
+    const item = normalizeChatDaddyContactResult(result);
+    if (item.name) {
+      for (const id of [item.id, item.requested_id, item.phone].map(normalizeChatDaddyToContact).filter(Boolean)) {
+        names[id] = item.name;
+      }
+    }
+    return item;
+  });
+
+  return json({
+    ok: true,
+    provider: "chatdaddy",
+    count: items.length,
+    matched_count: Object.keys(names).length,
+    names,
+    items
+  });
+}
+
+async function handleHermasConversationHistoryImport(rawProjectKey, payload = {}, env) {
+  const projectKey = normalizeProjectKey(rawProjectKey || payload.project_key || payload.projectKey || env.AGENT_PROJECT_KEY || "beyoute");
+  if (!projectKey) return json({ ok: false, error: "project_key_required" }, 400);
+
+  const normalizedMessages = normalizeHermasConversationHistoryImportPayload(payload, {
+    projectKey,
+    provider: "chatdaddy"
+  });
+  if (!normalizedMessages.length) {
+    return json({
+      ok: true,
+      project_key: projectKey,
+      provider: "chatdaddy",
+      source: payload.source || "conversation_history_import",
+      imported_count: 0,
+      skipped_count: 0,
+      failed_count: 0,
+      sends_messages: false,
+      triggers_flows: false,
+      creates_approval_cases: false,
+      next: "No importable messages were provided."
+    });
+  }
+
+  const records = [];
+  for (const item of normalizedMessages) {
+    const result = await persistSupabaseIntakeRecords(env, item.normalized, item.raw);
+    records.push({
+      ok: Boolean(result.ok),
+      skipped_existing: Boolean(result.message?.skipped_existing),
+      message_id: result.refs?.message_id || null,
+      conversation_id: result.refs?.conversation_id || null,
+      direction: item.normalized.direction,
+      message_at: item.normalized.message_at,
+      error: result.ok ? null : result.reason || result.error || result.message?.error || "import_failed"
+    });
+  }
+
+  const imported = records.filter((record) => record.ok && !record.skipped_existing);
+  const skipped = records.filter((record) => record.ok && record.skipped_existing);
+  const failed = records.filter((record) => !record.ok);
+  return json({
+    ok: failed.length === 0,
+    project_key: projectKey,
+    provider: "chatdaddy",
+    source: payload.source || "conversation_history_import",
+    imported_count: imported.length,
+    skipped_count: skipped.length,
+    failed_count: failed.length,
+    conversation_ids: uniqueTruthy(records.map((record) => record.conversation_id)),
+    sends_messages: false,
+    triggers_flows: false,
+    creates_approval_cases: false,
+    records
+  }, failed.length ? 207 : 200);
+}
+
+async function handleHermasConversationHistorySyncChatDaddy(rawProjectKey, payload = {}, env) {
+  const projectKey = normalizeProjectKey(rawProjectKey || payload.project_key || payload.projectKey || env.AGENT_PROJECT_KEY || "beyoute");
+  const config = chatDaddyConfig(env);
+  if (!config.apiKey || !config.accountId) {
+    return json({
+      ok: false,
+      error: "chatdaddy_api_or_account_not_configured",
+      sends_messages: false,
+      triggers_flows: false,
+      creates_approval_cases: false
+    }, 503);
+  }
+
+  const chatId = normalizeChatDaddyToContact(firstString(
+    payload.chat_id,
+    payload.chatId,
+    payload.contact_id,
+    payload.contactId,
+    payload.customer_phone,
+    payload.phone,
+    payload.whatsapp,
+    payload.to
+  ));
+  if (!chatId) {
+    return json({
+      ok: false,
+      error: "chat_id_or_contact_id_required",
+      example: { chat_id: "60122752511", count: 30 },
+      sends_messages: false,
+      triggers_flows: false,
+      creates_approval_cases: false
+    }, 400);
+  }
+
+  const count = clampInteger(payload.count || payload.limit, 1, 80, 30);
+  const chatDaddyResult = await fetchChatDaddyRecentMessages(config, {
+    chatId,
+    count,
+    beforeId: payload.before_id || payload.beforeId || "",
+    status: payload.status || "",
+    fromMe: payload.from_me ?? payload.fromMe,
+    fetchFromPlatform: payload.fetch_from_platform ?? payload.fetchFromPlatform ?? true
+  });
+  if (!chatDaddyResult.ok) {
+    return json({
+      ok: false,
+      error: "chatdaddy_messages_sync_failed",
+      status: chatDaddyResult.status,
+      source: "chatdaddy_messages_get",
+      raw_shape: chatDaddyResult.raw_shape,
+      row_shape: chatDaddyResult.row_shape,
+      sends_messages: false,
+      triggers_flows: false,
+      creates_approval_cases: false
+    }, chatDaddyResult.status || 502);
+  }
+
+  const customerName = firstNonGenericContactName(
+    payload.customer_name,
+    payload.customerName,
+    payload.display_name,
+    payload.displayName,
+    payload.name,
+    chatDaddyResult.customer_name
+  );
+  const messages = normalizeChatDaddyRecentMessagesForImport(chatDaddyResult.body, {
+    chatId,
+    projectKey,
+    customerName
+  });
+  if (!messages.length) {
+    return json({
+      ok: true,
+      project_key: projectKey,
+      provider: "chatdaddy",
+      source: "chatdaddy_messages_sync",
+      chat_id: chatId,
+      fetched_count: 0,
+      imported_count: 0,
+      raw_shape: chatDaddyResult.raw_shape,
+      row_shape: chatDaddyResult.row_shape,
+      sends_messages: false,
+      triggers_flows: false,
+      creates_approval_cases: false,
+      next: "ChatDaddy returned no importable recent messages."
+    });
+  }
+
+  const importResponse = await handleHermasConversationHistoryImport(projectKey, {
+    provider: "chatdaddy",
+    source: "chatdaddy_messages_sync",
+    chat_id: chatId,
+    contact_id: chatId,
+    customer_name: customerName,
+    messages
+  }, env);
+  const importBody = await importResponse.json().catch(() => ({}));
+  return json({
+    ...importBody,
+    source: "chatdaddy_messages_sync",
+    chat_id: chatId,
+    fetched_count: messages.length,
+    raw_shape: chatDaddyResult.raw_shape,
+    row_shape: chatDaddyResult.row_shape,
+    sends_messages: false,
+    triggers_flows: false,
+    creates_approval_cases: false
+  }, importResponse.status);
+}
+
 async function selectSupabaseRecentMessagesByConversationIds(env, projectKey, conversationIds = []) {
   if (!conversationIds.length) return [];
   const idList = conversationIds.map((id) => String(id || "").trim()).filter(Boolean).join(",");
@@ -2020,6 +2281,65 @@ async function handleSupabaseCaseAction(request, env, options = {}) {
 
   if (action === "mark-purchase") {
     const amount = normalizeMoneyAmount(payload.amount_rm || payload.amount || payload.total_amount);
+    if (amount === null || amount <= 0) {
+      return json({
+        ok: false,
+        error: "purchase_amount_required",
+        message: "先输入真实成交金额，例如 RM 378。",
+        sends_messages: false,
+        triggers_flows: false
+      }, 400);
+    }
+    const currency = firstString(payload.currency, "MYR").toUpperCase();
+    const orderId = firstString(payload.order_id, payload.orderId, before.data?.order_id, before.id);
+    const purchase = {
+      amount_rm: amount,
+      value: amount,
+      currency,
+      order_id: orderId,
+      payment_status: firstString(payload.payment_status, payload.paymentStatus, "paid"),
+      purchase_status: "confirmed",
+      order_status: firstString(payload.order_status, payload.orderStatus, "confirmed"),
+      confirmed_at: now,
+      confirmed_by: operator.name,
+      confirmed_by_id: operator.id || null,
+      source: firstString(payload.source, "dashboard_mark_purchase")
+    };
+    const alreadySent = before.data?.meta_capi_sent === true && !truthyValue(payload.resendMetaCapi);
+    if (alreadySent) {
+      return json({
+        ok: true,
+        already_confirmed: true,
+        already_sent: true,
+        action,
+        purchase: before.data?.purchase || purchase,
+        meta_capi: before.data?.meta_capi_purchase_result || { sent: true, already_sent: true },
+        case: approvalCaseRowToDashboardItem(before, context.refs),
+        item: approvalCaseRowToDashboardItem(before, context.refs),
+        sends_messages: false,
+        triggers_flows: false,
+        next: "这笔成交已经回流过广告；没有重复发送 Purchase。"
+      });
+    }
+    if (dryRun) {
+      const metaPreview = await trackSupabasePurchaseWithMetaCapi(env, before, context.refs, purchase, {
+        ...payload,
+        confirmMetaSend: false
+      });
+      return json({
+        ok: true,
+        dry_run: true,
+        preview_only: true,
+        action,
+        purchase,
+        meta_capi: metaPreview,
+        sends_messages: false,
+        triggers_flows: false,
+        case: approvalCaseRowToDashboardItem(before, context.refs),
+        item: approvalCaseRowToDashboardItem(before, context.refs),
+        next: "Dry-run only. 没有记录成交，也没有回流广告。"
+      });
+    }
     const patch = {
       status: "closed",
       queue_bucket: "closed",
@@ -2031,17 +2351,71 @@ async function handleSupabaseCaseAction(request, env, options = {}) {
         purchase_confirmed_by: operator.name,
         purchase_confirmed_at: now,
         amount_rm: amount,
-        currency: firstString(payload.currency, "MYR"),
-        order_id: firstString(payload.order_id, payload.orderId),
+        order_value: amount,
+        currency,
+        order_id: orderId,
+        purchase,
         meta_capi_sent: false,
-        meta_capi_note: "Dashboard mark-paid records the payment; it does not send a customer message or trigger Flow."
+        meta_capi_note: "Dashboard mark-paid records the payment; Purchase is sent to Meta only after confirmMetaSend=true and Meta CAPI is configured."
       }
     };
-    const response = await handleNonSendingSupabaseAction(env, { dryRun, before, context, patch, projectKey, caseId, operator, action, afterStatus: "closed", note: "确认已付款", messageText: "", amount });
-    if (!dryRun) {
-      await insertSupabasePaymentForCase(env, before, context.refs, { amount, currency: patch.data.currency, operator, payload });
-    }
-    return response;
+    const updated = await patchSupabaseApprovalCase(env, caseId, patch);
+    if (!updated.ok) return json({ ok: false, error: "case_update_failed", message: updated.error, sends_messages: false, triggers_flows: false }, 503);
+    const paymentLog = await insertSupabasePaymentForCase(env, updated.row, context.refs, { amount, currency, operator, payload, purchase });
+    const metaCapi = await trackSupabasePurchaseWithMetaCapi(env, updated.row, context.refs, purchase, payload);
+    const finalPatch = {
+      data: {
+        ...(updated.row.data || {}),
+        meta_capi_sent: metaCapi.sent === true || metaCapi.deduped === true || metaCapi.already_sent === true,
+        meta_capi_purchase_result: publicMetaCapiResult(metaCapi),
+        meta_capi_note: metaCapi.sent
+          ? "Purchase sent to Meta CAPI."
+          : metaCapi.deduped || metaCapi.already_sent
+            ? "Purchase already sent or deduped."
+            : metaCapi.configured
+              ? "Purchase recorded; Meta CAPI did not confirm send."
+              : "Purchase recorded; Meta CAPI not configured on this path.",
+      }
+    };
+    const finalUpdate = await patchSupabaseApprovalCase(env, caseId, finalPatch);
+    const finalRow = finalUpdate.ok ? finalUpdate.row : updated.row;
+    await recordSupabaseCaseAction(env, {
+      projectKey,
+      caseId,
+      operator,
+      action,
+      beforeStatus: before.status,
+      afterStatus: "closed",
+      messageText: "",
+      amount,
+      note: "确认已付款",
+      data: {
+        sends_messages: false,
+        triggers_flows: false,
+        purchase,
+        payment_log: paymentLog,
+        meta_capi: publicMetaCapiResult(metaCapi)
+      }
+    });
+    const item = approvalCaseRowToDashboardItem(finalRow, context.refs);
+    return json({
+      ok: true,
+      action,
+      case: item,
+      item,
+      purchase,
+      payment_log: paymentLog,
+      meta_capi: publicMetaCapiResult(metaCapi),
+      sends_messages: false,
+      triggers_flows: false,
+      next: metaCapi.sent
+        ? "已确认付款并回流 Meta Purchase；没有发送顾客讯息，也没有触发 Flow。"
+        : metaCapi.deduped || metaCapi.already_sent
+          ? "已确认付款；这笔 Purchase 已处理过，没有重复回流。"
+          : metaCapi.configured
+            ? "已确认付款；Meta CAPI 未确认成功，请看 meta_capi 结果。"
+            : "已确认付款；Meta CAPI 还没配置，所以未回流广告。"
+    });
   }
 
   if (action === "external-flow-continued") {
@@ -2249,9 +2623,728 @@ async function insertSupabasePaymentForCase(env, row = {}, refs = {}, input = {}
       source: "dashboard_mark_purchase",
       operator_name: input.operator?.name || "",
       order_id: firstString(input.payload?.order_id, input.payload?.orderId),
+      purchase: input.purchase || undefined,
       meta_capi_sent: false
     }
   }));
+}
+
+const META_CAPI_EVENT_MAP = [
+  { key: "whatsapp_message_received", meta_event: "Lead", when: "顾客第一次或普通 WhatsApp 讯息进来" },
+  { key: "qualified_lead", meta_event: "Lead", when: "顾客点按钮、进 Flow、问价格或被标记为 qualified/hot lead" },
+  { key: "price_or_payment_step_reached", meta_event: "ViewContent", when: "顾客到达价格 / Payment Flow，开始进入成交阶段" },
+  { key: "order_submitted", meta_event: "InitiateCheckout", when: "顾客提交下单资料或 AI 判断可以收单" },
+  { key: "payment_receipt_uploaded", meta_event: "AddPaymentInfo", when: "顾客上传 receipt / payment proof" },
+  { key: "payment_confirmed", meta_event: "Purchase", when: "付款确认或 COD 订单确认" }
+];
+
+async function metaCapiPublicStatus(env, origin = "", projectKey = "") {
+  const project = normalizeProjectKey(projectKey || env.AGENT_PROJECT_KEY || "beyoute");
+  const local = await metaCapiConfigForProject(env, project);
+  const legacy = !local.configured ? await fetchLegacyMetaCapiStatus(env) : null;
+  const delegated = !local.configured && legacy?.configured === true;
+  return {
+    project_key: project,
+    configured: local.configured || delegated,
+    mode: local.configured ? local.source || "direct" : delegated ? "legacy_delegate" : "not_configured",
+    direct_configured: local.configured,
+    project_connection_configured: local.source === "project_ads_connection" && local.configured,
+    project_connection_status: local.projectStatus || "",
+    vault_key_configured: adsVaultConfigured(env),
+    vault_key_required: local.vaultRequired === true,
+    vault_key_missing: local.vaultMissing === true,
+    legacy_delegate_configured: Boolean(delegated),
+    legacy_delegate_status: withoutUndefined({
+      checked: Boolean(legacy),
+      configured: legacy?.configured === true,
+      status: legacy?.status,
+      reason: legacy?.reason,
+      attempts: legacy?.attempts
+    }),
+    auto_track_enabled: local.autoTrack,
+    purchase_auto_track_enabled: local.purchaseAutoTrack,
+    pixel_id: local.pixelId ? redactSecret(local.pixelId) : legacy?.pixel_id || "",
+    graph_version: local.graphVersion || legacy?.graph_version || "v23.0",
+    test_event_code_configured: Boolean(local.testEventCode || legacy?.test_event_code_configured),
+    access_token_configured: Boolean(local.accessToken || legacy?.access_token_configured),
+    access_token_last4: local.accessTokenLast4 || "",
+    page_id_configured: Boolean(local.pageId || legacy?.page_id_configured),
+    endpoint: local.pixelId
+      ? local.endpoint.replace(local.pixelId, redactSecret(local.pixelId))
+      : legacy?.endpoint || local.endpoint,
+    dashboard_endpoint: origin ? `${origin}/api/meta-capi/status?project_key=${encodeURIComponent(project)}` : "/api/meta-capi/status",
+    test_endpoint: origin ? `${origin}/api/meta-capi/test` : "/api/meta-capi/test",
+    safe_default: "默认不会自动追 Lead/Flow；Dashboard 只有确认付款或 COD 订单，并带 confirmMetaSend=true，才会发 Purchase。"
+  };
+}
+
+function metaCapiConfig(env) {
+  const pixelId = String(env.META_CAPI_PIXEL_ID || env.META_PIXEL_ID || "").trim();
+  const accessToken = String(env.META_CAPI_ACCESS_TOKEN || env.META_ACCESS_TOKEN || "").trim();
+  const pageId = String(env.META_CAPI_PAGE_ID || env.META_PAGE_ID || "").trim();
+  const graphVersion = String(env.META_CAPI_GRAPH_VERSION || env.META_GRAPH_VERSION || "v23.0").trim() || "v23.0";
+  const endpoint = String(env.META_CAPI_ENDPOINT || "").trim() ||
+    (pixelId ? `https://graph.facebook.com/${encodeURIComponent(graphVersion)}/${encodeURIComponent(pixelId)}/events` : `https://graph.facebook.com/${encodeURIComponent(graphVersion)}/{pixel_id}/events`);
+  return {
+    configured: Boolean(pixelId && accessToken),
+    source: "env",
+    pixelId,
+    accessToken,
+    pageId,
+    graphVersion,
+    endpoint,
+    testEventCode: String(env.META_CAPI_TEST_EVENT_CODE || "").trim(),
+    autoTrack: truthyValue(env.META_CAPI_AUTO_TRACK),
+    purchaseAutoTrack: truthyValue(env.META_CAPI_PURCHASE_AUTO_TRACK)
+  };
+}
+
+async function metaCapiConfigForProject(env, projectKey = "") {
+  const fallback = metaCapiConfig(env);
+  const project = normalizeProjectKey(projectKey || env.AGENT_PROJECT_KEY || "beyoute");
+  if (!hasSupabase(env) || !project) return fallback;
+
+  const result = await selectProjectAdsConnection(env, project);
+  const row = result.row || null;
+  if (!row) return fallback;
+
+  const hasProjectSettings = Boolean(
+    row.pixel_id ||
+    row.dataset_id ||
+    row.page_id ||
+    row.access_token_ciphertext ||
+    row.access_token_configured
+  );
+  if (!hasProjectSettings) return fallback;
+
+  const pixelId = firstString(row.pixel_id, row.dataset_id);
+  const graphVersion = firstString(row.graph_version, fallback.graphVersion, "v23.0");
+  const endpoint = pixelId
+    ? `https://graph.facebook.com/${encodeURIComponent(graphVersion)}/${encodeURIComponent(pixelId)}/events`
+    : `https://graph.facebook.com/${encodeURIComponent(graphVersion)}/{pixel_id}/events`;
+  let accessToken = "";
+  let tokenError = "";
+  if (row.access_token_ciphertext && row.access_token_iv) {
+    if (!adsVaultConfigured(env)) {
+      tokenError = "ads_vault_key_missing";
+    } else {
+      const decrypted = await decryptAdsSecret(env, row.access_token_ciphertext, row.access_token_iv);
+      if (decrypted.ok) accessToken = decrypted.value;
+      else tokenError = decrypted.error || "ads_token_decrypt_failed";
+    }
+  }
+
+  return {
+    ...fallback,
+    configured: Boolean(pixelId && accessToken),
+    source: "project_ads_connection",
+    projectKey: project,
+    projectStatus: row.status || "",
+    pixelId,
+    accessToken,
+    accessTokenLast4: row.access_token_last4 || "",
+    pageId: firstString(row.page_id, fallback.pageId),
+    graphVersion,
+    endpoint,
+    testEventCode: firstString(row.test_event_code, fallback.testEventCode),
+    autoTrack: truthyValue(row.auto_track_enabled),
+    purchaseAutoTrack: truthyValue(row.purchase_auto_track_enabled),
+    vaultRequired: Boolean(row.access_token_ciphertext || row.access_token_configured),
+    vaultMissing: Boolean(tokenError === "ads_vault_key_missing"),
+    tokenError
+  };
+}
+
+async function selectProjectAdsConnection(env, projectKey = "") {
+  if (!hasSupabase(env)) return { ok: false, row: null, error: "supabase_not_configured" };
+  const project = normalizeProjectKey(projectKey || "");
+  if (!project) return { ok: false, row: null, error: "project_key_required" };
+  const result = await supabaseSelectResult(
+    env,
+    `project_ads_connections?project_key=eq.${encodeURIComponent(project)}&provider=eq.meta_capi&select=*&limit=1`
+  );
+  if (!result.ok) return { ok: false, row: null, error: result.error || "project_ads_connection_select_failed", status: result.status };
+  return { ok: true, row: result.data?.[0] || null };
+}
+
+async function handleAdminAdsConnection(request, env, options = {}) {
+  const projectKey = normalizeProjectKey(options.projectKey || env.AGENT_PROJECT_KEY || "beyoute");
+  const auth = await requireAdminAccess(request, env, { projectKey });
+  if (!auth.ok) return auth.response;
+  if (!hasSupabase(env)) {
+    return json({
+      ok: false,
+      error: "supabase_not_configured",
+      message: "还没接 Supabase，不能保存项目级广告回流。"
+    }, 503);
+  }
+
+  if (options.subAction === "test") {
+    if (request.method !== "POST") return json({ ok: false, error: "method_not_allowed" }, 405);
+    const payload = await readJson(request);
+    const wantsLiveSend = truthyValue(payload.confirmMetaSend) || truthyValue(payload.confirm_send);
+    const config = await metaCapiConfigForProject(env, projectKey);
+    const event = await buildMetaCapiEventFromInput(env, {
+      event_name: payload.event_name || "Purchase",
+      event_key: payload.event_key || "admin_ads_connection_test",
+      project_key: projectKey,
+      value: payload.value || payload.amount_rm || 1,
+      currency: payload.currency || "MYR",
+      order_id: payload.order_id || `test_${Date.now()}`,
+      external_id: payload.external_id || `admin-test:${projectKey}:${Date.now()}`,
+      phone: payload.phone || "",
+      custom_data: {
+        ...(payload.custom_data || {}),
+        project_key: projectKey,
+        source: "admin_ads_connection_test"
+      }
+    }, request);
+    const result = await sendMetaCapiEvent(env, event, {
+      confirmMetaSend: wantsLiveSend,
+      source: "admin_ads_connection_test",
+      config,
+      allowLegacyDelegate: false
+    });
+    await patchProjectAdsConnectionTestResult(env, projectKey, result);
+    return json({
+      ok: wantsLiveSend ? result.sent === true : true,
+      sent: result.sent === true,
+      preview_only: result.preview_only === true,
+      event,
+      result: publicMetaCapiResult(result),
+      ads_connection: publicProjectAdsConnection((await selectProjectAdsConnection(env, projectKey)).row, env),
+      next: result.sent
+        ? "测试 Purchase 已发送；去 Meta Events Manager 的 Test Events 看。"
+        : result.preview_only
+          ? "这是预览，未发送。按正式测试才会发一笔测试事件。"
+          : "测试没有成功，请检查 Pixel ID / Token / Test Event Code。"
+    }, wantsLiveSend && !result.sent ? 502 : 200);
+  }
+
+  if (request.method === "GET") {
+    const selected = await selectProjectAdsConnection(env, projectKey);
+    if (!selected.ok && selected.status === 404) {
+      return json({
+        ok: false,
+        error: "ads_connection_table_missing",
+        message: "Supabase 还没建立广告回流表。请先跑 project_ads_connections migration。"
+      }, 503);
+    }
+    return json({
+      ok: true,
+      ads_connection: publicProjectAdsConnection(selected.row, env),
+      meta_capi: await metaCapiPublicStatus(env, new URL(request.url).origin, projectKey),
+      next: "Admin 在这里保存一次，客服确认付款时就会按项目自动回流 Purchase。"
+    });
+  }
+
+  const payload = await readJson(request);
+  const saved = await saveProjectAdsConnection(env, projectKey, payload, auth.auth);
+  if (!saved.ok) return json(saved, saved.status || 400);
+  return json({
+    ok: true,
+    ads_connection: publicProjectAdsConnection(saved.row, env),
+    meta_capi: await metaCapiPublicStatus(env, new URL(request.url).origin, projectKey),
+    next: "广告回流设置已保存；默认仍是 approval-first，不会开启自动发送。"
+  });
+}
+
+async function saveProjectAdsConnection(env, projectKey = "", payload = {}, auth = {}) {
+  const selected = await selectProjectAdsConnection(env, projectKey);
+  if (!selected.ok && selected.status === 404) {
+    return {
+      ok: false,
+      status: 503,
+      error: "ads_connection_table_missing",
+      message: "Supabase 还没建立广告回流表。请先跑 project_ads_connections migration。"
+    };
+  }
+  const existing = selected.row || {};
+  const tokenInput = firstString(payload.access_token, payload.accessToken).trim();
+  const clearToken = truthyValue(payload.clear_access_token) || truthyValue(payload.clearAccessToken);
+  const pixelId = firstString(payload.pixel_id, payload.pixelId, payload.dataset_id, payload.datasetId, existing.pixel_id).trim();
+  const graphVersion = firstString(payload.graph_version, payload.graphVersion, existing.graph_version, env.META_CAPI_GRAPH_VERSION, "v23.0").trim();
+  const now = new Date().toISOString();
+  const row = withoutUndefined({
+    project_key: projectKey,
+    provider: "meta_capi",
+    status: "not_configured",
+    pixel_id: pixelId || null,
+    dataset_id: pixelId || null,
+    page_id: firstString(payload.page_id, payload.pageId, existing.page_id).trim() || null,
+    ad_account_id: firstString(payload.ad_account_id, payload.adAccountId, existing.ad_account_id).trim() || null,
+    graph_version: graphVersion || "v23.0",
+    test_event_code: firstString(payload.test_event_code, payload.testEventCode, existing.test_event_code).trim() || null,
+    auto_track_enabled: truthyValue(payload.auto_track_enabled) || truthyValue(payload.autoTrackEnabled),
+    purchase_auto_track_enabled: truthyValue(payload.purchase_auto_track_enabled) || truthyValue(payload.purchaseAutoTrackEnabled),
+    updated_at: now,
+    updated_by: auth.user_id || auth.subject || auth.display_name || null,
+    data: {
+      ...(existing.data || {}),
+      managed_from: "hermas_admin_dashboard",
+      safe_default: "approval_first",
+      updated_by: auth.display_name || auth.subject || "admin"
+    }
+  });
+
+  if (!existing.id) row.created_at = now;
+  if (clearToken) {
+    row.access_token_ciphertext = null;
+    row.access_token_iv = null;
+    row.access_token_configured = false;
+    row.access_token_last4 = null;
+  } else if (tokenInput) {
+    if (!adsVaultConfigured(env)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "ads_vault_key_missing",
+        message: "还没设置 HERMAS_ADS_VAULT_KEY。先设置一次 Worker 加密钥，之后 20 个品牌都能在 Admin 页面保存。"
+      };
+    }
+    const encrypted = await encryptAdsSecret(env, tokenInput);
+    if (!encrypted.ok) {
+      return { ok: false, status: 500, error: "ads_token_encrypt_failed", message: encrypted.error || "Token 加密失败。" };
+    }
+    row.access_token_ciphertext = encrypted.ciphertext;
+    row.access_token_iv = encrypted.iv;
+    row.access_token_key_version = "v1";
+    row.access_token_configured = true;
+    row.access_token_last4 = tokenInput.slice(-4);
+  }
+
+  const tokenConfigured = clearToken
+    ? false
+    : Boolean(tokenInput || existing.access_token_configured || existing.access_token_ciphertext);
+  row.status = pixelId && tokenConfigured ? "active" : "not_configured";
+
+  const result = await supabaseUpsert(env, "project_ads_connections", row, "project_key");
+  if (!result.ok) {
+    return {
+      ok: false,
+      status: result.status || 500,
+      error: "ads_connection_save_failed",
+      message: result.error || "保存广告回流失败。"
+    };
+  }
+  return { ok: true, row: result.data?.[0] || row };
+}
+
+async function patchProjectAdsConnectionTestResult(env, projectKey = "", result = {}) {
+  if (!hasSupabase(env) || !projectKey) return null;
+  return supabasePatch(
+    env,
+    `project_ads_connections?project_key=eq.${encodeURIComponent(projectKey)}&provider=eq.meta_capi`,
+    {
+      last_test_at: new Date().toISOString(),
+      last_test_status: result.sent ? "sent" : result.preview_only ? "preview" : "failed",
+      last_test_result: publicMetaCapiResult(result),
+      updated_at: new Date().toISOString()
+    }
+  );
+}
+
+function publicProjectAdsConnection(row = null, env = {}) {
+  if (!row) {
+    return {
+      configured: false,
+      status: "not_configured",
+      provider: "meta_capi",
+      vault_key_configured: adsVaultConfigured(env),
+      access_token_configured: false,
+      safe_default: "approval_first"
+    };
+  }
+  return {
+    project_key: row.project_key || "",
+    provider: row.provider || "meta_capi",
+    configured: Boolean(row.pixel_id && row.access_token_configured),
+    status: row.status || "not_configured",
+    pixel_id: row.pixel_id || "",
+    page_id: row.page_id || "",
+    ad_account_id: row.ad_account_id || "",
+    graph_version: row.graph_version || "v23.0",
+    test_event_code_configured: Boolean(row.test_event_code),
+    access_token_configured: Boolean(row.access_token_configured),
+    access_token_last4: row.access_token_last4 || "",
+    auto_track_enabled: truthyValue(row.auto_track_enabled),
+    purchase_auto_track_enabled: truthyValue(row.purchase_auto_track_enabled),
+    last_test_at: row.last_test_at || null,
+    last_test_status: row.last_test_status || "",
+    last_test_result: publicMetaCapiResult(row.last_test_result || {}),
+    vault_key_configured: adsVaultConfigured(env),
+    safe_default: "approval_first"
+  };
+}
+
+async function fetchLegacyMetaCapiStatus(env) {
+  const bases = legacyMetaCapiBases(env);
+  if (!bases.length) return { configured: false, reason: "legacy_base_missing" };
+  const attempts = [];
+  for (const base of bases) {
+    try {
+      const response = await fetch(`${base}/api/meta-capi/status`, {
+        headers: {
+          accept: "application/json",
+          "user-agent": "Hermas-Agents-Meta-Status/1.0"
+        }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data?.ok) {
+        return { ...(data.meta_capi || {}), status: response.status, base_host: new URL(base).host };
+      }
+      attempts.push({
+        base_host: safeUrlHost(base),
+        status: response.status,
+        reason: data?.error || data?.message || "legacy_status_not_ok",
+        version: data?.version || data?.runtime || ""
+      });
+    } catch {
+      attempts.push({ base_host: safeUrlHost(base), status: 0, reason: "legacy_status_fetch_failed" });
+    }
+  }
+  return { configured: false, status: attempts[0]?.status || 0, reason: attempts[0]?.reason || "legacy_status_not_ok", attempts };
+}
+
+async function handleMetaCapiTest(request, env) {
+  const url = new URL(request.url);
+  const payload = await readJson(request);
+  const projectKey = normalizeProjectKey(payload.project_key || url.searchParams.get("project_key") || env.AGENT_PROJECT_KEY || "beyoute");
+  const wantsLiveSend = truthyValue(payload.confirmMetaSend) || truthyValue(payload.confirm_send);
+  if (wantsLiveSend) {
+    const auth = await requireAdminAccess(request, env, { projectKey });
+    if (!auth.ok) return auth.response;
+  }
+  const event = await buildMetaCapiEventFromInput(env, { ...payload, project_key: projectKey }, request);
+  const config = await metaCapiConfigForProject(env, projectKey);
+  const result = await sendMetaCapiEvent(env, event, {
+    confirmMetaSend: wantsLiveSend,
+    source: "manual_meta_capi_test",
+    config,
+    allowLegacyDelegate: true
+  });
+  return json({
+    ok: wantsLiveSend ? result.sent === true || result.deduped === true || result.already_sent === true : true,
+    sent: result.sent === true,
+    event,
+    result,
+    next: result.sent
+      ? "Meta CAPI test sent. Check Meta Events Manager > Test Events."
+      : result.preview_only
+        ? "Preview only. Pass confirmMetaSend=true with admin token to send one test event."
+        : "Meta CAPI test did not confirm send; check configuration/result."
+  }, wantsLiveSend && !result.sent && !result.deduped && !result.already_sent ? 502 : 200);
+}
+
+async function trackSupabasePurchaseWithMetaCapi(env, row = {}, refs = {}, purchase = {}, payload = {}) {
+  const wantsLiveSend = truthyValue(payload.confirmMetaSend) ||
+    truthyValue(payload.confirm_send) ||
+    truthyValue(payload.send_to_meta) ||
+    truthyValue(payload.sendToMeta);
+  const event = await buildPurchaseMetaCapiEvent(env, row, refs, purchase, payload);
+  const config = await metaCapiConfigForProject(env, row.project_key || payload.project_key || env.AGENT_PROJECT_KEY || "beyoute");
+  return sendMetaCapiEvent(env, event, {
+    confirmMetaSend: wantsLiveSend,
+    source: "dashboard_purchase_confirmed",
+    config,
+    allowLegacyDelegate: true
+  });
+}
+
+async function buildPurchaseMetaCapiEvent(env, row = {}, refs = {}, purchase = {}, payload = {}) {
+  const customer = refs.customer || {};
+  const data = row.data || {};
+  const customFields = {
+    ...(data.custom_fields || {}),
+    ...(payload.custom_fields || {}),
+    amount_rm: purchase.amount_rm,
+    order_value: purchase.value,
+    value: purchase.value,
+    currency: purchase.currency,
+    order_id: purchase.order_id,
+    payment_status: purchase.payment_status,
+    purchase_status: purchase.purchase_status,
+    order_status: purchase.order_status,
+    project_key: row.project_key || payload.project_key || env.AGENT_PROJECT_KEY || "beyoute"
+  };
+  return buildMetaCapiEvent({
+    env,
+    eventName: "Purchase",
+    eventKey: "payment_confirmed",
+    projectKey: row.project_key || payload.project_key || env.AGENT_PROJECT_KEY || "beyoute",
+    eventId: `purchase_${row.project_key || "project"}_${row.id || "case"}_${purchase.order_id || "order"}`.replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 120),
+    phone: firstString(payload.phone, customer.phone_e164, data.phone_e164, data.customer_phone),
+    externalId: firstString(payload.external_id, payload.externalId, customer.external_customer_id, customer.id, row.customer_id, row.id),
+    fbp: firstString(payload.fbp, customFields.fbp),
+    fbc: firstString(payload.fbc, customFields.fbc, customFields.ctwa_clid),
+    userAgent: firstString(payload.user_agent, payload.userAgent),
+    customData: {
+      currency: purchase.currency,
+      value: purchase.value,
+      order_id: purchase.order_id,
+      content_name: firstString(payload.content_name, payload.contentName, data.product_name, row.project_key, "WhatsApp Purchase"),
+      conversion_stage: "purchase_confirmed",
+      status: "purchase_confirmed",
+      project_key: row.project_key || payload.project_key || env.AGENT_PROJECT_KEY || "beyoute"
+    }
+  });
+}
+
+async function buildMetaCapiEventFromInput(env, payload = {}, request = null) {
+  const customFields = {
+    ...(payload.custom_fields || {}),
+    ...(payload.customData || {}),
+    ...(payload.custom_data || {})
+  };
+  const eventName = firstString(payload.event_name, payload.eventName, payload.meta_event_name, "Lead");
+  const eventKey = firstString(payload.event_key, payload.eventKey, "manual_test");
+  const value = normalizeMoneyAmount(firstString(payload.value, payload.order_value, payload.amount_rm, customFields.value, customFields.order_value));
+  const customData = {
+    ...(payload.custom_data || {}),
+    ...(payload.customData || {}),
+    currency: firstString(payload.currency, customFields.currency, "MYR")
+  };
+  if (value !== null) customData.value = value;
+  if (firstString(payload.order_id, payload.orderId, customFields.order_id)) {
+    customData.order_id = firstString(payload.order_id, payload.orderId, customFields.order_id);
+  }
+  return buildMetaCapiEvent({
+    env,
+    eventName,
+    eventKey,
+    projectKey: normalizeProjectKey(payload.project_key || env.AGENT_PROJECT_KEY || "beyoute"),
+    eventId: firstString(payload.event_id, payload.eventId, `${eventKey}_${Date.now()}`),
+    phone: firstString(payload.phone, payload.phone_e164),
+    externalId: firstString(payload.external_id, payload.externalId, payload.customer_id, payload.contact_id, payload.name),
+    fbp: firstString(payload.fbp, customFields.fbp),
+    fbc: firstString(payload.fbc, customFields.fbc, customFields.ctwa_clid),
+    userAgent: firstString(payload.user_agent, payload.userAgent, request?.headers?.get?.("user-agent")),
+    customData
+  });
+}
+
+async function buildMetaCapiEvent(input = {}) {
+  const delegateInput = {
+    phone: normalizePhoneDigits(input.phone),
+    external_id: firstString(input.externalId),
+    fbp: firstString(input.fbp),
+    fbc: firstString(input.fbc),
+    user_agent: firstString(input.userAgent)
+  };
+  const event = {
+    event_name: input.eventName || "Lead",
+    event_time: Math.floor(Date.now() / 1000),
+    event_id: String(input.eventId || crypto.randomUUID()).replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 120),
+    action_source: "business_messaging",
+    user_data: {},
+    custom_data: withoutUndefined(input.customData || {}),
+    _delegate_input: withoutUndefined(delegateInput)
+  };
+  const phone = delegateInput.phone;
+  if (phone) event.user_data.ph = [await sha256Hex(phone)];
+  if (input.externalId) event.user_data.external_id = [await sha256Hex(String(input.externalId))];
+  if (input.fbp) event.user_data.fbp = input.fbp;
+  if (input.fbc) event.user_data.fbc = input.fbc;
+  if (input.userAgent) event.user_data.client_user_agent = input.userAgent;
+  if (!Object.keys(event.user_data).length) {
+    event.user_data.external_id = [await sha256Hex(`${input.projectKey || "project"}:${event.event_id}`)];
+  }
+  return event;
+}
+
+async function sendMetaCapiEvent(env, event = {}, options = {}) {
+  const config = options.config || metaCapiConfig(env);
+  const wantsLiveSend = options.confirmMetaSend === true;
+  const outboundEvent = stripPrivateMetaCapiEventFields(event);
+  const payload = {
+    data: [outboundEvent],
+    ...(config.testEventCode ? { test_event_code: config.testEventCode } : {})
+  };
+  if (!wantsLiveSend) {
+    const legacy = options.allowLegacyDelegate === false ? null : await fetchLegacyMetaCapiStatus(env);
+    return {
+      configured: config.configured || legacy?.configured === true,
+      sent: false,
+      preview_only: true,
+      event_name: event.event_name,
+      event_id: event.event_id,
+      mode: config.source || "preview",
+      reason: "confirmMetaSend=true is required to send to Meta.",
+      payload_preview: publicMetaCapiPayload(payload)
+    };
+  }
+  if (config.configured) {
+    return sendMetaCapiPayloadDirect(config, payload, event);
+  }
+  if (options.allowLegacyDelegate) {
+    const delegated = await sendMetaCapiViaLegacyWorker(env, event);
+    if (delegated.attempted) return delegated;
+  }
+  return {
+    configured: false,
+    sent: false,
+    preview_only: true,
+    event_name: event.event_name,
+    event_id: event.event_id,
+    reason: "META_CAPI_PIXEL_ID and META_CAPI_ACCESS_TOKEN are required, and legacy delegate did not send."
+  };
+}
+
+async function sendMetaCapiPayloadDirect(config, payload, event = {}) {
+  const endpoint = new URL(config.endpoint);
+  endpoint.searchParams.set("access_token", config.accessToken);
+  try {
+    const response = await fetch(endpoint.toString(), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const bodyText = await response.text();
+    return {
+      configured: true,
+      sent: response.ok,
+      status: response.status,
+      event_name: event.event_name,
+      event_id: event.event_id,
+      mode: "direct",
+      body: compactError(bodyText)
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      sent: false,
+      status: 0,
+      event_name: event.event_name,
+      event_id: event.event_id,
+      mode: "direct",
+      error: compactError(error.message || String(error))
+    };
+  }
+}
+
+async function sendMetaCapiViaLegacyWorker(env, event = {}) {
+  const bases = legacyMetaCapiBases(env);
+  const adminToken = String(env.AGENT_RUNTIME_ADMIN_TOKEN || env.HERMAS_ADMIN_TOKEN || env.ADMIN_TOKEN || "").trim();
+  if (!bases.length) {
+    return { attempted: false, configured: false, sent: false, reason: "legacy_meta_capi_worker_not_configured" };
+  }
+  if (!adminToken) {
+    return { attempted: true, configured: false, sent: false, mode: "legacy_delegate", reason: "legacy_meta_capi_admin_token_missing" };
+  }
+  const attempts = [];
+  for (const base of bases) {
+    try {
+      const response = await fetch(`${base}/api/meta-capi/test`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          "x-admin-token": adminToken,
+          "user-agent": "Hermas-Agents-Meta-Delegate/1.0"
+        },
+        body: JSON.stringify({
+          event_name: event.event_name,
+          event_key: event.event_name === "Purchase" ? "payment_confirmed" : "manual_delegate",
+          event_id: event.event_id,
+          phone: event._delegate_input?.phone || "",
+          external_id: event._delegate_input?.external_id || "",
+          fbp: event._delegate_input?.fbp || "",
+          fbc: event._delegate_input?.fbc || "",
+          user_agent: event._delegate_input?.user_agent || "",
+          custom_data: event.custom_data || {},
+          confirmMetaSend: true
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      const result = data.result || data;
+      const sent = data.sent === true || data.ok === true || result.sent === true;
+      const output = {
+        attempted: true,
+        configured: true,
+        sent,
+        status: response.status,
+        event_name: event.event_name,
+        event_id: event.event_id,
+        mode: "legacy_delegate",
+        base_host: safeUrlHost(base),
+        result: publicMetaCapiResult(result),
+        reason: data.next || result.reason || data.error || ""
+      };
+      if (sent || response.ok) return output;
+      attempts.push(output);
+    } catch (error) {
+      attempts.push({
+        attempted: true,
+        configured: true,
+        sent: false,
+        status: 0,
+        event_name: event.event_name,
+        event_id: event.event_id,
+        mode: "legacy_delegate",
+        base_host: safeUrlHost(base),
+        error: compactError(error.message || String(error))
+      });
+    }
+  }
+  return attempts[0] || { attempted: true, configured: false, sent: false, mode: "legacy_delegate", reason: "legacy_delegate_failed" };
+}
+
+function publicMetaCapiResult(result = {}) {
+  return withoutUndefined({
+    configured: result.configured,
+    attempted: result.attempted,
+    sent: result.sent === true,
+    deduped: result.deduped === true,
+    already_sent: result.already_sent === true,
+    preview_only: result.preview_only === true,
+    status: result.status,
+    event_name: result.event_name,
+    event_id: result.event_id,
+    mode: result.mode,
+    reason: result.reason,
+    error: result.error,
+    result: result.result ? publicMetaCapiResult(result.result) : undefined
+  });
+}
+
+function publicMetaCapiPayload(payload = {}) {
+  const copy = JSON.parse(JSON.stringify(payload || {}));
+  if (copy.access_token) copy.access_token = redactSecret(copy.access_token);
+  return copy;
+}
+
+function stripPrivateMetaCapiEventFields(event = {}) {
+  const { _delegate_input, ...publicEvent } = event || {};
+  return publicEvent;
+}
+
+function legacyMetaCapiBases(env) {
+  return uniqueTruthy([
+    env.LEGACY_APPROVALS_API_BASE,
+    "https://ctg-chatdaddy-pilot-worker.jiazhen-theadspert.workers.dev"
+  ])
+    .map((value) => String(value || "").trim().replace(/\/+$/, "").replace(/\/api$/i, ""))
+    .filter(Boolean);
+}
+
+function safeUrlHost(value = "") {
+  try {
+    return new URL(value).host;
+  } catch {
+    return "";
+  }
+}
+
+function normalizePhoneDigits(value = "") {
+  const digits = String(value || "").replace(/\D+/g, "");
+  return digits.length >= 8 ? digits : "";
+}
+
+function redactSecret(value = "") {
+  const text = String(value || "");
+  if (!text) return "";
+  if (text.length <= 8) return "****";
+  return `${text.slice(0, 4)}...${text.slice(-4)}`;
 }
 
 async function sendSupabaseApprovalViaLegacyChatDaddy(env, input = {}) {
@@ -2956,6 +4049,25 @@ async function supabasePatch(env, tableAndQuery, payload) {
   }
 }
 
+async function supabaseUpsert(env, table, payload, conflictKey = "") {
+  try {
+    const query = conflictKey ? `?on_conflict=${encodeURIComponent(conflictKey)}` : "";
+    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}${query}`, {
+      method: "POST",
+      headers: supabaseHeaders(env, "resolution=merge-duplicates,return=representation"),
+      body: JSON.stringify(payload)
+    });
+    const body = await response.text();
+    if (!response.ok) {
+      return { attempted: true, ok: false, table, status: response.status, error: compactError(body) };
+    }
+    const data = body ? JSON.parse(body) : [];
+    return { attempted: true, ok: true, table, rows: Array.isArray(data) ? data.length : 0, data };
+  } catch (error) {
+    return { attempted: true, ok: false, table, error: error.message || String(error) };
+  }
+}
+
 async function supabaseSelectRows(env, tableAndQuery) {
   if (!hasSupabase(env)) return [];
   try {
@@ -2968,6 +4080,24 @@ async function supabaseSelectRows(env, tableAndQuery) {
     return Array.isArray(data) ? data : [];
   } catch {
     return [];
+  }
+}
+
+async function supabaseSelectResult(env, tableAndQuery) {
+  if (!hasSupabase(env)) return { ok: false, status: 503, data: [], error: "supabase_not_configured" };
+  try {
+    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${tableAndQuery}`, {
+      method: "GET",
+      headers: supabaseHeaders(env)
+    });
+    const body = await response.text();
+    if (!response.ok) {
+      return { ok: false, status: response.status, data: [], error: compactError(body) };
+    }
+    const data = body ? JSON.parse(body) : [];
+    return { ok: true, status: response.status, data: Array.isArray(data) ? data : [] };
+  } catch (error) {
+    return { ok: false, status: 0, data: [], error: error.message || String(error) };
   }
 }
 
@@ -3004,6 +4134,429 @@ function withoutKey(value, keyToRemove) {
 function shouldRetryWithoutLegacyBrandId(body) {
   const text = typeof body === "string" ? body : JSON.stringify(body || "");
   return /brand_id/i.test(text) && /(schema cache|could not find|does not exist|unknown|column)/i.test(text);
+}
+
+function chatDaddyConfig(env) {
+  return {
+    apiKey: env.CHATDADDY_ACCESS_TOKEN || env.CHATDADDY_READ_TOKEN || env.CHATDADDY_API_KEY || "",
+    accountId: env.CHATDADDY_ACCOUNT_ID || env.CHATDADDY_ACCOUNTID || "",
+    sendUrl: env.CHATDADDY_SEND_URL || "",
+    sendBase: trimTrailingSlash(env.CHATDADDY_SEND_BASE || "https://api.chatdaddy.tech/im"),
+    contactsBase: trimTrailingSlash(env.CHATDADDY_CONTACTS_BASE || env.CHATDADDY_SEND_BASE || "https://api.chatdaddy.tech/im")
+  };
+}
+
+async function fetchChatDaddyContact(config, contactId) {
+  const response = await fetch(buildChatDaddyContactsUrl(config, contactId), {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${config.apiKey}`
+    }
+  });
+  const text = await safeResponseText(response);
+  return {
+    requested_id: contactId,
+    ok: response.ok,
+    status: response.status,
+    body: safeJsonParse(text) || (text ? { text_preview: text.slice(0, 200) } : null)
+  };
+}
+
+function normalizeChatDaddyContactResult(result = {}) {
+  const row = firstChatDaddyContactRow(result.body, result.requested_id);
+  const id = normalizeChatDaddyToContact(firstString(
+    row?.id,
+    row?._id,
+    row?.contactId,
+    row?.contact_id,
+    row?.chatId,
+    row?.chat_id,
+    row?.phone,
+    result.requested_id
+  ));
+  const name = firstNonGenericContactName(
+    row?.name,
+    row?.displayName,
+    row?.display_name,
+    row?.fullName,
+    row?.full_name,
+    row?.profileName,
+    row?.profile_name,
+    row?.pushName,
+    row?.push_name,
+    row?.whatsappName,
+    row?.whatsapp_name,
+    row?.nickname,
+    row?.nickName,
+    row?.username,
+    row?.firstName && row?.lastName ? `${row.firstName} ${row.lastName}` : "",
+    row?.first_name && row?.last_name ? `${row.first_name} ${row.last_name}` : "",
+    row?.firstName,
+    row?.first_name
+  );
+  const phone = normalizeChatDaddyToContact(firstString(row?.phone, row?.phoneNumber, row?.phone_number, row?.mobile, row?.whatsapp, row?.wa_id));
+  return {
+    id,
+    requested_id: result.requested_id,
+    ok: Boolean(result.ok),
+    status: result.status || 0,
+    name,
+    phone,
+    has_name: Boolean(name),
+    raw_shape: chatDaddyShape(result.body)
+  };
+}
+
+function firstChatDaddyContactRow(body, requestedId = "") {
+  const candidates = [body?.contact, body?.contacts, body?.data, body?.items, body?.results, body];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const rows = Array.isArray(candidate) ? candidate : [candidate];
+    const requested = normalizeChatDaddyToContact(requestedId);
+    const matching = rows.find((row) => {
+      const id = normalizeChatDaddyToContact(firstString(row?.id, row?._id, row?.contactId, row?.contact_id, row?.chatId, row?.chat_id, row?.phone));
+      return id && requested && id === requested;
+    });
+    const row = matching || rows.find((item) => item && typeof item === "object");
+    if (row) return row;
+  }
+  return {};
+}
+
+async function fetchChatDaddyRecentMessages(config, options = {}) {
+  const url = new URL(buildChatDaddyMessagesUrl(config, config.accountId, options.chatId));
+  url.searchParams.set("count", String(options.count || 30));
+  if (options.beforeId) url.searchParams.set("beforeId", String(options.beforeId));
+  if (options.status) url.searchParams.set("status", String(options.status));
+  if (options.fromMe !== undefined && options.fromMe !== null && options.fromMe !== "") {
+    url.searchParams.set("fromMe", String(options.fromMe));
+  }
+  if (options.fetchFromPlatform !== undefined) {
+    url.searchParams.set("fetchFromPlatform", String(Boolean(options.fetchFromPlatform)));
+  }
+  url.searchParams.set("includeCursorMessage", "true");
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${config.apiKey}`
+    }
+  });
+  const text = await safeResponseText(response);
+  const body = safeJsonParse(text) || (text ? { text_preview: text.slice(0, 200) } : null);
+  const rows = chatDaddyMessageRows(body);
+  return {
+    ok: response.ok,
+    status: response.status,
+    body,
+    raw_shape: chatDaddyShape(body),
+    row_shape: rows[0] ? chatDaddyShape(rows[0]) : "",
+    customer_name: firstNonGenericContactName(
+      body?.customer?.name,
+      body?.contact?.name,
+      body?.chat?.name,
+      body?.conversation?.name
+    )
+  };
+}
+
+function normalizeChatDaddyRecentMessagesForImport(body, defaults = {}) {
+  return chatDaddyMessageRows(body)
+    .map((row, index) => normalizeChatDaddyRecentMessageForImport(row, defaults, index))
+    .filter(Boolean);
+}
+
+function chatDaddyMessageRows(body) {
+  const direct = firstArray(
+    body?.messages,
+    body?.items,
+    body?.data,
+    body?.results,
+    body?.records,
+    body?.messageList,
+    body?.conversation?.messages,
+    body?.chat?.messages
+  );
+  if (direct.length) return direct.filter((item) => item && typeof item === "object");
+  if (Array.isArray(body)) return body.filter((item) => item && typeof item === "object");
+  return [];
+}
+
+function normalizeChatDaddyRecentMessageForImport(row = {}, defaults = {}, index = 0) {
+  if (!row || typeof row !== "object") return null;
+  const nestedMessage = firstPlainObject(row.message, row.contentMessage, row.whatsappMessage);
+  const nestedText = firstPlainObject(row.text, nestedMessage.text);
+  const direction = normalizeChatDaddyRecentMessageDirection(row);
+  const flowName = firstString(
+    row.flow_name,
+    row.flowName,
+    row.message_flow_name,
+    row.messageFlowName,
+    row.workflow_name,
+    row.workflowName,
+    row.bot_name,
+    row.botName,
+    row.template_name,
+    row.templateName,
+    row.title,
+    row.name,
+    row.workflow?.name,
+    row.bot?.name,
+    row.messageFlow?.name,
+    row.template?.name
+  );
+  const buttonText = firstString(row.button_text, row.buttonText, row.selected_button, row.selectedButton, row.button?.text, nestedMessage.button?.text);
+  const rawText = firstString(
+    row.body,
+    typeof row.text === "string" ? row.text : "",
+    typeof row.message === "string" ? row.message : "",
+    typeof row.content === "string" ? row.content : "",
+    row.caption,
+    row.plainText,
+    row.plain_text,
+    row.messageText,
+    row.message_text,
+    nestedText.body,
+    nestedText.text,
+    nestedMessage.body,
+    nestedMessage.text,
+    nestedMessage.caption,
+    row.template?.body
+  );
+  const hasAttachment = Boolean(
+    row.attachment ||
+    row.attachments ||
+    row.media ||
+    row.file ||
+    row.files ||
+    nestedMessage.attachment ||
+    nestedMessage.attachments ||
+    nestedMessage.media
+  );
+  const text = rawText || buttonText || (hasAttachment ? "[附件]" : "") || (flowName ? `[Flow] ${flowName}` : "");
+  if (!text) return null;
+  const messageAt = normalizeChatDaddyMessageDate(row) || new Date().toISOString();
+  const providerMessageId = firstString(
+    row.provider_message_id,
+    row.providerMessageId,
+    row.message_id,
+    row.messageId,
+    row.wa_message_id,
+    row.waMessageId,
+    row.whatsapp_message_id,
+    row.whatsappMessageId,
+    row.id,
+    row._id,
+    nestedMessage.id
+  ) || syntheticProviderMessageId("chatdaddy_messages_get", defaults.projectKey, defaults.chatId, direction, messageAt, text, index);
+  return {
+    direction,
+    text,
+    message_at: messageAt,
+    provider_message_id: providerMessageId,
+    message_type: firstString(row.message_type, row.messageType, row.type, row.kind, flowName ? "flow" : hasAttachment ? "attachment" : buttonText ? "button" : "text"),
+    button_text: buttonText,
+    flow_name: flowName,
+    flow_id: firstString(row.flow_id, row.flowId, row.workflow_id, row.workflowId, row.bot_id, row.botId),
+    has_attachment: hasAttachment,
+    source: "chatdaddy_messages_get",
+    raw: row
+  };
+}
+
+function normalizeHermasConversationHistoryImportPayload(payload = {}, defaults = {}) {
+  const conversation = firstPlainObject(payload.conversation, payload.thread, payload.chat, payload.room);
+  const contact = firstPlainObject(payload.contact, payload.customer, payload.profile);
+  const provider = firstString(payload.provider, defaults.provider, "chatdaddy");
+  const projectKey = normalizeProjectKey(defaults.projectKey || payload.project_key || payload.projectKey || "beyoute");
+  const messagesSource = firstArray(payload.messages, payload.items, payload.history, payload.records, conversation.messages, conversation.items, conversation.history);
+  const externalContactId = normalizeChatDaddyToContact(firstString(
+    payload.contact_id,
+    payload.contactId,
+    payload.external_contact_id,
+    payload.externalContactId,
+    contact.id,
+    contact.contact_id,
+    contact.contactId,
+    contact.phone,
+    payload.phone
+  ));
+  const phone = normalizeChatDaddyPhone(firstString(payload.phone, payload.customer_phone, contact.phone, contact.phone_number, contact.whatsapp, externalContactId));
+  const externalThreadId = normalizeChatDaddyToContact(firstString(
+    payload.chat_id,
+    payload.chatId,
+    payload.thread_id,
+    payload.threadId,
+    payload.conversation_id,
+    payload.conversationId,
+    conversation.id,
+    conversation.chat_id,
+    conversation.chatId,
+    conversation.thread_id,
+    conversation.threadId,
+    externalContactId,
+    phone
+  ));
+  const displayName = firstNonGenericContactName(
+    payload.customer_name,
+    payload.customerName,
+    payload.display_name,
+    payload.displayName,
+    payload.name,
+    contact.name,
+    contact.display_name,
+    contact.displayName,
+    contact.full_name,
+    contact.fullName
+  );
+
+  return messagesSource.map((message, index) => {
+    const row = typeof message === "object" && message ? message : { text: String(message || "") };
+    const direction = normalizeDirection(firstString(row.direction, row.sender_type, row.senderType, row.role), row.from_me ?? row.fromMe);
+    const text = firstString(row.text, row.body, row.message, row.caption);
+    const attachments = normalizeAttachments(row, row.message || {}, row.content || {});
+    const messageType = normalizeMessageType(firstString(row.message_type, row.messageType, row.type, row.kind), attachments);
+    const messageAt = normalizeDate(firstString(row.message_at, row.messageAt, row.created_at, row.createdAt, row.timestamp, row.time, row.date));
+    const providerMessageId = firstString(row.provider_message_id, row.providerMessageId, row.message_id, row.messageId, row.id, row._id)
+      || syntheticProviderMessageId(provider, projectKey, externalThreadId || externalContactId || phone, direction, messageAt, text, index);
+    const normalized = {
+      schema_version: "hermas.channel_adapter.v1",
+      event_id: firstString(row.event_id, row.eventId, providerMessageId),
+      provider,
+      project_key: projectKey,
+      connection_id: firstString(payload.connection_id, payload.connectionId, "beyoute-chatdaddy"),
+      provider_message_id: providerMessageId,
+      external_customer_id: externalContactId || phone || null,
+      external_conversation_id: externalThreadId || externalContactId || phone || null,
+      phone,
+      display_name: sanitizeDisplayName(firstString(row.customer_name, row.customerName, row.display_name, row.displayName, displayName)),
+      direction,
+      event_type: row.button_text || row.buttonText ? "button_click" : "message",
+      message_type: messageType,
+      text: text || (attachments.length ? "顾客发送了附件" : ""),
+      button_text: firstString(row.button_text, row.buttonText),
+      attachments,
+      stage: normalizeStage(firstString(row.stage, row.step, row.step_name, row.stepName)),
+      message_at: messageAt,
+      metadata: {
+        source: firstString(payload.source, row.source, "conversation_history_import"),
+        flow_id: firstString(row.flow_id, row.flowId),
+        flow_name: firstString(row.flow_name, row.flowName)
+      }
+    };
+    return { normalized, raw: row };
+  }).filter((item) => item.normalized.text || item.normalized.attachments.length);
+}
+
+function normalizeChatDaddyRecentMessageDirection(row = {}) {
+  const raw = String(row.direction || row.sender_type || row.senderType || row.role || row.from || row.author_type || row.authorType || "").toLowerCase();
+  if (
+    row.fromMe === true ||
+    row.from_me === true ||
+    row.isFromMe === true ||
+    row.is_from_me === true ||
+    row.sentByUs === true ||
+    row.sent_by_us === true ||
+    row.author?.isMe === true ||
+    /^(outbound|agent|assistant|bot|business|staff|operator|me|reply)$/i.test(raw)
+  ) {
+    return "outbound";
+  }
+  return "inbound";
+}
+
+function normalizeChatDaddyMessageDate(row = {}) {
+  const raw = firstString(row.message_at, row.messageAt, row.created_at, row.createdAt, row.timestamp, row.time, row.date, row.sent_at, row.sentAt, row.updated_at, row.updatedAt);
+  if (!raw) return "";
+  if (/^\d{10,13}$/.test(raw)) {
+    const num = Number(raw);
+    const date = new Date(num < 100000000000 ? num * 1000 : num);
+    return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+  }
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+function firstNonGenericContactName(...values) {
+  const generic = new Set(["whatsapp customer", "customer", "live case", "demo customer", "test customer", "未知顾客", "未命名顾客"]);
+  for (const value of values) {
+    const clean = String(value || "").trim();
+    if (!clean || generic.has(clean.toLowerCase())) continue;
+    if (/^(?:未知|未命名)?(?:顾客|客户|customer)\s*(?:#|no\.?|编号|id)?\s*\d{2,}$/i.test(clean)) continue;
+    if (/^(?:顾客|客户|customer)(?:\s*(?:#|no\.?|编号|id)?\s*[\w-]+)?$/i.test(clean)) continue;
+    if (/^\+?\d[\d\s-]{6,}$/.test(clean)) continue;
+    return clean.slice(0, 120);
+  }
+  return "";
+}
+
+function buildChatDaddyMessagesUrl(config, accountId, chatId) {
+  const template = config.sendUrl || `${config.sendBase}/messages/{accountId}/{chatId}`;
+  return template
+    .replace("{accountId}", encodeURIComponent(accountId))
+    .replace("{chatId}", encodeURIComponent(chatId));
+}
+
+function buildChatDaddyContactsUrl(config, contactId) {
+  const url = new URL(`${config.contactsBase || config.sendBase}/contacts`);
+  url.searchParams.set("contacts", normalizeChatDaddyToContact(contactId));
+  if (config.accountId) url.searchParams.append("accountId", config.accountId);
+  return url.toString();
+}
+
+function normalizeChatDaddyToContact(value) {
+  const text = String(value || "").trim();
+  if (/^\+\d+$/.test(text)) return text.slice(1);
+  return text;
+}
+
+function normalizeChatDaddyPhone(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const digits = text.replace(/\D+/g, "");
+  return digits ? `+${digits}` : "";
+}
+
+function firstArray(...values) {
+  for (const value of values) {
+    if (Array.isArray(value)) return value;
+  }
+  return [];
+}
+
+function firstPlainObject(...values) {
+  for (const value of values) {
+    if (value && typeof value === "object" && !Array.isArray(value)) return value;
+  }
+  return {};
+}
+
+function syntheticProviderMessageId(...values) {
+  return `sync:${values.map((value) => String(value || "").replace(/\s+/g, "_").slice(0, 80)).join(":")}`;
+}
+
+function chatDaddyShape(value) {
+  if (Array.isArray(value)) return `array(${value.length})`;
+  if (!value || typeof value !== "object") return typeof value;
+  for (const key of ["contact", "contacts", "messages", "data", "items", "results", "records"]) {
+    if (Array.isArray(value[key])) return `${key}[]`;
+    if (value[key] && typeof value[key] === "object") return key;
+  }
+  return Object.keys(value).slice(0, 16).join(",");
+}
+
+async function safeResponseText(response) {
+  try {
+    return await response.text();
+  } catch {
+    return "";
+  }
+}
+
+function trimTrailingSlash(value) {
+  return String(value || "").replace(/\/+$/, "");
 }
 
 function hasSupabase(env) {
@@ -3196,17 +4749,60 @@ function safeSupabaseUser(row = {}) {
   };
 }
 
-function verifyAdminToken(request, env) {
+function adminTokenMatches(request, env) {
   const expected = env.ADMIN_TOKEN || env.HERMAS_ADMIN_TOKEN;
-  if (!expected) return json({ ok: false, error: "admin_token_not_configured" }, 503);
-
+  if (!expected) return false;
   const authorization = request.headers.get("authorization") || "";
   const bearer = authorization.toLowerCase().startsWith("bearer ")
     ? authorization.slice(7).trim()
     : "";
   const provided = request.headers.get("x-admin-token") || bearer;
+  return Boolean(provided && provided === expected);
+}
 
-  if (provided && provided === expected) return null;
+async function requireAdminAccess(request, env, options = {}) {
+  if (adminTokenMatches(request, env)) {
+    return {
+      ok: true,
+      auth: {
+        auth_type: "admin_token",
+        role: "admin",
+        subject: "admin_token",
+        display_name: "管理员"
+      }
+    };
+  }
+
+  const session = await getSupabaseSessionAuth(request, env, {
+    projectKey: options.projectKey || authProjectKeyFromRequest(request)
+  });
+  if (session?.ok && session.role === "admin") return { ok: true, auth: session };
+  if (session?.ok) {
+    return {
+      ok: false,
+      response: authJson({ ok: false, error: "admin_only", message: "这个操作只给管理员使用。" }, 403, request)
+    };
+  }
+  if (session && !session.ok) {
+    return {
+      ok: false,
+      response: authJson({ ok: false, error: session.error || "session_invalid" }, session.status || 401, request)
+    };
+  }
+
+  const expected = env.ADMIN_TOKEN || env.HERMAS_ADMIN_TOKEN;
+  if (!expected && !hasSupabase(env)) {
+    return { ok: false, response: json({ ok: false, error: "admin_auth_not_configured" }, 503) };
+  }
+  return {
+    ok: false,
+    response: authJson({ ok: false, error: "not_logged_in", message: "请用管理员账号登录。" }, 401, request)
+  };
+}
+
+function verifyAdminToken(request, env) {
+  if (!(env.ADMIN_TOKEN || env.HERMAS_ADMIN_TOKEN)) return json({ ok: false, error: "admin_token_not_configured" }, 503);
+  if (adminTokenMatches(request, env)) return null;
   return json({ ok: false, error: "invalid_admin_token" }, 401);
 }
 
@@ -3299,6 +4895,55 @@ function base64UrlDecode(value = "") {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
   return bytes;
+}
+
+function adsVaultSecret(env = {}) {
+  return String(env.HERMAS_ADS_VAULT_KEY || env.META_CAPI_VAULT_KEY || "").trim();
+}
+
+function adsVaultConfigured(env = {}) {
+  return Boolean(adsVaultSecret(env));
+}
+
+async function adsVaultCryptoKey(env = {}) {
+  const secret = adsVaultSecret(env);
+  if (!secret) throw new Error("ads_vault_key_missing");
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
+  return crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+}
+
+async function encryptAdsSecret(env = {}, value = "") {
+  try {
+    const iv = new Uint8Array(12);
+    crypto.getRandomValues(iv);
+    const key = await adsVaultCryptoKey(env);
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      new TextEncoder().encode(String(value || ""))
+    );
+    return {
+      ok: true,
+      iv: base64UrlEncode(iv),
+      ciphertext: base64UrlEncode(new Uint8Array(ciphertext))
+    };
+  } catch (error) {
+    return { ok: false, error: error.message || String(error) };
+  }
+}
+
+async function decryptAdsSecret(env = {}, ciphertext = "", iv = "") {
+  try {
+    const key = await adsVaultCryptoKey(env);
+    const plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: base64UrlDecode(iv) },
+      key,
+      base64UrlDecode(ciphertext)
+    );
+    return { ok: true, value: new TextDecoder().decode(plain) };
+  } catch (error) {
+    return { ok: false, error: error.message || String(error) };
+  }
 }
 
 async function sha256Hex(value) {

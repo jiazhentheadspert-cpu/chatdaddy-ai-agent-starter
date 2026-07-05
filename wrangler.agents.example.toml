@@ -18,6 +18,7 @@ SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
 # SUPABASE_SERVICE_ROLE_KEY
 # CHATDADDY_API_KEY
 # CHATDADDY_WEBHOOK_SECRET
+# HERMAS_ADS_VAULT_KEY
 
 [[durable_objects.bindings]]
 name = "HermasProjectAgent"

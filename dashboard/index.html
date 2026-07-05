@@ -5836,10 +5836,11 @@
       sidebarKey: "ai_reply",
       activeSetupStep: "4",
       agentPaused: false,
-      contactStats: {},
-      usageSummary: null,
-      metaCapiStatus: null,
-      contactNames: {},
+	      contactStats: {},
+	      usageSummary: null,
+	      metaCapiStatus: null,
+	      adsConnection: null,
+	      contactNames: {},
       queueSyncStatus: null,
       selectedDate: "",
       queueDateScope: "date",
@@ -6397,6 +6398,18 @@
         return;
       }
 
+      const saveAdsConnection = event.target.closest("[data-save-ads-connection]");
+      if (saveAdsConnection) {
+        saveAdsConnectionSettings();
+        return;
+      }
+
+      const testAdsConnection = event.target.closest("[data-test-ads-connection]");
+      if (testAdsConnection) {
+        testAdsConnectionSettings();
+        return;
+      }
+
       const copyRole = event.target.closest("[data-copy-role-link]");
       if (copyRole) {
         copyRoleLink(copyRole.dataset.copyRoleLink);
@@ -6565,6 +6578,92 @@
       addAuditEvent("project_settings_saved", "更新品牌大脑、自动流程 ID 和安全规则。");
       showToast("项目设置已保存为本机草稿；未写入真实系统。");
       render();
+    }
+
+    async function saveAdsConnectionSettings() {
+      if (state.role === "staff") {
+        alert("客服权限不能修改广告回流。");
+        return;
+      }
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
+      const token = adminTokenEl.value.trim();
+      const canAdminBySession = hasAccountSession() && state.role !== "staff";
+      if (!api || (!token && !canAdminBySession)) {
+        alert("请先用管理员账号登录，才能保存广告回流。");
+        return;
+      }
+      const payload = {
+        pixel_id: $("adsPixelIdInput")?.value.trim() || "",
+        page_id: $("adsPageIdInput")?.value.trim() || "",
+        ad_account_id: $("adsAccountIdInput")?.value.trim() || "",
+        graph_version: $("adsGraphVersionInput")?.value.trim() || "v23.0",
+        test_event_code: $("adsTestCodeInput")?.value.trim() || "",
+        access_token: $("adsTokenInput")?.value.trim() || "",
+        auto_track_enabled: Boolean($("adsAutoTrackInput")?.checked),
+        purchase_auto_track_enabled: false,
+      };
+      try {
+        showToast("正在保存广告回流。");
+        const res = await fetch(
+          `${api}/api/admin/projects/${encodeURIComponent(project)}/ads-connection`,
+          authRequestOptions(token, {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+        state.adsConnection = data.ads_connection || null;
+        state.metaCapiStatus = data.meta_capi || state.metaCapiStatus;
+        if ($("adsTokenInput")) $("adsTokenInput").value = "";
+        showToast("广告回流已保存。");
+        render();
+      } catch (error) {
+        alert(`广告回流保存失败：${error.message}`);
+      }
+    }
+
+    async function testAdsConnectionSettings() {
+      if (state.role === "staff") {
+        alert("客服权限不能测试广告回流。");
+        return;
+      }
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
+      const token = adminTokenEl.value.trim();
+      const canAdminBySession = hasAccountSession() && state.role !== "staff";
+      if (!api || (!token && !canAdminBySession)) {
+        alert("请先用管理员账号登录，才能测试广告回流。");
+        return;
+      }
+      const ok = window.confirm("发送一笔 RM 1.00 的 Meta Purchase 测试事件？\n\n不会发顾客讯息，也不会触发 ChatDaddy Flow。");
+      if (!ok) return;
+      try {
+        showToast("正在发送 Meta 测试事件。");
+        const res = await fetch(
+          `${api}/api/admin/projects/${encodeURIComponent(project)}/ads-connection/test`,
+          authRequestOptions(token, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              event_name: "Purchase",
+              value: 1,
+              currency: "MYR",
+              confirmMetaSend: true,
+            }),
+          })
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.next || data.message || data.error || `HTTP ${res.status}`);
+        state.adsConnection = data.ads_connection || state.adsConnection;
+        await loadMetaCapiStatus();
+        showToast("Meta 测试事件已发送。");
+        render();
+      } catch (error) {
+        alert(`测试失败：${error.message}`);
+      }
     }
 
     function collectProjectSettingsFromForm() {
@@ -7727,6 +7826,7 @@
         if (state.role !== "staff") {
           await loadRuntimeSettings({ silent: true });
           await loadMetaCapiStatus();
+          await loadAdsConnection(token);
           await loadUsageSummary(token);
           await loadOwnerAdminSummaries(token);
           render();
@@ -7741,6 +7841,7 @@
           state.operatingActionQueue = null;
           state.qualityLiftRepairQueue = null;
           state.learningNotes = null;
+          state.adsConnection = null;
           loadMetaCapiStatus().catch(() => null);
           loadUsageSummary(token).catch(() => null);
         }
@@ -7775,16 +7876,38 @@
 
     async function loadMetaCapiStatus() {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
       if (!api) {
         state.metaCapiStatus = null;
         return null;
       }
       try {
-        const data = await fetchJsonSafe(`${api}/api/meta-capi/status`);
+        const data = await fetchJsonSafe(`${api}/api/meta-capi/status?project_key=${encodeURIComponent(project)}`);
         state.metaCapiStatus = data?.ok ? data.meta_capi || null : null;
         return state.metaCapiStatus;
       } catch (_error) {
         state.metaCapiStatus = null;
+        return null;
+      }
+    }
+
+    async function loadAdsConnection(token) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
+      if (!api || state.role === "staff") {
+        state.adsConnection = null;
+        return null;
+      }
+      try {
+        const data = await fetchJsonSafe(
+          `${api}/api/admin/projects/${encodeURIComponent(project)}/ads-connection`,
+          authRequestOptions(token)
+        );
+        state.adsConnection = data?.ok ? data.ads_connection || null : null;
+        if (data?.meta_capi) state.metaCapiStatus = data.meta_capi;
+        return state.adsConnection;
+      } catch (_error) {
+        state.adsConnection = null;
         return null;
       }
     }
@@ -8043,6 +8166,7 @@
       state.selected.clear();
       state.usageSummary = null;
       state.metaCapiStatus = null;
+      state.adsConnection = null;
       state.projectVersions = null;
       state.qualityReview = null;
       $("modeTag").textContent = activeModeLabel();
@@ -11904,6 +12028,7 @@
                 ${ruleRow("priceAfter", "看价后异议", "使用成交回复，不乱接普通自动流程。")}
               </div>
             </div>
+            ${adsConnectionSettingsHtml()}
             <div class="settings-box">
               <h3>保存后系统会怎样用</h3>
               <div class="compact-list">
@@ -11917,6 +12042,60 @@
             </div>
           </div>
         </section>
+      `;
+    }
+
+    function adsConnectionSettingsHtml() {
+      const ads = state.adsConnection || {};
+      const meta = state.metaCapiStatus || {};
+      const configured = ads.configured === true || meta.configured === true;
+      const statusText = configured ? "已连接" : ads.vault_key_configured === false ? "缺加密钥" : "待设置";
+      const testText = ads.last_test_status
+        ? `${ads.last_test_status}${ads.last_test_at ? ` · ${formatDate(ads.last_test_at)}` : ""}`
+        : "未测试";
+      return `
+        <div class="settings-box" data-owner-section>
+          <h3>广告回流</h3>
+          <div class="compact-list">
+            ${compactRow("状态", statusText, configured ? "OK" : "待")}
+            ${compactRow("项目", projectKeyEl.value.trim() || "demo", "项目")}
+            ${compactRow("上次测试", testText, ads.last_test_status === "sent" ? "OK" : "测试")}
+          </div>
+          <div class="field-grid">
+            <label>Meta Pixel / Dataset ID
+              <input id="adsPixelIdInput" value="${escapeHtml(ads.pixel_id || "")}" placeholder="输入 Pixel ID" />
+            </label>
+            <label>Meta Page ID（可选）
+              <input id="adsPageIdInput" value="${escapeHtml(ads.page_id || "")}" placeholder="可留空" />
+            </label>
+            <label>广告账户 ID（可选）
+              <input id="adsAccountIdInput" value="${escapeHtml(ads.ad_account_id || "")}" placeholder="可留空" />
+            </label>
+            <label>Graph 版本
+              <input id="adsGraphVersionInput" value="${escapeHtml(ads.graph_version || meta.graph_version || "v23.0")}" placeholder="v23.0" />
+            </label>
+            <label>Meta 访问密钥
+              <input id="adsTokenInput" type="password" value="" placeholder="${ads.access_token_configured ? `已保存，尾号 ${escapeHtml(ads.access_token_last4 || "****")}；留空不更换` : "粘贴 Access Token"}" autocomplete="off" />
+            </label>
+            <label>测试事件码（可选）
+              <input id="adsTestCodeInput" value="" placeholder="${ads.test_event_code_configured ? "已设置；留空不更换" : "Meta Test Event Code"}" />
+            </label>
+          </div>
+          <div class="rule-list">
+            <div class="rule-row">
+              <div><strong>付款确认回流</strong>客服按「确认已付款」才发送 Purchase；不会自动认定成交。</div>
+              <span class="pill green">人工确认</span>
+            </div>
+            <div class="rule-row">
+              <div><strong>自动 Lead 回流</strong>默认关闭；未批准前不追自动成交。</div>
+              <input id="adsAutoTrackInput" type="checkbox" ${ads.auto_track_enabled ? "checked" : ""} />
+            </div>
+          </div>
+          <div class="quick-actions">
+            <button class="quick-action primary" data-save-ads-connection type="button">保存广告回流</button>
+            <button class="quick-action" data-test-ads-connection type="button">发送测试事件</button>
+          </div>
+        </div>
       `;
     }
 
