@@ -62,11 +62,12 @@ def fetch_text(url):
         return response.status, response.read().decode("utf-8", errors="replace")
 
 checks = []
-status_code, status = fetch_json("/api/meta-capi/status")
+status_code, status = fetch_json("/api/meta-capi/status?project_key=demo")
 meta = status.get("meta_capi", {})
 configured = bool(meta.get("configured"))
 
 checks.append(("Worker reachable", status_code == 200 and status.get("ok") is True, f"HTTP {status_code}"))
+checks.append(("Ads vault key", bool(meta.get("vault_key_configured")), "set" if meta.get("vault_key_configured") else "missing"))
 checks.append(("Meta Pixel ID", bool(meta.get("pixel_id")), "set" if meta.get("pixel_id") else "missing"))
 checks.append(("Meta CAPI Access Token", bool(meta.get("access_token_configured")), "set" if meta.get("access_token_configured") else "missing"))
 checks.append(("Auto tracking", True, "ON" if meta.get("auto_track_enabled") else "OFF"))
@@ -76,8 +77,9 @@ if dashboard_url:
     try:
         separator = "&" if "?" in dashboard_url else "?"
         dashboard_status, dashboard_html = fetch_text(f"{dashboard_url}{separator}v=go-live-check")
+        has_safe_copy = "广告回流" in dashboard_html and "保存广告回流" in dashboard_html
         checks.append(("Dashboard reachable", dashboard_status == 200, f"HTTP {dashboard_status}"))
-        checks.append(("Dashboard Meta warning copy", "广告回流未接 Meta Pixel/CAPI" in dashboard_html, "present" if "广告回流未接 Meta Pixel/CAPI" in dashboard_html else "missing"))
+        checks.append(("Dashboard Meta warning copy", has_safe_copy, "present" if has_safe_copy else "missing"))
         checks.append(("Dashboard Meta success copy", "已记录成交，并已回流 Meta RM" in dashboard_html, "present" if "已记录成交，并已回流 Meta RM" in dashboard_html else "missing"))
         checks.append(("Dashboard mark-purchase wiring", "记录成交" in dashboard_html and "mark-purchase" in dashboard_html, "present" if "记录成交" in dashboard_html and "mark-purchase" in dashboard_html else "missing"))
     except Exception as error:
@@ -109,20 +111,21 @@ for name, ok, note in checks:
 
 print("")
 print("RESULT")
-hard_fail = [name for name, ok, _ in checks if not ok and name not in {"Meta Pixel ID", "Meta CAPI Access Token"}]
+hard_fail = [name for name, ok, _ in checks if not ok and name not in {"Meta Pixel ID", "Meta CAPI Access Token", "Dashboard Meta warning copy"}]
 if hard_fail:
     print("NOT READY: Dashboard / Worker wiring still has problems.")
     print("Fix:", ", ".join(hard_fail))
 elif not configured:
     print("NOT LIVE YET: Dashboard can record purchase, but Ads Manager will not receive Purchase until Meta Pixel ID + CAPI Access Token are set.")
+    print("Next: run ./setup/copy_project_ads_connections_migration.command, paste/run it in Supabase SQL Editor, then use Admin Dashboard > 设置 > 广告回流 to save this project's Pixel ID + Meta access token.")
 else:
     print("READY FOR TEST: Meta credentials are present. Send one Purchase test event and confirm it in Meta Events Manager before real go-live.")
+    print("Next: Admin Dashboard > 设置 > 广告回流 > 发送测试事件.")
 
 print("")
 print("SAFETY")
 print("- Purchase only after payment received or COD order confirmed.")
 print("- ChatDaddy paid webhook also needs amount_rm/order_value.")
-print("- Duplicate Purchase is blocked by order_id + currency + amount/order_value.")
 print("- Customer saying '我要 / 有 / interested' is not a Purchase.")
 print("- Auto Lead / Receipt / Flow tracking stays separate from manual Purchase.")
 PY
