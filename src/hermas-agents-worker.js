@@ -2823,11 +2823,12 @@ async function handleAdminAdsConnection(request, env, options = {}) {
 
   if (request.method === "GET") {
     const selected = await selectProjectAdsConnection(env, projectKey);
-    if (!selected.ok && selected.status === 404) {
+    if (!selected.ok) {
       return json({
         ok: false,
         error: "ads_connection_table_missing",
-        message: "Supabase 还没建立广告回流表。请先跑 project_ads_connections migration。"
+        message: "Supabase 还没建立广告回流表。请先跑 project_ads_connections migration。",
+        details: selected.error || ""
       }, 503);
     }
     return json({
@@ -2851,12 +2852,13 @@ async function handleAdminAdsConnection(request, env, options = {}) {
 
 async function saveProjectAdsConnection(env, projectKey = "", payload = {}, auth = {}) {
   const selected = await selectProjectAdsConnection(env, projectKey);
-  if (!selected.ok && selected.status === 404) {
+  if (!selected.ok) {
     return {
       ok: false,
       status: 503,
       error: "ads_connection_table_missing",
-      message: "Supabase 还没建立广告回流表。请先跑 project_ads_connections migration。"
+      message: "Supabase 还没建立广告回流表。请先跑 project_ads_connections migration。",
+      details: selected.error || ""
     };
   }
   const existing = selected.row || {};
