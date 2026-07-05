@@ -117,7 +117,7 @@ if hard_fail:
     print("Fix:", ", ".join(hard_fail))
 elif not configured:
     print("NOT LIVE YET: Dashboard can record purchase, but Ads Manager will not receive Purchase until Meta Pixel ID + CAPI Access Token are set.")
-    print("Next: run ./setup/copy_project_ads_connections_migration.command, paste/run it in Supabase SQL Editor, then use Admin Dashboard > 设置 > 广告回流 to save this project's Pixel ID + Meta access token.")
+    print("Next: run ./setup/set_project_ads_connection.command, paste Pixel ID + Meta access token, then send one test event.")
 else:
     print("READY FOR TEST: Meta credentials are present. Send one Purchase test event and confirm it in Meta Events Manager before real go-live.")
     print("Next: Admin Dashboard > 设置 > 广告回流 > 发送测试事件.")
