@@ -774,7 +774,7 @@
         <h1>客服只处理<span>真正需要人的顾客。</span></h1>
         <p class="lead">固定 Flow 交给 ChatDaddy 自动跑；顾客提问、订单、投诉和成交关键点才进入中控台。</p>
         <div class="hero-actions">
-          <a class="text-button primary-link" href="dashboard/index.html">打开中控台</a>
+          <a class="text-button primary-link" href="#login">进入工作台</a>
           <a class="text-button" href="docs/ONBOARDING_ZH.md">上线步骤</a>
           <a class="text-button" href="docs/PRODUCTION_READINESS_ZH.md">成熟度清单</a>
         </div>
@@ -826,7 +826,7 @@
           </article>
           <article class="role-card">
             <strong>客服人员</strong>
-            <p>只看顾客待办，不接触密钥或技术设置。</p>
+            <p>只看顾客待办，不接触技术设置。</p>
             <div class="chips"><span class="chip">顾客</span><span class="chip">待办</span></div>
           </article>
         </div>
@@ -867,38 +867,35 @@
         <div class="readiness-list">
           <div class="readiness-item"><div><strong>已适合</strong>内部品牌、代运营客户、有人协助上线的项目。</div></div>
           <div class="readiness-item"><div><strong>不承诺</strong>陌生客户零协助自助注册、付费、上线。</div></div>
-          <div class="readiness-item"><div><strong>上线前</strong>必须检查 webhook、AI 判断、Sheet 记录和转人工。</div></div>
-          <div class="readiness-item"><div><strong>客服端</strong>只看顾客待办，不碰 token、Flow、部署设置。</div></div>
+          <div class="readiness-item"><div><strong>上线前</strong>必须检查连接、AI 判断、记录和转人工。</div></div>
+          <div class="readiness-item"><div><strong>客服端</strong>只看顾客待办，不碰技术设置。</div></div>
         </div>
       </section>
 
     </section>
 
-    <section class="login">
+    <section class="login" id="login">
       <div class="login-top">
         <div class="login-topline">
           <span class="status-pill">权限入口</span>
-          <span class="env">演示模式</span>
+          <span class="env">正式入口</span>
         </div>
         <h2>进入工作台</h2>
         <p class="login-copy">团队用同一个入口进入。客服只看顾客待办，管理者才看系统连接。</p>
         <div class="login-meta">
           <div>
             <span>当前入口</span>
-            <b>Demo / Pilot</b>
+            <b>客服入口</b>
           </div>
           <div>
-            <span>正式 SaaS 前</span>
-            <b>先跑上线检查</b>
+            <span>安全模式</span>
+            <b>审批优先</b>
           </div>
         </div>
       </div>
 
       <div class="form">
-        <div class="field">
-          <label for="apiUrl">系统接口地址</label>
-          <input id="apiUrl" placeholder="https://your-system-url.com" autocomplete="url" />
-        </div>
+        <input id="apiUrl" type="hidden" autocomplete="off" />
 
         <div class="field">
           <label for="email">邮箱</label>
@@ -918,92 +915,28 @@
           </select>
         </div>
 
-        <details class="advanced">
-          <summary>演示 / 临时安全码入口</summary>
-          <div class="advanced-body">
-            <div class="field">
-              <label for="displayName">显示姓名</label>
-              <input id="displayName" value="Jia Zhen" autocomplete="name" />
-            </div>
-            <div class="field">
-              <label>演示身份</label>
-              <div class="roles">
-                <button class="role active" data-role="owner" type="button">管理者</button>
-                <button class="role" data-role="admin" type="button">运营主管</button>
-                <button class="role" data-role="staff" type="button">客服人员</button>
-              </div>
-              <div class="role-help" id="roleHelp">可查看全部顾客、连接状态、团队权限和 AI 规则。</div>
-              <div class="permission-preview" id="permissionPreview"></div>
-            </div>
-            <div class="field">
-              <label for="staffToken">旧团队安全码</label>
-              <input id="staffToken" placeholder="临时 fallback，正式客服不用输入" type="password" autocomplete="off" />
-            </div>
-            <div class="field">
-              <label for="adminToken">旧管理密钥</label>
-              <input id="adminToken" placeholder="临时 fallback，正式登录不用输入" type="password" autocomplete="off" />
-            </div>
-          </div>
-        </details>
-
         <button class="primary" id="loginBtn">进入工作台</button>
-        <div class="security-note" id="loginMessage">正式使用请用邮箱密码登录；安全码只保留给旧入口过渡。</div>
+        <div class="security-note" id="loginMessage">请用团队分配的邮箱和密码登录。</div>
 
         <div class="links">
-          <a href="dashboard/index.html">跳过身份选择</a>
           <a href="docs/ONBOARDING_ZH.md">上线步骤</a>
           <a href="docs/PRODUCTION_READINESS_ZH.md">成熟度清单</a>
         </div>
 
-        <div class="security-note">客服账号只进入顾客操作台；后台密钥、webhook、Flow ID 和部署设置不会显示给客服。</div>
+        <div class="security-note">客服账号只进入顾客操作台；系统连接和技术设置不会显示给客服。</div>
       </div>
     </section>
   </main>
 
   <script>
-    const roleButtons = [...document.querySelectorAll("[data-role]")];
-    const roleHelp = document.getElementById("roleHelp");
-    const permissionPreview = document.getElementById("permissionPreview");
     const params = new URLSearchParams(window.location.search);
-    const roleHelpCopy = {
-      owner: "查看全部顾客、连接状态、团队权限和 AI 规则。",
-      admin: "审核回复、处理异常、查看 AI 复盘。",
-      staff: "只看待处理顾客，不显示系统密钥和连接设置。",
-    };
-    const permissionRows = {
-      owner: ["全局中控台", "团队入口", "AI 规则和连接状态"],
-      admin: ["审核 AI 回复", "处理异常顾客", "复盘，不接触密钥"],
-      staff: ["只看顾客待办", "批准、转人工、提交订单", "隐藏系统设置"],
-    };
-    let selectedRole = "owner";
-
-    function renderPermissionPreview(role) {
-      permissionPreview.innerHTML = (permissionRows[role] || permissionRows.owner)
-        .map((text) => `<div class="permission-row">${text}</div>`)
-        .join("");
-    }
-
-    function setSelectedRole(role) {
-      selectedRole = roleHelpCopy[role] ? role : "owner";
-      roleButtons.forEach((item) => item.classList.toggle("active", item.dataset.role === selectedRole));
-      roleHelp.textContent = roleHelpCopy[selectedRole] || roleHelpCopy.owner;
-      renderPermissionPreview(selectedRole);
-      if (selectedRole === "staff" && document.getElementById("displayName").value === "Jia Zhen") {
-        document.getElementById("displayName").value = "Support Team";
-      }
-    }
-
-    roleButtons.forEach((button) => {
-      button.addEventListener("click", () => setSelectedRole(button.dataset.role));
-    });
 
     document.getElementById("workspace").value = params.get("project_key") || localStorage.getItem("agent_project_key") || "demo";
-    setSelectedRole(params.get("role") || "owner");
 
     document.getElementById("apiUrl").value = params.get("api") || localStorage.getItem("agent_api_url") || "";
     document.getElementById("email").value = localStorage.getItem("agent_login_email") || "";
-    document.getElementById("adminToken").value = localStorage.getItem("agent_admin_token") || "";
-    document.getElementById("staffToken").value = params.get("staff_token") || localStorage.getItem("agent_staff_token") || "";
+    localStorage.removeItem("agent_admin_token");
+    localStorage.removeItem("agent_staff_token");
 
     function setLoginMessage(message, tone = "") {
       const node = document.getElementById("loginMessage");
@@ -1020,82 +953,62 @@
       const apiUrl = normalizeApiUrl(document.getElementById("apiUrl").value);
       const email = document.getElementById("email").value.trim().toLowerCase();
       const password = document.getElementById("password").value;
-      const adminToken = document.getElementById("adminToken").value.trim();
-      const staffToken = document.getElementById("staffToken").value.trim();
-      const displayName = document.getElementById("displayName").value.trim() || "Team";
 
-      if (apiUrl && email && password) {
-        const button = document.getElementById("loginBtn");
-        button.disabled = true;
-        setLoginMessage("正在登录...");
-        try {
-          const res = await fetch(`${apiUrl}/api/auth/login`, {
-            method: "POST",
-            credentials: "include",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ email, password }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok || !data.ok || !data.authenticated) {
-            throw new Error(data.error || `HTTP ${res.status}`);
-          }
-          const projects = Array.isArray(data.projects) ? data.projects : [];
-          const firstProject = projects.find((item) => item.project_key === workspace) || projects[0] || { project_key: workspace };
-          const role = data.user?.role === "admin" ? "admin" : "staff";
-          const session = {
-            authMode: "account",
-            workspace: firstProject.project_key || workspace,
-            projectKey: firstProject.project_key || workspace,
-            role,
-            displayName: data.user?.name || displayName,
-            email: data.user?.email || email,
-            apiUrl,
-            signedInAt: new Date().toISOString(),
-          };
-          localStorage.setItem("agent_session", JSON.stringify(session));
-          localStorage.setItem("agent_project_key", session.projectKey);
-          localStorage.setItem("agent_api_url", apiUrl);
-          localStorage.setItem("agent_login_email", email);
-          localStorage.removeItem("agent_admin_token");
-          localStorage.removeItem("agent_staff_token");
-          setLoginMessage("登录成功，正在进入工作台。", "ok");
-          const nextParams = new URLSearchParams({ project_key: session.projectKey, role });
-          nextParams.set("api", apiUrl);
-          if (role === "staff") {
-            nextParams.set("view", "cases");
-            window.location.href = `dashboard/index.html?${nextParams.toString()}`;
-          } else {
-            window.location.href = `admin.html?${nextParams.toString()}`;
-          }
-          return;
-        } catch (error) {
-          setLoginMessage(`登录失败：${error.message}`, "error");
-          button.disabled = false;
-          return;
-        }
+      if (!apiUrl) {
+        setLoginMessage("登录入口还没连接到系统，请用最新客服入口重新打开。", "error");
+        return;
+      }
+      if (!email || !password) {
+        setLoginMessage("请输入邮箱和密码。", "error");
+        return;
       }
 
-      const session = {
-        workspace,
-        projectKey: workspace,
-        role: selectedRole,
-        displayName,
-        apiUrl,
-        hasAdminToken: Boolean(adminToken),
-        hasStaffToken: Boolean(staffToken),
-        signedInAt: new Date().toISOString(),
-      };
-
-      localStorage.setItem("agent_session", JSON.stringify(session));
-      localStorage.setItem("agent_project_key", workspace);
-      if (apiUrl) localStorage.setItem("agent_api_url", apiUrl);
-      if (adminToken && selectedRole !== "staff") localStorage.setItem("agent_admin_token", adminToken);
-      if (staffToken) localStorage.setItem("agent_staff_token", staffToken);
-
-      const params = new URLSearchParams({ project_key: workspace, role: selectedRole });
-      if (apiUrl) params.set("api", apiUrl);
-      if (selectedRole === "staff") params.set("view", "cases");
-      window.location.href = `dashboard/index.html?${params.toString()}`;
+      const button = document.getElementById("loginBtn");
+      button.disabled = true;
+      setLoginMessage("正在登录...");
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/login`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok || !data.authenticated) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        const projects = Array.isArray(data.projects) ? data.projects : [];
+        const firstProject = projects.find((item) => item.project_key === workspace) || projects[0] || { project_key: workspace };
+        const role = data.user?.role === "admin" ? "admin" : "staff";
+        const session = {
+          authMode: "account",
+          workspace: firstProject.project_key || workspace,
+          projectKey: firstProject.project_key || workspace,
+          role,
+          displayName: data.user?.name || "Team",
+          email: data.user?.email || email,
+          apiUrl,
+          signedInAt: new Date().toISOString(),
+        };
+        localStorage.setItem("agent_session", JSON.stringify(session));
+        localStorage.setItem("agent_project_key", session.projectKey);
+        localStorage.setItem("agent_api_url", apiUrl);
+        localStorage.setItem("agent_login_email", email);
+        localStorage.removeItem("agent_admin_token");
+        localStorage.removeItem("agent_staff_token");
+        setLoginMessage("登录成功，正在进入工作台。", "ok");
+        const nextParams = new URLSearchParams({ project_key: session.projectKey, role });
+        nextParams.set("api", apiUrl);
+        if (role === "staff") {
+          nextParams.set("view", "cases");
+          window.location.href = `dashboard/index.html?${nextParams.toString()}`;
+        } else {
+          window.location.href = `admin.html?${nextParams.toString()}`;
+        }
+      } catch (error) {
+        setLoginMessage(`登录失败：${error.message}`, "error");
+        button.disabled = false;
+      }
     });
   </script>
 </body>
