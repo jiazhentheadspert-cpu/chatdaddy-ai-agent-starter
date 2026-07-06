@@ -5485,7 +5485,6 @@
         <div class="setup" id="setupPanel">
           <input id="apiUrl" placeholder="系统接口地址" />
           <input id="projectKey" placeholder="项目代号" />
-          <input id="adminToken" placeholder="管理密钥" type="password" />
           <button class="btn primary" id="saveAndLoad">连接系统</button>
         </div>
       </header>
@@ -5876,7 +5875,7 @@
     const $ = (id) => document.getElementById(id);
     const apiUrlEl = $("apiUrl");
     const projectKeyEl = $("projectKey");
-    const adminTokenEl = $("adminToken");
+    const adminTokenEl = { value: "", placeholder: "" };
     const casesEl = $("cases");
     const errorEl = $("error");
     const demoScenarioEl = $("demoScenario");
@@ -6140,32 +6139,8 @@
       || state.session.projectKey
       || localStorage.getItem("agent_project_key")
       || (apiUrlEl.value.trim() ? "beyoute" : "demo");
-	    const incomingStaffToken = params.get("staff_token") || params.get("operator_token") || "";
-	    const incomingAdminToken = state.role === "staff"
-	      ? ""
-	      : params.get("admin_token") || params.get("owner_token") || hashParams.get("admin_token") || hashParams.get("owner_token") || hashParams.get("token") || "";
-	    let shouldCleanAccessTokenUrl = false;
-	    if (incomingStaffToken) {
-	      localStorage.setItem("agent_staff_token", incomingStaffToken);
-	      params.delete("staff_token");
-	      params.delete("operator_token");
-	      shouldCleanAccessTokenUrl = true;
-	    }
-	    if (incomingAdminToken) {
-	      localStorage.setItem("agent_admin_token", incomingAdminToken);
-	      params.delete("admin_token");
-	      params.delete("owner_token");
-	      shouldCleanAccessTokenUrl = true;
-	    }
-	    if (shouldCleanAccessTokenUrl && window.history?.replaceState) {
-	      const cleanQuery = params.toString();
-	      const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ""}`;
-	      window.history.replaceState({}, "", cleanUrl);
-	    }
-    adminTokenEl.value = state.role === "staff"
-      ? localStorage.getItem("agent_staff_token") || ""
-      : localStorage.getItem("agent_admin_token") || localStorage.getItem("agent_staff_token") || "";
-    adminTokenEl.placeholder = state.role === "staff" ? "客服安全码" : "管理密钥 / 团队安全码";
+    adminTokenEl.value = "";
+    adminTokenEl.placeholder = "已登录账号";
     state.settings = readProjectSettings(projectKeyEl.value || "demo");
     state.auditEvents = readAuditEvents(projectKeyEl.value || "demo");
 
@@ -6174,11 +6149,8 @@
     $("saveAndLoad").addEventListener("click", () => {
       localStorage.setItem("agent_api_url", apiUrlEl.value.trim());
       localStorage.setItem("agent_project_key", projectKeyEl.value.trim());
-      if (hasAccountSession()) {
-        localStorage.removeItem("agent_staff_token");
-        localStorage.removeItem("agent_admin_token");
-      } else if (state.role === "staff") localStorage.setItem("agent_staff_token", adminTokenEl.value.trim());
-      else localStorage.setItem("agent_admin_token", adminTokenEl.value.trim());
+      localStorage.removeItem("agent_staff_token");
+      localStorage.removeItem("agent_admin_token");
       state.settings = readProjectSettings(projectKeyEl.value.trim() || "demo");
       state.auditEvents = readAuditEvents(projectKeyEl.value.trim() || "demo");
       loadCases();
@@ -6542,24 +6514,22 @@
       }
 
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
-      const token = adminTokenEl.value.trim();
       const canAdminBySession = hasAccountSession() && state.role !== "staff";
-      if (!state.demoMode && api && !token && !canAdminBySession) {
+      if (!state.demoMode && api && !canAdminBySession) {
         alert("请先用管理员账号登录，不能保存到真实系统。");
         return;
       }
-      if (!state.demoMode && api && (token || canAdminBySession)) {
+      if (!state.demoMode && api && canAdminBySession) {
         try {
           showToast("正在保存到真实系统。");
           const endpoint = `${api}/api/agent-runtime/config?project_key=${encodeURIComponent(project)}`;
-          const res = await fetch(endpoint, {
+          const res = await fetch(endpoint, authRequestOptions("", {
             method: "POST",
             headers: {
               "content-type": "application/json",
-              ...authHeaders(token),
             },
             body: JSON.stringify(runtimeSettingsPayload(project, state.settings)),
-          });
+          }));
           const data = await res.json();
           if (!res.ok || !data.ok) throw new Error(data.next || data.error || `HTTP ${res.status}`);
           state.settings = settingsFromRuntimeConfig(data.runtime_config, state.settings);
@@ -6587,9 +6557,8 @@
       }
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
-      const token = adminTokenEl.value.trim();
       const canAdminBySession = hasAccountSession() && state.role !== "staff";
-      if (!api || (!token && !canAdminBySession)) {
+      if (!api || !canAdminBySession) {
         alert("请先用管理员账号登录，才能保存广告回流。");
         return;
       }
@@ -6607,7 +6576,7 @@
         showToast("正在保存广告回流。");
         const res = await fetch(
           `${api}/api/admin/projects/${encodeURIComponent(project)}/ads-connection`,
-          authRequestOptions(token, {
+          authRequestOptions("", {
             method: "PUT",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(payload),
@@ -6632,9 +6601,8 @@
       }
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
-      const token = adminTokenEl.value.trim();
       const canAdminBySession = hasAccountSession() && state.role !== "staff";
-      if (!api || (!token && !canAdminBySession)) {
+      if (!api || !canAdminBySession) {
         alert("请先用管理员账号登录，才能测试广告回流。");
         return;
       }
@@ -6644,7 +6612,7 @@
         showToast("正在发送 Meta 测试事件。");
         const res = await fetch(
           `${api}/api/admin/projects/${encodeURIComponent(project)}/ads-connection/test`,
-          authRequestOptions(token, {
+          authRequestOptions("", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
@@ -7790,7 +7758,7 @@
             : "这个入口缺少系统接口地址，不能读取真实讯息。请用正式 Beyoute Dashboard 链接重新打开。"
           : state.role === "staff"
             ? "这个客服入口还没登录，所以没有权限读取真实顾客。请用正式客服账号重新登录。"
-            : "请先用账号密码登录，或临时输入管理密钥。";
+            : "请先用管理员账号登录。";
         setRealQueueEmpty(missingMessage);
         return;
       }
@@ -7929,18 +7897,18 @@
 	        return;
 	      }
 	      const projectPath = `/api/hermas/projects/${encodeURIComponent(project)}`;
-	      const headers = authHeaders(token);
+	      const requestOptions = authRequestOptions(token);
 	      const [versions, quality, handoffLearning, ownerReviewWorkbench, learningNotes, signoffPacket, signoffAudit, dailyBrief, actionQueue, repairQueue] = await Promise.all([
-	        fetchJsonSafe(`${api}${projectPath}/package/versions?limit=5`, { headers }),
-	        fetchJsonSafe(`${api}${projectPath}/quality-review?limit=5&scan_limit=500&real_only=1`, { headers }),
-	        fetchJsonSafe(`${api}${projectPath}/handoff-learning-review?limit=8&scan_limit=500&real_only=1`, { headers }),
-	        fetchJsonSafe(`${api}${projectPath}/owner-review-workbench?limit=30&scan_limit=500&real_only=1`, { headers }),
-	        fetchJsonSafe(`${api}${projectPath}/learning-notes?limit=6`, { headers }),
-	        fetchJsonSafe(`${api}${projectPath}/owner-decision-signoff-packet`, { headers }),
-	        fetchJsonSafe(`${api}${projectPath}/owner-decision-signoff-audit`, { headers }),
-	        fetchJsonSafe(`${api}${projectPath}/daily-operating-brief`, { headers }),
-	        fetchJsonSafe(`${api}${projectPath}/operating-action-queue`, { headers }),
-	        fetchJsonSafe(`${api}${projectPath}/quality-lift-repair-queue`, { headers }),
+	        fetchJsonSafe(`${api}${projectPath}/package/versions?limit=5`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/quality-review?limit=5&scan_limit=500&real_only=1`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/handoff-learning-review?limit=8&scan_limit=500&real_only=1`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/owner-review-workbench?limit=30&scan_limit=500&real_only=1`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/learning-notes?limit=6`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/owner-decision-signoff-packet`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/owner-decision-signoff-audit`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/daily-operating-brief`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/operating-action-queue`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/quality-lift-repair-queue`, requestOptions),
 	      ]);
 	      state.projectVersions = versions?.ok ? versions : null;
 	      state.qualityReview = quality?.ok ? quality : null;
@@ -8175,10 +8143,8 @@
       render();
     }
 
-    function authHeaders(token) {
-      if (!token && hasAccountSession()) return {};
-      if (state.role === "staff") return { "x-staff-token": token };
-      return { "x-admin-token": token, "x-staff-token": token };
+    function authHeaders(_token) {
+      return {};
     }
 
     function authRequestOptions(token, options = {}) {
@@ -8211,29 +8177,26 @@
     async function togglePauseAgent() {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
-      const token = state.role === "staff"
-        ? localStorage.getItem("agent_admin_token") || ""
-        : adminTokenEl.value.trim();
       const targetPaused = !state.agentPaused;
       const canAdminBySession = hasAccountSession() && state.role !== "staff";
-      if (!api || (!token && !canAdminBySession)) {
-        showToast("暂停接管需要管理员账号。客服入口不会显示后台密钥。");
+      if (!api || !canAdminBySession) {
+        showToast("暂停接管需要管理员账号。");
         return;
       }
       const button = $("pauseAgentBtn");
       button.disabled = true;
       try {
         const endpoint = `${api}/api/agent-runtime/config?project_key=${encodeURIComponent(project)}`;
-        const res = await fetch(endpoint, {
+        const res = await fetch(endpoint, authRequestOptions("", {
           method: "POST",
-          headers: { "content-type": "application/json", "x-admin-token": token },
+          headers: { "content-type": "application/json" },
           body: JSON.stringify({
             project_key: project,
             auto_send_enabled: !targetPaused,
             auto_trigger_flows_enabled: !targetPaused,
             updated_by: targetPaused ? "dashboard_pause_agent" : "dashboard_resume_agent",
           }),
-        });
+        }));
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) throw new Error(data.error || data.next || `HTTP ${res.status}`);
         updatePauseAgentUi(targetPaused);
@@ -10309,7 +10272,7 @@
 	          <section class="command-panel" data-owner-nav>
 	            <div class="command-kicker">质量评分</div>
 	            <strong class="command-title">等待真实 Case 评分</strong>
-	            <p class="command-copy">连接真实系统后，这里会显示 Hermas 的总分、KPI、自动化建议和今天最该修的项目。</p>
+	            <p class="command-copy">连接真实系统后，这里会显示 ReplyPilot AI 的总分、KPI、自动化建议和今天最该修的项目。</p>
 	          </section>
 	        `;
 	      }
@@ -10320,7 +10283,7 @@
 	      return `
 	        <div class="command-grid" data-owner-nav>
 	          <section class="command-panel accent">
-	            <div class="command-kicker">Hermas 分数</div>
+	            <div class="command-kicker">ReplyPilot AI 分数</div>
 	            <strong class="command-title">${Number(scorecard.system_score || 0)}/100</strong>
 	            <div class="compact-list">
 	              ${compactRow("阶段", qualityGradeLabel(scorecard.grade), automationMode.label || "审批优先")}
@@ -10471,7 +10434,7 @@
 	          target: 95,
 	          direction: "at_least",
 	          unit: "分",
-	          owner: "IT / Hermas",
+	          owner: "IT / ReplyPilot AI",
 	          action: flow.next || "补 Step 前/后回放：先回答，再接正确 Flow 或 CTA。",
 	          proof: "Step replay PASS，Flow 不再替代答案",
 	          blocks: true
@@ -10550,7 +10513,7 @@
 	        <section class="command-panel accent" id="handoffSelfOptimizationFunnel" data-owner-nav aria-label="转人工自我优化漏斗">
 	          <div class="command-kicker">转人工自我优化</div>
 	          <strong class="command-title">人工处理后，AI 不是马上学</strong>
-	          <p class="command-copy">客服要补最终回复和结果；Hermas 只整理候选；Owner 审核 + 回放通过后，才可能变成 FAQ / SOP / 成交话术或测试用例。</p>
+	          <p class="command-copy">客服要补最终回复和结果；ReplyPilot AI 只整理候选；Owner 审核 + 回放通过后，才可能变成 FAQ / SOP / 成交话术或测试用例。</p>
 	          <div class="compact-list">
 	            ${compactRow("候选样本", `${candidateCount} 条`, "只读")}
 	            ${compactRow("缺资料", `${blocked} 条待补学习资料`, blocked ? "先补" : "OK")}
@@ -10604,7 +10567,7 @@
 	        { stage_id: "capture_handoff_context", owner: "客服", required_before_next: ["顾客问题", "转人工原因"], output: "转人工记录" },
 	        { stage_id: "record_final_human_reply", owner: "客服", required_before_next: ["人工最终回复", "顾客结果"], output: "人工处理记录" },
 	        { stage_id: "judge_learning_quality", owner: "Owner / CS Lead", required_before_next: ["复盘备注", "学习判断"], output: "可学 / 要修 / 不学" },
-	        { stage_id: "draft_learning_asset", owner: "IT / Hermas", required_before_next: ["Owner 审核意图", "资产类型"], output: "FAQ/SOP/话术草稿" },
+	        { stage_id: "draft_learning_asset", owner: "IT / ReplyPilot AI", required_before_next: ["Owner 审核意图", "资产类型"], output: "FAQ/SOP/话术草稿" },
 	        { stage_id: "replay_before_use", owner: "IT / Owner", required_before_next: ["回放测试", "负例通过"], output: "回放通过候选" },
 	        { stage_id: "owner_release_review", owner: "Owner", required_before_next: ["老板明确批准", "自动仍关闭"], output: "只进入学习草稿" },
 	      ];
@@ -10615,7 +10578,7 @@
 	        capture_handoff_context: "客服记录为什么转人工",
 	        record_final_human_reply: "客服贴最终回复和结果",
 	        judge_learning_quality: "判断可学、要修或不学",
-	        draft_learning_asset: "Hermas 整理成学习草稿",
+	        draft_learning_asset: "ReplyPilot AI 整理成学习草稿",
 	        replay_before_use: "用同类 Case 回放测试",
 	        owner_release_review: "Owner 最后放行",
 	      };
@@ -10623,7 +10586,7 @@
 	    }
 
 	    function handoffStageOwner(value = "") {
-	      return `负责人：${String(value || "团队").replace(/CS Team/gi, "客服").replace(/IT \/ Hermas/gi, "IT / Hermas")}`;
+	      return `负责人：${String(value || "团队").replace(/CS Team/gi, "客服").replace(/IT \/ Hermas/gi, "IT / ReplyPilot AI")}`;
 	    }
 
 	    function handoffStageRequired(values = []) {
@@ -11726,14 +11689,6 @@
       url.searchParams.delete("staff_token");
       url.searchParams.delete("operator_token");
       if (api) url.searchParams.set("api", api);
-      if (role === "staff") {
-        const staffToken = localStorage.getItem("agent_staff_token")
-          || (state.role === "staff" ? adminTokenEl.value.trim() : "");
-        if (!staffToken) {
-          throw new Error("这台浏览器没有客服安全码，不能复制客服入口。请用 COPY_Beyoute_Dashboard_Links.command 生成正式链接。");
-        }
-        url.searchParams.set("staff_token", staffToken);
-      }
       return url.toString();
     }
 
@@ -16360,7 +16315,7 @@
 	          </div>
 	          <div class="case-learning-steps">
 	            <div class="case-learning-step"><strong>客服</strong><span>${escapeHtml(stepOne)}</span></div>
-	            <div class="case-learning-step"><strong>Hermas</strong><span>${escapeHtml(stepTwo)}</span></div>
+	            <div class="case-learning-step"><strong>ReplyPilot AI</strong><span>${escapeHtml(stepTwo)}</span></div>
 	            <div class="case-learning-step"><strong>Owner</strong><span>${escapeHtml(stepThree)}</span></div>
 	          </div>
 	          ${caseHandoffEvidenceChecklistHtml(item)}
@@ -17692,7 +17647,7 @@
           at: new Date().toISOString(),
           note: `${candidate.artifact_label || "学习"}候选已批准进业务脑（演示）。`,
         });
-        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：演示已批准；真实版本化需要 Owner Dashboard 管理密钥。`;
+        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：演示已批准；真实版本化需要 Owner 管理员账号。`;
         showToast("演示：已批准学习候选。");
         render();
         return localRecord;
