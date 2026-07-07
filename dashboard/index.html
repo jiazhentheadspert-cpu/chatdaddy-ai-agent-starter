@@ -6316,6 +6316,11 @@
     const requestedView = params.get("view") || "";
     state.workspaceView = ["cases", "learning", "operations"].includes(requestedView) ? requestedView : state.workspaceView;
     state.pendingCaseId = params.get("case_id") || null;
+    const requestedQuery = String(params.get("q") || params.get("query") || hashParams.get("q") || "").trim().slice(0, 120);
+    if (requestedQuery) {
+      state.query = requestedQuery;
+      if (caseSearchEl) caseSearchEl.value = requestedQuery;
+    }
     const requestedDate = normalizeIsoDate(params.get("date"));
     state.selectedDate = requestedDate || todayISO;
     state.queueDateScope = state.role === "staff" && !requestedDate ? "open_backlog" : "date";
