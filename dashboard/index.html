@@ -93,6 +93,13 @@
       overscroll-behavior: contain;
     }
 
+    .sidebar,
+    body.staff-mode .app-shell,
+    body.staff-mode .workspace,
+    body.staff-mode::before {
+      transition: width .18s ease, max-width .18s ease, min-width .18s ease, padding-left .18s ease;
+    }
+
     .brand {
       display: flex;
       align-items: center;
@@ -124,6 +131,48 @@
       color: rgba(255,255,255,.58);
       font-size: 12px;
       font-weight: 850;
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .sidebar-toggle {
+      position: absolute;
+      top: 22px;
+      right: 16px;
+      min-height: 42px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 13px;
+      background: rgba(255,255,255,.045);
+      color: rgba(255,255,255,.78);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 950;
+      cursor: pointer;
+      box-shadow: 0 16px 38px rgba(0,0,0,.18);
+    }
+
+    .sidebar-toggle:hover {
+      border-color: rgba(0,183,216,.34);
+      color: #fff;
+      background: rgba(0,183,216,.10);
+    }
+
+    .sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      font-size: 16px;
+      line-height: 1;
+      transition: transform .18s ease;
     }
 
     .side-nav {
@@ -3392,11 +3441,29 @@
 
     .staff-case-section-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 360px));
-      justify-content: start;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      justify-content: stretch;
       align-items: start;
       gap: 12px;
       min-width: 0;
+    }
+
+    @media (max-width: 1360px) {
+      body.staff-mode:not(.sidebar-collapsed) .staff-case-section-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 1180px) {
+      body.staff-mode.sidebar-collapsed .staff-case-section-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 860px) {
+      body.staff-mode .staff-case-section-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .staff-section-empty {
@@ -5102,6 +5169,10 @@
       --staff-sidebar-width: 300px;
     }
 
+    body.staff-mode.sidebar-collapsed {
+      --staff-sidebar-width: 76px;
+    }
+
     body.staff-mode .app-shell {
       width: 100vw;
       max-width: 100vw;
@@ -5143,6 +5214,92 @@
       min-width: 0;
       width: 100%;
       max-width: calc(100vw - var(--staff-sidebar-width));
+    }
+
+    body.staff-mode.sidebar-collapsed .sidebar {
+      padding: 18px 10px;
+      overflow-x: hidden;
+      gap: 12px;
+    }
+
+    body.staff-mode.sidebar-collapsed .sidebar-toggle {
+      position: fixed;
+      top: 18px;
+      left: 14px;
+      right: auto;
+      z-index: 24;
+    }
+
+    body.staff-mode.sidebar-collapsed .brand {
+      justify-content: center;
+      margin-top: 48px;
+    }
+
+    body.staff-mode.sidebar-collapsed .brand-copy,
+    body.staff-mode.sidebar-collapsed .side-section,
+    body.staff-mode.sidebar-collapsed .side-note,
+    body.staff-mode.sidebar-collapsed .side-settings-title,
+    body.staff-mode.sidebar-collapsed .frontend-only-card {
+      display: none !important;
+    }
+
+    body.staff-mode.sidebar-collapsed .side-nav,
+    body.staff-mode.sidebar-collapsed .side-settings,
+    body.staff-mode.sidebar-collapsed .side-settings-panel {
+      gap: 8px;
+      padding-right: 0;
+      justify-items: center;
+      overflow: hidden;
+    }
+
+    body.staff-mode.sidebar-collapsed .side-nav button[data-short] {
+      width: 48px;
+      height: 48px;
+      min-height: 48px;
+      padding: 0;
+      grid-template-columns: 1fr;
+      place-items: center;
+      margin: 0 auto;
+    }
+
+    body.staff-mode.sidebar-collapsed .side-nav button[data-short] > * {
+      display: none !important;
+    }
+
+    body.staff-mode.sidebar-collapsed .side-nav button[data-short]::before {
+      content: attr(data-short);
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.86);
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    body.staff-mode.sidebar-collapsed .side-nav button[data-short].active::before {
+      background: rgba(0,183,216,.18);
+      color: #fff;
+    }
+
+    body.staff-mode.sidebar-collapsed .sidebar-toggle {
+      width: 48px;
+      height: 42px;
+      min-height: 42px;
+      padding: 0;
+      margin: 0;
+      background: rgba(0,183,216,.14);
+      border-color: rgba(0,183,216,.36);
+    }
+
+    body.staff-mode.sidebar-collapsed .sidebar-toggle-text {
+      display: none;
+    }
+
+    body.staff-mode.sidebar-collapsed .sidebar-toggle-icon {
+      transform: rotate(180deg);
     }
 
     body.staff-mode .status-strip {
@@ -5197,7 +5354,7 @@
 	    }
 
     @media (max-width: 1180px) and (min-width: 821px) {
-      body.staff-mode {
+      body.staff-mode:not(.sidebar-collapsed) {
         --staff-sidebar-width: 260px;
       }
 
@@ -5220,7 +5377,7 @@
     }
 
     @media (max-width: 820px) {
-      body.staff-mode {
+      body.staff-mode:not(.sidebar-collapsed) {
         --staff-sidebar-width: clamp(220px, 34vw, 260px);
       }
 
@@ -5412,6 +5569,29 @@
     body.staff-mode .case-card {
       min-height: 138px;
     }
+
+    body.staff-mode .staff-case-section-grid {
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    }
+
+    @media (min-width: 1181px) {
+      body.staff-mode .staff-case-section-grid {
+        grid-template-columns: repeat(3, minmax(260px, 1fr));
+      }
+    }
+
+    @media (max-width: 1180px) {
+      body.staff-mode.sidebar-collapsed .staff-case-section-grid {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      body.staff-mode .staff-case-section-grid,
+      body.staff-mode.sidebar-collapsed .staff-case-section-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -5419,23 +5599,28 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">RP</div>
-        <div>
+        <div class="brand-copy">
           <b>ReplyPilot AI</b>
           <span>客服运营台</span>
         </div>
       </div>
 
+      <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="收起侧栏" aria-pressed="false">
+        <span class="sidebar-toggle-icon" aria-hidden="true">&lt;</span>
+        <span class="sidebar-toggle-text">收起</span>
+      </button>
+
       <nav class="side-nav" aria-label="主导航">
         <div class="side-section">客服</div>
-        <button class="active" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
+        <button class="active" data-short="台" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
           <span class="side-label side-label-plain"><em>操作台</em></span>
           <small id="navCasesBadge">0</small>
         </button>
-        <button data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
+        <button data-short="复" data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
           <span class="side-label side-label-plain"><em>复盘</em></span>
           <small id="navLearningBadge">0</small>
         </button>
-        <button data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
+        <button data-short="S" data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
           <span class="side-label side-label-plain"><em>Segment</em></span>
           <small id="navStep7Badge">待</small>
         </button>
@@ -5444,15 +5629,15 @@
         <div class="side-settings" aria-label="设置">
           <div class="side-settings-title"><span class="side-label side-label-plain"><em>设置</em></span></div>
           <div class="side-settings-panel">
-            <button data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
+            <button data-short="1" data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
               <span class="side-label"><b class="side-code">1</b><em>讯息连接</em></span>
               <small id="navStep1Badge">✅</small>
             </button>
-            <button data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
+            <button data-short="2" data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
               <span class="side-label"><b class="side-code">2</b><em>回复 SOP</em></span>
               <small id="navStep2Badge">✅</small>
             </button>
-            <button data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
+            <button data-short="3" data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
               <span class="side-label"><b class="side-code">3</b><em>FAQ 资料</em></span>
               <small id="navStep3Badge">✅</small>
             </button>
@@ -5832,6 +6017,7 @@
       loading: false,
       actionBusy: false,
       bulkBusy: false,
+      sidebarCollapsed: false,
       sidebarKey: "ai_reply",
       activeSetupStep: "4",
       agentPaused: false,
@@ -6125,6 +6311,8 @@
     state.role = params.get("role") || state.session.role || "owner";
     document.body.classList.toggle("staff-mode", state.role === "staff");
     document.body.dataset.role = state.role;
+    state.sidebarCollapsed = localStorage.getItem("replypilot_sidebar_collapsed") === "1";
+    applySidebarCollapsedState();
     const requestedView = params.get("view") || "";
     state.workspaceView = ["cases", "learning", "operations"].includes(requestedView) ? requestedView : state.workspaceView;
     state.pendingCaseId = params.get("case_id") || null;
@@ -6169,6 +6357,10 @@
 
     $("pauseAgentBtn").addEventListener("click", () => {
       togglePauseAgent();
+    });
+
+    $("sidebarToggle").addEventListener("click", () => {
+      setSidebarCollapsed(!state.sidebarCollapsed);
     });
 
     $("loadDemo").addEventListener("click", () => {
@@ -6726,7 +6918,25 @@
       $("autoFilterBtn").classList.toggle("hidden", false);
       $("learnBtn").classList.toggle("hidden", state.role === "staff");
       applySidebarRoleLabels();
+      applySidebarCollapsedState();
 
+    }
+
+    function setSidebarCollapsed(value) {
+      state.sidebarCollapsed = Boolean(value);
+      localStorage.setItem("replypilot_sidebar_collapsed", state.sidebarCollapsed ? "1" : "0");
+      applySidebarCollapsedState();
+    }
+
+    function applySidebarCollapsedState() {
+      const collapsed = state.role === "staff" && Boolean(state.sidebarCollapsed);
+      document.body.classList.toggle("sidebar-collapsed", collapsed);
+      const toggle = $("sidebarToggle");
+      if (!toggle) return;
+      toggle.setAttribute("aria-pressed", collapsed ? "true" : "false");
+      toggle.setAttribute("aria-label", collapsed ? "展开侧栏" : "收起侧栏");
+      const label = toggle.querySelector(".sidebar-toggle-text");
+      if (label) label.textContent = collapsed ? "展开" : "收起";
     }
 
     function applySidebarRoleLabels() {
@@ -7259,8 +7469,8 @@
       const phoneDisplay = customerPhoneDisplayFromDigits(digits);
       if (phoneDisplay) return phoneDisplay;
       const suffix = String(digits || "").replace(/\D/g, "").slice(-4);
-      if (!suffix) return "顾客";
-      return `顾客 ${suffix}`;
+      if (!suffix) return "电话未保存";
+      return `电话末四位 ${suffix}`;
     }
 
     function customerNameOverrideFromDigits(digits = "", phoneDisplay = "") {
