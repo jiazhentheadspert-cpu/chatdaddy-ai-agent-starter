@@ -6089,6 +6089,7 @@
 	      learningNotes: null,
 	      pendingCaseId: null,
       deepLinkOpened: false,
+      loadingCaseDetailId: "",
       loading: false,
       actionBusy: false,
       bulkBusy: false,
@@ -13367,9 +13368,13 @@
 	    }
 
     function openCase(caseId) {
-      const item = (state.visibleCases || []).find((record) => record.id === caseId)
-        || state.cases.find((record) => record.id === caseId);
-      if (!item) return;
+      const id = String(caseId || "").trim();
+      const item = (state.visibleCases || []).find((record) => String(record.id || "") === id)
+        || state.cases.find((record) => String(record.id || "") === id);
+      if (!item) {
+        loadCaseDetailAndOpen(id);
+        return;
+      }
       state.active = item;
 
       const decision = item.latest_decision || {};
@@ -13455,6 +13460,43 @@
       }).join("");
 
       $("panel").classList.add("open");
+    }
+
+    async function loadCaseDetailAndOpen(caseId) {
+      const id = String(caseId || "").trim();
+      if (!id || state.loadingCaseDetailId === id) return;
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      if (!api || (!token && !hasAccountSession())) {
+        state.query = id;
+        if (caseSearchEl) caseSearchEl.value = id;
+        render();
+        showToast("请先登录，再打开这张 Case。");
+        return;
+      }
+      state.loadingCaseDetailId = id;
+      showToast("正在打开这张复盘 Case...");
+      try {
+        const detailUrl = `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(id)}`;
+        const data = await fetchJsonSafe(detailUrl, authRequestOptions(token));
+        const raw = data?.item || data?.case || null;
+        if (!data?.ok || !raw) throw new Error("case_not_found");
+        const loaded = approvalToCase(raw, state.contactNames || {});
+        const existingIndex = state.cases.findIndex((record) => String(record.id || "") === String(loaded.id || ""));
+        if (existingIndex >= 0) state.cases[existingIndex] = loaded;
+        else state.cases.unshift(loaded);
+        state.filter = "all";
+        render();
+        requestAnimationFrame(() => openCase(loaded.id));
+      } catch (_error) {
+        state.query = id;
+        if (caseSearchEl) caseSearchEl.value = id;
+        render();
+        showToast("找不到这张 Case；已用编号帮你搜索。");
+      } finally {
+        state.loadingCaseDetailId = "";
+      }
     }
 
 	    function updatePurchaseNote(item = state.active) {
@@ -18373,10 +18415,8 @@
         openCase(id);
         return;
       }
-      state.query = id;
-      if (caseSearchEl) caseSearchEl.value = id;
       render();
-      showToast("已用顾客编号搜索操作台；如果还看不到，请刷新操作台。");
+      loadCaseDetailAndOpen(id);
     }
 
     function emptyHtml() {
