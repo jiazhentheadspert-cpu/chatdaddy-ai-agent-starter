@@ -4517,11 +4517,9 @@
 
 	    .reply-command-bar {
 	      display: grid;
-	      grid-template-columns: minmax(220px, .75fr) minmax(360px, 1.15fr) minmax(138px, .35fr);
-	      grid-template-areas:
-	        "head head head"
-	        "reply pay more";
-	      align-items: center;
+	      grid-template-columns: minmax(160px, .55fr) minmax(260px, 1fr) minmax(360px, 1.16fr) minmax(150px, .45fr);
+	      grid-template-areas: "head reply pay more";
+	      align-items: stretch;
 	      justify-content: stretch;
 	      gap: 10px;
 	      margin-top: 12px;
@@ -4550,11 +4548,12 @@
 
     .reply-command-bar .quick-action-head {
       grid-area: head;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      display: grid;
+      align-content: center;
+      justify-items: start;
+      gap: 3px;
       min-width: 0;
+      padding: 2px 4px;
     }
 
     .reply-action-group,
@@ -4592,7 +4591,7 @@
 	    .payment-quick {
       grid-area: pay;
 	      display: grid;
-	      grid-template-columns: auto minmax(132px, .55fr) minmax(154px, .7fr);
+	      grid-template-columns: auto minmax(136px, .58fr) minmax(160px, .72fr);
 	      align-items: center;
 	      gap: 7px;
 	      min-width: 0;
@@ -4678,7 +4677,8 @@
       color: var(--muted);
       font-size: 12px;
       font-weight: 860;
-      white-space: nowrap;
+      white-space: normal;
+      line-height: 1.35;
     }
 
     .action-card {
@@ -5990,7 +5990,7 @@
             <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
               <div class="quick-action-head">
                 <span>客服操作</span>
-                <small>先确认内容；付款只记录成交，不会发讯息。</small>
+                <small>发送会给顾客；确认收款只记录成交，不会发讯息。</small>
               </div>
               <div class="reply-action-group" aria-label="发送回复">
                 <span>回复顾客</span>
@@ -6002,8 +6002,8 @@
                   <span>成交 RM</span>
                   <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
                 </label>
-                <button class="btn primary" id="markPurchaseBtn" type="button">确认已付款</button>
-                <div class="purchase-note" id="purchaseNote">收到款/COD 确认后才按；不会发消息。</div>
+                <button class="btn primary" id="markPurchaseBtn" type="button">确认收款 / COD</button>
+                <div class="purchase-note" id="purchaseNote">已收到款或 COD 已确认才按；不会发给顾客。</div>
               </div>
               <details class="function-menu" id="functionMenu">
                 <summary>其他处理</summary>
@@ -7626,8 +7626,9 @@
         const text = String(value || "").trim();
         if (!text) continue;
         const normalized = text.toLowerCase();
-        if (["whatsapp customer", "customer", "live case", "demo customer", "test customer", "unknown", "undefined", "null", "未知顾客", "未命名顾客", "未知客户", "未命名客户"].includes(normalized)) continue;
+        if (["whatsapp customer", "customer", "live case", "demo customer", "test customer", "unknown", "undefined", "null", "未知顾客", "未命名顾客", "未知客户", "未命名客户", "电话未保存"].includes(normalized)) continue;
         if (/^(?:未知|未命名)?(?:顾客|客户|customer)$/i.test(text)) continue;
+        if (/^(?:电话|手機|手机|号码|號碼)?\s*(?:尾号|尾號|末四位|未四位|last\s*4|last\s*four)\s*[:：#-]?\s*\d{4}$/i.test(text)) continue;
         if (/^(?:未知|未命名)(?:顾客|客户)\s*(?:#|编号|id)?\s*[\w-]+$/i.test(text)) continue;
         if (/^(?:顾客|客户)\s*\d{3,}$/i.test(text)) continue;
         if (/^customer\s*(?:#|no\.?|id)?\s*\d{2,}$/i.test(text)) continue;
@@ -7651,11 +7652,7 @@
     }
 
     function fallbackCustomerNameFromDigits(digits) {
-      const phoneDisplay = customerPhoneDisplayFromDigits(digits);
-      if (phoneDisplay) return phoneDisplay;
-      const suffix = String(digits || "").replace(/\D/g, "").slice(-4);
-      if (!suffix) return "电话未保存";
-      return `电话尾号 ${suffix}`;
+      return "顾客";
     }
 
     function customerNameOverrideFromDigits(digits = "", phoneDisplay = "") {
@@ -7867,11 +7864,11 @@
         item.raw_approval?.message?.contact_name,
         item.raw_approval?.message?.display_name,
         item.raw_approval?.message?.displayName
-      ) || fallbackCustomerNameFromDigits(customerIdentitySuffixFromCase(item));
+      ) || fallbackCustomerNameFromDigits(digits || customerIdentitySuffixFromCase(item));
     }
 
     function customerDisplayLabelWithTail(item = {}, baseName = "") {
-      const name = String(baseName || customerDisplayLabel(item) || "顾客").trim();
+      const name = firstCleanCustomerName(baseName, customerDisplayLabel(item)) || "顾客";
       const tail = customerIdentitySuffixFromCase(item) || String(approvalContactDigits(item) || "").replace(/\D/g, "").slice(-4);
       if (!tail) return name;
       if (new RegExp(`(?:尾号|末四位|未四位|\\b)\\s*${tail}\\b`).test(name)) return name;
@@ -13829,8 +13826,8 @@
 
 	    function purchaseButtonLabelForCase(item = {}, canResendPurchase = canResendPurchaseMeta(item)) {
 	      if (canResendPurchase) return "补回流广告";
-	      if (item.status === "purchase_confirmed") return "已确认付款";
-	      return "确认已付款";
+	      if (item.status === "purchase_confirmed") return "已确认收款";
+	      return "确认收款 / COD";
 	    }
 
 	    function hasPurchaseActionContext(item = {}) {
