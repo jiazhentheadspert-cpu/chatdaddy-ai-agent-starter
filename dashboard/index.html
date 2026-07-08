@@ -2546,6 +2546,24 @@
 	      line-height: 1.35;
 	    }
 
+	    .handoff-risk-advisor .handoff-channel-note {
+	      color: var(--green);
+	      font-weight: 940;
+	    }
+
+	    .handoff-risk-advisor .handoff-safe-draft {
+	      border: 1px solid rgba(0, 183, 160, .18);
+	      border-radius: 10px;
+	      background: rgba(255, 255, 255, .82);
+	      color: var(--ink);
+	      padding: 8px;
+	    }
+
+	    .handoff-risk-advisor .handoff-safe-draft strong {
+	      color: var(--green);
+	      font-weight: 950;
+	    }
+
 	    .handoff-risk-advisor em {
 	      justify-self: flex-start;
 	      border: 1px solid rgba(0, 183, 160, .22);
@@ -17454,7 +17472,10 @@
 	        <div class="handoff-risk-advisor ${tone}" id="handoffRiskAdvisor" data-risk-tag="${escapeHtml(advisor.risk_tag)}">
 	          <b>系统预审：${escapeHtml(advisor.title)}</b>
 	          <em>${escapeHtml(`${advisor.risk_label}｜${learnabilityShortLabel(advisor.learnability)}`)}</em>
+	          <span class="handoff-channel-note">客服只在 Dashboard 回复；ChatDaddy 只做后台同步/发送通道。</span>
 	          <span>${escapeHtml(advisor.guidance)}</span>
+	          ${advisor.safe_reply_draft ? `<span class="handoff-safe-draft"><strong>可参考回复：</strong>${escapeHtml(advisor.safe_reply_draft)}</span>` : ""}
+	          ${advisor.safe_reply_draft ? `<small>${escapeHtml("只作客服参考；按真实情况修改后在 Dashboard 发送。发送成功并补 final_human_reply / 顾客结果后，才会成为 Owner 审核学习候选。")}</small>` : ""}
 	          <small>${escapeHtml(advisor.do_not_do.join("；"))}</small>
 	        </div>
 	      `;
@@ -17481,6 +17502,7 @@
 	          handoff_reason: "低上下文确认/等待信息，不适合作为学习样本。",
 	          customer_outcome: "客服已人工确认是否还需要跟进。",
 	          learning_outcome_note: "不建议学习；只保留处理记录。",
+	          safe_reply_draft: "亲，好的，我等你😊 你方便的时候再发我，我这边会继续帮你看。",
 	          do_not_do: ["不要把单独表情或“稍等”训练成自动回复。"]
 	        });
 	      }
@@ -17495,6 +17517,7 @@
 	          handoff_reason: "健康/哺乳/身体状况敏感问题，需要人工确认，不能自动给饮用建议。",
 	          customer_outcome: "已由客服人工处理；如涉及身体状况，应建议先咨询医生/专业人士。",
 	          learning_outcome_note: "只可沉淀安全边界：健康、哺乳、吃药、疾病/症状类问题必须人工接手；不可自动学习成直接饮用建议。",
+	          safe_reply_draft: "亲，这个涉及身体状况/哺乳/用药这类敏感情况，我这边不能只根据讯息帮你做身体判断🙏 为了安全，建议你先问医生或专业人士确认；我这里可以先帮你保留资料，确认清楚后再继续安排。",
 	          do_not_do: ["不要自动回答能不能喝。", "不要承诺疗效或安全性。", "不要接销售 Flow。"]
 	        });
 	      }
@@ -17509,6 +17532,7 @@
 	          handoff_reason: "退款/投诉/售后政策问题，需要客服按真实政策处理。",
 	          customer_outcome: "已由客服人工说明政策或升级处理。",
 	          learning_outcome_note: "可让 Owner 审核是否沉淀为售后 SOP；不能自动承诺退款、赔偿或无效退款。",
+	          safe_reply_draft: "亲，这个我先帮你按真实售后政策确认清楚🙏 关于退款/售后条件我不会乱承诺，我先查清楚规则后再回复你，可以吗？",
 	          do_not_do: ["不要自动承诺退款。", "不要自动补偿。", "不要用销售话术压过投诉。"]
 	        });
 	      }
@@ -17523,6 +17547,7 @@
 	          handoff_reason: "顾客在投诉没人跟进/需要查记录，必须人工接手服务恢复。",
 	          customer_outcome: "客服已接手查记录并向顾客说明下一步。",
 	          learning_outcome_note: "可学习为服务恢复 SOP：先道歉、接手查记录、给明确下一步；不可接普通销售 Flow。",
+	          safe_reply_draft: "亲，真的不好意思让你等这么久🙏 我这边先帮你接手查一下记录，确认是哪一段没有 follow up。查到后我会直接给你下一步，不会让你一直等 ❤️",
 	          do_not_do: ["不要继续销售 Flow。", "不要说系统已经处理，除非客服确实查过。", "不要自动收起。"]
 	        });
 	      }
@@ -17537,6 +17562,7 @@
 	          handoff_reason: "付款/订单资料需要人工核对，不能自动确认。",
 	          customer_outcome: "客服已人工核对付款/订单状态。",
 	          learning_outcome_note: "不可自动学习付款确认；只能记录为人工核对流程证据。",
+	          safe_reply_draft: "亲，我先帮你核对付款/订单资料🙏 确认前我不会直接标记已付款；核对好了再告诉你下一步。",
 	          do_not_do: ["不要自动点确认已付款。", "不要自动说已收到款。", "不要触发付款 Flow。"]
 	        });
 	      }
@@ -17551,6 +17577,7 @@
 	          handoff_reason: "价格/优惠/订单承诺需要按当前活动和库存人工确认。",
 	          customer_outcome: "客服已按当前政策说明。",
 	          learning_outcome_note: "Owner 审核后才可沉淀为当期活动话术；过期活动不可自动复用。",
+	          safe_reply_draft: "亲，我先帮你确认今天还能用的配套、价格和赠品，避免给错旧活动🙏 确认后再发你最准确的资料。",
 	          do_not_do: ["不要自动承诺价格。", "不要自动承诺赠品/包邮。", "不要复用过期活动。"]
 	        });
 	      }
@@ -17565,6 +17592,7 @@
 	          handoff_reason: "用法问题可能牵涉 Flow/健康边界，先保持审批优先。",
 	          customer_outcome: "客服已人工说明基础用法或继续确认情况。",
 	          learning_outcome_note: "可让 Owner 审核是否加入 FAQ；当前 L1-only 不包含用法后接 Flow。",
+	          safe_reply_draft: "亲，我先帮你按资料确认用法😊 如果你有身体状况、吃药、怀孕或哺乳，我会先建议你问专业人士，不乱给个性化建议。",
 	          do_not_do: ["不要自动触发销售 Flow。", "不要对健康敏感顾客给个性化用法。"]
 	        });
 	      }
@@ -17579,6 +17607,7 @@
 	          handoff_reason: "低风险成分/口味问题，可作为 L1-only 候选，但仍需 Owner 签核。",
 	          customer_outcome: "客服已人工回答基础成分/口味。",
 	          learning_outcome_note: "可作为 L1 text-only 候选；Owner 审核和 L1 signoff 通过后才可能少审核或自动。",
+	          safe_reply_draft: "亲，可以的😊 我先按资料帮你确认成分/口味，等下用最简单的方式发你。",
 	          do_not_do: ["不要扩展到健康功效。", "不要接 CTA 或 Flow。"]
 	        });
 	      }
@@ -17592,6 +17621,7 @@
 	        handoff_reason: "人工接手 Case，需要客服补最终回复和结果后再判断能否学习。",
 	        customer_outcome: "客服已人工处理并记录下一步。",
 	        learning_outcome_note: "先作为 Owner 审核候选；通过后才可沉淀为 FAQ/SOP/话术。",
+	        safe_reply_draft: "亲，我先帮你确认清楚这个问题🙏 处理好后我会把下一步直接发给你。",
 	        do_not_do: ["不要未审核就写进 AI 大脑。"]
 	      });
 	    }
@@ -17607,6 +17637,7 @@
 	        handoff_reason: item.handoff_reason || "",
 	        customer_outcome: item.customer_outcome || "",
 	        learning_outcome_note: item.learning_outcome_note || "",
+	        safe_reply_draft: item.safe_reply_draft || "",
 	        do_not_do: Array.isArray(item.do_not_do) ? item.do_not_do : []
 	      };
 	    }
