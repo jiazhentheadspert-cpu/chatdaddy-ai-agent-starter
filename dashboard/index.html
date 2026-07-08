@@ -4517,7 +4517,10 @@
 
 	    .reply-command-bar {
 	      display: grid;
-	      grid-template-columns: auto minmax(190px, .75fr) minmax(360px, 1fr) auto;
+	      grid-template-columns: minmax(220px, .75fr) minmax(360px, 1.15fr) minmax(138px, .35fr);
+	      grid-template-areas:
+	        "head head head"
+	        "reply pay more";
 	      align-items: center;
 	      justify-content: stretch;
 	      gap: 10px;
@@ -4527,7 +4530,7 @@
     }
 
     .panel.open .panel-body {
-      padding-bottom: 110px;
+      padding-bottom: 150px;
     }
 
 	    .panel.open .reply-command-bar {
@@ -4546,7 +4549,37 @@
     }
 
     .reply-command-bar .quick-action-head {
-      margin-right: auto;
+      grid-area: head;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .reply-action-group,
+    .payment-quick {
+      border: 1px solid rgba(0,183,216,.18);
+      border-radius: 14px;
+      background: rgba(255,255,255,.78);
+      padding: 8px;
+      min-width: 0;
+    }
+
+    .reply-action-group {
+      grid-area: reply;
+      display: grid;
+      grid-template-columns: minmax(74px, auto) minmax(160px, 1fr);
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reply-action-group > span,
+    .operation-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 950;
+      white-space: nowrap;
     }
 
     .composer-send-button {
@@ -4557,8 +4590,9 @@
     }
 
 	    .payment-quick {
+      grid-area: pay;
 	      display: grid;
-	      grid-template-columns: minmax(132px, .55fr) minmax(154px, .7fr);
+	      grid-template-columns: auto minmax(132px, .55fr) minmax(154px, .7fr);
 	      align-items: center;
 	      gap: 7px;
 	      min-width: 0;
@@ -4575,7 +4609,7 @@
     }
 
     .payment-quick .purchase-note {
-      grid-column: 1 / -1;
+      grid-column: 2 / -1;
       margin-top: -2px;
       font-size: 11px;
       white-space: nowrap;
@@ -4584,7 +4618,11 @@
     }
 
     .function-menu {
+      grid-area: more;
       position: relative;
+      align-self: stretch;
+      display: flex;
+      align-items: stretch;
     }
 
     .function-menu summary {
@@ -4603,6 +4641,8 @@
       cursor: pointer;
       user-select: none;
       box-shadow: 0 8px 22px rgba(8,23,29,.08);
+      width: 100%;
+      min-height: 100%;
     }
 
     .function-menu summary::-webkit-details-marker {
@@ -5188,10 +5228,21 @@
       .reply-card { margin-top: 10px; }
       .reply-command-bar {
         align-items: stretch;
-        flex-direction: column;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "head"
+          "reply"
+          "pay"
+          "more";
       }
       .reply-command-bar .quick-action-head {
         margin-right: 0;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .reply-action-group {
+        grid-template-columns: 1fr;
       }
       .composer-send-button,
       .payment-quick,
@@ -5199,9 +5250,10 @@
         width: 100%;
       }
       .payment-quick {
-        grid-template-columns: minmax(84px, .45fr) minmax(130px, 1fr);
+        grid-template-columns: 1fr;
       }
       .payment-quick .purchase-note {
+        grid-column: 1 / -1;
         white-space: normal;
       }
       .function-menu-panel {
@@ -5938,10 +5990,14 @@
             <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
               <div class="quick-action-head">
                 <span>客服操作</span>
-                <small>发送会给顾客；确认付款只记录成交</small>
+                <small>先确认内容；付款只记录成交，不会发讯息。</small>
               </div>
-              <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
+              <div class="reply-action-group" aria-label="发送回复">
+                <span>回复顾客</span>
+                <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
+              </div>
               <div class="payment-quick" id="purchasePanel" aria-label="确认已付款并回流广告">
+                <div class="operation-label">确认收款 / COD</div>
                 <label class="purchase-input-wrap">
                   <span>成交 RM</span>
                   <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
@@ -6111,6 +6167,7 @@
       role: "owner",
       session: {},
       query: "",
+      searchReloadTimer: null,
       sort: "priority",
       workspaceView: "cases",
       selected: new Set(),
@@ -6496,6 +6553,10 @@
     caseSearchEl.addEventListener("input", () => {
       state.query = caseSearchEl.value.trim();
       render();
+      if (state.searchReloadTimer) clearTimeout(state.searchReloadTimer);
+      state.searchReloadTimer = setTimeout(() => {
+        if (!state.demoMode) loadCases();
+      }, state.query ? 450 : 150);
     });
     caseSortEl.addEventListener("change", () => {
       state.sort = caseSortEl.value;
@@ -7229,6 +7290,7 @@
     }
 
     function casesForCurrentQueueDateScope(cases = []) {
+      if (String(state.query || "").trim()) return cases;
       return useOpenBacklogDateScope() ? cases.filter(isOpenBacklogCase) : filterCasesBySelectedDate(cases);
     }
 
@@ -7593,7 +7655,7 @@
       if (phoneDisplay) return phoneDisplay;
       const suffix = String(digits || "").replace(/\D/g, "").slice(-4);
       if (!suffix) return "电话未保存";
-      return `电话末四位 ${suffix}`;
+      return `电话尾号 ${suffix}`;
     }
 
     function customerNameOverrideFromDigits(digits = "", phoneDisplay = "") {
@@ -7806,6 +7868,15 @@
         item.raw_approval?.message?.display_name,
         item.raw_approval?.message?.displayName
       ) || fallbackCustomerNameFromDigits(customerIdentitySuffixFromCase(item));
+    }
+
+    function customerDisplayLabelWithTail(item = {}, baseName = "") {
+      const name = String(baseName || customerDisplayLabel(item) || "顾客").trim();
+      const tail = customerIdentitySuffixFromCase(item) || String(approvalContactDigits(item) || "").replace(/\D/g, "").slice(-4);
+      if (!tail) return name;
+      if (new RegExp(`(?:尾号|末四位|未四位|\\b)\\s*${tail}\\b`).test(name)) return name;
+      if (String(name || "").replace(/\D/g, "").endsWith(tail)) return name;
+      return `${name} · ${tail}`;
     }
 
     function customerDisplayMetaHtml(item = {}, displayName = "") {
@@ -8100,7 +8171,18 @@
 	        const qaMode = canUseQaMode();
 	        setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
 	        const visibility = dashboardApprovalVisibilityParams();
-	        const approvalUrl = `${api}/api/approvals/pending?project_key=${encodeURIComponent(project)}&status=all&include_tests=${visibility.includeTests ? "1" : "0"}&real_only=${visibility.realOnly ? "1" : "0"}&compact_conversations=1&limit=250&scan_limit=1000`;
+        const searchQuery = String(state.query || "").trim();
+        const approvalParams = new URLSearchParams({
+          project_key: project,
+          status: "all",
+          include_tests: visibility.includeTests ? "1" : "0",
+          real_only: visibility.realOnly ? "1" : "0",
+          compact_conversations: "1",
+          limit: searchQuery ? "120" : "250",
+          scan_limit: searchQuery ? "2000" : "1000",
+        });
+        if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
+	        const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
 		        let res = await fetch(approvalUrl, authRequestOptions(token));
 	        const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -13363,8 +13445,9 @@
 	    function cardHtml(item) {
 	      const decision = item.latest_decision || {};
 	      const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
-	      const displayName = customerDisplayLabel(item);
-	      const initials = initialsFor(displayName);
+	      const baseDisplayName = customerDisplayLabel(item);
+	      const displayName = customerDisplayLabelWithTail(item, baseDisplayName);
+	      const initials = initialsFor(baseDisplayName);
 	      const selected = state.selected.has(item.id);
 	      const sla = slaInfo(item);
 	      const learningFollowup = caseLearningFollowup(item);
@@ -13431,9 +13514,10 @@
       const purchaseActionComplete = purchaseActionCompleteForCase(item);
       const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve && !showPurchasePanel;
       const externalFlowReadOnly = item.status === "external_flow_continued";
-      const displayName = customerDisplayLabel(item);
+      const baseDisplayName = customerDisplayLabel(item);
+      const displayName = customerDisplayLabelWithTail(item, baseDisplayName);
 	      $("panelName").textContent = displayName;
-	      $("panelAvatar").textContent = initialsFor(displayName);
+	      $("panelAvatar").textContent = initialsFor(baseDisplayName);
       $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
       $("replyCard").classList.toggle("hidden", hideReplyCard);
       $("replyBox").value = hideReplyCard || isManualFollowUp ? "" : externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
