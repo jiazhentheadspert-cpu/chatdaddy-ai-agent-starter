@@ -10482,12 +10482,12 @@
 	      return `
 	        <section class="command-panel accent" id="autoReplyReadinessPanel" data-owner-nav aria-label="自动回复解锁看板">
 	          <div class="command-kicker">自动回复解锁看板</div>
-	          <strong class="command-title">现在 L0：审批优先</strong>
-	          <p class="command-copy">L1/L2/L3 不是一个总开关；每一层都要有分数、红线、旧卡和 Owner 复盘证明。</p>
-	          <div class="compact-list">
-	            ${compactRow("L1 纯文字 FAQ", l1Ready ? "可提交 Owner 白名单审核" : "还不能开：先清阻塞 KPI", l1Ready ? "候选" : "锁住")}
-	            ${compactRow("L2 回答后接 Flow", l2Ready ? "Step 回放通过后再评估" : "等 L1 + Flow Fit 95", l2Ready ? "候选" : "锁住")}
-	            ${compactRow("L3 价格/信心/CTA", l3Ready ? "当前价格 CTA 版本通过后评估" : "等 L2 + CTA 90", l3Ready ? "候选" : "锁住")}
+          <strong class="command-title">当前模式：客服先审核</strong>
+          <p class="command-copy">自动回复不是一个总开关；先从「基础自动回复」开始，每一层都要有分数、红线、旧卡和 Owner 复盘证明。</p>
+          <div class="compact-list">
+            ${compactRow("基础自动回复", l1Ready ? "可提交 Owner 白名单审核" : "还不能开：先清阻塞 KPI", l1Ready ? "候选" : "锁住")}
+            ${compactRow("答完再接 Flow（L2）", l2Ready ? "Step 回放通过后再评估" : "等基础自动回复 + Flow Fit 95", l2Ready ? "候选" : "锁住")}
+            ${compactRow("成交型回复（L3）", l3Ready ? "当前价格 CTA 版本通过后评估" : "等接 Flow + CTA 90", l3Ready ? "候选" : "锁住")}
 	          </div>
 	        </section>
 	        <section class="command-panel" data-owner-nav aria-label="自动回复阻塞 KPI">
@@ -10515,7 +10515,7 @@
 	      if (Number(context.learning?.score || 0) < 70) actions.push("补人工最终回复：顾客问题、客服回复、结果、复盘备注要齐");
 	      if (Number(context.flow?.score || 0) < 95) actions.push("补 Flow 回放：Step 前先答问题，Step 后再接下一步");
 	      if (Number(context.cta?.score || 0) < 90) actions.push("统一价格和 CTA：RM150/RM258/RM378、赠品、活动边界");
-	      if (!actions.length && context.gate?.can_expand_low_risk_auto_reply) actions.push("准备 L1 白名单：只挑低风险纯文字 FAQ");
+      if (!actions.length && context.gate?.can_expand_low_risk_auto_reply) actions.push("准备基础自动回复白名单：只挑低风险纯文字 FAQ");
 	      return actions.length ? actions : ["继续审批优先，收集更多真实 Case 评分"];
 	    }
 
@@ -10526,15 +10526,15 @@
 	        <section class="command-panel owner-signoff-gate" id="ownerDecisionSignoffGate" data-owner-nav aria-label="Owner 签核挡板">
 	          <div class="command-kicker">Owner 签核挡板</div>
 	          <strong class="command-title">${escapeHtml(status.title)}</strong>
-	          <p class="command-copy">P0 预览已经能先清红线，但老板签名前还只是预览。这里不会发送讯息、不会改业务脑、不会打开自动。</p>
+	          <p class="command-copy">安全红线预览已经能先清一批问题，但老板签名前还只是预览。这里不会发送讯息、不会改业务脑、不会打开自动。</p>
 	          <div class="compact-list">
-	            ${compactRow("当前状态", status.ownerSigned ? "Owner 已签，等 IT 填正式决定" : "等 Owner 签 P0 决定", status.ownerSigned ? "下一步" : "挡住")}
-	            ${compactRow("P0 红线预览", `${status.sourceP0Pending} 到 ${status.p0PendingAfterPreview}；总待审 ${status.sourcePending} 到 ${status.pendingAfterPreview}`, "只读")}
+	            ${compactRow("当前状态", status.ownerSigned ? "Owner 已签，等 IT 填正式决定" : "等 Owner 签安全红线决定", status.ownerSigned ? "下一步" : "挡住")}
+	            ${compactRow("安全红线预览", `${status.sourceP0Pending} 到 ${status.p0PendingAfterPreview}；总待审 ${status.sourcePending} 到 ${status.pendingAfterPreview}`, "只读")}
 	            ${compactRow("IT 下一步", status.readyForIt ? "可以按签核结果填正式决定" : "先不要填正式决定", status.readyForIt ? "可做" : "等待")}
 	            ${compactRow("完成标准", status.readyForGate ? "复核通过，回到完成检查" : "Owner 签名有了，再跑复核", status.readyForGate ? "通过" : "复核")}
 	          </div>
 	          <div class="owner-signoff-steps">
-	            ${ownerDecisionSignoffStepHtml("1", "Owner 看 P0", "先看付款方式、售后没人回、没人跟进这三类红线。")}
+		            ${ownerDecisionSignoffStepHtml("1", "Owner 看安全红线", "先看付款方式、售后没人回、没人跟进这三类红线。")}
 	            ${ownerDecisionSignoffStepHtml("2", "Owner 签名", "老板确认名字和决定；没有签名就不能进入正式填写。")}
 	            ${ownerDecisionSignoffStepHtml("3", "IT 再填", "签名后才把决定填进正式决定表，不抢先改。")}
 	            ${ownerDecisionSignoffStepHtml("4", "再复核", "复核过了才生成学习预览；自动回复仍然保持审批优先。")}
@@ -10558,7 +10558,7 @@
 	      const steps = reportSteps.length ? reportSteps : [
 	        {
 	          lane: "Owner",
-	          title: status.ownerSigned ? "确认签名后交给 IT" : "Owner 先签 P0 决定",
+		          title: status.ownerSigned ? "确认签名后交给 IT" : "Owner 先签安全红线决定",
 	          current: p0Pending,
 	          target: 0,
 	          done: "签名完成，IT 才能填正式决定；自动仍保持审批优先。"
@@ -10646,7 +10646,7 @@
 
 	    function ownerFriendlySequenceTitle(value = "") {
 	      const text = String(value || "");
-	      if (/signoff|签/i.test(text) && /P0/i.test(text)) return "Owner 先签 P0 决定";
+	      if (/signoff|签/i.test(text) && /P0/i.test(text)) return "Owner 先签安全红线决定";
 	      if (/clear.*Dashboard|清.*Dashboard|old cards|旧卡|human-first/i.test(text)) return "客服清旧卡";
 	      if (/P1|P2|学习候选|decision review|decision/i.test(text)) return "继续审学习候选";
 	      if (/退回|return|bad drafts/i.test(text)) return "退回不能过草稿";
@@ -10730,17 +10730,17 @@
 	      const total = ownerTodayNumber(readiness.total_check_count, checks.length);
 	      const next = l1UnlockNextAction(readiness, checks);
 	      return `
-	        <section class="command-panel accent" id="l1UnlockChecklistPanel" data-owner-nav aria-label="L1 解锁清单">
-	          <div class="command-kicker">L1 解锁清单</div>
-	          <strong class="command-title">${passed}/${total} 项通过，暂时不能直接开</strong>
-	          <p class="command-copy">这里回答两个问题：为什么现在不应该开，以及要做到什么数字才可以提交 L1 纯文字 FAQ 白名单审核。这个面板只读，不会开自动。</p>
-	          <div class="compact-list">
-	            ${compactRow("下一步", next, "先做")}
-	            ${compactRow("允许范围", l1AllowedScope(readiness.allowed_scope_if_later_approved), "L1")}
+        <section class="command-panel accent" id="l1UnlockChecklistPanel" data-owner-nav aria-label="基础自动回复开通清单">
+          <div class="command-kicker">基础自动回复开通清单</div>
+          <strong class="command-title">${passed}/${total} 项通过，暂时不能直接开</strong>
+	          <p class="command-copy">这里回答两个问题：为什么现在不应该开，以及要做到什么数字才可以提交「基础自动回复」纯文字 FAQ 白名单审核。这个面板只读，不会开自动。</p>
+          <div class="compact-list">
+            ${compactRow("下一步", next, "先做")}
+            ${compactRow("允许范围", l1AllowedScope(readiness.allowed_scope_if_later_approved), "安全范围")}
 	            ${compactRow("最后一关", "全部数字达标后，还要老板明确批准开自动审核", "人工确认")}
 	          </div>
 	        </section>
-	        <section class="command-panel" id="l1UnlockChecklistRows" data-owner-nav aria-label="L1 解锁项目">
+	        <section class="command-panel" id="l1UnlockChecklistRows" data-owner-nav aria-label="基础自动回复开通项目">
 	          <div class="command-kicker">8 项门槛</div>
 	          <strong class="command-title">每一项都要有证据</strong>
 	          <div class="audit-list">
@@ -10774,8 +10774,8 @@
 	      const key = String(item.check_id || item.label || "");
 	      if (/failed_blocking|Failed blocking/i.test(key)) return "阻塞 KPI 归零";
 	      if (/owner_decisions|Owner decisions/i.test(key)) return "Owner 决定清零";
-	      if (/owner_p0|Owner P0/i.test(key)) return "P0 签核清零";
-	      if (/staff_human|human-first|Staff P0/i.test(key)) return "客服优先卡清零";
+		      if (/owner_p0|Owner P0/i.test(key)) return "安全红线签核清零";
+		      if (/staff_human|human-first|Staff P0/i.test(key)) return "客服优先卡清零";
 	      if (/dashboard_scan|Remaining Dashboard/i.test(key)) return "Dashboard 复核清零";
 	      if (/dashboard_stuck|stuck drafts/i.test(key)) return "旧卡清零";
 	      if (/operating_contract|Operating contract/i.test(key)) return "操作规则已就绪";
@@ -10799,12 +10799,12 @@
 	      const key = String(item.check_id || item.label || "");
 	      if (/failed_blocking|Failed blocking/i.test(key)) return "阻塞 KPI 要归零，才能谈下一层自动。";
 	      if (/owner_decisions|Owner decisions/i.test(key)) return "Owner 要把学习候选全部审完。";
-	      if (/owner_p0|Owner P0/i.test(key)) return "P0 红线先签核，不让 IT 先填正式决定。";
+		      if (/owner_p0|Owner P0/i.test(key)) return "安全红线先签核，不让 IT 先填正式决定。";
 	      if (/staff_human|human-first|Staff P0/i.test(key)) return "客服先处理投诉、售后、付款和订单类卡片。";
 	      if (/dashboard_scan|Remaining Dashboard/i.test(key)) return "Dashboard 还要扫完，避免旧卡混在顾客队列。";
 	      if (/dashboard_stuck|stuck drafts/i.test(key)) return "旧草稿要让 AI 重写或移到自动记录，不能继续卡着。";
 	      if (/operating_contract|Operating contract/i.test(key)) return "操作规则已经具备，继续按 Dashboard 执行。";
-	      if (/explicit_owner|runtime approval|Owner explicit/i.test(key)) return "所有数字通过后，老板再单独批准是否进入 L1。";
+		      if (/explicit_owner|runtime approval|Owner explicit/i.test(key)) return "所有数字通过后，老板再单独批准是否进入基础自动回复。";
 	      return String(item.done_when || "按目标数字完成。");
 	    }
 
@@ -10812,7 +10812,7 @@
 	      const key = String(item.check_id || item.label || item.evidence_required || "");
 	      if (/failed_blocking|Control Room|metrics/i.test(key)) return "总检查 / 量化报告";
 	      if (/owner_decisions|completion gate/i.test(key)) return "Owner 决定完成检查";
-	      if (/owner_p0|P0 fast/i.test(key)) return "Owner P0 快审";
+		      if (/owner_p0|P0 fast/i.test(key)) return "Owner 安全红线快审";
 	      if (/staff_human|action pack/i.test(key)) return "客服行动包";
 	      if (/dashboard_scan|reconciliation/i.test(key)) return "Dashboard 复核";
 	      if (/dashboard_stuck|cleanup worklist/i.test(key)) return "旧卡清理名单";
@@ -10900,10 +10900,10 @@
 	        <section class="command-panel accent" id="quantifiedImprovementPlan" data-owner-nav aria-label="量化行动台">
 	          <div class="command-kicker">量化行动台</div>
 	          <strong class="command-title">${blockingRows.length} 个阻塞点要消掉</strong>
-	          <p class="command-copy">现在 -> 目标 -> 差距 -> 负责人 -> 证明。分数不是感觉；每个动作都要能在 Dashboard / replay / Owner decision 里看到证据。</p>
+	          <p class="command-copy">现在 -> 目标 -> 差距 -> 负责人 -> 证明。分数不是感觉；每个动作都要能在 Dashboard / 回放 / Owner 决定里看到证据。</p>
 	          <div class="compact-list">
 	            ${compactRow("System Score", `${score}/100`, score >= 85 ? "达线" : "要修")}
-	            ${compactRow("L1", gate.can_expand_low_risk_auto_reply ? "可提交白名单审核" : "还不能开", gate.can_expand_low_risk_auto_reply ? "候选" : "锁住")}
+	            ${compactRow("基础自动回复", gate.can_expand_low_risk_auto_reply ? "可提交白名单审核" : "还不能开", gate.can_expand_low_risk_auto_reply ? "候选" : "锁住")}
 	            ${compactRow("安全", "不会发送 WhatsApp、不会改业务脑、不会开自动", "只读")}
 	          </div>
 	        </section>
@@ -10945,7 +10945,7 @@
 	          unit: "个",
 	          owner: "Owner / CS Lead",
 	          action: "付款、投诉、退款、健康和售后先人工；红线归零前不扩大自动。",
-	          proof: "P0 replay PASS + Owner decision 完成",
+	          proof: "安全红线回放 PASS + Owner 决定完成",
 	          blocks: true
 	        }),
 	        quantifiedRow({
@@ -11043,10 +11043,10 @@
 	          <strong class="command-title">直接开，也要分层开</strong>
 	          <p class="command-copy">当前仍是 approval-first；只有低风险 FAQ 纯文字可以成为下一阶段自动候选。接 Flow、成交 CTA、付款订单和风险问题继续留给 Dashboard 审批。</p>
 	          <div class="compact-list">
-	            ${compactRow("L1", "低风险 FAQ 文字回复", "可白名单")}
-	            ${compactRow("L2", "回答后接 Flow", "先审批")}
-	            ${compactRow("L3", "价格/信任/CTA 成交", "先审批")}
-	            ${compactRow("L4", "付款、订单、投诉、健康", "人工")}
+            ${compactRow("基础自动回复", "低风险 FAQ 文字回复", "可白名单")}
+            ${compactRow("答完再接 Flow（L2）", "回答后接 Flow", "先审批")}
+            ${compactRow("成交型回复（L3）", "价格/信任/CTA 成交", "先审批")}
+            ${compactRow("敏感问题（L4）", "付款、订单、投诉、健康", "人工")}
 	            ${compactRow("红线", "自动 Flow 仍保持关闭", "安全")}
 	          </div>
 	        </section>
@@ -11111,7 +11111,7 @@
 	                <b>${escapeHtml(handoffQueueCategoryLabel(item.category))}</b>
 	                <span>${escapeHtml(item.customer_message || item.dashboard_display || "人工处理样本")}</span>
 	                <span>${escapeHtml(item.staff_action || item.owner_action || "补齐最终回复和结果后再审。")}</span>
-	                <small>${escapeHtml(`${item.priority || "P1"}｜${(item.kpis_helped || []).join(" / ") || "learning_capture_rate"}`)}</small>
+                <small>${escapeHtml(`${staffPriorityFriendlyLabel(item.priority || "P1")}｜${(item.kpis_helped || []).join(" / ") || "learning_capture_rate"}`)}</small>
 	              </div>
 	            `).join("")}
 	          </div>
@@ -11119,7 +11119,7 @@
 	      `;
 	    }
 
-	    function handoffSelfOptimizationFallbackStages() {
+    function handoffSelfOptimizationFallbackStages() {
 	      return [
 	        { stage_id: "capture_handoff_context", owner: "客服", required_before_next: ["顾客问题", "转人工原因"], output: "转人工记录" },
 	        { stage_id: "record_final_human_reply", owner: "客服", required_before_next: ["人工最终回复", "顾客结果"], output: "人工处理记录" },
@@ -11292,15 +11292,15 @@
 	      return `
 	        <section class="command-panel owner-completion-gate" id="ownerDecisionCompletionGatePanel" data-owner-nav aria-label="Owner 完成检查">
 	          <div class="command-kicker">Owner 完成检查</div>
-	          <strong class="command-title">${context.readyForPreview ? "Owner 决定已齐，可做 learning preview" : `还差 ${context.pendingCount} 个决定`}</strong>
-	          <p class="command-copy">这块只告诉老板还差什么；pending 归 0 才能生成 learning preview。它不会发送 WhatsApp、不会写业务脑、不会开启自动。</p>
+		          <strong class="command-title">${context.readyForPreview ? "Owner 决定已齐，可做学习预览" : `还差 ${context.pendingCount} 个决定`}</strong>
+		          <p class="command-copy">这块只告诉老板还差什么；待决定归 0 才能生成学习预览。它不会发送 WhatsApp、不会写业务脑、不会开启自动。</p>
 	          <div class="compact-list">
-	            ${compactRow("Owner decisions", `${context.pendingCount}/${context.totalCount} pending`, context.pendingCount ? "未完成" : "完成")}
-	            ${compactRow("P0 红线", `${context.p0PendingCount} 条未审`, context.p0PendingCount ? "先审" : "OK")}
-	            ${compactRow("Learning preview", context.readyForPreview ? "可以生成草稿预览和 replay" : "pending 归 0 + field error 0 才能解锁", context.readyForPreview ? "可预览" : "Blocked")}
-	            ${compactRow("Runtime", "auto_send / Flow 仍锁；完成 Owner 决定也不代表可以直接开", "OFF")}
+		            ${compactRow("Owner 决定", `${context.pendingCount}/${context.totalCount} 待决定`, context.pendingCount ? "未完成" : "完成")}
+		            ${compactRow("安全红线", `${context.p0PendingCount} 条未审`, context.p0PendingCount ? "先审" : "OK")}
+		            ${compactRow("学习预览", context.readyForPreview ? "可以生成草稿预览和回放" : "待决定归 0 + 必填错误 0 才能解锁", context.readyForPreview ? "可预览" : "挡住")}
+		            ${compactRow("自动开关", "自动发送 / Flow 仍锁；完成 Owner 决定也不代表可以直接开", "关闭")}
 	            ${context.nextBatchLabel ? compactRow("下一批", context.nextBatchLabel, `${context.nextBatchPendingCount} 条`) : ""}
-	            ${context.requiredFields.length ? compactRow("必填", context.requiredFields.join("、"), "Gate") : ""}
+		            ${context.requiredFields.length ? compactRow("必填", context.requiredFields.join("、"), "门槛") : ""}
 	          </div>
 	          ${ownerDecisionDraftBasketHtml(context)}
 	          ${nextRows ? `<div class="owner-completion-steps">${nextRows}</div>` : ""}
@@ -11353,7 +11353,7 @@
 	          <div class="owner-decision-basket-head">
 	            <div>
 	              <b>已选决定 ${drafts.length}/${Number(context.totalCount || allCards.length || 0)}</b>
-	              <small>${drafts.length ? `P0 已选 ${selectedP0}/${p0Total}${missingP0 ? `，还差 ${missingP0}` : "，可复制给 IT/Owner template"}` : "先在下面每张卡选择批准、修改、要证据或拒绝。"}</small>
+		              <small>${drafts.length ? `安全红线已选 ${selectedP0}/${p0Total}${missingP0 ? `，还差 ${missingP0}` : "，可复制给 IT/Owner 模板"}` : "先在下面每张卡选择批准、修改、要证据或拒绝。"}</small>
 	            </div>
 	            <span class="ops-mini ${missingP0 ? "warn" : drafts.length ? "good" : ""}">${drafts.length ? "本地草稿" : "未选择"}</span>
 	          </div>
@@ -11363,7 +11363,7 @@
 	                <div class="owner-decision-basket-item">
 	                  <div>
 	                    <b>${escapeHtml(draft.title || draft.decision_id)}</b>
-	                    <span>${escapeHtml(`${draft.priority || ""}｜${ownerDecisionShortLabel(draft.decision)}｜${draft.decision}`)}</span>
+	                    <span>${escapeHtml(`${ownerDecisionPriorityLabel(draft.priority)}｜${ownerDecisionShortLabel(draft.decision)}｜${draft.decision}`)}</span>
 	                  </div>
 	                  <span class="ops-mini">${escapeHtml(ownerDecisionRequiredFields(draft.decision).length)} 字段</span>
 	                </div>
@@ -11375,7 +11375,7 @@
 	            <button class="quick-action primary" type="button" data-copy-owner-decision-drafts ${drafts.length ? "" : "disabled"}>复制已选择 ${drafts.length || ""}</button>
 	            <button class="quick-action" type="button" data-clear-owner-decision-drafts ${drafts.length ? "" : "disabled"}>清空选择</button>
 	          </div>
-	          <p class="command-copy">这些选择只存在当前页面内存；复制单张或批次会先放进本地篮子，仍要贴回 Owner decision template，gate 重跑通过才可进入 learning preview。</p>
+		          <p class="command-copy">这些选择只存在当前页面内存；复制单张或批次会先放进本地篮子，仍要贴回 Owner 决定模板，检查重跑通过才可进入学习预览。</p>
 	        </div>
 	      `;
 	    }
@@ -11385,7 +11385,7 @@
 	        const pendingCount = Number(batch.pending_count || 0);
 	        if (pendingCount > 0) {
 	          return {
-	            label: batch.label || `${batch.priority || "Owner"} 批次`,
+	            label: batch.label || `${ownerDecisionPriorityLabel(batch.priority)}批次`,
 	            priority: batch.priority || "",
 	            pendingCount,
 	          };
@@ -11395,7 +11395,7 @@
 	      if (!first) return { label: "", priority: "", pendingCount: 0 };
 	      const priority = first.priority || "";
 	      return {
-	        label: priority === "P0" ? "先审 P0：安全红线和售后/付款边界" : priority === "P1" ? "再审 P1：FAQ/SOP 和人工学习闭环" : "最后审 P2：CTA / Flow / 扩展边界",
+		            label: priority === "P0" ? "先审安全红线：售后 / 付款边界" : priority === "P1" ? "再审学习质量：FAQ / SOP / 人工复盘" : "最后审扩展边界：CTA / Flow",
 	        priority,
 	        pendingCount: pendingCards.filter((card) => card.priority === priority).length,
 	      };
@@ -11429,35 +11429,35 @@
 	      const p2Cards = ownerDecisionBatchCards(allCards, "P2");
 	      const p0Count = p0Cards.length;
 	      const pendingCount = allCards.filter((card) => String(card.ownerDecisionCurrent || "pending") === "pending").length;
-	      const sourceLabel = ownerDecisionUsingWorkbench() ? "Workbench" : "Review";
+	      const sourceLabel = ownerDecisionUsingWorkbench() ? "工作台" : "复盘清单";
 	      return `
 	        <section class="command-panel accent" id="ownerDecisionFastReviewPanel" data-owner-nav aria-label="Owner 快审工作台">
 	          <div class="command-kicker">Owner 快审工作台</div>
-	          <strong class="command-title">先审 P0，再决定能不能学</strong>
+	          <strong class="command-title">先审安全红线，再决定能不能学</strong>
 	          <p class="command-copy">Suggested decision 不是正式批准。复制决定草稿后，Owner 仍要填回 decision template；这里不会发送 WhatsApp、不会写业务脑、不会开启自动。</p>
 	          <div class="compact-list">
-	            ${compactRow("待审候选", `${pendingCount}/${allCards.length} pending`, sourceLabel)}
-	            ${compactRow("P0", `${p0Count} 条红线/售后/付款优先`, p0Count ? "先审" : "无")}
+	            ${compactRow("待审候选", `${pendingCount}/${allCards.length} 待决定`, sourceLabel)}
+		            ${compactRow("安全红线", `${p0Count} 条售后/付款优先`, p0Count ? "先审" : "无")}
 	            ${compactRow("四种决定", "approve_as_is / approve_with_edits / reject / needs_more_evidence", "Owner")}
-	            ${compactRow("完成标准", "decision、owner_name、decision_at 和必要改稿字段齐", "Gate")}
+	            ${compactRow("完成标准", "decision、owner_name、decision_at 和必要改稿字段齐", "门槛")}
 	          </div>
 	        </section>
 	        ${ownerP0UnblockStripHtml(p0Cards)}
-	        ${ownerDecisionBatchHtml({ priority: "P0", title: "先审 P0：红线 / 售后 / 付款", cards: p0Cards, badge: "先审" })}
-	        ${ownerDecisionBatchHtml({ priority: "P1", title: "再审 P1：FAQ / SOP / 学习闭环", cards: p1Cards, badge: "第二" })}
-	        ${ownerDecisionBatchHtml({ priority: "P2", title: "最后审 P2：CTA / 官方链接 / 多盒边界", cards: p2Cards, badge: "最后" })}
-	        <section class="command-panel" data-owner-nav aria-label="Owner decision 快审卡">
-	          <div class="command-kicker">Decision Cards</div>
+		        ${ownerDecisionBatchHtml({ priority: "P0", title: "先审安全红线：红线 / 售后 / 付款", cards: p0Cards, badge: "先审" })}
+		        ${ownerDecisionBatchHtml({ priority: "P1", title: "再审学习质量：FAQ / SOP / 学习闭环", cards: p1Cards, badge: "第二" })}
+		        ${ownerDecisionBatchHtml({ priority: "P2", title: "最后审扩展边界：CTA / 官方链接 / 多盒边界", cards: p2Cards, badge: "最后" })}
+	        <section class="command-panel" data-owner-nav aria-label="Owner 决定快审卡">
+	          <div class="command-kicker">决定卡</div>
 	          <strong class="command-title">复制草稿，不自动应用</strong>
 	          <div class="audit-list">
 	            ${cards.map((card) => `
 		              <div class="audit-item">
-		                <b>${escapeHtml(`${card.priority} · ${card.title}`)}</b>
+			                <b>${escapeHtml(`${ownerDecisionPriorityLabel(card.priority)} · ${card.title}`)}</b>
 		                <span>${escapeHtml(card.reason)}</span>
 		                <span>${escapeHtml(`建议：${card.decisionLabel}｜必填：${card.requiredFields.join("、")}`)}</span>
 		                <span>${escapeHtml(`先检查：${card.ownerShouldCheck || ownerDecisionReviewCheck(card)}`)}</span>
 		                <span>${escapeHtml(`回放：${card.replayTest}`)}</span>
-		                <small>${escapeHtml(`${card.artifactLabel}｜${Number(card.count || 0)} 次｜样本 ${card.sourceCaseIds?.length || 0}｜copy preview only`)}</small>
+		                <small>${escapeHtml(`${card.artifactLabel}｜${Number(card.count || 0)} 次｜样本 ${card.sourceCaseIds?.length || 0}｜只复制预览`)}</small>
 		                ${ownerDecisionChoiceButtonsHtml(card)}
 		                <button class="quick-action" type="button" data-copy-owner-decision="${escapeHtml(card.id)}">复制系统建议草稿</button>
 		              </div>
@@ -11472,14 +11472,14 @@
 	      const firstThree = ownerDecisionSortedCards(cards).slice(0, 3);
 	      const requiredFields = [...new Set(firstThree.flatMap((card) => card.requiredFields || []))];
 	      return `
-	        <section class="command-panel owner-p0-unblock" id="ownerP0UnblockStrip" data-owner-nav aria-label="Owner P0 解锁条">
-	          <div class="command-kicker">P0 解锁条</div>
+	        <section class="command-panel owner-p0-unblock" id="ownerP0UnblockStrip" data-owner-nav aria-label="Owner 安全红线解锁条">
+	          <div class="command-kicker">安全红线解锁条</div>
 	          <strong class="command-title">先清这 ${firstThree.length} 个，红线才有资格从 3 归 0</strong>
-	          <p class="command-copy">目标不是开自动，是先把付款、售后没人回、没人 follow up 的红线候选审完。复制草稿后仍要填回 decision template；runtime、Flow 和业务脑都不会被这里打开。</p>
+		          <p class="command-copy">目标不是开自动，是先把付款、售后没人回、没人 follow up 的红线候选审完。复制草稿后仍要填回决定模板；自动开关、Flow 和业务脑都不会被这里打开。</p>
 	          <div class="compact-list">
-	            ${compactRow("预计影响", "P0 replay 通过后：failed KPI 8 -> 7；再配合清旧卡才可能 8 -> 5", "preview")}
-	            ${compactRow("必填字段", requiredFields.join("、"), "Gate")}
-	            ${compactRow("仍然锁住", "L1/L2/L3、auto_send、auto_trigger_flows", "OFF")}
+		            ${compactRow("预计影响", "安全红线回放通过后：失败 KPI 8 -> 7；再配合清旧卡才可能 8 -> 5", "预览")}
+		            ${compactRow("必填字段", requiredFields.join("、"), "门槛")}
+		            ${compactRow("仍然锁住", "基础自动回复 / 接 Flow / 成交自动回复、自动发送、自动接 Flow", "关闭")}
 	          </div>
 	          <div class="owner-p0-steps">
 	            ${firstThree.map((card, index) => `
@@ -11492,7 +11492,7 @@
 	              </div>
 	            `).join("")}
 	          </div>
-	          <button class="quick-action primary" type="button" data-copy-owner-decision-batch="P0">复制 P0 批次草稿</button>
+		          <button class="quick-action primary" type="button" data-copy-owner-decision-batch="P0">复制安全红线批次草稿</button>
 	        </section>
 	      `;
 	    }
@@ -11513,13 +11513,13 @@
 	      const kpis = [...new Set(cards.flatMap((card) => ownerDecisionKpisHelped(card)))];
 	      return `
 	        <section class="command-panel" id="owner${escapeHtml(priority)}DecisionBatchPanel" data-owner-nav aria-label="Owner ${escapeHtml(priority)} 决策批次">
-	          <div class="command-kicker">Owner ${escapeHtml(priority)} Batch</div>
+		          <div class="command-kicker">${escapeHtml(ownerDecisionPriorityLabel(priority))}批次</div>
 	          <strong class="command-title">${escapeHtml(title)}</strong>
-	          <p class="command-copy">这一批只生成复制草稿；Owner 仍要填回 decision template。先完成 P0，才有资格让红线从 3 往 0 走。</p>
+		          <p class="command-copy">这一批只生成复制草稿；Owner 仍要填回决定模板。先完成安全红线，才有资格让红线从 3 往 0 走。</p>
 	          <div class="compact-list">
-	            ${compactRow("数量", `${cards.length} 条 pending`, badge || priority)}
-	            ${compactRow("建议决定", ownerDecisionBatchDecisionMix(cards), "review")}
-	            ${compactRow("必填字段", requiredFields.join("、"), "Gate")}
+		            ${compactRow("数量", `${cards.length} 条待决定`, badge || ownerDecisionPriorityLabel(priority))}
+		            ${compactRow("建议决定", ownerDecisionBatchDecisionMix(cards), "复核")}
+		            ${compactRow("必填字段", requiredFields.join("、"), "门槛")}
 	            ${compactRow("帮助 KPI", kpis.join("、") || "owner_decisions_pending", "KPI")}
 	          </div>
 	          <div class="audit-list">
@@ -11534,7 +11534,7 @@
 		              </div>
 	            `).join("")}
 	          </div>
-	          <button class="quick-action" type="button" data-copy-owner-decision-batch="${escapeHtml(priority)}">复制 ${escapeHtml(priority)} 批次草稿</button>
+	          <button class="quick-action" type="button" data-copy-owner-decision-batch="${escapeHtml(priority)}">复制 ${escapeHtml(ownerDecisionPriorityLabel(priority))}批次草稿</button>
 	        </section>
 	      `;
 	    }
@@ -11592,7 +11592,7 @@
 		            better_reply: item.proposed_reply || "",
 		            replay_test: item.replay_test || "",
 		          },
-		          title: item.title || item.decision_id || "Owner decision",
+		          title: item.title || item.decision_id || "Owner 决定",
 		          reason: item.safe_approval_hint || item.owner_should_check || item.proposed_rule || "Owner 判断是否可学、要修或要更多证据。",
 		          priority: item.priority || "P2",
 		          suggestedDecision: decision,
@@ -11725,7 +11725,7 @@
 		    function ownerDecisionDefaultRejectIf(decision = "") {
 		      if (decision === "reject") return "Reject if this would teach unsafe, outdated, or unsupported behavior.";
 		      if (decision === "needs_more_evidence") return "Ask for evidence if customer text, Flow context, AI draft, final staff reply, or outcome is missing.";
-		      return "Reject or edit if it would auto-send, auto-trigger Flow, invent facts, skip staff review, or use outdated promo/price.";
+		      return "如果会自动发送、自动接 Flow、编事实、跳过客服复核，或使用旧促销/旧价格，就要拒绝或改稿。";
 		    }
 
 		    function ownerDecisionDefaultMustNotDo(item = {}, candidate = {}) {
@@ -12006,6 +12006,16 @@
       `;
     }
 
+    function staffPriorityFriendlyLabel(priority = "") {
+      const text = String(priority || "").trim().toUpperCase();
+      if (text === "P0") return "马上处理";
+      if (text === "P1") return "今天优先补";
+      if (text === "P2") return "有空再补";
+      if (text === "OWNER") return "Owner 审核";
+      if (text === "FIX") return "资料修复";
+      return text || "待处理";
+    }
+
     function ownerAdminSnapshotHtml() {
       if (state.role === "staff") return "";
       const versions = Array.isArray(state.projectVersions?.versions) ? state.projectVersions.versions : [];
@@ -12266,7 +12276,7 @@
       const cards = ownerDecisionCardsForDashboard(Array.isArray(state.handoffLearningReview?.recommendations) ? state.handoffLearningReview.recommendations : []);
       const card = cards.find((item) => String(item.id || "").trim() === String(decisionId || "").trim());
       if (!card) {
-        showToast("找不到这条 Owner decision。");
+        showToast("找不到这条 Owner 决定。");
         return;
       }
       const previewCard = ownerDecisionPreviewCard(card, decisionOverride);
@@ -12354,14 +12364,14 @@
     function copyOwnerDecisionBatchPreview(priority = "") {
       const cards = ownerDecisionBatchCards(ownerDecisionCardsForDashboard(Array.isArray(state.handoffLearningReview?.recommendations) ? state.handoffLearningReview.recommendations : []), priority);
       if (!cards.length) {
-        showToast(`没有 ${priority || "这个"} 批次的 Owner decision。`);
+        showToast(`没有 ${ownerDecisionPriorityLabel(priority)}批次的 Owner 决定。`);
         return;
       }
       cards.forEach((card) => recordOwnerDecisionDraft(ownerDecisionPreviewCard(card)));
       const text = ownerDecisionBatchPreviewText(priority, cards);
       const finish = () => {
         addAuditEvent("owner_decision_batch_copy_preview", `${priority} ${cards.length} items`);
-        showToast(`已复制 ${priority} 批次草稿，并加入本地决定篮子；还没有写入业务脑。`);
+        showToast(`已复制 ${ownerDecisionPriorityLabel(priority)}批次草稿，并加入本地决定篮子；还没有写入业务脑。`);
         render();
       };
       if (navigator.clipboard?.writeText) {
@@ -12398,15 +12408,24 @@
 	      return map[value] || "Owner 决定";
 	    }
 
+	    function ownerDecisionPriorityLabel(priority = "") {
+	      const text = String(priority || "").trim().toUpperCase();
+	      if (text === "P0") return "安全红线";
+	      if (text === "P1") return "学习质量";
+	      if (text === "P2") return "扩展边界";
+	      return text || "Owner";
+	    }
+
 	    function ownerDecisionBatchPreviewText(priority = "", cards = []) {
 	      return [
-	        `Owner ${priority} decision batch draft - copy preview only`,
-	        `priority: ${priority}`,
+	        `Owner ${ownerDecisionPriorityLabel(priority)}批次决定草稿 - 只复制预览`,
+	        `priority_code: ${priority}`,
+	        `priority_label: ${ownerDecisionPriorityLabel(priority)}`,
 	        `items: ${cards.length}`,
 	        `decision_at: ${new Date().toISOString()}`,
 	        "apply_now: false",
-	        "safety: does not send WhatsApp, write decisions, write business brain, change runtime, or push Git.",
-	        "paste_target: Owner decision template, matching decision_id.",
+	        "safety: 不发送 WhatsApp、不写入决定、不写业务脑、不改自动开关、不推 Git。",
+	        "paste_target: Owner 决定模板，匹配 decision_id。",
 	        "",
 	        ...cards.flatMap((card, index) => [
 	          `# ${index + 1}. ${card.title || card.id}`,
@@ -12419,8 +12438,8 @@
 	    function ownerDecisionDraftBasketPreviewText(cards = []) {
 	      const decisions = cards.map((card) => ownerDecisionPatchObject(card));
 	      return [
-	        "Owner selected decision batch - copy preview only",
-	        "Paste each JSON decision into the matching item in the Owner decision template. It does not apply automatically.",
+	        "Owner 已选择决定批次 - 只复制预览",
+	        "把每个 JSON 决定贴回 Owner 决定模板的对应项目；这里不会自动应用。",
 	        JSON.stringify({
 	          schema_version: "hermas.owner_selected_decision_batch_copy_preview.v1",
 	          generated_at: new Date().toISOString(),
@@ -12442,8 +12461,8 @@
 
 	    function ownerDecisionPreviewText(card = {}) {
 	      return [
-	        "Owner decision draft - copy preview only",
-	        "Paste the JSON into the matching item in the Owner decision template. It does not apply automatically.",
+	        "Owner 决定草稿 - 只复制预览",
+	        "把 JSON 贴回 Owner 决定模板的对应项目；这里不会自动应用。",
 	        JSON.stringify(ownerDecisionPatchObject(card), null, 2)
 	      ].join("\n");
 	    }
@@ -15176,7 +15195,7 @@
         <div class="reply-quality-wizard-head">
           <div>
             <b>回复质量向导</b>
-            <span>当前等级 L0：只能起草、评分、审批；L1/L2/L3 还没开。</span>
+            <span>当前只起草、评分、审批；基础自动回复、接 Flow、成交型自动回复都还没开。</span>
           </div>
           <em class="reply-quality-level">L0</em>
         </div>
@@ -18297,6 +18316,25 @@
       }
     }
 
+    function caseActionErrorMessage(data = {}, fallback = "") {
+      const result = data?.result || data?.send_result || {};
+      const candidates = [
+        data?.message,
+        result?.reason,
+        result?.error,
+        data?.reason,
+        data?.error,
+        data?.next,
+      ].map((value) => String(value || "").trim()).filter(Boolean);
+      const unique = [...new Set(candidates)];
+      let message = unique.join("；") || fallback || "操作失败";
+      const details = [];
+      if (result?.status && !message.includes(String(result.status))) details.push(`发送通道状态 ${result.status}`);
+      if (result?.mode && !message.includes(String(result.mode))) details.push(`通道 ${result.mode}`);
+      if (details.length) message = `${message}（${details.join("，")}）`;
+      return message;
+    }
+
     async function postCaseAction(caseId, action, body, options = {}) {
       if (state.demoMode) {
         handleDemoAction(caseId, action, body);
@@ -18330,8 +18368,13 @@
           },
           body: JSON.stringify(payload),
         }));
-        const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          const error = new Error(caseActionErrorMessage(data, `HTTP ${res.status}`));
+          error.status = res.status;
+          error.data = data;
+          throw error;
+        }
         addAuditEvent(`case_${action}`, `真实顾客 ${caseId} 已执行 ${actionLabel(action)}。`);
         if (options.reload !== false) {
           await loadCases();
