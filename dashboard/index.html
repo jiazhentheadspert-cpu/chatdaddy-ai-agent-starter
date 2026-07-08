@@ -10988,8 +10988,8 @@
 	            ${priorities.slice(0, 6).map((item) => `
 	              <div class="audit-item">
 	                <b>${escapeHtml(item.title || item.type || "优化项")}</b>
-	                <span>${escapeHtml(item.reason || "需要复盘同类 Case。")}</span>
-	                <small>${escapeHtml(item.action || "Owner 审核后再应用。")}</small>
+	                <span>${escapeHtml(firstContextText(item.reason, "需要复盘同类 Case。"))}</span>
+	                <small>${escapeHtml(firstContextText(item.action, "Owner 审核后再应用。"))}</small>
 	              </div>
 	            `).join("")}
 	          </div>
@@ -11218,8 +11218,8 @@
 	            ${visible.map((item) => `
 	              <div class="audit-item">
 	                <b>${escapeHtml(handoffQueueCategoryLabel(item.category))}</b>
-	                <span>${escapeHtml(item.customer_message || item.dashboard_display || "人工处理样本")}</span>
-	                <span>${escapeHtml(item.staff_action || item.owner_action || "补齐最终回复和结果后再审。")}</span>
+	                <span>${escapeHtml(firstContextText(item.customer_message, item.dashboard_display, "人工处理样本"))}</span>
+	                <span>${escapeHtml(firstContextText(item.staff_action, item.owner_action, "补齐最终回复和结果后再审。"))}</span>
                 <small>${escapeHtml(`${staffPriorityFriendlyLabel(item.priority || "P1")}｜${(item.kpis_helped || []).join(" / ") || "learning_capture_rate"}`)}</small>
 	              </div>
 	            `).join("")}
@@ -11562,7 +11562,7 @@
 	            ${cards.map((card) => `
 		              <div class="audit-item">
 			                <b>${escapeHtml(`${ownerDecisionPriorityLabel(card.priority)} · ${card.title}`)}</b>
-		                <span>${escapeHtml(card.reason)}</span>
+		                <span>${escapeHtml(contextTextValue(card.reason))}</span>
 		                ${ownerLearningSafetyAdvisorHtml(card)}
 		                <span>${escapeHtml(`建议：${card.decisionLabel}｜必填：${card.requiredFields.join("、")}`)}</span>
 		                <span>${escapeHtml(`先检查：${card.ownerShouldCheck || ownerDecisionReviewCheck(card)}`)}</span>
@@ -12464,7 +12464,7 @@
       const decision = item.latest_decision || {};
       const status = statusLabel(item.status, decision.risk);
       const action = actionLabel(decision.action);
-      const reason = decision.reason || item.last_message || "";
+      const reason = firstContextText(decision.reason, item.last_message);
       return `${status} · ${action} · ${reason}`;
     }
 
@@ -12490,7 +12490,7 @@
         <div class="decision-item">
           <div>
             <b>${escapeHtml(customerDisplayLabel(item) || "顾客")} · ${escapeHtml(actionLabel(decision.action))}</b>
-            <small>${escapeHtml(decision.reason || item.last_message || "AI 已完成判断。")}</small>
+            <small>${escapeHtml(firstContextText(decision.reason, item.last_message, "AI 已完成判断。"))}</small>
           </div>
           <span class="ops-mini ${escapeHtml(riskTone(item))}">${escapeHtml(statusLabel(item.status, decision.risk))}</span>
         </div>
@@ -14053,14 +14053,14 @@
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
         const klass = msg.direction === "outbound" ? "out" : "in";
         return `<div class="bubble ${klass}">${escapeHtml(messageDisplayText(msg))}</div>`;
-      }).join("") + (!readOnly && !hasOutbound && decision.reply_message ? `<div class="bubble out">${escapeHtml(decision.reply_message || "")}</div>` : "");
+      }).join("") + (!readOnly && !hasOutbound && contextTextValue(decision.reply_message) ? `<div class="bubble out">${escapeHtml(contextTextValue(decision.reply_message))}</div>` : "");
 
       $("panelWords").innerHTML = (item.word_cloud || []).map(localizedWord).filter(Boolean).map((word, index) => {
         return `<span class="word ${index === 0 ? "big" : index < 3 ? "mid" : "small"}">${escapeHtml(word)}</span>`;
       }).join("");
 
       $("historyBox").innerHTML = (item.history || []).slice().reverse().map((event) => {
-        return `<div class="history-item">${escapeHtml(formatDate(event.at))} · ${escapeHtml(historyTypeLabel(event.type))}<br>${escapeHtml(event.decision?.reason || event.note || event.rule_id || "")}</div>`;
+        return `<div class="history-item">${escapeHtml(formatDate(event.at))} · ${escapeHtml(historyTypeLabel(event.type))}<br>${escapeHtml(firstContextText(event.decision?.reason, event.note, event.rule_id))}</div>`;
       }).join("");
 
       $("panel").classList.add("open");
@@ -18395,7 +18395,7 @@
       return `
         <span>人工样本判断</span>
         <b>${escapeHtml(judgment.title)}</b>
-        <small>${escapeHtml(judgment.reason)} ${escapeHtml(judgment.action || "")}</small>
+        <small>${escapeHtml(contextTextValue(judgment.reason))} ${escapeHtml(contextTextValue(judgment.action))}</small>
         <small>自我优化：保留顾客原话、上一段 Flow、AI 原草稿、人工最终回复；只把可学或修正后的版本进业务脑。</small>
       `;
     }
@@ -18902,7 +18902,7 @@
         addAuditEvent("case_learning_note", `${customerDisplayLabel(state.active) || "顾客"}：${statusText}`);
         $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：${statusText}${result.error ? `\n原因：${result.error}` : ""}`;
         $("historyBox").innerHTML = (state.active.history || []).slice().reverse().map((event) => {
-          return `<div class="history-item">${escapeHtml(formatDate(event.at))} · ${escapeHtml(historyTypeLabel(event.type))}<br>${escapeHtml(event.decision?.reason || event.note || event.rule_id || "")}</div>`;
+          return `<div class="history-item">${escapeHtml(formatDate(event.at))} · ${escapeHtml(historyTypeLabel(event.type))}<br>${escapeHtml(firstContextText(event.decision?.reason, event.note, event.rule_id))}</div>`;
         }).join("");
         showToast(statusText);
         render();
