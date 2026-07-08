@@ -4517,7 +4517,7 @@
 
 	    .reply-command-bar {
 	      display: grid;
-	      grid-template-columns: minmax(220px, .82fr) minmax(280px, 1.04fr) minmax(420px, 1.28fr) minmax(132px, .42fr);
+	      grid-template-columns: minmax(140px, .62fr) minmax(260px, 1.04fr) minmax(430px, 1.55fr) minmax(118px, .42fr);
 	      grid-template-areas: "head reply pay more";
 	      align-items: stretch;
 	      justify-content: stretch;
@@ -4528,14 +4528,14 @@
     }
 
     .panel.open .panel-body {
-      padding-bottom: 150px;
+      padding-bottom: 164px;
     }
 
 	    .panel.open .reply-command-bar {
 	      position: fixed;
 	      left: 50%;
 	      bottom: 24px;
-	      width: min(1180px, calc(100vw - 56px));
+	      width: min(1320px, calc(100vw - 56px));
 	      transform: translateX(-50%);
 	      z-index: 60;
       border: 1px solid rgba(16,185,157,.34);
@@ -4559,6 +4559,20 @@
 	      background: rgba(255,255,255,.58);
 	    }
 
+	    .reply-command-bar .quick-action-head span {
+	      color: var(--green-deep);
+	      font-size: 13px;
+	      font-weight: 950;
+	      line-height: 1.2;
+	    }
+
+	    .reply-command-bar .quick-action-head small {
+	      color: var(--muted);
+	      font-size: 10.5px;
+	      font-weight: 820;
+	      line-height: 1.25;
+	    }
+
 	    .reply-action-group,
     .payment-quick {
       border: 1px solid rgba(0,183,216,.18);
@@ -4571,7 +4585,7 @@
 	    .reply-action-group {
 	      grid-area: reply;
 	      display: grid;
-	      grid-template-columns: minmax(86px, auto) minmax(164px, 1fr);
+	      grid-template-columns: minmax(82px, .46fr) minmax(170px, 1fr);
 	      align-items: center;
 	      gap: 8px;
 	    }
@@ -4608,7 +4622,7 @@
 		    .payment-quick {
 	      grid-area: pay;
 		      display: grid;
-		      grid-template-columns: minmax(86px, auto) minmax(132px, .56fr) minmax(158px, .78fr);
+		      grid-template-columns: minmax(92px, .58fr) minmax(126px, .72fr) minmax(168px, 1fr);
 		      align-items: center;
 		      gap: 7px;
 		      min-width: 0;
@@ -4625,12 +4639,12 @@
     }
 
 	    .payment-quick .purchase-note {
-	      grid-column: 2 / -1;
-	      margin-top: -2px;
+	      grid-column: 1 / -1;
+	      margin-top: 0;
 	      font-size: 10.5px;
-	      white-space: nowrap;
+	      line-height: 1.25;
+	      white-space: normal;
 	      overflow: hidden;
-	      text-overflow: ellipsis;
     }
 
     .function-menu {
@@ -6006,27 +6020,27 @@
             </div>
 	            <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
 	              <div class="quick-action-head">
-	                <span>处理这位顾客</span>
-	                <small>先看清楚，再按对应动作。</small>
+	                <span>客服操作</span>
+	                <small>选一个动作就好。</small>
 	              </div>
 	              <div class="reply-action-group" aria-label="发送回复">
 	                <div class="operation-copy">
-	                  <span>回复顾客</span>
+	                  <span>发送回复</span>
 	                  <small>按下后会发送讯息</small>
 	                </div>
 	                <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
 	              </div>
 	              <div class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
 	                <div class="operation-copy">
-	                  <span>收款 / COD</span>
+	                  <span>确认成交</span>
 	                  <small>只记录成交，不发讯息</small>
 	                </div>
 	                <label class="purchase-input-wrap">
-	                  <span>成交 RM</span>
+	                  <span>RM</span>
 	                  <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
 	                </label>
-                <button class="btn primary" id="markPurchaseBtn" type="button">确认收款 / COD</button>
-                <div class="purchase-note" id="purchaseNote">已收到款或 COD 已确认才按；不会发给顾客。</div>
+                <button class="btn primary" id="markPurchaseBtn" type="button">确认已付款</button>
+                <div class="purchase-note" id="purchaseNote">收到款或 COD 确认后才按；不会发顾客讯息。</div>
               </div>
               <details class="function-menu" id="functionMenu">
                 <summary>其他处理</summary>
@@ -6044,18 +6058,18 @@
 	                  </div>
 	                  <details class="external-flow-panel hidden" id="externalFlowPanel">
 	                    <summary>
-	                      <span>已接下一段流程</span>
-	                      <small>移到自动记录</small>
+	                      <span>收起旧 Flow 卡</span>
+	                      <small>顾客已继续</small>
 	                    </summary>
 	                    <div class="external-flow-body">
-	                      <p class="external-flow-summary">确认顾客已经被 ChatDaddy/ManyChat 带去下一段，这张旧回复不用发，才点这里。</p>
+	                      <p class="external-flow-summary">顾客已经走下一段时，把这张旧卡移到自动记录。</p>
 	                      <label class="external-flow-confirm">
 	                        <input id="externalFlowCustomerClearInput" type="checkbox" />
-	                        <span>我确认顾客已经继续下一段，不需要这张旧回复。</span>
+	                        <span>我确认顾客已经继续下一段，这张旧回复不用发。</span>
 	                      </label>
 	                      <button class="btn" id="externalFlowRecordBtn" type="button">移到自动记录</button>
 	                      <details class="external-flow-advanced">
-	                        <summary>高级资料（一般不用打开）</summary>
+	                        <summary>系统资料（一般不用打开）</summary>
 	                        <div class="external-flow-advanced-body">
 	                          <div class="external-flow-grid">
 	                            <input id="externalFlowIdInput" autocomplete="off" placeholder="流程资料（系统会自动填）" />
@@ -6065,7 +6079,7 @@
 	                          </div>
 	                        </div>
 	                      </details>
-	                      <div class="purchase-note" id="externalFlowNote">只整理 Dashboard；不会发送顾客讯息。</div>
+	                      <div class="purchase-note" id="externalFlowNote">只整理记录；不会发送顾客讯息。</div>
 	                    </div>
 	                  </details>
                 </div>
@@ -7663,7 +7677,8 @@
         const normalized = text.toLowerCase();
         if (["whatsapp customer", "customer", "live case", "demo customer", "test customer", "unknown", "undefined", "null", "未知顾客", "未命名顾客", "未知客户", "未命名客户", "电话未保存"].includes(normalized)) continue;
         if (/^(?:未知|未命名)?(?:顾客|客户|customer)$/i.test(text)) continue;
-        if (/^(?:电话|手機|手机|号码|號碼)?\s*(?:尾号|尾號|末四位|未四位|last\s*4|last\s*four)\s*[:：#-]?\s*\d{4}$/i.test(text)) continue;
+        if (/^(?:电话|電話|手機|手机|号码|號碼)?\s*(?:尾号|尾號|末四位|未四位|last\s*4|last\s*four)\s*[:：#-]?\s*\d{3,6}$/i.test(text)) continue;
+        if (/^(?:电话|電話|手機|手机|号码|號碼)\s*\d{3,6}$/i.test(text)) continue;
         if (/^(?:未知|未命名)(?:顾客|客户)\s*(?:#|编号|id)?\s*[\w-]+$/i.test(text)) continue;
         if (/^(?:顾客|客户)\s*\d{3,}$/i.test(text)) continue;
         if (/^customer\s*(?:#|no\.?|id)?\s*\d{2,}$/i.test(text)) continue;
@@ -7816,8 +7831,13 @@
 
     function customerIdentitySuffixFromCase(item = {}) {
       const values = [
+        item.customer?.phone_tail,
+        item.customer?.phoneTail,
         item.contact?.phone,
+        item.contact?.phone_tail,
+        item.contact?.phoneTail,
         item.contact?.id,
+        item.customer?.last4,
         item.customer?.phone,
         item.customer?.id,
         item.customer?.chat_id,
@@ -7826,6 +7846,9 @@
         item.customer?.externalCustomerId,
         item.customer?.external_contact_id,
         item.customer?.externalContactId,
+        item.inbound?.phone_tail,
+        item.inbound?.phoneTail,
+        item.inbound?.last4,
         item.inbound?.phone,
         item.inbound?.chat_id,
         item.inbound?.chatId,
@@ -7834,6 +7857,9 @@
         item.inbound?.external_contact_id,
         item.inbound?.externalContactId,
         item.latest_message?.phone,
+        item.latest_message?.phone_tail,
+        item.latest_message?.phoneTail,
+        item.latest_message?.last4,
         item.latest_message?.chat_id,
         item.latest_message?.chatId,
         item.latest_message?.external_customer_id,
@@ -7841,6 +7867,9 @@
         item.latest_message?.external_contact_id,
         item.latest_message?.externalContactId,
         item.message?.phone,
+        item.message?.phone_tail,
+        item.message?.phoneTail,
+        item.message?.last4,
         item.message?.chat_id,
         item.message?.chatId,
         item.message?.external_customer_id,
@@ -7848,12 +7877,17 @@
         item.message?.external_contact_id,
         item.message?.externalContactId,
         item.raw_approval?.contact?.phone,
+        item.raw_approval?.contact?.phone_tail,
+        item.raw_approval?.contact?.phoneTail,
         item.raw_approval?.contact?.id,
         item.raw_approval?.contact?.external_customer_id,
         item.raw_approval?.contact?.externalCustomerId,
         item.raw_approval?.contact?.external_contact_id,
         item.raw_approval?.contact?.externalContactId,
         item.raw_approval?.customer?.id,
+        item.raw_approval?.customer?.phone_tail,
+        item.raw_approval?.customer?.phoneTail,
+        item.raw_approval?.customer?.last4,
         item.raw_approval?.customer?.phone,
         item.raw_approval?.customer?.chat_id,
         item.raw_approval?.customer?.chatId,
@@ -7862,6 +7896,9 @@
         item.raw_approval?.customer?.external_contact_id,
         item.raw_approval?.customer?.externalContactId,
         item.raw_approval?.inbound?.phone,
+        item.raw_approval?.inbound?.phone_tail,
+        item.raw_approval?.inbound?.phoneTail,
+        item.raw_approval?.inbound?.last4,
         item.raw_approval?.inbound?.chat_id,
         item.raw_approval?.inbound?.chatId,
         item.raw_approval?.inbound?.external_customer_id,
@@ -7869,6 +7906,9 @@
         item.raw_approval?.inbound?.external_contact_id,
         item.raw_approval?.inbound?.externalContactId,
         item.raw_approval?.latest_message?.phone,
+        item.raw_approval?.latest_message?.phone_tail,
+        item.raw_approval?.latest_message?.phoneTail,
+        item.raw_approval?.latest_message?.last4,
         item.raw_approval?.latest_message?.chat_id,
         item.raw_approval?.latest_message?.chatId,
         item.raw_approval?.latest_message?.external_customer_id,
@@ -7876,6 +7916,9 @@
         item.raw_approval?.latest_message?.external_contact_id,
         item.raw_approval?.latest_message?.externalContactId,
         item.raw_approval?.message?.phone,
+        item.raw_approval?.message?.phone_tail,
+        item.raw_approval?.message?.phoneTail,
+        item.raw_approval?.message?.last4,
         item.raw_approval?.message?.chat_id,
         item.raw_approval?.message?.chatId,
         item.raw_approval?.message?.external_customer_id,
@@ -7893,6 +7936,13 @@
         if (digits.length >= 4) return digits.slice(-4);
       }
       return "";
+    }
+
+    function customerIdentityTail(item = {}) {
+      const suffix = customerIdentitySuffixFromCase(item);
+      if (suffix) return suffix;
+      const digits = String(approvalContactDigits(item) || "").replace(/\D/g, "");
+      return digits.length >= 4 ? digits.slice(-4) : "";
     }
 
     function customerDisplayLabel(item = {}) {
@@ -7940,7 +7990,7 @@
 
     function customerDisplayLabelWithTail(item = {}, baseName = "") {
       const name = firstCleanCustomerName(baseName, customerDisplayLabel(item)) || "顾客";
-      const tail = customerIdentitySuffixFromCase(item) || String(approvalContactDigits(item) || "").replace(/\D/g, "").slice(-4);
+      const tail = customerIdentityTail(item);
       if (!tail) return name;
       if (new RegExp(`(?:尾号|末四位|未四位|\\b)\\s*${tail}\\b`).test(name)) return name;
       if (String(name || "").replace(/\D/g, "").endsWith(tail)) return name;
@@ -7951,7 +8001,7 @@
       if (firstCleanCustomerName(displayName)) return "";
       if (/^\+?\d[\d\s().-]{5,}$/.test(String(displayName || "").trim())) return "";
       if (/^顾客\s+\w{3,}$/i.test(String(displayName || "").trim())) return "";
-      const suffix = customerIdentitySuffixFromCase(item);
+      const suffix = customerIdentityTail(item);
       return suffix ? `<div class="case-name-meta">${escapeHtml(`末四位 ${suffix}`)}</div>` : "";
     }
 
