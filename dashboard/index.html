@@ -8611,7 +8611,7 @@
         message.direction,
         message.role,
         message.at || message.message_at,
-        message.text,
+        firstContextText(message.text, message.body, message.caption, message.content, message.message),
       ].filter(Boolean).join("|");
     }
 
@@ -12873,7 +12873,7 @@
       const inboundMessage = inboundMessages.at(-1) || null;
       const raw = item.raw_approval || {};
       const contextMessage = latestInboundContextMessage(approvalRecentContextMessages(raw));
-      const text = [
+      const textCandidates = [
         item.last_message,
         item.customer_text,
         item.inbound_text,
@@ -12894,7 +12894,8 @@
         raw.latest_customer_message?.text,
         raw.conversation_context?.latest_customer_message?.text,
         contextMessage?.text,
-      ].map((value) => String(value || "").trim()).find(Boolean) || "";
+      ];
+      const text = firstContextText(...textCandidates);
       if (text) return text;
       if (dashboardIsUnverifiedAttachmentApproval(item)) return "顾客发了图片/附件，需人工打开确认";
       if ((decision.intent === "receipt" || decision.action === "review_receipt") && dashboardHasExplicitPaymentReceiptEvidence(item)) return "顾客表示已付款，需审核资料";
@@ -13735,7 +13736,7 @@
 
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
         const klass = msg.direction === "outbound" ? "out" : "in";
-        return `<div class="bubble ${klass}">${escapeHtml(msg.text || "")}</div>`;
+        return `<div class="bubble ${klass}">${escapeHtml(messageDisplayText(msg))}</div>`;
       }).join("") + (!readOnly && !hasOutbound && decision.reply_message ? `<div class="bubble out">${escapeHtml(decision.reply_message || "")}</div>` : "");
 
       $("panelWords").innerHTML = (item.word_cloud || []).map(localizedWord).filter(Boolean).map((word, index) => {
@@ -14333,12 +14334,81 @@
 
 	    function firstContextText(...values) {
 	      return values
-	        .map((value) => String(value || "").trim())
+	        .map((value) => contextTextValue(value))
 	        .find(Boolean) || "";
 	    }
 
+	    function contextTextValue(value, depth = 0) {
+	      if (value === null || value === undefined) return "";
+	      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+	        return String(value).replace(/\s+/g, " ").trim();
+	      }
+	      if (Array.isArray(value)) {
+	        return value.map((item) => contextTextValue(item, depth + 1)).filter(Boolean).join("\n").trim();
+	      }
+	      if (typeof value !== "object" || depth > 3) return "";
+
+	      const direct = [
+	        value.text,
+	        value.body,
+	        value.caption,
+	        value.content,
+	        value.message,
+	        value.title,
+	        value.name,
+	        value.label,
+	        value.value
+	      ].map((item) => contextTextValue(item, depth + 1)).find(Boolean) || "";
+	      if (direct) return direct;
+
+	      const nested = [value.payload, value.data, value.message_data, value.messageData]
+	        .map((item) => contextTextValue(item, depth + 1))
+	        .find(Boolean) || "";
+	      if (nested) return nested;
+
+	      const typeText = String([value.type, value.message_type, value.messageType, value.mime_type, value.mimeType]
+	        .map((item) => contextTextValue(item, depth + 1))
+	        .find(Boolean) || "").toLowerCase();
+	      const urlText = [value.url, value.link, value.media_url, value.mediaUrl, value.file_url, value.fileUrl]
+	        .map((item) => contextTextValue(item, depth + 1))
+	        .find(Boolean) || "";
+	      const filename = [value.filename, value.file_name, value.fileName]
+	        .map((item) => contextTextValue(item, depth + 1))
+	        .find(Boolean) || "";
+	      const attachmentLabel = attachmentDisplayLabel(typeText, filename || urlText);
+	      if (attachmentLabel) return attachmentLabel;
+	      if (urlText) return urlText;
+	      return "";
+	    }
+
+	    function attachmentDisplayLabel(typeText = "", detail = "") {
+	      const type = String(typeText || "").toLowerCase();
+	      const extra = detail ? ` ${String(detail).slice(0, 80)}` : "";
+	      if (/image|photo|picture|jpeg|jpg|png|webp|gif|receipt|screenshot|截图|圖片|图片|照片/i.test(`${type} ${detail}`)) return `[图片${extra}]`;
+	      if (/audio|voice|ogg|mpeg|mp3|m4a|语音|語音|音频|音訊/i.test(`${type} ${detail}`)) return `[语音${extra}]`;
+	      if (/video|mp4|mov|视频|影片/i.test(`${type} ${detail}`)) return `[视频${extra}]`;
+	      if (/sticker|贴图|貼圖/i.test(`${type} ${detail}`)) return `[贴图${extra}]`;
+	      if (/file|document|pdf|attachment|media|附件|文件/i.test(`${type} ${detail}`)) return `[附件${extra}]`;
+	      return "";
+	    }
+
+	    function messageDisplayText(message = {}) {
+	      const text = firstContextText(
+	        message.text,
+	        message.body,
+	        message.caption,
+	        message.content,
+	        message.message,
+	        message.payload
+	      );
+	      if (text) return text;
+	      const typeText = firstContextText(message.type, message.message_type, message.messageType, message.mime_type, message.mimeType);
+	      const detail = firstContextText(message.filename, message.file_name, message.fileName, message.url, message.media_url, message.mediaUrl);
+	      return attachmentDisplayLabel(typeText, detail) || "";
+	    }
+
 	    function contextSnippet(value, limit = 132) {
-	      const text = String(value || "").replace(/\s+/g, " ").trim();
+	      const text = contextTextValue(value).replace(/\s+/g, " ").trim();
 	      if (!text || text.length <= limit) return text;
 	      return `${text.slice(0, limit).trim()}...`;
 	    }
