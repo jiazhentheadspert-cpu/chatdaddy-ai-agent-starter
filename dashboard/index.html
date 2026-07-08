@@ -13947,8 +13947,8 @@
 
 	    function purchaseButtonLabelForCase(item = {}, canResendPurchase = canResendPurchaseMeta(item)) {
 	      if (canResendPurchase) return "补回流广告";
-	      if (item.status === "purchase_confirmed") return "已确认收款";
-	      return "确认收款 / COD";
+	      if (item.status === "purchase_confirmed") return "已确认付款";
+	      return "确认已付款";
 	    }
 
 	    function hasPurchaseActionContext(item = {}) {
