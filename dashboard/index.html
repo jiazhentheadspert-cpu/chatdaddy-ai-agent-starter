@@ -5911,7 +5911,7 @@
         </div>
         <div class="queue-sync-note" id="queueSyncNote">
           <b>人工优先</b>
-          <span>可搜索顾客名字或电话打开 Case；已收款/COD 确认后填金额点「确认已付款」。</span>
+          <span>可搜索顾客名字或电话打开 Case；已收款/COD 确认后填金额点「确认收款 / COD」。</span>
         </div>
         <div class="staff-priority-strip" id="staffPriorityStrip" aria-label="今日处理顺序"></div>
         <div class="staff-cleanup-guide" id="staffCleanupGuide" aria-label="队列清理标准"></div>
@@ -5996,7 +5996,7 @@
                 <span>回复顾客</span>
                 <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
               </div>
-              <div class="payment-quick" id="purchasePanel" aria-label="确认已付款并回流广告">
+              <div class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
                 <div class="operation-label">确认收款 / COD</div>
                 <label class="purchase-input-wrap">
                   <span>成交 RM</span>
@@ -12498,7 +12498,7 @@
           </div>
           <div class="rule-list">
             <div class="rule-row">
-              <div><strong>付款确认回流</strong>客服按「确认已付款」才记录成交并回流广告；不会自动认定成交。</div>
+              <div><strong>付款确认回流</strong>客服按「确认收款 / COD」才记录成交并回流广告；不会自动认定成交。</div>
               <span class="pill green">人工确认</span>
             </div>
             <div class="rule-row">
@@ -14020,7 +14020,7 @@
 	          title: "图片/附件先人工看",
 	          body: "顾客只发图片/附件，Dashboard 不能判断是不是付款、Review、投诉或问题图。客服先打开确认，再决定审款、售后、回答问题或接 Flow。",
 	          buttons: ["转人工", "记录人工回复"],
-	          never: [...neverBase, "不要当成付款截图", "不要确认已付款", "不要接销售 Flow"],
+	          never: [...neverBase, "不要当成付款截图", "不要按确认收款 / COD", "不要接销售 Flow"],
 	        };
 	      }
 	      if (status === "external_flow_continued") {
@@ -14029,7 +14029,7 @@
 	          title: "自动记录只读",
 	          body: "ChatDaddy/ManyChat 已继续下一段 Flow；这里只留复盘记录，不能重复批准。",
 	          buttons: ["关闭"],
-	          never: ["不要重复发送", "不要再次移到自动记录", "不要确认已付款"],
+	          never: ["不要重复发送", "不要再次移到自动记录", "不要按确认收款 / COD"],
 	        };
 	      }
 	      if (status === "auto_sent" || status === "sent" || status === "manual_resolved" || status === "purchase_confirmed") {
@@ -14058,9 +14058,9 @@
 	        return {
 	          tone: "risk",
 	          title: "订单/付款先人工确认",
-	          body: "先确认订单、地区、金额、付款方式或截图；真实付款没确认前不要按确认已付款。",
+	          body: "先确认订单、地区、金额、付款方式或截图；真实付款没确认前不要按确认收款 / COD。",
 	          buttons: ["打开订单/付款", "转人工", "记录人工回复"],
-	          never: [...neverBase, "不要承诺付款方式一定可用", "没确认付款不要按确认已付款"],
+	          never: [...neverBase, "不要承诺付款方式一定可用", "没确认付款不要按确认收款 / COD"],
 	        };
 	      }
 	      if (needsReturnAiBeforeApproval(item) || closer.tone === "fix") {
@@ -14776,7 +14776,7 @@
           patterns: [],
           answer: dashboardSafeAttachmentReply(),
           mustInclude: ["客服打开确认", "确认后再回复"],
-          mustNotDo: ["当成付款截图", "按确认已付款", "接销售 Flow"],
+          mustNotDo: ["当成付款截图", "按确认收款 / COD", "接销售 Flow"],
           nextAction: "转人工打开 ChatDaddy 图片/附件；处理完把最终人工回复补回 Dashboard。"
         };
       }
