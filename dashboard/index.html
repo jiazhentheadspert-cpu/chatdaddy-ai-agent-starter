@@ -5973,7 +5973,7 @@
           <div class="bulk-actions">
             <button class="btn" id="bulkMarkSeen" type="button">标记已看</button>
             <button class="btn danger" id="bulkReturnAi" type="button">批量退回 AI</button>
-            <button class="btn danger" id="bulkHandoff" type="button">批量转人工</button>
+            <button class="btn danger" id="bulkHandoff" type="button">批量人工接手</button>
             <button class="btn ghost" id="bulkClear" type="button">清除选择</button>
           </div>
         </div>
@@ -6026,9 +6026,10 @@
 	              <div class="reply-action-group" aria-label="发送回复">
 	                <div class="operation-copy">
 	                  <span>发送回复</span>
-	                  <small>按下后会发送讯息</small>
+	                  <small>Dashboard 发送，ChatDaddy 只做底层通道</small>
 	                </div>
 	                <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
+	                <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">人工发送</button>
 	              </div>
 	              <div class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
 	                <div class="operation-copy">
@@ -6048,13 +6049,13 @@
                   <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
                     <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
                     <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
-                    <button class="btn danger" id="shortVersionHandoffBtn" type="button">转人工</button>
+                    <button class="btn danger" id="shortVersionHandoffBtn" type="button">人工接手</button>
                   </div>
                   <div class="side-actions">
                     <button class="btn" id="manualResolveBtn" type="button">记录人工回复</button>
                     <button class="btn" id="channelReplyResolvedBtn" type="button">已在 ChatDaddy 回复</button>
                     <button class="btn" id="returnAiBtn" type="button">让 AI 重写</button>
-                    <button class="btn danger" id="handoffBtn" type="button">转人工</button>
+                    <button class="btn danger" id="handoffBtn" type="button">人工接手</button>
                     <button class="btn" id="learnBtn" type="button">同类以后少审核</button>
 	                  </div>
 	                  <details class="external-flow-panel hidden" id="externalFlowPanel">
@@ -6633,7 +6634,8 @@
     $("shortVersionHandoffBtn").addEventListener("click", handoffActive);
     $("learnBtn").addEventListener("click", learnActive);
     $("manualResolveBtn").addEventListener("click", manualResolveActive);
-    $("channelReplyResolvedBtn").addEventListener("click", channelReplyResolvedActive);
+    $("manualSendBtn").addEventListener("click", manualSendActive);
+	    $("channelReplyResolvedBtn").addEventListener("click", channelReplyResolvedActive);
 	    $("returnAiBtn").addEventListener("click", returnAiActive);
 		    $("handoffBtn").addEventListener("click", handoffActive);
 		    $("markPurchaseBtn").addEventListener("click", markPurchaseActive);
@@ -13704,6 +13706,14 @@
       $("actionReason").textContent = actionHint(item);
       const closer = closerVerdict(item);
       const approvalGuard = effectiveApprovalGuardForCase(item, closer);
+      const canManualSend = canManualSendCase(item, closer, approvalGuard);
+      if (canManualSend && !$("replyBox").placeholder) {
+        $("replyBox").placeholder = "在这里写客服要发给顾客的回复；人工发送后会留下学习候选，Owner 审核后同类问题才会自动/少审核。";
+      }
+      if (canManualSend) {
+        $("replyModeLabel").textContent = "Dashboard 人工发送";
+        $("replyTools").classList.remove("hidden");
+      }
       $("closerVerdictBox").className = `closer-verdict ${closer.tone}`;
       $("closerVerdictTitle").textContent = closer.title;
       $("closerVerdictApprovalSignal").textContent = closerVerdictApprovalSignal(closer, item);
@@ -13722,6 +13732,9 @@
 	      $("panelStatusPill").textContent = caseStatusLabel(item, decision.risk);
       $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : item.status === "order" ? "确认已处理" : "发送给顾客";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
+      $("manualSendBtn").classList.toggle("hidden", !canManualSend);
+      $("manualSendBtn").disabled = state.actionBusy || !canManualSend;
+      $("manualSendBtn").textContent = "人工发送";
       $("manualResolveBtn").disabled = state.actionBusy || !canManualResolve;
       $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : "记录人工回复";
       $("channelReplyResolvedBtn").disabled = state.actionBusy || readOnly;
@@ -16858,6 +16871,21 @@
 	      return !["auto", "auto_sent", "external_flow_continued", "sent", "sending", "manual_resolved", "purchase_confirmed"].includes(item.status);
 	    }
 
+	    function canManualSendCase(item = {}, closer = null, approvalGuard = null) {
+	      if (!item) return false;
+	      const status = String(item.status || "").toLowerCase();
+	      if (["auto", "auto_sent", "external_flow_continued", "sent", "sending", "manual_resolved", "purchase_confirmed"].includes(status)) return false;
+	      const decision = item.latest_decision || {};
+	      if (decision.action === "trigger_flow") return false;
+	      const verdict = closer || closerVerdict(item);
+	      const guard = approvalGuard || effectiveApprovalGuardForCase(item, verdict);
+	      return canManualResolveCase(item) && (
+	        guard.blocked ||
+	        ["handoff", "order", "fix"].includes(verdict.tone) ||
+	        ["human_required", "handoff_done", "returned_to_ai", "rejected"].includes(status)
+	      );
+	    }
+
 	    function requiresManualReplyForManualResolve(item = {}) {
 	      return ["handoff_done", "returned_to_ai"].includes(String(item.status || ""));
 	    }
@@ -17332,6 +17360,56 @@
       }
     }
 
+	    async function manualSendActive() {
+	      if (!state.active) return;
+	      const closer = closerVerdict(state.active);
+	      const approvalGuard = effectiveApprovalGuardForCase(state.active, closer);
+	      if (!canManualSendCase(state.active, closer, approvalGuard)) return;
+	      if (state.actionBusy) return;
+	      const manualReplyText = $("replyBox").value.trim();
+	      if (!manualReplyText) {
+	        showToast("先在回复框写要发给顾客的人工回复。");
+	        $("replyBox").focus();
+	        return;
+	      }
+	      if (isPlaceholderManualReply(manualReplyText)) {
+	        showToast("不要只写“已回复/Done”；这里要写真正发给顾客的完整文字。");
+	        $("replyBox").focus();
+	        return;
+	      }
+	      if (!confirmLiveAction("manual_send", state.active)) return;
+	      const learning = manualSendLearningPayload(state.active, closer);
+	      const result = await postCaseAction(state.active.id, "manual_send", {
+	        reply_message: manualReplyText,
+	        manualReplyText,
+	        final_human_reply: manualReplyText,
+	        ...learning,
+	        note: learning.note,
+	        source: "dashboard_manual_reply_send",
+	        learning_candidate_source: "dashboard_manual_reply_send",
+	        create_learning_candidate: true,
+	      });
+	      if (actionLearningNoteRecorded(result)) {
+	        showToast("已人工发送，学习候选待 Owner 审核。");
+	      }
+	    }
+
+	    function manualSendLearningPayload(item = state.active, closer = null) {
+	      const verdict = closer || closerVerdict(item);
+	      const completion = handoffCompletionPayload(item);
+	      const reason = completion.payload.handoff_reason || verdict.reason || "客服在 Dashboard 人工接手回复。";
+	      const outcome = completion.payload.customer_outcome || "已由客服在 Dashboard 人工回复顾客。";
+	      const note = completion.payload.learning_outcome_note || "把顾客原话、AI 草稿和这次人工最终回复保留为学习候选；Owner 审核后，同类问题才可自动或少审核。";
+	      const learnability = completion.payload.learnability || "needs_owner";
+	      return {
+	        handoff_reason: reason,
+	        customer_outcome: outcome,
+	        learning_outcome_note: note,
+	        learnability,
+	        note: `${reason}；${outcome}；${note}`,
+	      };
+	    }
+
 	    async function channelReplyResolvedActive() {
 	      if (!state.active) return;
 	      if (isCaseReadOnly(state.active)) return;
@@ -17414,7 +17492,9 @@
 
     function actionLearningNoteRecorded(result = {}) {
       return result?.auto_learning_note?.recorded === true ||
-        result?.handoff_learning_note?.recorded === true;
+        result?.handoff_learning_note?.recorded === true ||
+        result?.learning_note?.recorded === true ||
+        result?.learning_note?.ok === true;
     }
 
     function normalizedPurchaseAmount(value) {
@@ -18455,17 +18535,19 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "退回 AI 中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "channel_reply_resolved" ? "记录中..." : action === "external_flow_continued" ? "移动中..." : "发送中...");
+	          setPanelBusy(true, action === "handoff" ? "人工接手中..." : action === "return_ai" ? "退回 AI 中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "人工发送中..." : action === "channel_reply_resolved" ? "记录中..." : action === "external_flow_continued" ? "移动中..." : "发送中...");
 	        }
         const isApproval = active?.source === "approval";
         const endpoint = action === "mark_purchase"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`
+          : action === "manual_send"
+          ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/approve-send`
           : action === "return_ai"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/return-ai`
           : isApproval
           ? approvalActionEndpoint(api, caseId, action, project)
           : `${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`;
-        const payload = isApproval ? approvalActionPayload(action, body) : body;
+        const payload = isApproval || action === "manual_send" ? approvalActionPayload(action, body) : body;
         const res = await fetch(endpoint, authRequestOptions(token, {
           method: "POST",
           headers: {
@@ -18511,6 +18593,13 @@
           return false;
         }
       }
+      if (action === "manual_send") {
+        if (!reply) {
+          alert("回复框是空的，不能人工发送。请先写要发给顾客的完整回复。");
+          $("replyBox").focus();
+          return false;
+        }
+      }
       if (state.demoMode) return true;
       if (action === "handoff") {
         return window.confirm(`确认把 ${name} 转人工？\n\n这不会发送 AI 建议给顾客，会留下处理记录。`);
@@ -18552,6 +18641,14 @@
           : "系统不会发送 AI 建议，只会留下处理记录。";
 	        return window.confirm(`确认 ${name} 已经由客服人工处理？\n\n${actionLine}${preview}${completionPreview}${learnabilityPreview}${learningLine}`);
       }
+	      if (action === "manual_send") {
+	        const learning = manualSendLearningPayload(item, closerVerdict(item));
+	        const preview = reply.slice(0, 180);
+	        const emojiHint = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}❤❤️]/u.test(reply)
+	          ? ""
+	          : "\n\n语气提醒：可以保持亲切，适合时加 ❤️/😊/🙏，但付款、投诉、健康问题不要过度可爱。";
+	        return window.confirm(`确认由 Dashboard 人工发送给 ${name}？\n\n将真实发送：\n${preview}${reply.length > 180 ? "..." : ""}\n\n这不会触发 Flow；发送成功后会记录学习候选，Owner 审核后同类问题才会自动或少审核。\n\n复盘：${learning.handoff_reason}${emojiHint}`);
+	      }
       const actionText = action === "learn" ? "发送并建立同类少审核规则" : "发送给真实顾客";
       const preview = reply.slice(0, 180);
       return window.confirm(`确认${actionText}：${name}？\n\n将发送内容：\n${preview}${reply.length > 180 ? "..." : ""}`);
@@ -18567,10 +18664,13 @@
       const isFlowOnly = decision.action === "trigger_flow";
       const closer = closerVerdict(state.active);
       const approvalGuard = effectiveApprovalGuardForCase(state.active, closer);
+      const canManualSend = canManualSendCase(state.active, closer, approvalGuard);
       const canResendPurchase = canResendPurchaseMeta(state.active);
       const showPurchasePanel = shouldShowPurchasePanelForCase(state.active, readOnly, canResendPurchase);
       const purchaseActionComplete = purchaseActionCompleteForCase(state.active);
       $("approveBtn").disabled = isBusy || isFlowOnly || readOnly || approvalGuard.blocked;
+      $("manualSendBtn").classList.toggle("hidden", !canManualSend);
+      $("manualSendBtn").disabled = isBusy || !canManualSend;
       $("manualResolveBtn").disabled = isBusy || !canManualResolve;
       $("channelReplyResolvedBtn").disabled = isBusy || readOnly;
       $("returnAiBtn").disabled = isBusy || readOnly;
@@ -18583,6 +18683,7 @@
 	      updateExternalFlowButtonState(state.active);
 	      if (isBusy) {
 	        $("approveBtn").textContent = label;
+	        $("manualSendBtn").textContent = label;
 	        $("manualResolveBtn").textContent = label;
 	        $("channelReplyResolvedBtn").textContent = label;
 	        $("returnAiBtn").textContent = label;
@@ -18591,6 +18692,7 @@
 	        return;
 	      }
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : state.active.status === "order" ? "确认已处理" : "发送给顾客";
+	      $("manualSendBtn").textContent = "人工发送";
 	      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录人工回复";
 	      $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "已在 ChatDaddy 回复";
 	      $("returnAiBtn").textContent = approvalGuard.blocked ? "让 AI 重写" : readOnly ? "已记录" : "让 AI 重写";
@@ -18697,10 +18799,38 @@
 	          resolvedBy: state.session.displayName || roleName(state.role),
 	        };
       }
+      if (action === "manual_send") {
+        return {
+          text: body.reply_message || body.manualReplyText || "",
+          replyText: body.reply_message || body.manualReplyText || "",
+          reply_message: body.reply_message || body.manualReplyText || "",
+          manualReplyText: body.manualReplyText || body.reply_message || "",
+          final_human_reply: body.final_human_reply || body.manualReplyText || body.reply_message || "",
+          confirmLiveSend: true,
+          create_learning_candidate: true,
+          source: body.source || "dashboard_manual_reply_send",
+          learning_candidate_source: body.learning_candidate_source || "dashboard_manual_reply_send",
+          handoff_reason: body.handoff_reason || "",
+          customer_outcome: body.customer_outcome || "",
+          learning_outcome_note: body.learning_outcome_note || "",
+          learnability: body.learnability || "needs_owner",
+          note: body.note || "客服在 Dashboard 人工发送；发送后记录学习候选，Owner 审核后才应用。",
+          user: state.session.displayName || roleName(state.role),
+        };
+      }
       return {
         text: body.reply_message,
         replyText: body.reply_message,
+        reply_message: body.reply_message,
         confirmLiveSend: true,
+        create_learning_candidate: true,
+        source: action === "learn" ? "dashboard_learn_send" : "dashboard_approval_send",
+        learning_candidate_source: action === "learn" ? "dashboard_learn_send" : "dashboard_approval_send",
+        final_human_reply: body.reply_message,
+        learnability: action === "learn" ? "yes" : "needs_owner",
+        note: action === "learn"
+          ? "客服要求同类以后少审核；先记录学习候选，Owner 审核后才应用。"
+          : "客服批准 Dashboard 回复；记录学习候选，Owner 审核后同类问题才会自动或少审核。",
         autoApproveSimilar: action === "learn",
         user: state.session.displayName || roleName(state.role),
       };
@@ -18715,12 +18845,33 @@
         record.status = "sent";
         record.latest_reply_sent = body.reply_message;
         record.messages.push({ direction: "outbound", text: body.reply_message, at: now });
+        record.manual_learning_candidate = caseOptimizerLearningCandidate(record, "");
         record.history.push({
           type: "approved_sent_demo",
           at: now,
-          note: "演示：已批准发送，不会真的发 WhatsApp。",
+          note: "演示：已批准发送，并记录学习候选；不会真的发 WhatsApp。",
         });
-        showToast("演示：已批准发送，不会真的发 WhatsApp。");
+        showToast("演示：已批准发送，并记录学习候选。");
+      }
+
+      if (action === "manual_send") {
+        const manualReplyText = String(body.reply_message || body.manualReplyText || "").trim();
+        record.status = "sent";
+        record.latest_reply_sent = manualReplyText;
+        record.final_human_reply = manualReplyText;
+        record.manual_reply_text = manualReplyText;
+        record.handoff_reason = body.handoff_reason || record.handoff_reason || "演示：Dashboard 人工发送。";
+        record.customer_outcome = body.customer_outcome || record.customer_outcome || "已人工回复顾客。";
+        record.learning_outcome_note = body.learning_outcome_note || record.learning_outcome_note || "演示：发送后记录学习候选。";
+        record.learnability = normalizeLearnabilityDecision(body.learnability) || "needs_owner";
+        record.messages.push({ direction: "outbound", text: manualReplyText, at: now });
+        record.manual_learning_candidate = caseOptimizerLearningCandidate(record, "");
+        record.history.push({
+          type: "approved_sent_demo",
+          at: now,
+          note: "演示：已人工发送，并记录学习候选；不会真的发 WhatsApp。",
+        });
+        showToast("演示：已人工发送，并记录学习候选。");
       }
 
       if (action === "learn") {
@@ -18980,8 +19131,8 @@
 
     function statusLabel(status, risk) {
       if (status === "approval_required") return "待批准";
-      if (status === "human_required") return "要人工";
-      if (status === "handoff_done") return "已转人工";
+      if (status === "human_required") return "要人工接手";
+      if (status === "handoff_done") return "已人工接手";
       if (status === "returned_to_ai") return "已退回 AI";
       if (status === "manual_resolved") return "已手动回复";
       if (status === "purchase_confirmed") return "已成交";
@@ -19002,17 +19153,18 @@
         send_reply: "发送给顾客",
         auto_reply: "AI 自动回复",
         approve_reply: "发送给顾客",
-        ask_human: "转人工",
-        handoff_done: "已转人工",
+        ask_human: "人工接手",
+        handoff_done: "已人工接手",
         collect_order: "收订单",
         review_receipt: "审核付款",
         mark_purchase: "确认成交",
         trigger_flow: "进 Step 1",
         approve: "发送给顾客",
         learn: "建立自动规则",
-        handoff: "转人工",
+        handoff: "人工接手",
 	        return_ai: "让 AI 重写",
 	        manual_resolve: "记录人工回复",
+	        manual_send: "人工发送",
 	        channel_reply_resolved: "已在 ChatDaddy 回复",
 	        external_flow_continued: "移到自动记录",
 	        mark_purchase_action: "确认成交",
