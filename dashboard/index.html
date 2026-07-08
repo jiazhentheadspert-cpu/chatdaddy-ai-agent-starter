@@ -4517,7 +4517,7 @@
 
 	    .reply-command-bar {
 	      display: grid;
-	      grid-template-columns: auto minmax(190px, .9fr) minmax(300px, 1fr) auto;
+	      grid-template-columns: auto minmax(190px, .75fr) minmax(360px, 1fr) auto;
 	      align-items: center;
 	      justify-content: stretch;
 	      gap: 10px;
@@ -4534,7 +4534,7 @@
 	      position: fixed;
 	      left: 50%;
 	      bottom: 24px;
-	      width: min(980px, calc(100vw - 56px));
+	      width: min(1180px, calc(100vw - 56px));
 	      transform: translateX(-50%);
 	      z-index: 60;
       border: 1px solid rgba(16,185,157,.34);
@@ -4558,7 +4558,7 @@
 
 	    .payment-quick {
 	      display: grid;
-	      grid-template-columns: minmax(86px, .52fr) minmax(138px, 1fr);
+	      grid-template-columns: minmax(132px, .55fr) minmax(154px, .7fr);
 	      align-items: center;
 	      gap: 7px;
 	      min-width: 0;
@@ -4954,8 +4954,31 @@
 	      line-height: 1.35;
 	    }
 
-	    .external-flow-hidden-fields {
-	      display: none !important;
+	    .external-flow-advanced {
+	      border: 1px solid rgba(147, 197, 253, .34);
+	      border-radius: 12px;
+	      background: rgba(255,255,255,.72);
+	      overflow: hidden;
+	    }
+
+	    .external-flow-advanced summary {
+	      min-height: 38px;
+	      padding: 9px 10px;
+	      color: var(--muted);
+	      font-size: 12px;
+	      font-weight: 900;
+	    }
+
+	    .external-flow-advanced summary::after {
+	      width: 20px;
+	      height: 20px;
+	      font-size: 13px;
+	    }
+
+	    .external-flow-advanced-body {
+	      display: grid;
+	      gap: 8px;
+	      padding: 0 10px 10px;
 	    }
 
 	    .external-flow-grid {
@@ -5918,16 +5941,16 @@
                 <small>发送会给顾客；付款只记录成交</small>
               </div>
               <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
-              <div class="payment-quick" id="purchasePanel" aria-label="确认付款并回流广告">
+              <div class="payment-quick" id="purchasePanel" aria-label="确认已付款并回流广告">
                 <label class="purchase-input-wrap">
-                  <span>RM</span>
+                  <span>成交 RM</span>
                   <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
                 </label>
-                <button class="btn primary" id="markPurchaseBtn" type="button">确认付款</button>
-                <div class="purchase-note" id="purchaseNote">收到付款或 COD 确认才按；不会发消息。</div>
+                <button class="btn primary" id="markPurchaseBtn" type="button">确认已付款</button>
+                <div class="purchase-note" id="purchaseNote">收到款/COD 确认后才按；不会发消息。</div>
               </div>
               <details class="function-menu" id="functionMenu">
-                <summary>更多操作</summary>
+                <summary>其他处理</summary>
                 <div class="function-menu-panel">
                   <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
                     <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
@@ -5942,23 +5965,28 @@
 	                  </div>
 	                  <details class="external-flow-panel hidden" id="externalFlowPanel">
 	                    <summary>
-	                      <span>收起旧 Flow 卡</span>
-	                      <small>不发消息</small>
+	                      <span>已接下一段流程</span>
+	                      <small>移到自动记录</small>
 	                    </summary>
 	                    <div class="external-flow-body">
-	                      <p class="external-flow-summary">顾客已经继续下一段 Flow，这张旧卡不用再回复时才用。</p>
-	                      <div class="external-flow-grid external-flow-hidden-fields" aria-hidden="true">
-	                        <input id="externalFlowIdInput" autocomplete="off" placeholder="ChatDaddy 已发的 Flow 名称" />
-	                        <input id="externalFlowMessageInput" autocomplete="off" placeholder="ChatDaddy 那条消息 ID / 时间" />
-	                        <input id="externalFlowEventAtInput" type="datetime-local" />
-	                        <input id="externalFlowEvidenceInput" autocomplete="off" placeholder="备注（可不填）" />
-	                      </div>
+	                      <p class="external-flow-summary">确认顾客已经被 ChatDaddy/ManyChat 带去下一段，这张旧回复不用发，才点这里。</p>
 	                      <label class="external-flow-confirm">
 	                        <input id="externalFlowCustomerClearInput" type="checkbox" />
-	                        <span>我确认顾客没有在等这条旧回复。</span>
+	                        <span>我确认顾客已经继续下一段，不需要这张旧回复。</span>
 	                      </label>
-	                      <button class="btn" id="externalFlowRecordBtn" type="button">收起旧卡</button>
-	                      <div class="purchase-note" id="externalFlowNote">只整理 Dashboard；不会发送消息。</div>
+	                      <button class="btn" id="externalFlowRecordBtn" type="button">移到自动记录</button>
+	                      <details class="external-flow-advanced">
+	                        <summary>高级资料（一般不用打开）</summary>
+	                        <div class="external-flow-advanced-body">
+	                          <div class="external-flow-grid">
+	                            <input id="externalFlowIdInput" autocomplete="off" placeholder="流程资料（系统会自动填）" />
+	                            <input id="externalFlowMessageInput" autocomplete="off" placeholder="消息资料（系统会自动填）" />
+	                            <input id="externalFlowEventAtInput" type="datetime-local" />
+	                            <input id="externalFlowEvidenceInput" autocomplete="off" placeholder="备注（可不填）" />
+	                          </div>
+	                        </div>
+	                      </details>
+	                      <div class="purchase-note" id="externalFlowNote">只整理 Dashboard；不会发送顾客讯息。</div>
 	                    </div>
 	                  </details>
                 </div>
@@ -8915,7 +8943,7 @@
     }
 
     function externalFlowReadOnlyMessage() {
-      return "ChatDaddy 已继续下一段 Flow；这条只读记录不用处理，也不会再发送旧回复。";
+      return "顾客已进入下一段自动流程；这条只读，不用处理，也不会再发送旧回复。";
     }
 
     function approvalAction(item) {
@@ -8939,7 +8967,7 @@
     }
 
     function approvalReason(item, status, action) {
-      if (status === "external_flow_continued" || (status === "auto_sent" && isExternalFlowProgressedApproval(item))) return "旧 Flow 已收起，客服不用重复处理。";
+      if (status === "external_flow_continued" || (status === "auto_sent" && isExternalFlowProgressedApproval(item))) return "旧回复已移到自动记录，客服不用重复处理。";
       if (status === "auto_sent") return "AI 已自动回复顾客；这里保留已发送内容，方便客服追踪。";
       if (status === "sent") return "这条回复已发送给顾客。";
       if (status === "purchase_confirmed") return `已确认成交${item.amount_rm || item.purchase?.amount_rm ? ` RM ${item.amount_rm || item.purchase?.amount_rm}` : ""}。`;
@@ -9260,7 +9288,7 @@
       if (filter === "auto") {
         return staffCaseSectionHtml({
           title: "自动记录 / 不用处理",
-          body: "AI 已发或 Flow 已继续的记录，只读复盘，不混在待处理里。",
+          body: "AI 已发或已接下一段的记录，只读复盘，不混在待处理里。",
           items: visible,
           emptyText: "今天没有自动记录。",
         });
@@ -9288,7 +9316,7 @@
       if (auto.length) {
         sections.push(staffCaseSectionHtml({
           title: "自动记录 / 不用处理",
-          body: "AI 已发或 Flow 已继续的记录，不再卡住上一个批准 Case。",
+          body: "AI 已发或已接下一段的记录，不再卡住上一个批准 Case。",
           items: auto,
           countLabel: `${auto.length} 位 · ${Number(counts.auto || auto.length)} 条`,
         }));
@@ -9731,8 +9759,8 @@
           tone: returnAiCount > 0 ? "risk" : "",
         },
         {
-          title: "外部 Flow",
-          body: "ChatDaddy/ManyChat 已继续的旧 Case 放自动记录，只读。",
+          title: "自动流程",
+          body: "已接下一段的旧 Case 放自动记录，只读。",
           badge: `${externalFlowRecords} 只读`,
           tone: "",
         },
@@ -9823,7 +9851,7 @@
         {
           action: "auto_records",
           title: "自动记录",
-          body: "Flow 已继续的记录只读，不重复处理旧卡。",
+          body: "已接下一段的记录只读，不重复处理旧卡。",
           count: externalFlowRecords,
           badge: `${externalFlowRecords} 只读`,
           button: "看自动记录",
@@ -10258,7 +10286,7 @@
 	    function autoReplyUnlockActions(context = {}) {
 	      const actions = [];
 	      if (Number(context.redlineCount || 0) > 0) actions.push("红线先归零：付款、售后、投诉、健康敏感都先人工");
-	      if (Number(context.stuckCount || 0) > 0) actions.push("清旧卡：Flow 已继续的收起旧卡，旧草稿让 AI 重写");
+	      if (Number(context.stuckCount || 0) > 0) actions.push("清旧卡：已接下一段的移到自动记录，旧草稿让 AI 重写");
 	      if (Number(context.answer?.score || 0) < 90) actions.push("补高频 FAQ/SOP：先把顾客问题答准");
 	      if (Number(context.learning?.score || 0) < 70) actions.push("补人工最终回复：顾客问题、客服回复、结果、复盘备注要齐");
 	      if (Number(context.flow?.score || 0) < 95) actions.push("补 Flow 回放：Step 前先答问题，Step 后再接下一步");
@@ -10316,7 +10344,7 @@
 	          title: "客服清旧卡",
 	          current: staffHumanFirst,
 	          target: 0,
-	          done: "顾客队列只留真正要处理的人；Flow 已继续才收起旧卡。"
+	          done: "顾客队列只留真正要处理的人；已接下一段才移到自动记录。"
 	        },
 	        {
 	          lane: "Owner",
@@ -10550,7 +10578,7 @@
 	      if (/owner_p0|Owner P0/i.test(key)) return "P0 红线先签核，不让 IT 先填正式决定。";
 	      if (/staff_human|human-first|Staff P0/i.test(key)) return "客服先处理投诉、售后、付款和订单类卡片。";
 	      if (/dashboard_scan|Remaining Dashboard/i.test(key)) return "Dashboard 还要扫完，避免旧卡混在顾客队列。";
-	      if (/dashboard_stuck|stuck drafts/i.test(key)) return "旧草稿要让 AI 重写或收起旧卡，不能继续卡着。";
+	      if (/dashboard_stuck|stuck drafts/i.test(key)) return "旧草稿要让 AI 重写或移到自动记录，不能继续卡着。";
 	      if (/operating_contract|Operating contract/i.test(key)) return "操作规则已经具备，继续按 Dashboard 执行。";
 	      if (/explicit_owner|runtime approval|Owner explicit/i.test(key)) return "所有数字通过后，老板再单独批准是否进入 L1。";
 	      return String(item.done_when || "按目标数字完成。");
@@ -10704,7 +10732,7 @@
 	          direction: "at_most",
 	          unit: "张",
 	          owner: "CS Team / IT",
-	          action: "Flow 已继续的收起旧卡；旧草稿让 AI 重写，顾客队列只留要处理的人。",
+	          action: "已接下一段的移到自动记录；旧草稿让 AI 重写，顾客队列只留要处理的人。",
 	          proof: "stuck_drafts = 0，duplicate active case = 0",
 	          blocks: true
 	        }),
@@ -12343,7 +12371,7 @@
           </div>
           <div class="rule-list">
             <div class="rule-row">
-              <div><strong>付款确认回流</strong>客服按「确认付款」才记录成交并回流广告；不会自动认定成交。</div>
+              <div><strong>付款确认回流</strong>客服按「确认已付款」才记录成交并回流广告；不会自动认定成交。</div>
               <span class="pill green">人工确认</span>
             </div>
             <div class="rule-row">
@@ -12635,7 +12663,7 @@
         deliveryMode === "external_flow_continued" ||
         item.external_flow_event ||
         item.external_flow_continued_at
-      ) return "无新文字问题，Flow 已继续";
+      ) return "无新文字问题，已接下一段";
       return "顾客没有文字讯息";
     }
 
@@ -13407,7 +13435,7 @@
       $("replyBox").value = hideReplyCard || isManualFollowUp ? "" : externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
       $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : "";
       $("replyBox").readOnly = readOnly && !canManualResolve;
-      $("replyModeLabel").textContent = externalFlowReadOnly ? "Flow 已继续，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工，只读" : item.status === "returned_to_ai" ? "已退回 AI，只读" : readOnly ? "已记录，只读" : "可修改";
+      $("replyModeLabel").textContent = externalFlowReadOnly ? "已接下一段，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工，只读" : item.status === "returned_to_ai" ? "已退回 AI，只读" : readOnly ? "已记录，只读" : "可修改";
       $("replyTools").classList.toggle("hidden", readOnly && !canManualResolve);
       const canOptimizeCase = state.role !== "staff";
       $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
@@ -13456,7 +13484,7 @@
 	      updatePurchaseNote(item);
 	      updateExternalFlowPanel(item, readOnly);
 	      $("markPurchaseBtn").disabled = state.actionBusy || isFlowOnly || !showPurchasePanel || (readOnly && !canResendPurchase);
-      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流广告" : "确认付款";
+      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流广告" : "确认已付款";
 	      $("caseDetails").innerHTML = caseDetailsHtml(item);
 
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
@@ -13571,14 +13599,14 @@
 
 		    function externalFlowDefaultEvidenceNote(item = {}) {
 		      const customer = customerDisplayLabel(item) || "这位顾客";
-		      return `已在 ChatDaddy/ManyChat 确认 ${customer} 已继续下一段 Flow，这张旧草稿不再发送。`;
+		      return `已确认 ${customer} 已继续下一段自动流程，这张旧草稿不再发送。`;
 		    }
 
 	    function externalFlowFrontendBlockReason(item = {}) {
 	      if (!item?.id) return "没有选中顾客。";
 	      const status = String(item.status || "").toLowerCase();
 	      if (["auto", "auto_sent", "external_flow_continued", "sent", "sending", "handoff_done", "returned_to_ai", "manual_resolved", "purchase_confirmed", "rejected"].includes(status)) {
-		        return "这张 Case 已经处理或只读，不能再收起旧卡。";
+		        return "这张 Case 已经处理或只读，不能再移动。";
 	      }
 	      if (!state.demoMode && item.source !== "approval") return "只有 Dashboard 批准卡可以整理到自动记录。";
 	      const raw = externalFlowSourceRecord(item);
@@ -13601,7 +13629,7 @@
 	        ...(Array.isArray(rawSignals.tags) ? rawSignals.tags : []),
 	      ].filter(Boolean).join(" ");
 	      if (risk === "high" || closer.tone === "handoff" || closer.tone === "order" || /^(order|human|handoff|ops)$/.test(category) || /ask_human|collect_order|review_receipt|mark_purchase/i.test(action)) {
-		        return "付款、订单、投诉、售后或高风险 Case 要人工处理，不能收起旧卡。";
+		        return "付款、订单、投诉、售后或高风险 Case 要人工处理，不能直接移动。";
 	      }
 	      if (/(?:付款|已付|汇款|收据|receipt|paid|payment|cod|订单|下单|包裹|物流|退款|refund|投诉|complaint|售后|after.?sales|怀孕|经期|吃药|糖尿|血糖|不舒服|副作用|medical|pregnan)/i.test(combined)) {
 	        return "这类顾客讯息涉及付款、订单、售后或身体安全，先人工确认。";
@@ -13631,14 +13659,14 @@
 	      const blockReason = item ? externalFlowFrontendBlockReason(item) : "没有选中顾客。";
 	      const hidden = panel.classList.contains("hidden");
 	      button.disabled = hidden || state.actionBusy || Boolean(blockReason) || !externalFlowFormComplete();
-		      button.textContent = state.actionBusy ? "收起中..." : "收起旧卡";
+		      button.textContent = state.actionBusy ? "移动中..." : "移到自动记录";
 	      const note = $("externalFlowNote");
 	      if (note) {
 	        note.textContent = blockReason
 	          ? blockReason
 	          : externalFlowFormComplete()
-		            ? "确认后会从待处理移走；不会发送消息。"
-		            : "确认顾客没有在等这条旧回复后才收起。";
+		            ? "确认后会移到自动记录；不会发送消息。"
+		            : "确认顾客已经继续下一段后才移动。";
 	        note.className = `purchase-note ${blockReason ? "warn" : externalFlowFormComplete() ? "ok" : ""}`.trim();
 	      }
 	    }
@@ -13850,7 +13878,7 @@
 	          title: "图片/附件先人工看",
 	          body: "顾客只发图片/附件，Dashboard 不能判断是不是付款、Review、投诉或问题图。客服先打开确认，再决定审款、售后、回答问题或接 Flow。",
 	          buttons: ["转人工", "记录人工回复"],
-	          never: [...neverBase, "不要当成付款截图", "不要确认付款", "不要接销售 Flow"],
+	          never: [...neverBase, "不要当成付款截图", "不要确认已付款", "不要接销售 Flow"],
 	        };
 	      }
 	      if (status === "external_flow_continued") {
@@ -13859,7 +13887,7 @@
 	          title: "自动记录只读",
 	          body: "ChatDaddy/ManyChat 已继续下一段 Flow；这里只留复盘记录，不能重复批准。",
 	          buttons: ["关闭"],
-	          never: ["不要重复发送", "不要再次收起旧卡", "不要确认付款"],
+	          never: ["不要重复发送", "不要再次移到自动记录", "不要确认已付款"],
 	        };
 	      }
 	      if (status === "auto_sent" || status === "sent" || status === "manual_resolved" || status === "purchase_confirmed") {
@@ -13883,14 +13911,14 @@
 	      if (
 	        status === "order" ||
 	        closer.tone === "order" ||
-        /(付款|付钱|付錢|银行卡|信用卡|COD|收据|receipt|payment|paid|汇款|匯款|订单|訂單|送货|送貨|物流|delivery|shipping|确认付款|確認付款)/i.test(combined)
+        /(付款|付钱|付錢|银行卡|信用卡|COD|收据|receipt|payment|paid|汇款|匯款|订单|訂單|送货|送貨|物流|delivery|shipping|确认付款|確認付款|确认已付款)/i.test(combined)
 	      ) {
 	        return {
 	          tone: "risk",
 	          title: "订单/付款先人工确认",
-	          body: "先确认订单、地区、金额、付款方式或截图；真实付款没确认前不要确认付款。",
+	          body: "先确认订单、地区、金额、付款方式或截图；真实付款没确认前不要按确认已付款。",
 	          buttons: ["打开订单/付款", "转人工", "记录人工回复"],
-	          never: [...neverBase, "不要承诺付款方式一定可用", "没确认付款不要确认付款"],
+	          never: [...neverBase, "不要承诺付款方式一定可用", "没确认付款不要按确认已付款"],
 	        };
 	      }
 	      if (needsReturnAiBeforeApproval(item) || closer.tone === "fix") {
@@ -13919,9 +13947,9 @@
 	      if (canConfirmExternalFlowCase(item)) {
 	        return {
 	          tone: "warn",
-	          title: "收起旧 Flow 卡",
+	          title: "已接下一段流程",
 	          body: "顾客已经继续下一段 Flow、没有在等旧回复时才收起。",
-	          buttons: ["收起旧卡"],
+	          buttons: ["移到自动记录"],
 	          never: [...neverBase, "证据不齐不要收起", "风险/付款/投诉/售后不要收起"],
 	        };
 	      }
@@ -13943,7 +13971,7 @@
         if (status === "returned_to_ai") return { text: "已退回 AI", tone: "", note: "等待重写或复盘。" };
         if (status === "manual_resolved") return { text: "已手动回", tone: "", note: "已保存人工回复。" };
         if (status === "purchase_confirmed") return { text: "已成交", tone: "", note: "已记录成交金额。" };
-        return { text: status === "external_flow_continued" ? "Flow 已继续" : status === "auto_sent" ? "已自动回" : status === "auto" ? "自动中" : "已处理", tone: "", note: "已留记录。" };
+        return { text: status === "external_flow_continued" ? "已接下一段" : status === "auto_sent" ? "已自动回" : status === "auto" ? "自动中" : "已处理", tone: "", note: "已留记录。" };
       }
       if (status === "sending") return { text: "发送中", tone: "warn", note: "等待系统完成发送。" };
 
@@ -13991,7 +14019,7 @@
 	      const channelOutageFailure = item.status === "send_failed" && /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(channelOutageText);
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return learningFollowup.title;
-	      if (item.status === "external_flow_continued") return "Flow 已继续";
+	      if (item.status === "external_flow_continued") return "已接下一段";
 	      if (item.status === "auto_sent") return "AI 已自动回复";
       if (item.status === "sent") return "已发送";
       if (item.status === "purchase_confirmed") return "已成交";
@@ -14606,7 +14634,7 @@
           patterns: [],
           answer: dashboardSafeAttachmentReply(),
           mustInclude: ["客服打开确认", "确认后再回复"],
-          mustNotDo: ["当成付款截图", "确认付款", "接销售 Flow"],
+          mustNotDo: ["当成付款截图", "按确认已付款", "接销售 Flow"],
           nextAction: "转人工打开 ChatDaddy 图片/附件；处理完把最终人工回复补回 Dashboard。"
         };
       }
@@ -16480,7 +16508,7 @@
         returned_to_ai: "退回 AI",
         handoff_recorded: "转人工记录",
         manual_resolved: "已手动回复",
-        external_flow_continued: "Flow 已继续",
+        external_flow_continued: "已接下一段",
         order_tracked: "订单已标记",
         receipt_tracked: "收据已标记",
         order_tracking_failed: "订单标记失败",
@@ -17138,10 +17166,10 @@
 	      if (!confirmLiveAction("external_flow_continued", state.active)) return;
 	      const result = await postCaseAction(state.active.id, "external_flow_continued", payload);
 		      if (result?.blocked) {
-		        alert(result.reason || "这张 Case 不能收起旧卡，请人工处理。");
+		        alert(result.reason || "这张 Case 不能移到自动记录，请人工处理。");
 		        return;
 		      }
-		      showToast("已收起旧卡；不会发送消息。");
+		      showToast("已移到自动记录；不会发送消息。");
 		    }
 
 		    function caseOptimizerContextLine(item = {}) {
@@ -18037,7 +18065,7 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "退回 AI 中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "确认付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "external_flow_continued" ? "收起旧卡中..." : "发送中...");
+	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "退回 AI 中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "external_flow_continued" ? "移动中..." : "发送中...");
 	        }
         const isApproval = active?.source === "approval";
         const endpoint = action === "mark_purchase"
@@ -18164,8 +18192,8 @@
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : state.active.status === "order" ? "确认已处理" : "发送给顾客";
 	      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录人工回复";
 	      $("returnAiBtn").textContent = approvalGuard.blocked ? "让 AI 重写" : readOnly ? "已记录" : "让 AI 重写";
-	      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流广告" : readOnly ? "已确认付款" : "确认付款";
-	      $("externalFlowRecordBtn").textContent = "收起旧卡";
+	      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流广告" : readOnly ? "已确认付款" : "确认已付款";
+	      $("externalFlowRecordBtn").textContent = "移到自动记录";
 	      updateExternalFlowButtonState(state.active);
 	    }
 
@@ -18384,15 +18412,15 @@
 	          provider_flow_id: body.provider_flow_id || "",
 	          provider_message_id: body.provider_message_id || "",
 	          event_at: body.event_at || now,
-	          reason: "Flow 已继续；Dashboard 没有发送消息。",
+	          reason: "已接下一段；Dashboard 没有发送消息。",
 	          sends_messages: false,
 	        };
 	        record.history.push({
 	          type: "external_flow_continued",
 	          at: now,
-	          note: "演示：已收起旧卡；不会发送消息。",
+	          note: "演示：已移到自动记录；不会发送消息。",
 	        });
-	        showToast("演示：已收起旧卡；不会发送消息。");
+	        showToast("演示：已移到自动记录；不会发送消息。");
 	      }
 
 	      record.updated_at = now;
@@ -18516,7 +18544,7 @@
       if (status === "purchase_confirmed") return "已成交";
       if (status === "order") return "订单";
       if (status === "auto") return "自动";
-      if (status === "external_flow_continued") return "Flow 已继续";
+      if (status === "external_flow_continued") return "已接下一段";
       if (status === "auto_sent") return "已自动回复";
       if (status === "sent") return "已发送";
       if (status === "sending") return "发送中";
@@ -18542,7 +18570,7 @@
         handoff: "转人工",
 	        return_ai: "让 AI 重写",
 	        manual_resolve: "记录人工回复",
-	        external_flow_continued: "收起旧卡",
+	        external_flow_continued: "移到自动记录",
 	        mark_purchase_action: "确认成交",
         mark_seen: "标记已看",
         wait: "等待",
