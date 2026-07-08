@@ -4517,7 +4517,7 @@
 
 	    .reply-command-bar {
 	      display: grid;
-	      grid-template-columns: minmax(160px, .55fr) minmax(260px, 1fr) minmax(360px, 1.16fr) minmax(150px, .45fr);
+	      grid-template-columns: minmax(220px, .82fr) minmax(280px, 1.04fr) minmax(420px, 1.28fr) minmax(132px, .42fr);
 	      grid-template-areas: "head reply pay more";
 	      align-items: stretch;
 	      justify-content: stretch;
@@ -4546,17 +4546,20 @@
         0 1px 0 rgba(255,255,255,.92) inset;
     }
 
-    .reply-command-bar .quick-action-head {
-      grid-area: head;
-      display: grid;
-      align-content: center;
-      justify-items: start;
-      gap: 3px;
-      min-width: 0;
-      padding: 2px 4px;
-    }
+	    .reply-command-bar .quick-action-head {
+	      grid-area: head;
+	      display: grid;
+	      align-content: center;
+	      justify-items: start;
+	      gap: 3px;
+	      min-width: 0;
+	      padding: 8px 10px;
+	      border: 1px solid rgba(16,185,157,.20);
+	      border-radius: 14px;
+	      background: rgba(255,255,255,.58);
+	    }
 
-    .reply-action-group,
+	    .reply-action-group,
     .payment-quick {
       border: 1px solid rgba(0,183,216,.18);
       border-radius: 14px;
@@ -4565,21 +4568,35 @@
       min-width: 0;
     }
 
-    .reply-action-group {
-      grid-area: reply;
-      display: grid;
-      grid-template-columns: minmax(74px, auto) minmax(160px, 1fr);
-      align-items: center;
-      gap: 8px;
-    }
+	    .reply-action-group {
+	      grid-area: reply;
+	      display: grid;
+	      grid-template-columns: minmax(86px, auto) minmax(164px, 1fr);
+	      align-items: center;
+	      gap: 8px;
+	    }
 
-    .reply-action-group > span,
-    .operation-label {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 950;
-      white-space: nowrap;
-    }
+	    .operation-label,
+	    .operation-copy span {
+	      color: var(--muted);
+	      font-size: 12px;
+	      font-weight: 950;
+	      white-space: nowrap;
+	    }
+
+	    .operation-copy {
+	      min-width: 0;
+	      display: grid;
+	      gap: 2px;
+	    }
+
+	    .operation-copy small {
+	      display: block;
+	      color: var(--muted);
+	      font-size: 10.5px;
+	      font-weight: 820;
+	      line-height: 1.25;
+	    }
 
     .composer-send-button {
       width: 100% !important;
@@ -4588,13 +4605,13 @@
       margin-top: 0 !important;
     }
 
-	    .payment-quick {
-      grid-area: pay;
-	      display: grid;
-	      grid-template-columns: auto minmax(136px, .58fr) minmax(160px, .72fr);
-	      align-items: center;
-	      gap: 7px;
-	      min-width: 0;
+		    .payment-quick {
+	      grid-area: pay;
+		      display: grid;
+		      grid-template-columns: minmax(86px, auto) minmax(132px, .56fr) minmax(158px, .78fr);
+		      align-items: center;
+		      gap: 7px;
+		      min-width: 0;
     }
 
     .payment-quick.hidden {
@@ -4607,13 +4624,13 @@
       margin: 0 !important;
     }
 
-    .payment-quick .purchase-note {
-      grid-column: 2 / -1;
-      margin-top: -2px;
-      font-size: 11px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+	    .payment-quick .purchase-note {
+	      grid-column: 2 / -1;
+	      margin-top: -2px;
+	      font-size: 10.5px;
+	      white-space: nowrap;
+	      overflow: hidden;
+	      text-overflow: ellipsis;
     }
 
     .function-menu {
@@ -5987,21 +6004,27 @@
               <button class="reply-chip" data-reply-template="ask_phone" type="button">先问电话</button>
               <button class="reply-chip" data-reply-template="shorten" type="button">缩短</button>
             </div>
-            <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
-              <div class="quick-action-head">
-                <span>客服操作</span>
-                <small>发送会给顾客；确认收款只记录成交，不会发讯息。</small>
-              </div>
-              <div class="reply-action-group" aria-label="发送回复">
-                <span>回复顾客</span>
-                <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
-              </div>
-              <div class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
-                <div class="operation-label">确认收款 / COD</div>
-                <label class="purchase-input-wrap">
-                  <span>成交 RM</span>
-                  <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
-                </label>
+	            <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
+	              <div class="quick-action-head">
+	                <span>处理这位顾客</span>
+	                <small>先看清楚，再按对应动作。</small>
+	              </div>
+	              <div class="reply-action-group" aria-label="发送回复">
+	                <div class="operation-copy">
+	                  <span>回复顾客</span>
+	                  <small>按下后会发送讯息</small>
+	                </div>
+	                <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
+	              </div>
+	              <div class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
+	                <div class="operation-copy">
+	                  <span>收款 / COD</span>
+	                  <small>只记录成交，不发讯息</small>
+	                </div>
+	                <label class="purchase-input-wrap">
+	                  <span>成交 RM</span>
+	                  <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
+	                </label>
                 <button class="btn primary" id="markPurchaseBtn" type="button">确认收款 / COD</button>
                 <div class="purchase-note" id="purchaseNote">已收到款或 COD 已确认才按；不会发给顾客。</div>
               </div>
