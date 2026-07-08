@@ -5542,13 +5542,12 @@
         display: none !important;
       }
 
-	    body.staff-mode [data-owner-nav],
-	    body.staff-mode [data-owner-section],
-	    body.staff-mode .owner-meter-row,
-	    body.staff-mode #learnBtn,
-	    body.staff-mode #demoBar {
-	      display: none !important;
-	    }
+		    body.staff-mode [data-owner-nav],
+		    body.staff-mode [data-owner-section],
+		    body.staff-mode .owner-meter-row,
+		    body.staff-mode #demoBar {
+		      display: none !important;
+		    }
 
     @media (max-width: 1180px) and (min-width: 821px) {
       body.staff-mode:not(.sidebar-collapsed) {
@@ -6056,7 +6055,7 @@
                     <button class="btn" id="channelReplyResolvedBtn" type="button">已由人工回复</button>
                     <button class="btn" id="returnAiBtn" type="button">让 AI 重写</button>
                     <button class="btn danger" id="handoffBtn" type="button">人工接手</button>
-                    <button class="btn" id="learnBtn" type="button">同类以后少审核</button>
+	                <button class="btn" id="learnBtn" type="button" title="发送后记录学习候选，Owner 通过后同类问题才会少审核或自动">同类以后少审核</button>
 	                  </div>
 	                  <details class="external-flow-panel hidden" id="externalFlowPanel">
 	                    <summary>
@@ -7141,7 +7140,7 @@
 
       $("setupPanel").classList.toggle("hidden", true);
       $("autoFilterBtn").classList.toggle("hidden", false);
-      $("learnBtn").classList.toggle("hidden", state.role === "staff");
+	      $("learnBtn").classList.toggle("hidden", false);
       applySidebarRoleLabels();
       applySidebarCollapsedState();
 
@@ -18649,10 +18648,16 @@
 	          : "\n\n语气提醒：可以保持亲切，适合时加 ❤️/😊/🙏，但付款、投诉、健康问题不要过度可爱。";
 	        return window.confirm(`确认由 Dashboard 人工发送给 ${name}？\n\n将真实发送：\n${preview}${reply.length > 180 ? "..." : ""}\n\n这不会触发 Flow；发送成功后会记录学习候选，Owner 审核后同类问题才会自动或少审核。\n\n复盘：${learning.handoff_reason}${emojiHint}`);
 	      }
-      const actionText = action === "learn" ? "发送并建立同类少审核规则" : "发送给真实顾客";
-      const preview = reply.slice(0, 180);
-      return window.confirm(`确认${actionText}：${name}？\n\n将发送内容：\n${preview}${reply.length > 180 ? "..." : ""}`);
-    }
+	      const actionText = action === "learn" ? "发送，并标记同类以后少审核" : "发送给真实顾客";
+	      const preview = reply.slice(0, 180);
+	      const learningLine = action === "learn"
+	        ? "这会生成高优先学习候选；Owner 通过后，同阶段/同意图/低风险问题才会少审核或自动。"
+	        : "发送成功后会记录学习候选；Owner 审核后，同类问题才会自动或少审核。";
+	      const emojiHint = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}❤❤️]/u.test(reply)
+	        ? ""
+	        : "\n\n语气提醒：Beyoute 回复要亲切，适合时加 ❤️/😊/🙏；付款、投诉、健康问题保持稳重。";
+	      return window.confirm(`确认${actionText}：${name}？\n\n将发送内容：\n${preview}${reply.length > 180 ? "..." : ""}\n\n${learningLine}${emojiHint}`);
+	    }
 
     function setPanelBusy(isBusy, label = "处理中...") {
       state.actionBusy = isBusy;
