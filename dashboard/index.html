@@ -5849,7 +5849,7 @@
               <button class="queue-date-button today" id="caseTodayDate" type="button">今天</button>
               <button class="queue-date-button" id="caseNextDate" type="button" aria-label="后一天">&gt;</button>
             </div>
-            <input id="caseSearch" placeholder="搜索顾客 / 关键词" />
+            <input id="caseSearch" placeholder="搜索顾客 / 电话 / 关键词" />
             <select id="caseSort" aria-label="排序方式">
               <option value="priority">优先级排序</option>
               <option value="newest">最新更新</option>
@@ -5859,7 +5859,7 @@
         </div>
         <div class="queue-sync-note" id="queueSyncNote">
           <b>人工优先</b>
-          <span>待处理只放需要客服看的顾客；AI 已回复或外部流程已继续的 Case 放到自动记录，不再卡住上一个批准卡。</span>
+          <span>可搜索顾客名字或电话打开 Case；已收款/COD 确认后填金额点「确认已付款」。</span>
         </div>
         <div class="staff-priority-strip" id="staffPriorityStrip" aria-label="今日处理顺序"></div>
         <div class="staff-cleanup-guide" id="staffCleanupGuide" aria-label="队列清理标准"></div>
@@ -5938,7 +5938,7 @@
             <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
               <div class="quick-action-head">
                 <span>客服操作</span>
-                <small>发送会给顾客；付款只记录成交</small>
+                <small>发送会给顾客；确认付款只记录成交</small>
               </div>
               <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
               <div class="payment-quick" id="purchasePanel" aria-label="确认已付款并回流广告">
@@ -9132,7 +9132,7 @@
       renderWorkspaceViews(all, counts, learned);
       syncWorkspaceView();
       pruneSelection(all);
-      const filtered = filterCases(all, state.filter);
+      const filtered = state.query ? all : filterCases(all, state.filter);
       const searched = searchCases(filtered, state.query);
       const visible = sortCases(searched, state.sort);
       state.visibleCases = visible;
@@ -13425,7 +13425,11 @@
 	      const isManualFollowUp = requiresManualReplyForManualResolve(item);
 	      const statusTone = riskTone(item);
       const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound");
-      const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve;
+      const canResendPurchase = canResendPurchaseMeta(item);
+      const existingPurchaseAmount = casePurchaseAmount(item);
+      const showPurchasePanel = shouldShowPurchasePanelForCase(item, readOnly, canResendPurchase);
+      const purchaseActionComplete = purchaseActionCompleteForCase(item);
+      const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve && !showPurchasePanel;
       const externalFlowReadOnly = item.status === "external_flow_continued";
       const displayName = customerDisplayLabel(item);
 	      $("panelName").textContent = displayName;
@@ -13476,15 +13480,12 @@
       $("returnAiBtn").textContent = "让 AI 重写";
       $("handoffBtn").disabled = state.actionBusy || readOnly;
       $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
-	      const canResendPurchase = canResendPurchaseMeta(item);
-	      const existingPurchaseAmount = casePurchaseAmount(item);
-	      const showPurchasePanel = shouldShowPurchasePanelForCase(item, readOnly, canResendPurchase);
-	      $("purchasePanel").classList.toggle("hidden", !showPurchasePanel || (readOnly && !canResendPurchase));
+	      $("purchasePanel").classList.toggle("hidden", !showPurchasePanel);
 	      $("purchaseAmountInput").value = existingPurchaseAmount ? String(existingPurchaseAmount) : "";
 	      updatePurchaseNote(item);
 	      updateExternalFlowPanel(item, readOnly);
-	      $("markPurchaseBtn").disabled = state.actionBusy || isFlowOnly || !showPurchasePanel || (readOnly && !canResendPurchase);
-      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流广告" : "确认已付款";
+	      $("markPurchaseBtn").disabled = state.actionBusy || !showPurchasePanel || purchaseActionComplete;
+      $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(item, canResendPurchase);
 	      $("caseDetails").innerHTML = caseDetailsHtml(item);
 
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
@@ -13720,6 +13721,10 @@
       if (state.demoMode) {
         return { text: "演示模式不会真的回流广告。", tone: "warn" };
       }
+      if (!hasPurchaseActionContext(item)) {
+        const metaLine = state.metaCapiStatus?.configured ? "会回流广告。" : "先记录付款。";
+        return { text: `手动补登记：确认已收款/COD后才按；${metaLine}`, tone: "warn" };
+      }
       const meta = state.metaCapiStatus;
       if (meta?.configured) {
         return { text: "收到款/COD才按；会回流广告。", tone: "ok" };
@@ -13730,10 +13735,18 @@
       return { text: "收到款/COD才按；广告状态读取中。", tone: "warn" };
     }
 
-	    function shouldShowPurchasePanelForCase(item = {}, readOnly = false, canResendPurchase = canResendPurchaseMeta(item)) {
-	      if (canResendPurchase) return true;
-	      if (readOnly && item.status !== "purchase_confirmed") return false;
-	      return true;
+	    function shouldShowPurchasePanelForCase(item = {}, _readOnly = false, _canResendPurchase = canResendPurchaseMeta(item)) {
+	      return Boolean(item?.id);
+	    }
+
+	    function purchaseActionCompleteForCase(item = {}) {
+	      return item.status === "purchase_confirmed" && casePurchaseMetaDone(item);
+	    }
+
+	    function purchaseButtonLabelForCase(item = {}, canResendPurchase = canResendPurchaseMeta(item)) {
+	      if (canResendPurchase) return "补回流广告";
+	      if (item.status === "purchase_confirmed") return "已确认付款";
+	      return "确认已付款";
 	    }
 
 	    function hasPurchaseActionContext(item = {}) {
@@ -17109,13 +17122,19 @@
       const metaLine = metaConfigured
         ? "确认后会把成交金额回流广告管理工具。"
         : "现在还没接好广告回流，只会记录成交和金额，不会回流广告。";
-      return window.confirm(`确认 ${name} 已成交 RM ${amount.toFixed(2)}？\n\n只有收到付款，或 COD 订单已经确认，才可以按。\n${metaLine}`);
+      const manualLine = hasPurchaseActionContext(item)
+        ? ""
+        : "\n\n这张 Case 不是 AI 判断的订单；如果你已经人工确认收款/COD，可以补登记。";
+      return window.confirm(`确认 ${name} 已成交 RM ${amount.toFixed(2)}？\n\n只有收到付款，或 COD 订单已经确认，才可以按。${manualLine}\n${metaLine}`);
     }
 
 	    async function markPurchaseActive() {
 	      if (!state.active) return;
 	      const isResend = canResendPurchaseMeta(state.active);
-	      if (isCaseReadOnly(state.active) && !isResend) return;
+	      if (purchaseActionCompleteForCase(state.active)) {
+	        showToast("这笔成交已经确认并处理过了。");
+	        return;
+	      }
 	      if (state.actionBusy) return;
       const amount = normalizedPurchaseAmount($("purchaseAmountInput").value);
       if (!amount) {
@@ -17124,14 +17143,16 @@
         return;
       }
       if (!confirmPurchaseAction(amount, state.active, isResend)) return;
+      const manualPurchaseOverride = !hasPurchaseActionContext(state.active);
       const result = await postCaseAction(state.active.id, "mark_purchase", {
         amount_rm: amount,
         currency: "MYR",
         order_id: casePurchaseOrderId(state.active),
         confirmMetaSend: true,
         resendMetaCapi: isResend,
+        manualPurchaseOverride,
         confirmedBy: state.session.displayName || roleName(state.role),
-        source: isResend ? "staff_dashboard_resend_meta_purchase" : "staff_dashboard_mark_purchase",
+        source: isResend ? "staff_dashboard_resend_meta_purchase" : manualPurchaseOverride ? "staff_dashboard_manual_purchase_override" : "staff_dashboard_mark_purchase",
       });
       const meta = result?.meta_capi;
       const metaDone = meta?.sent || meta?.deduped || meta?.already_sent || meta?.result?.deduped;
@@ -18171,6 +18192,7 @@
       const approvalGuard = effectiveApprovalGuardForCase(state.active, closer);
       const canResendPurchase = canResendPurchaseMeta(state.active);
       const showPurchasePanel = shouldShowPurchasePanelForCase(state.active, readOnly, canResendPurchase);
+      const purchaseActionComplete = purchaseActionCompleteForCase(state.active);
       $("approveBtn").disabled = isBusy || isFlowOnly || readOnly || approvalGuard.blocked;
       $("manualResolveBtn").disabled = isBusy || !canManualResolve;
       $("returnAiBtn").disabled = isBusy || readOnly;
@@ -18178,7 +18200,7 @@
       $("learnBtn").disabled = isBusy || readOnly;
 	      $("caseOptimizerDraftBtn").disabled = isBusy;
 	      $("caseOptimizerRecordBtn").disabled = isBusy;
-	      $("markPurchaseBtn").disabled = isBusy || isFlowOnly || !showPurchasePanel || (readOnly && !canResendPurchase);
+	      $("markPurchaseBtn").disabled = isBusy || !showPurchasePanel || purchaseActionComplete;
 	      setExternalFlowFieldsDisabled(isBusy || $("externalFlowPanel").classList.contains("hidden"));
 	      updateExternalFlowButtonState(state.active);
 	      if (isBusy) {
@@ -18192,7 +18214,7 @@
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : state.active.status === "order" ? "确认已处理" : "发送给顾客";
 	      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录人工回复";
 	      $("returnAiBtn").textContent = approvalGuard.blocked ? "让 AI 重写" : readOnly ? "已记录" : "让 AI 重写";
-	      $("markPurchaseBtn").textContent = canResendPurchase ? "补回流广告" : readOnly ? "已确认付款" : "确认已付款";
+	      $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(state.active, canResendPurchase);
 	      $("externalFlowRecordBtn").textContent = "移到自动记录";
 	      updateExternalFlowButtonState(state.active);
 	    }
@@ -18245,6 +18267,7 @@
           order_id: body.order_id || "",
           confirmMetaSend: body.confirmMetaSend !== false,
           resendMetaCapi: body.resendMetaCapi === true,
+          manualPurchaseOverride: body.manualPurchaseOverride === true,
           confirmedBy: body.confirmedBy || state.session.displayName || roleName(state.role),
 	          source: body.source || "dashboard_mark_purchase",
 	        };
