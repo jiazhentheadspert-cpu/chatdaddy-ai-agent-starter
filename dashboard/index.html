@@ -4619,12 +4619,12 @@
       margin-top: 0 !important;
     }
 
-		    .payment-quick {
+	    .payment-quick {
 	      grid-area: pay;
 		      display: grid;
-		      grid-template-columns: minmax(92px, .58fr) minmax(126px, .72fr) minmax(168px, 1fr);
+		      grid-template-columns: minmax(120px, .58fr) minmax(128px, .62fr) minmax(190px, 1fr);
 		      align-items: center;
-		      gap: 7px;
+		      gap: 8px;
 		      min-width: 0;
     }
 
@@ -4639,7 +4639,7 @@
     }
 
 	    .payment-quick .purchase-note {
-	      grid-column: 1 / -1;
+	      grid-column: 2 / -1;
 	      margin-top: 0;
 	      font-size: 10.5px;
 	      line-height: 1.25;
@@ -6032,7 +6032,7 @@
 	              </div>
 	              <div class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
 	                <div class="operation-copy">
-	                  <span>确认成交</span>
+	                  <span>确认收款 / COD</span>
 	                  <small>只记录成交，不发讯息</small>
 	                </div>
 	                <label class="purchase-input-wrap">
@@ -6040,7 +6040,7 @@
 	                  <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
 	                </label>
                 <button class="btn primary" id="markPurchaseBtn" type="button">确认已付款</button>
-                <div class="purchase-note" id="purchaseNote">收到款或 COD 确认后才按；不会发顾客讯息。</div>
+                <div class="purchase-note" id="purchaseNote">已收到款或 COD 已确认才按；不会发顾客讯息。</div>
               </div>
               <details class="function-menu" id="functionMenu">
                 <summary>其他处理</summary>
@@ -7831,6 +7831,30 @@
 
     function customerIdentitySuffixFromCase(item = {}) {
       const values = [
+        item.phone_tail,
+        item.phoneTail,
+        item.phone_last4,
+        item.phoneLast4,
+        item.last4,
+        item.customer_phone,
+        item.customerPhone,
+        item.contact_phone,
+        item.contactPhone,
+        item.whatsapp_phone,
+        item.whatsappPhone,
+        item.whatsapp_id,
+        item.whatsappId,
+        item.chat_id,
+        item.chatId,
+        item.provider_chat_id,
+        item.providerChatId,
+        item.provider_contact_id,
+        item.providerContactId,
+        item.external_contact_id,
+        item.externalContactId,
+        item.external_customer_id,
+        item.externalCustomerId,
+        item.phone,
         item.customer?.phone_tail,
         item.customer?.phoneTail,
         item.contact?.phone,
