@@ -2480,6 +2480,61 @@
 	      font-weight: 920;
 	    }
 
+	    .handoff-risk-advisor {
+	      display: grid;
+	      gap: 7px;
+	      border: 1px solid rgba(0, 183, 160, .18);
+	      border-radius: 12px;
+	      background: rgba(248, 253, 252, .92);
+	      padding: 10px;
+	    }
+
+	    .handoff-risk-advisor.warn {
+	      border-color: rgba(183, 121, 31, .28);
+	      background: rgba(255, 250, 241, .94);
+	    }
+
+	    .handoff-risk-advisor.risk {
+	      border-color: rgba(210, 72, 82, .24);
+	      background: rgba(255, 246, 247, .94);
+	    }
+
+	    .handoff-risk-advisor b {
+	      color: var(--ink);
+	      font-size: 12px;
+	      line-height: 1.25;
+	    }
+
+	    .handoff-risk-advisor span,
+	    .handoff-risk-advisor small {
+	      color: var(--muted);
+	      font-size: 11px;
+	      font-weight: 820;
+	      line-height: 1.35;
+	    }
+
+	    .handoff-risk-advisor em {
+	      justify-self: flex-start;
+	      border: 1px solid rgba(0, 183, 160, .22);
+	      border-radius: 999px;
+	      background: #fff;
+	      color: var(--green);
+	      padding: 4px 7px;
+	      font-size: 11px;
+	      font-style: normal;
+	      font-weight: 920;
+	    }
+
+	    .handoff-risk-advisor.warn em {
+	      color: #94610f;
+	      border-color: rgba(183, 121, 31, .28);
+	    }
+
+	    .handoff-risk-advisor.risk em {
+	      color: var(--red);
+	      border-color: rgba(210, 72, 82, .26);
+	    }
+
 		    .handoff-completion-fields input,
 		    .handoff-completion-fields select {
 		      width: 100%;
@@ -17087,10 +17142,11 @@
 	      const customerText = firstContextText(item.last_message, item.customer_text, decision.customer_text, item.incoming, item.message, customerPreviewText(item));
 	      const originalAiReply = caseOptimizerOriginalAiReply(item) || decision.reply_message || "";
 		      const manualReply = caseOptimizerManualReplyText(item);
-		      const reason = caseHandoffReason(item);
-		      const outcome = caseCustomerOutcome(item);
-		      const note = caseLearningCompletionNote(item);
-		      const learnability = caseLearnabilityDecision(item);
+		      const advisor = handoffRiskAdvisorForCase(item);
+		      const reason = caseHandoffReason(item) || advisor.handoff_reason || "";
+		      const outcome = caseCustomerOutcome(item) || advisor.customer_outcome || "";
+		      const note = caseLearningCompletionNote(item) || advisor.learning_outcome_note || "";
+		      const learnability = caseLearnabilityDecision(item) || advisor.learnability || "";
 		      const validManualReply = Boolean(manualReply && !isPlaceholderManualReply(manualReply));
 		      return [
 	        {
@@ -17135,12 +17191,14 @@
 	      if (!shouldShowCaseLearningLoop(item)) return "";
 	      const status = String(item.status || "").toLowerCase();
 	      if (!canManualResolveCase(item) && !["handoff_done", "returned_to_ai", "rejected", "manual_resolved"].includes(status) && !needsManualReplyAfterHandoff(item)) return "";
-		      const reason = caseHandoffReason(item);
-		      const outcome = caseCustomerOutcome(item);
-		      const note = caseLearningCompletionNote(item);
-		      const learnability = caseLearnabilityDecision(item);
+		      const advisor = handoffRiskAdvisorForCase(item);
+		      const reason = caseHandoffReason(item) || advisor.handoff_reason || "";
+		      const outcome = caseCustomerOutcome(item) || advisor.customer_outcome || "";
+		      const note = caseLearningCompletionNote(item) || advisor.learning_outcome_note || "";
+		      const learnability = caseLearnabilityDecision(item) || advisor.learnability || "";
 		      return `
 		        <div class="handoff-completion-fields" id="handoffCompletionFields">
+		          ${handoffRiskAdvisorHtml(advisor)}
 		          <label>人工接手原因
 		            <input id="handoffReasonInput" value="${escapeHtml(reason)}" placeholder="例：投诉/健康敏感/付款确认/资料不足" />
 	          </label>
@@ -17161,6 +17219,178 @@
 		        </div>
 		      `;
 		    }
+
+	    function handoffRiskAdvisorHtml(advisor = {}) {
+	      if (!advisor.risk_tag) return "";
+	      const tone = advisor.risk_level === "high" ? "risk" : advisor.risk_level === "medium" ? "warn" : "";
+	      return `
+	        <div class="handoff-risk-advisor ${tone}" id="handoffRiskAdvisor" data-risk-tag="${escapeHtml(advisor.risk_tag)}">
+	          <b>系统预审：${escapeHtml(advisor.title)}</b>
+	          <em>${escapeHtml(`${advisor.risk_label}｜${learnabilityShortLabel(advisor.learnability)}`)}</em>
+	          <span>${escapeHtml(advisor.guidance)}</span>
+	          <small>${escapeHtml(advisor.do_not_do.join("；"))}</small>
+	        </div>
+	      `;
+	    }
+
+	    function handoffRiskAdvisorForCase(item = {}) {
+	      const decision = item.latest_decision || {};
+	      const text = String(firstContextText(item.last_message, item.customer_text, decision.customer_text, item.incoming, item.message, customerPreviewText(item)) || "").trim();
+	      const customer = customerDisplayLabel(item) || "";
+	      return classifyHandoffRiskForText(text, customer);
+	    }
+
+	    function classifyHandoffRiskForText(text = "", customer = "") {
+	      const message = String(text || "").trim().toLowerCase();
+	      const raw = `${message} ${String(customer || "").toLowerCase()}`;
+	      if (/^\s*(ok|好的|好|谢谢|thank|thanks|稍等|👍|👍🏼|👌|🙏|❤️|❤|😊|🙂)\s*$/u.test(message)) {
+	        return handoffRiskProfile({
+	          title: "低上下文，不建议学习",
+	          risk_tag: "low_context_no_learning",
+	          risk_level: "low",
+	          risk_label: "低风险",
+	          learnability: "no",
+	          guidance: "这类单独确认、等待或表情不适合作为自动回复样本，只留处理记录。",
+	          handoff_reason: "低上下文确认/等待信息，不适合作为学习样本。",
+	          customer_outcome: "客服已人工确认是否还需要跟进。",
+	          learning_outcome_note: "不建议学习；只保留处理记录。",
+	          do_not_do: ["不要把单独表情或“稍等”训练成自动回复。"]
+	        });
+	      }
+	      if (/喂母乳|哺乳|怀孕|孕妇|吃药|医生|病|症|血小板|骨髓|胃痛|胃酸|便秘|发热气|糖尿|高血压|过敏|癌|肾|肝/.test(raw)) {
+	        return handoffRiskProfile({
+	          title: "健康敏感，必须人工",
+	          risk_tag: "health_sensitive",
+	          risk_level: "high",
+	          risk_label: "高风险",
+	          learnability: "no",
+	          guidance: "健康、哺乳、吃药、疾病或症状问题不能自动给饮用建议。",
+	          handoff_reason: "健康/哺乳/身体状况敏感问题，需要人工确认，不能自动给饮用建议。",
+	          customer_outcome: "已由客服人工处理；如涉及身体状况，应建议先咨询医生/专业人士。",
+	          learning_outcome_note: "只可沉淀安全边界：健康、哺乳、吃药、疾病/症状类问题必须人工接手；不可自动学习成直接饮用建议。",
+	          do_not_do: ["不要自动回答能不能喝。", "不要承诺疗效或安全性。", "不要接销售 Flow。"]
+	        });
+	      }
+	      if (/退款|无效|退货|赔|投诉|complain|refund|售后/.test(raw)) {
+	        return handoffRiskProfile({
+	          title: "售后/退款政策，Owner 审",
+	          risk_tag: "refund_or_complaint_policy",
+	          risk_level: "high",
+	          risk_label: "高风险",
+	          learnability: "needs_owner",
+	          guidance: "退款、投诉、售后政策只能按真实政策处理，不能自动承诺。",
+	          handoff_reason: "退款/投诉/售后政策问题，需要客服按真实政策处理。",
+	          customer_outcome: "已由客服人工说明政策或升级处理。",
+	          learning_outcome_note: "可让 Owner 审核是否沉淀为售后 SOP；不能自动承诺退款、赔偿或无效退款。",
+	          do_not_do: ["不要自动承诺退款。", "不要自动补偿。", "不要用销售话术压过投诉。"]
+	        });
+	      }
+	      if (/follow\s*up|没有人|没人|没回|客服|卖家|查单|订单没|都没有人/.test(raw)) {
+	        return handoffRiskProfile({
+	          title: "服务恢复，先查记录",
+	          risk_tag: "service_recovery",
+	          risk_level: "high",
+	          risk_label: "高风险",
+	          learnability: "needs_owner",
+	          guidance: "顾客说没人跟进或要查记录时，先人工接手服务恢复。",
+	          handoff_reason: "顾客在投诉没人跟进/需要查记录，必须人工接手服务恢复。",
+	          customer_outcome: "客服已接手查记录并向顾客说明下一步。",
+	          learning_outcome_note: "可学习为服务恢复 SOP：先道歉、接手查记录、给明确下一步；不可接普通销售 Flow。",
+	          do_not_do: ["不要继续销售 Flow。", "不要说系统已经处理，除非客服确实查过。", "不要自动收起。"]
+	        });
+	      }
+	      if (/付款|收款|receipt|转账|银行|cod|已付款|atome|payment|pay /.test(raw)) {
+	        return handoffRiskProfile({
+	          title: "付款/订单，不能自动确认",
+	          risk_tag: "payment_or_order",
+	          risk_level: "high",
+	          risk_label: "高风险",
+	          learnability: "no",
+	          guidance: "付款、订单、COD、receipt 必须人工核对，不能自动确认已收款。",
+	          handoff_reason: "付款/订单资料需要人工核对，不能自动确认。",
+	          customer_outcome: "客服已人工核对付款/订单状态。",
+	          learning_outcome_note: "不可自动学习付款确认；只能记录为人工核对流程证据。",
+	          do_not_do: ["不要自动 Mark as Paid。", "不要自动说已收到款。", "不要触发付款 Flow。"]
+	        });
+	      }
+	      if (/配套|价格|优惠|多少钱|下单|包邮|赠品|promotion|offer|discount|套餐/.test(raw)) {
+	        return handoffRiskProfile({
+	          title: "价格/活动，Owner 审",
+	          risk_tag: "price_offer_or_order",
+	          risk_level: "medium",
+	          risk_label: "中风险",
+	          learnability: "needs_owner",
+	          guidance: "价格、优惠、赠品和订单承诺要按当前政策确认。",
+	          handoff_reason: "价格/优惠/订单承诺需要按当前活动和库存人工确认。",
+	          customer_outcome: "客服已按当前政策说明。",
+	          learning_outcome_note: "Owner 审核后才可沉淀为当期活动话术；过期活动不可自动复用。",
+	          do_not_do: ["不要自动承诺价格。", "不要自动承诺赠品/包邮。", "不要复用过期活动。"]
+	        });
+	      }
+	      if (/一天|几次|怎么喝|用法|餐前|餐后|泡|喝法/.test(raw)) {
+	        return handoffRiskProfile({
+	          title: "用法问题，保持审批",
+	          risk_tag: "usage_or_flow_sensitive",
+	          risk_level: "medium",
+	          risk_label: "中风险",
+	          learnability: "needs_owner",
+	          guidance: "用法可能牵涉健康边界或 Flow，先保持 approval-first。",
+	          handoff_reason: "用法问题可能牵涉 Flow/健康边界，先保持审批优先。",
+	          customer_outcome: "客服已人工说明基础用法或继续确认情况。",
+	          learning_outcome_note: "可让 Owner 审核是否加入 FAQ；当前 L1-only 不包含用法后接 Flow。",
+	          do_not_do: ["不要自动触发销售 Flow。", "不要对健康敏感顾客给个性化用法。"]
+	        });
+	      }
+	      if (/成分|ingredient|ingredients|口味|味道|flavour|flavor/.test(raw)) {
+	        return handoffRiskProfile({
+	          title: "可能是 L1 候选",
+	          risk_tag: "possible_l1_ingredient_or_flavor",
+	          risk_level: "low",
+	          risk_label: "低风险",
+	          learnability: "needs_owner",
+	          guidance: "成分/口味可作为 L1-only 候选，但仍需 Owner 审和 L1 signoff。",
+	          handoff_reason: "低风险成分/口味问题，可作为 L1-only 候选，但仍需 Owner 签核。",
+	          customer_outcome: "客服已人工回答基础成分/口味。",
+	          learning_outcome_note: "可作为 L1 text-only 候选；Owner 审核和 L1 signoff 通过后才可能少审核或自动。",
+	          do_not_do: ["不要扩展到健康功效。", "不要接 CTA 或 Flow。"]
+	        });
+	      }
+	      return handoffRiskProfile({
+	        title: "人工复盘，Owner 审",
+	        risk_tag: "general_handoff_review",
+	        risk_level: "medium",
+	        risk_label: "中风险",
+	        learnability: "needs_owner",
+	        guidance: "补齐最终人工回复和结果后，再交 Owner 判断能不能学。",
+	        handoff_reason: "人工接手 Case，需要客服补最终回复和结果后再判断能否学习。",
+	        customer_outcome: "客服已人工处理并记录下一步。",
+	        learning_outcome_note: "先作为 Owner 审核候选；通过后才可沉淀为 FAQ/SOP/话术。",
+	        do_not_do: ["不要未审核就写进 AI 大脑。"]
+	      });
+	    }
+
+	    function handoffRiskProfile(item = {}) {
+	      return {
+	        title: item.title || "人工复盘",
+	        risk_tag: item.risk_tag || "general_handoff_review",
+	        risk_level: item.risk_level || "medium",
+	        risk_label: item.risk_label || "中风险",
+	        learnability: item.learnability || "needs_owner",
+	        guidance: item.guidance || "先补人工回复和结果，再由 Owner 审核。",
+	        handoff_reason: item.handoff_reason || "",
+	        customer_outcome: item.customer_outcome || "",
+	        learning_outcome_note: item.learning_outcome_note || "",
+	        do_not_do: Array.isArray(item.do_not_do) ? item.do_not_do : []
+	      };
+	    }
+
+	    function learnabilityShortLabel(value = "") {
+	      const normalized = normalizeLearnabilityDecision(value);
+	      if (normalized === "yes") return "可学";
+	      if (normalized === "no") return "不可学";
+	      if (normalized === "needs_owner") return "Owner 审";
+	      return "待判断";
+	    }
 
 	    function caseHandoffReason(item = {}) {
 	      return String(
