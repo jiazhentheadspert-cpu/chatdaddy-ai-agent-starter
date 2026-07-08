@@ -1453,6 +1453,39 @@
       border-color: rgba(0,183,160,.42);
     }
 
+    .owner-learning-safety-advisor {
+      display: grid;
+      gap: 6px;
+      border: 1px solid rgba(0,183,160,.18);
+      border-radius: 12px;
+      background: rgba(248,253,252,.90);
+      padding: 9px;
+    }
+
+    .owner-learning-safety-advisor.warn {
+      border-color: rgba(183,121,31,.28);
+      background: rgba(255,250,241,.92);
+    }
+
+    .owner-learning-safety-advisor.risk {
+      border-color: rgba(210,72,82,.24);
+      background: rgba(255,246,247,.92);
+    }
+
+    .owner-learning-safety-advisor b {
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .owner-learning-safety-advisor span,
+    .owner-learning-safety-advisor small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 820;
+      line-height: 1.35;
+    }
+
     .owner-decision-basket {
       display: grid;
       gap: 10px;
@@ -11512,6 +11545,7 @@
 		              <div class="audit-item">
 			                <b>${escapeHtml(`${ownerDecisionPriorityLabel(card.priority)} · ${card.title}`)}</b>
 		                <span>${escapeHtml(card.reason)}</span>
+		                ${ownerLearningSafetyAdvisorHtml(card)}
 		                <span>${escapeHtml(`建议：${card.decisionLabel}｜必填：${card.requiredFields.join("、")}`)}</span>
 		                <span>${escapeHtml(`先检查：${card.ownerShouldCheck || ownerDecisionReviewCheck(card)}`)}</span>
 		                <span>${escapeHtml(`回放：${card.replayTest}`)}</span>
@@ -11585,6 +11619,7 @@
 		              <div class="audit-item">
 		                <b>${escapeHtml(card.title)}</b>
 		                <span>${escapeHtml(`建议：${card.decisionLabel}`)}</span>
+		                ${ownerLearningSafetyAdvisorHtml(card)}
 		                <span>${escapeHtml(`先检查：${card.ownerShouldCheck || ownerDecisionReviewCheck(card)}`)}</span>
 		                <span>${escapeHtml(`不能做：${(card.mustNotDo || []).slice(0, 4).join("、")}`)}</span>
 		                <small>${escapeHtml(`必填：${(card.requiredFields || []).join("、")}｜${ownerDecisionKpisHelped(card).join("、")}`)}</small>
@@ -11639,7 +11674,7 @@
 		      return cards.map((item, index) => {
 		        const decision = item.suggested_decision_for_owner_review || item.suggestedDecision || item.suggested_decision || "approve_as_is";
 		        const sourceCaseIds = Array.isArray(item.source_case_ids) ? item.source_case_ids.slice(0, 12) : [];
-		        return {
+		        return ownerDecisionWithSafetyAdvisor({
 		          id: item.decision_id || item.id || `owner_decision_${index + 1}`,
 		          sourceRecommendationId: item.candidate_id || item.recommendation_id || item.decision_id || "",
 		          source: item,
@@ -11673,7 +11708,7 @@
 		          ownerDecisionCurrent: item.owner_decision_current || "pending",
 		          safeApprovalHint: item.safe_approval_hint || "",
 		          workbenchSource: true,
-		        };
+		        });
 		      });
 		    }
 
@@ -11684,7 +11719,7 @@
 		        const exact = ownerDecisionExactPatchForRecommendation(item, candidate);
 		        const decision = exact.suggestedDecision || ownerSuggestedDecisionForRecommendation(item, candidate);
 		        const cardId = exact.decisionId || `approve_${id}`;
-		        return {
+		        return ownerDecisionWithSafetyAdvisor({
 		          id: cardId,
 		          sourceRecommendationId: id,
 		          source: item,
@@ -11706,8 +11741,29 @@
 		          ownerMustConfirm: exact.ownerMustConfirm || [],
 		          sourceCaseIds: exact.sourceCaseIds || (Array.isArray(item.example_case_ids) ? item.example_case_ids.slice(0, 12) : []),
 		          mustNotDo: exact.mustNotDo || ownerDecisionDefaultMustNotDo(item, candidate),
-		        };
+		        });
 		      });
+		    }
+
+		    function ownerDecisionWithSafetyAdvisor(card = {}) {
+		      const advisor = ownerLearningSafetyAdvisor(card);
+		      const decision = advisor.forceSuggestedDecision || card.suggestedDecision || "approve_as_is";
+		      const mustNotDo = [
+		        ...(Array.isArray(advisor.must_not_do) ? advisor.must_not_do : []),
+		        ...(Array.isArray(card.mustNotDo) ? card.mustNotDo : [])
+		      ].filter(Boolean);
+		      const uniqueMustNotDo = [...new Set(mustNotDo)];
+		      return {
+		        ...card,
+		        priority: advisor.priority || card.priority || "P2",
+		        suggestedDecision: decision,
+		        decisionLabel: ownerDecisionLabel(decision),
+		        requiredFields: ownerDecisionRequiredFields(decision),
+		        ownerShouldCheck: advisor.owner_should_check || card.ownerShouldCheck,
+		        rejectIf: advisor.reject_if || card.rejectIf,
+		        mustNotDo: uniqueMustNotDo,
+		        safetyAdvisor: advisor
+		      };
 		    }
 
 		    function ownerDecisionExactPatchForRecommendation(item = {}, candidate = {}) {
@@ -11792,6 +11848,173 @@
 		      if (/price|promo|旧价|价格|赠品|活动|cta/i.test(combined)) return [...base, "不要用旧价格/旧活动", "不要乱承诺赠品", "不要跳过 Owner 审核"];
 		      if (/payment|order|receipt|delivery|售后|付款|订单|收据|物流/i.test(combined)) return [...base, "不要承诺付款/订单状态", "不要继续销售 Flow", "不要跳过人工确认"];
 		      return [...base, "不要把未审核人工样本当标准答案"];
+		    }
+
+		    function ownerLearningSafetyAdvisorHtml(card = {}) {
+		      const advisor = card.safetyAdvisor || ownerLearningSafetyAdvisor(card);
+		      if (!advisor.risk_tag) return "";
+		      const tone = advisor.risk_level === "high" ? "risk" : advisor.risk_level === "medium" ? "warn" : "";
+		      return `
+		        <div class="owner-learning-safety-advisor ${tone}" data-owner-learning-risk="${escapeHtml(advisor.risk_tag)}">
+		          <b>${escapeHtml(advisor.title)}</b>
+		          <span>${escapeHtml(advisor.guidance)}</span>
+		          <small>${escapeHtml(`Owner 建议：${ownerDecisionShortLabel(advisor.forceSuggestedDecision || card.suggestedDecision)}｜${advisor.auto_learning_allowed ? "可进入审核学习" : "不可变自动回复"}${advisor.safety_sop_only ? "｜只学安全 SOP" : ""}`)}</small>
+		        </div>
+		      `;
+		    }
+
+		    function ownerLearningSafetyAdvisor(card = {}) {
+		      const combined = ownerDecisionCombinedText(card);
+		      if (!combined.trim()) {
+		        return ownerSafetyProfile({
+		          title: "Owner 预审：证据不足",
+		          risk_tag: "owner_learning_evidence_missing",
+		          risk_level: "medium",
+		          forceSuggestedDecision: "needs_more_evidence",
+		          guidance: "缺顾客原话、AI 草稿、人工最终回复或结果时，不要批准进业务脑。",
+		          owner_should_check: "先补顾客原话、AI 草稿、人工最终回复、顾客结果和复盘备注。",
+		          reject_if: "证据不齐、无法回放同类顾客句子，或不能证明人工最终回复真的发过。",
+		          auto_learning_allowed: false,
+		          must_not_do: ["不要凭摘要批准", "不要把未核实人工样本当标准答案", "不要开启自动回复"]
+		        });
+		      }
+		      if (/喂母乳|哺乳|怀孕|孕妇|吃药|医生|病|症|血小板|骨髓|胃痛|胃酸|便秘|发热气|糖尿|高血压|过敏|癌|肾|肝|health|medical|breastfeeding|pregnan/i.test(combined)) {
+		        return ownerSafetyProfile({
+		          title: "Owner 预审：健康敏感，只能学安全边界",
+		          risk_tag: "owner_health_safety_sop_only",
+		          risk_level: "high",
+		          priority: "P0",
+		          forceSuggestedDecision: "approve_with_edits",
+		          guidance: "不要把客服最终回复训练成自动回答；只能沉淀为“健康/哺乳/吃药/症状必须人工接手”的安全 SOP。",
+		          owner_should_check: "确认候选只写安全边界和人工接手，不提供能不能喝、疗效或安全承诺。",
+		          reject_if: "如果候选会自动回答能不能喝、承诺疗效/安全性，或把健康个案变成通用话术，就拒绝。",
+		          auto_learning_allowed: false,
+		          safety_sop_only: true,
+		          must_not_do: ["不要自动回复健康问题", "不要承诺疗效或安全性", "不要接销售 Flow", "不要作为 L1 自动回复"]
+		        });
+		      }
+		      if (/付款|收款|receipt|转账|银行|cod|已付款|atome|payment|pay |order|订单|物流|delivery/i.test(combined)) {
+		        return ownerSafetyProfile({
+		          title: "Owner 预审：付款/订单，只能学人工核对 SOP",
+		          risk_tag: "owner_payment_order_manual_only",
+		          risk_level: "high",
+		          priority: "P0",
+		          forceSuggestedDecision: "approve_with_edits",
+		          guidance: "付款、订单、COD 和 receipt 不能自动确认；只能学习“先人工核对”的流程边界。",
+		          owner_should_check: "确认候选不会说已收到款、不会承诺订单状态、不会自动回流 Purchase。",
+		          reject_if: "如果候选会自动确认付款/订单状态、发付款链接或触发成交 Flow，就拒绝。",
+		          auto_learning_allowed: false,
+		          safety_sop_only: true,
+		          must_not_do: ["不要自动点确认已付款", "不要自动说已收到款", "不要自动回流 Meta Purchase", "不要跳过人工核对"]
+		        });
+		      }
+		      if (/退款|无效|退货|赔|投诉|complain|refund|售后|after.?sales/i.test(combined)) {
+		        return ownerSafetyProfile({
+		          title: "Owner 预审：售后/退款，只能学政策 SOP",
+		          risk_tag: "owner_refund_complaint_sop_only",
+		          risk_level: "high",
+		          priority: "P0",
+		          forceSuggestedDecision: "approve_with_edits",
+		          guidance: "售后、退款和投诉可以沉淀处理 SOP，但不能自动承诺退款、补偿或效果保证。",
+		          owner_should_check: "确认候选符合真实退款/售后政策，并且先安抚再人工升级。",
+		          reject_if: "如果候选承诺退款、赔偿、包效果，或用销售话术压过投诉，就拒绝。",
+		          auto_learning_allowed: false,
+		          safety_sop_only: true,
+		          must_not_do: ["不要自动承诺退款", "不要自动补偿", "不要承诺效果", "不要继续销售 Flow"]
+		        });
+		      }
+		      if (/follow\s*up|没有人|没人|没回|客服|卖家|查单|订单没|都没有人/i.test(combined)) {
+		        return ownerSafetyProfile({
+		          title: "Owner 预审：服务恢复，先学接手 SOP",
+		          risk_tag: "owner_service_recovery_sop",
+		          risk_level: "high",
+		          priority: "P0",
+		          forceSuggestedDecision: "approve_with_edits",
+		          guidance: "顾客说没人跟进时，要学习道歉、查记录、真人接手；不能继续普通销售 Flow。",
+		          owner_should_check: "确认道歉语气、查记录负责人、人工接手边界都清楚。",
+		          reject_if: "如果候选继续销售、催成交，或假装已经处理但没有查记录，就拒绝。",
+		          auto_learning_allowed: false,
+		          safety_sop_only: true,
+		          must_not_do: ["不要继续销售 Flow", "不要假装已处理", "不要自动收起", "不要催成交"]
+		        });
+		      }
+		      if (/^\s*(ok|好的|好|谢谢|thank|thanks|稍等|👍|👍🏼|👌|🙏|❤️|❤|😊|🙂)\s*$/iu.test(combined.trim())) {
+		        return ownerSafetyProfile({
+		          title: "Owner 预审：低上下文，不建议学习",
+		          risk_tag: "owner_low_context_no_learning",
+		          risk_level: "low",
+		          forceSuggestedDecision: "reject",
+		          guidance: "单独表情、谢谢、稍等等不能代表可复用客服答案，只保留处理记录。",
+		          owner_should_check: "确认没有缺失的顾客问题；如果只是低上下文确认，就不要写入业务脑。",
+		          reject_if: "单独确认、等待、表情或没有业务含义。",
+		          auto_learning_allowed: false,
+		          must_not_do: ["不要把表情训练成自动回复", "不要把稍等训练成标准答案"]
+		        });
+		      }
+		      if (/成分|ingredient|ingredients|口味|味道|flavour|flavor/.test(combined)) {
+		        return ownerSafetyProfile({
+		          title: "Owner 预审：可能是 L1 候选",
+		          risk_tag: "owner_possible_l1_text_only",
+		          risk_level: "low",
+		          guidance: "成分/口味可以作为 L1 text-only 候选，但仍要 Owner signoff；不能扩展到功效、健康、CTA 或 Flow。",
+		          owner_should_check: "确认它只回答成分/口味基础问题，不含价格、付款、健康功效或 CTA。",
+		          reject_if: "如果包含健康功效、价格、付款、订单、CTA 或 Flow，就拒绝或改稿。",
+		          auto_learning_allowed: true,
+		          must_not_do: ["不要扩展到健康功效", "不要接 CTA", "不要接 Flow"]
+		        });
+		      }
+		      return ownerSafetyProfile({
+		        title: "Owner 预审：需要人工审核后才可学",
+		        risk_tag: "owner_review_required",
+		        risk_level: "medium",
+		        guidance: "只有顾客原话、AI 草稿、人工最终回复、结果和回放都齐，才可以批准进入学习资产。",
+		        owner_should_check: "确认这个候选不会自动发送、不会接 Flow、不会编事实，并且能通过同类回放。",
+		        reject_if: "如果证据不齐、不能回放、或会把特殊个案变成通用规则，就拒绝或要证据。",
+		        auto_learning_allowed: false,
+		        must_not_do: ["不要未审核就写入业务脑", "不要自动发送", "不要自动接 Flow"]
+		      });
+		    }
+
+		    function ownerDecisionCombinedText(card = {}) {
+		      const candidate = card.candidate || {};
+		      const source = card.source || {};
+		      return [
+		        card.id,
+		        card.title,
+		        card.reason,
+		        card.artifactLabel,
+		        card.proposedRule,
+		        card.proposedReply,
+		        card.safeApprovalHint,
+		        card.ownerShouldCheck,
+		        candidate.artifact_type,
+		        candidate.artifact_label,
+		        candidate.proposed_rule,
+		        candidate.better_reply,
+		        source.customer_text,
+		        source.customer_message,
+		        source.last_message,
+		        source.proposed_rule,
+		        source.proposed_reply,
+		        source.safe_approval_hint,
+		        source.owner_should_check
+		      ].filter(Boolean).join("\n");
+		    }
+
+		    function ownerSafetyProfile(item = {}) {
+		      return {
+		        title: item.title || "Owner 预审",
+		        risk_tag: item.risk_tag || "owner_review_required",
+		        risk_level: item.risk_level || "medium",
+		        priority: item.priority || "",
+		        forceSuggestedDecision: item.forceSuggestedDecision || "",
+		        guidance: item.guidance || "Owner 审核后才可学。",
+		        owner_should_check: item.owner_should_check || "",
+		        reject_if: item.reject_if || "",
+		        auto_learning_allowed: Boolean(item.auto_learning_allowed),
+		        safety_sop_only: Boolean(item.safety_sop_only),
+		        must_not_do: Array.isArray(item.must_not_do) ? item.must_not_do : []
+		      };
 		    }
 
 	    function ownerDecisionSortedCards(cards = []) {
@@ -12528,6 +12751,7 @@
 	    function ownerDecisionPatchObject(card = {}) {
 	      const fields = card.requiredFields || ownerDecisionRequiredFields(card.suggestedDecision);
 	      const candidate = card.candidate || {};
+	      const safetyAdvisor = card.safetyAdvisor || ownerLearningSafetyAdvisor(card);
 	      const now = new Date().toISOString();
 	      const patch = {
 	        decision_id: card.id || "",
@@ -12556,6 +12780,7 @@
 	          must_not_do: card.mustNotDo || [],
 	          reject_or_edit_if: card.rejectIf || "",
 	          kpis_helped: ownerDecisionKpisHelped(card),
+	          safety_advisor: safetyAdvisor,
 	        },
 	        safety: {
 	          copy_preview_only: true,
@@ -12563,6 +12788,8 @@
 	          sends_whatsapp: false,
 	          writes_decisions: false,
 	          writes_business_brain: false,
+	          auto_learning_allowed: safetyAdvisor.auto_learning_allowed === true,
+	          safety_sop_only: safetyAdvisor.safety_sop_only === true,
 	          changes_runtime: false,
 	          pushes_git: false,
 	        }
