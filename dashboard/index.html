@@ -9047,6 +9047,73 @@
         .at(-1) || null;
     }
 
+	    function externalHumanReplyReviewSignal(item = {}) {
+	      const status = String(item.status || "").toLowerCase();
+	      if (!item?.id || ["auto", "auto_sent", "external_flow_continued", "sent", "sending", "handoff_done", "returned_to_ai", "manual_resolved", "purchase_confirmed", "rejected"].includes(status)) return null;
+	      const messages = approvalRecentContextMessages(item);
+	      const latestInbound = latestInboundContextMessage(messages);
+	      if (!latestInbound) return null;
+	      const latestInboundAt = messageTimeMs(latestInbound);
+	      const outboundAfter = messages
+	        .filter((message) => messageTimeMs(message) > latestInboundAt && contextMessageIsOutbound(message))
+	        .sort((a, b) => messageTimeMs(a) - messageTimeMs(b));
+	      if (!outboundAfter.length) return null;
+	      const latestOutbound = outboundAfter.at(-1);
+	      const inboundText = messageDisplayText(latestInbound);
+	      const outboundText = messageDisplayText(latestOutbound);
+	      const risk = externalHumanReplyRiskReason(item, inboundText, latestInbound.type, outboundText);
+	      const highRisk = risk !== "low_or_general";
+	      return {
+	        tone: highRisk ? "risk" : "warn",
+	        title: highRisk ? "外部已回复，需人工核对" : "外部已回复，可确认收起",
+	        body: highRisk
+	          ? "系统看到顾客最后一句之后，渠道里已有后续回复；但内容涉及付款、附件、健康、退款/投诉或售后，客服要打开核对后再记录，不能自动清掉。"
+	          : "系统看到顾客最后一句之后，渠道里已有后续回复；确认顾客没有等这张旧草稿后，可以点「已由人工回复」收起。",
+	        buttons: highRisk ? ["记录人工回复", "确认收款 / COD", "人工接手"] : ["已由人工回复", "记录人工回复"],
+	        never: highRisk
+	          ? ["不要自动清掉", "不要重复发送旧草稿", "不要接 Flow", "没确认付款不要按确认收款 / COD"]
+	          : ["不要重复发送旧草稿", "不要接 Flow"],
+	        risk,
+	        latestInboundPreview: inboundText || attachmentDisplayLabel(latestInbound.type) || "无文字内容",
+	        latestOutboundPreview: outboundText || attachmentDisplayLabel(latestOutbound.type) || "无文字内容",
+	        outboundCount: outboundAfter.length,
+	        latestOutboundAt: latestOutbound.at || latestOutbound.message_at || "",
+	      };
+	    }
+
+	    function messageTimeMs(message = {}) {
+	      const value = message.at || message.message_at || message.created_at || message.timestamp || "";
+	      const time = new Date(value).getTime();
+	      return Number.isFinite(time) ? time : 0;
+	    }
+
+	    function contextMessageIsOutbound(message = {}) {
+	      const direction = String(message.direction || message.role || "").toLowerCase();
+	      return direction === "outbound" || direction === "agent" || direction === "assistant" || direction === "bot";
+	    }
+
+	    function externalHumanReplyRiskReason(item = {}, inboundText = "", inboundType = "", outboundText = "") {
+	      const decision = item.latest_decision || {};
+	      const combined = [
+	        inboundText,
+	        outboundText,
+	        item.category,
+	        item.intent,
+	        item.reason,
+	        item.next_action,
+	        item.suggested_reply,
+	        decision.intent,
+	        decision.reason,
+	        decision.action,
+	        decision.reply_message,
+	      ].filter(Boolean).join(" ").toLowerCase();
+	      if (/attachment|image|photo|file|audio|voice/i.test(String(inboundType || "")) && !String(inboundText || "").trim()) return "latest_inbound_attachment";
+	      if (/receipt|收据|收據|付款|汇款|匯款|bank|paid|cod|payment|rm\s*\d+|转账|轉賬|截图|截圖/i.test(combined)) return "payment_or_order";
+	      if (/refund|退款|退货|退貨|complaint|投诉|投訴|售后|售後|无效|無效|follow up|没人|沒人/i.test(combined)) return "refund_complaint_or_service_recovery";
+	      if (/medical|怀孕|懷孕|孕|母乳|breast|喂奶|胃痛|胃酸|药|藥|西药|西藥|血小板|骨髓|医生|醫生|病|症状|症狀/i.test(combined)) return "health_sensitive";
+	      return "low_or_general";
+	    }
+
     function approvalStatus(item) {
 		      if (item.status === "purchase_confirmed") return "purchase_confirmed";
 		      if (item.status === "manual_resolved") return "manual_resolved";
@@ -14355,6 +14422,7 @@
 	      const automationBoundary = caseAutomationBoundaryLine(item);
 	      const workMode = caseWorkModeLine(item);
 	      const staffAction = staffCaseActionRecommendation(item);
+	      const externalReplySignal = externalHumanReplyReviewSignal(item);
 
 	      return `
 	        <div class="detail-tile">
@@ -14383,6 +14451,16 @@
 	          <small>当前仍是 approval-first；这里只判断能不能学成未来低审规则。</small>
 	        </div>
 	        ${groupedCaseDetailHtml(item)}
+	        ${externalReplySignal ? `
+	        <div class="detail-tile wide staff-action-recommendation ${escapeHtml(externalReplySignal.tone || "")}">
+	          <span>外部回复核对</span>
+	          <b>${escapeHtml(externalReplySignal.title)}</b>
+	          <small>${escapeHtml(externalReplySignal.body)}</small>
+	          <small>${escapeHtml(`顾客最后一句：${externalReplySignal.latestInboundPreview}`)}</small>
+	          <small>${escapeHtml(`后续渠道回复：${externalReplySignal.latestOutboundPreview}`)}</small>
+	          <small>${escapeHtml(`按钮：${externalReplySignal.buttons.join(" -> ")}`)}</small>
+	        </div>
+	        ` : ""}
 	        ${staffAction ? `
 	        <div class="detail-tile wide staff-action-recommendation ${escapeHtml(staffAction.tone || "")}">
 	          <span>处理建议</span>
@@ -14433,6 +14511,7 @@
 	      const decision = item.latest_decision || {};
 	      const status = String(item.status || "").toLowerCase();
 	      const closer = closerVerdict(item);
+	      const externalReplySignal = externalHumanReplyReviewSignal(item);
 	      const combined = [
 	        customerPreviewText(item),
 	        item.last_message,
@@ -14447,6 +14526,15 @@
 	      ].filter(Boolean).join(" ");
 
 	      const neverBase = ["不要发送旧草稿", "不要自动接 Flow", "不要删除记录", "不要改 runtime"];
+	      if (externalReplySignal) {
+	        return {
+	          tone: externalReplySignal.tone,
+	          title: externalReplySignal.title,
+	          body: externalReplySignal.body,
+	          buttons: externalReplySignal.buttons,
+	          never: externalReplySignal.never,
+	        };
+	      }
 	      if (dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item)) {
 	        return {
 	          tone: "risk",
