@@ -8423,9 +8423,10 @@
 	        setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
 	        const visibility = dashboardApprovalVisibilityParams();
         const searchQuery = String(state.query || "").trim();
+        const requestedQueueStatus = dashboardQueueStatusParam(searchQuery);
         const approvalParams = new URLSearchParams({
           project_key: project,
-          status: "all",
+          status: requestedQueueStatus,
           include_tests: visibility.includeTests ? "1" : "0",
           real_only: visibility.realOnly ? "1" : "0",
           compact_conversations: "1",
@@ -8483,6 +8484,26 @@
         errorEl.textContent = `连接失败：${error.message}`;
         setRealQueueEmpty(`连接失败：${error.message}`);
       }
+    }
+
+    function dashboardQueueStatusParam(searchQuery = "") {
+      if (state.role !== "staff") return "all";
+      if (String(searchQuery || "").trim()) return "all";
+      const filter = state.filter === "human_first" ? "needs_attention" : String(state.filter || "all");
+      const map = {
+        all: "open",
+        needs_attention: "open",
+        approval_required: "approval",
+        return_ai: "open",
+        pending_manual_reply: "open",
+        human_required: "human",
+        order: "order",
+        auto: "auto",
+        records: "records",
+        handoff_done: "records",
+        returned_to_ai: "records",
+      };
+      return map[filter] || "open";
     }
 
     async function loadUsageSummary(token) {
@@ -14157,7 +14178,9 @@
         const existingIndex = state.cases.findIndex((record) => String(record.id || "") === String(loaded.id || ""));
         if (existingIndex >= 0) state.cases[existingIndex] = loaded;
         else state.cases.unshift(loaded);
-        state.filter = "all";
+        state.filter = state.role === "staff" && isCaseReadOnly(loaded)
+          ? (["auto", "auto_sent", "external_flow_continued"].includes(loaded.status) ? "auto" : "records")
+          : "all";
         render();
         requestAnimationFrame(() => openCase(loaded.id));
       } catch (_error) {
