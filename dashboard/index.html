@@ -13347,7 +13347,7 @@
       const decision = item.latest_decision || {};
       const raw = item.raw_approval || {};
       const customerText = customerPreviewText(item);
-      const sourceText = [
+      const sourceText = contextTextJoin([
         item.raw_context,
         item.rawContext,
         item.context_text,
@@ -13394,9 +13394,9 @@
         decision.reply_message,
 	        closer.title,
 	        closer.reason
-	      ].filter(Boolean).join(" ");
+	      ], " ");
 	      const combined = `${customerText} ${sourceText}`;
-	      const draftText = [
+	      const draftText = contextTextJoin([
 	        item.reply,
 	        item.finalText,
 	        item.final_text,
@@ -13413,7 +13413,7 @@
 	        decision.manual_reply_text,
 	        closer.title,
 	        closer.reason
-	      ].filter(Boolean).join(" ");
+	      ], " ");
 	      const directPriceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|要一盒|一盒.*(?:多少|RM|rm)|1\s*盒|how\s+much|price|package|配套)/i.test(customerText);
       const channelOutageContext = /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(`${sourceText} ${draftText}`);
       if (channelOutageContext) {
@@ -14665,7 +14665,7 @@
 
 	    function actionTitle(item) {
 	      const decision = item.latest_decision || {};
-	      const channelOutageText = [
+	      const channelOutageText = contextTextJoin([
 	        item.status,
 	        item.reason,
 	        item.error,
@@ -14678,7 +14678,7 @@
 	        decision.send_error,
 	        decision.delivery?.reason,
 	        decision.delivery?.error
-	      ].filter(Boolean).join(" ");
+	      ], " ");
 	      const channelOutageFailure = item.status === "send_failed" && /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(channelOutageText);
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return learningFollowup.title;
@@ -14701,7 +14701,7 @@
 
 	    function actionHint(item) {
 	      const decision = item.latest_decision || {};
-	      const channelOutageText = [
+	      const channelOutageText = contextTextJoin([
 	        item.status,
 	        item.reason,
 	        item.error,
@@ -14714,7 +14714,7 @@
 	        decision.send_error,
 	        decision.delivery?.reason,
 	        decision.delivery?.error
-	      ].filter(Boolean).join(" ");
+	      ], " ");
 	      const channelOutageFailure = item.status === "send_failed" && /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(channelOutageText);
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return learningFollowup.body;
@@ -14740,6 +14740,15 @@
 	      return values
 	        .map((value) => contextTextValue(value))
 	        .find(Boolean) || "";
+	    }
+
+	    function contextTextJoin(values = [], separator = " ") {
+	      const list = Array.isArray(values) ? values : [values];
+	      return list
+	        .map((value) => contextTextValue(value))
+	        .filter(Boolean)
+	        .join(separator)
+	        .trim();
 	    }
 
 	    function contextTextValue(value, depth = 0) {
@@ -14842,7 +14851,7 @@
 
 	    function inferredFlowContextName(decision = {}, item = {}) {
 	      const messageText = Array.isArray(item.messages)
-	        ? item.messages.map((msg) => msg?.text || msg?.body || "").filter(Boolean).join("\n")
+	        ? contextTextJoin(item.messages, "\n")
 	        : "";
 	      const sources = [
 	        decision.previous_flow_text,
@@ -14870,7 +14879,7 @@
 
 	    function automationControlContextName(decision = {}, item = {}) {
 	      const messageText = Array.isArray(item.messages)
-	        ? item.messages.map((msg) => msg?.text || msg?.body || "").filter(Boolean).join("\n")
+	        ? contextTextJoin(item.messages, "\n")
 	        : "";
 	      const direct = firstContextText(
 	        decision.automation_control,
@@ -16288,22 +16297,22 @@
       const stage = String(decision.stage || "").toUpperCase().replace(/[\s-]+/g, "_");
       const intent = String(decision.intent || "").toLowerCase();
       const risk = String(decision.risk || item.risk || "").toLowerCase();
-      const hasReply = Boolean(String(decision.reply_message || item.final_text || item.manual_reply_text || "").trim());
-      const previousAgentText = String(decision.previous_agent_text || "").trim();
+      const hasReply = Boolean(firstContextText(decision.reply_message, item.final_text, item.manual_reply_text));
+      const previousAgentText = firstContextText(decision.previous_agent_text);
       const hasPreviousAgent = Boolean(previousAgentText);
-      const draftText = [
+      const draftText = contextTextJoin([
         decision.reply_message,
         item.final_text,
         item.manual_reply_text
-      ].filter(Boolean).join(" ");
-      const customerSignalText = [
+      ], " ");
+      const customerSignalText = contextTextJoin([
         intent,
         decision.customer_text,
         decision.inbound_text,
         item.inbound_text,
         item.customer_text
-      ].filter(Boolean).join(" ");
-      const priorCustomerIssueText = [
+      ], " ");
+      const priorCustomerIssueText = contextTextJoin([
         decision.prior_customer_text,
         decision.previous_customer_text,
         decision.customer_history_text,
@@ -16314,13 +16323,13 @@
         item.customer_history_text,
         item.customerHistoryText,
         item.conversation_customer_text
-      ].filter(Boolean).join(" ");
-      const rawCustomerText = [
+      ], " ");
+      const rawCustomerText = contextTextJoin([
         decision.customer_text,
         decision.inbound_text,
         item.inbound_text,
         item.customer_text
-      ].filter(Boolean).join(" ").trim();
+      ], " ");
       const outdatedPriceDraft = /RM\s*368|加\s*RM\s*10|3\s*送\s*1|3送1|送1盒\s*RM\s*378/i.test(draftText);
       const outdatedCampaignDraft = /(?:5\s*月|Mother['’]?\s*'?s\s*Day|母亲节|母親節|early\s*bird|188\s*sets?|59%\s*OFF|RM\s*398|RM\s*498|RM\s*538|RM\s*698)/i.test(draftText);
       const afterSalesReceivedAck = intent.includes("after_sales") || /(收到货|收到貨|货收到了|貨收到了|货已收到|貨已收到|货到了|貨到了|刚收到|剛收到|parcel\s+received|received\s+(?:it|parcel|goods|product))/i.test(customerSignalText);
@@ -16329,7 +16338,7 @@
       const greetingHardSellDraft = greetingOnly && (salesPushDraft || action.includes("flow") || /Beyoute Plus\+\s+主要是|阻碳水|燃脂|排宿便|不是普通代餐|下一步重点|我接下来|I will show you the next key point|carb control|bowel movement|skin glow/i.test(draftText));
       const longMessageFatigue = /(?:don['’]?\s*t|do\s+not|dont|no).{0,24}(?:patience|time|mood).{0,28}(?:read|go\s+through)|(?:too|so)\s+long.{0,24}(?:read|message|text)|(?:too\s+much|so\s+much).{0,20}(?:text|message|read)|(?:no\s+patience).{0,24}(?:read|those)|(?:不想|懒惰|懶惰|没耐心|沒耐心|没有耐心|沒有耐心).{0,16}(?:读|讀|看)|(?:太长|太長|很长|很長|一大段|太多字|字太多|看不完)/i.test(customerSignalText);
       const longMessageDraft = draftText.length > 220 || action.includes("flow") || /Step\s*4|Beyoute\s+瘦身|Kombucha.{0,80}(?:明星|保证|保證|世界证实|世界證實)|我们的【?Beyoute|我们肯定有信心|我可以跟你保证|一旦停用|其他产品喝了后/i.test(draftText);
-      const priceOnlySignalText = [customerSignalText, priorCustomerIssueText].filter(Boolean).join(" ");
+      const priceOnlySignalText = contextTextJoin([customerSignalText, priorCustomerIssueText], " ");
       const priceOnlyAfterLongFlow = /(?:just|only|simply).{0,24}(?:ask|asking|want|need|asking\s+for).{0,24}(?:price|pricing|how\s+much)|(?:i\s+just\s+asking\s+for\s+the\s+price)|(?:只|只是|只想|只要|我只).{0,24}(?:问|問|知道|要|看).{0,18}(?:价钱|價錢|价格|價格|price)|(?:price|价钱|價錢|价格|價格).{0,80}(?:don['’]?\s*t|do\s+not|dont|no\s+need|不要|不用).{0,36}(?:send|发|發|讲|講|explain).{0,30}(?:so\s+many|too\s+many|many|这么多|那麼多|那么多)/i.test(priceOnlySignalText);
       const confusedShortReply = /^(?:[?？]{2,}|什么意思|什麼意思|不懂|看不懂|看不明白|不明白|不理解|听不懂|聽不懂|what|what\?|huh|huh\?)$/i.test(rawCustomerText.trim()) || /(?:看不懂|看不明白|不懂|不明白|不理解|什么意思|什麼意思|don['’]?t\s+understand|dont\s+understand|confused)/i.test(customerSignalText);
       const compactCustomerReply = rawCustomerText.toLowerCase().replace(/[\s.!！?？~～,，。…·\-—_、:：;；'"“”‘’()[\]{}<>]/g, "");
