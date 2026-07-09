@@ -8488,7 +8488,6 @@
 
     function dashboardQueueStatusParam(searchQuery = "") {
       if (state.role !== "staff") return "all";
-      if (String(searchQuery || "").trim()) return "all";
       const filter = state.filter === "human_first" ? "needs_attention" : String(state.filter || "all");
       const map = {
         all: "open",
