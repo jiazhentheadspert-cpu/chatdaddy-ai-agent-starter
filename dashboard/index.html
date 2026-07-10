@@ -4565,6 +4565,22 @@
       background: linear-gradient(180deg, rgba(231,255,248,.98), rgba(244,255,252,.96));
     }
 
+    .bubble.cancelled {
+      justify-self: end;
+      border: 1px dashed #a5adb7;
+      border-right: 4px solid #7c8795;
+      background: #f4f6f8;
+      color: #596473;
+    }
+
+    .bubble-state {
+      display: block;
+      margin-top: 7px;
+      color: #a64242;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
     textarea {
       width: 100%;
       min-height: 132px;
@@ -8433,7 +8449,7 @@
       return name || fallbackCustomerNameFromDigits(digits);
     }
 
-    async function loadCases() {
+    async function loadCases(options = {}) {
       errorEl.textContent = "";
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
@@ -8460,7 +8476,7 @@
 
 	      try {
 	        const qaMode = canUseQaMode();
-	        setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
+	        if (!options.silent) setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
 	        const visibility = dashboardApprovalVisibilityParams();
         const searchQuery = String(state.query || "").trim();
         const requestedQueueStatus = dashboardQueueStatusParam(searchQuery);
@@ -8482,7 +8498,8 @@
         state.demoMode = false;
         state.loading = false;
         state.queueSyncStatus = data.sync_status || null;
-        state.selected.clear();
+	        const previousActiveId = String(state.active?.id || "");
+	        if (!options.preserveSelection) state.selected.clear();
 	        $("modeTag").textContent = activeModeLabel();
 	        const liveItems = Array.isArray(data.items)
 	          ? data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
@@ -8491,6 +8508,16 @@
         state.contactNames = {};
         state.cases = compactLiveItems.map((item) => approvalToCase(item, {}));
         render();
+	        if (options.refreshActive && previousActiveId) {
+	          const refreshedActive = state.cases.find((record) => String(record.id || "") === previousActiveId) || null;
+	          if (refreshedActive) {
+	            state.active = refreshedActive;
+	            if ($("panel").classList.contains("open")) openCase(previousActiveId);
+	          } else if ($("panel").classList.contains("open")) {
+	            closePanel();
+	            showToast("这个 Case 已由渠道回复接走，已移到处理记录。");
+	          }
+	        }
 
         loadContactNameMap(compactLiveItems, token).then((contactNames) => {
           if (!contactNames || !Object.keys(contactNames).length) return;
@@ -8526,6 +8553,15 @@
         setRealQueueEmpty(`连接失败：${error.message}`);
       }
     }
+
+	function startQueueAutoRefresh() {
+	  if (state.queueAutoRefreshTimer) clearInterval(state.queueAutoRefreshTimer);
+	  state.queueAutoRefreshTimer = setInterval(() => {
+	    if (document.hidden || state.demoMode || state.actionBusy || state.bulkBusy || state.selected.size > 0) return;
+	    if (state.role !== "staff" || !apiUrlEl.value.trim() || (!adminTokenEl.value.trim() && !hasAccountSession())) return;
+	    loadCases({ silent: true, refreshActive: true, preserveSelection: true }).catch(() => null);
+	  }, 20000);
+	}
 
     function dashboardQueueStatusForFilter(rawFilter = state.filter, role = state.role) {
       if (role !== "staff") return "all";
@@ -9081,6 +9117,9 @@
 	        .map((message, index) => {
 	          const rawDirection = String(message?.direction || message?.role || message?.sender_type || message?.from || "").toLowerCase();
 	          const providerMessageId = firstContextText(message?.provider_message_id, message?.providerMessageId, message?.message_id, message?.messageId);
+	          const providerStatus = firstContextText(message?.provider_status, message?.delivery_status, message?.content?.provider_status, message?.metadata?.provider_status, message?.status);
+	          const cancelReason = firstContextText(message?.cancel_reason, message?.content?.cancel_reason, message?.metadata?.cancel_reason);
+	          const deliveryCancelled = message?.delivery_cancelled === true || message?.content?.delivery_cancelled === true || message?.metadata?.delivery_cancelled === true || /cancel|hold|held|skip|abort|stopp?ed|not[_\s-]?sent|failed|pending|queued|scheduled/i.test(`${providerStatus} ${cancelReason}`);
 	          const isOutbound = rawDirection === "outbound" ||
 	            rawDirection === "out" ||
 	            rawDirection === "agent" ||
@@ -9099,6 +9138,11 @@
             type: message?.type || message?.message_type || "text",
             at: firstContextText(message?.at, message?.message_at, message?.created_at, message?.timestamp),
             message_at: firstContextText(message?.message_at, message?.at, message?.created_at, message?.timestamp),
+            status: message?.status || "",
+            provider_status: providerStatus || "",
+            delivery_status: providerStatus || "",
+            delivery_cancelled: deliveryCancelled,
+            cancel_reason: deliveryCancelled ? cancelReason || providerStatus : "",
           };
         })
         .filter((message) => message.text || /attachment|image|photo|file|audio|voice/i.test(message.type));
@@ -9156,8 +9200,16 @@
 	    }
 
 	    function contextMessageIsOutbound(message = {}) {
+	      if (contextMessageWasCancelled(message)) return false;
 	      const direction = String(message.direction || message.role || "").toLowerCase();
 	      return direction === "outbound" || direction === "agent" || direction === "assistant" || direction === "bot";
+	    }
+
+	    function contextMessageWasCancelled(message = {}) {
+	      if (message?.delivery_cancelled === true || message?.content?.delivery_cancelled === true || message?.metadata?.delivery_cancelled === true) return true;
+	      const status = firstContextText(message?.provider_status, message?.delivery_status, message?.content?.provider_status, message?.metadata?.provider_status, message?.status);
+	      const reason = firstContextText(message?.cancel_reason, message?.content?.cancel_reason, message?.metadata?.cancel_reason);
+	      return /cancel|hold|held|skip|abort|stopp?ed|not[_\s-]?sent|failed|pending|queued|scheduled/i.test(`${status} ${reason}`);
 	    }
 
 	    function externalHumanReplyRiskReason(item = {}, inboundText = "", inboundType = "", outboundText = "") {
@@ -14110,7 +14162,7 @@
 	      const canManualResolve = canManualResolveCase(item);
 	      const isManualFollowUp = requiresManualReplyForManualResolve(item);
 	      const statusTone = riskTone(item);
-      const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound");
+      const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound" && !contextMessageWasCancelled(msg));
       const canResendPurchase = canResendPurchaseMeta(item);
       const existingPurchaseAmount = casePurchaseAmount(item);
       const showPurchasePanel = shouldShowPurchasePanelForCase(item, readOnly, canResendPurchase);
@@ -14189,8 +14241,12 @@
 	      $("caseDetails").innerHTML = caseDetailsHtml(item);
 
       $("chatBox").innerHTML = (item.messages || []).map((msg) => {
-        const klass = msg.direction === "outbound" ? "out" : "in";
-        return `<div class="bubble ${klass}">${escapeHtml(messageDisplayText(msg))}</div>`;
+        const cancelled = contextMessageWasCancelled(msg);
+        const klass = cancelled ? "cancelled" : msg.direction === "outbound" ? "out" : "in";
+        const cancelledLabel = cancelled
+          ? `<span class="bubble-state">未发送 · 顾客回复后 ChatDaddy 自动取消</span>`
+          : "";
+        return `<div class="bubble ${klass}">${escapeHtml(messageDisplayText(msg))}${cancelledLabel}</div>`;
       }).join("") + (!readOnly && !hasOutbound && contextTextValue(decision.reply_message) ? `<div class="bubble out">${escapeHtml(contextTextValue(decision.reply_message))}</div>` : "");
 
       $("panelWords").innerHTML = (item.word_cloud || []).map(localizedWord).filter(Boolean).map((word, index) => {
@@ -19897,6 +19953,7 @@
     (async function bootDashboard() {
       await bootstrapSaasSession();
       await loadCases();
+	  startQueueAutoRefresh();
     })();
   </script>
 </body>
