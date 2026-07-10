@@ -6555,6 +6555,8 @@
       inboxConversations: [],
       inboxSummary: {},
       inboxQuery: "",
+      inboxSearchTimer: null,
+      inboxRequestSeq: 0,
       inboxLoading: false,
       inboxError: "",
       inboxUpdatedAt: "",
@@ -6989,6 +6991,10 @@
       inboxSearchEl.addEventListener("input", () => {
         state.inboxQuery = inboxSearchEl.value.trim();
         renderInboxView();
+        if (state.inboxSearchTimer) clearTimeout(state.inboxSearchTimer);
+        state.inboxSearchTimer = setTimeout(() => {
+          loadInboxConversations({ silent: true, query: state.inboxQuery });
+        }, 350);
       });
     }
     if (inboxRefreshBtnEl) {
@@ -8820,6 +8826,8 @@
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "beyoute";
       const token = adminTokenEl.value.trim();
+      const requestSeq = ++state.inboxRequestSeq;
+      const query = String(options.query !== undefined ? options.query : state.inboxQuery || "").trim();
       const hasAuth = Boolean(token || hasAccountSession());
       if (!api || !hasAuth || state.demoMode) {
         state.inboxConversations = [];
@@ -8836,18 +8844,22 @@
       if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = true;
       try {
         const params = new URLSearchParams({ limit: "100", scan_limit: "1600" });
+        if (query) params.set("q", query);
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${params.toString()}`;
         const res = await fetch(endpoint, authRequestOptions(token));
         const data = await res.json().catch(() => ({}));
         if (res.status === 401 && state.role === "staff" && redirectStaffToLogin({ clearSession: true })) return;
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        if (requestSeq !== state.inboxRequestSeq) return;
         state.inboxConversations = Array.isArray(data.items) ? data.items : [];
         state.inboxSummary = data.counts || {};
         state.inboxUpdatedAt = new Date().toISOString();
         state.inboxError = "";
       } catch (error) {
+        if (requestSeq !== state.inboxRequestSeq) return;
         state.inboxError = `最新讯息读取失败：${error.message || error}`;
       } finally {
+        if (requestSeq !== state.inboxRequestSeq) return;
         state.inboxLoading = false;
         if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = false;
         renderInboxView();
