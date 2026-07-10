@@ -5626,7 +5626,7 @@
 
     body.staff-mode .staff-priority-strip {
       padding: 8px 16px;
-      grid-template-columns: auto repeat(4, minmax(120px, 1fr));
+      grid-template-columns: auto repeat(3, minmax(150px, 1fr));
     }
 
     body.staff-mode .staff-priority-title small,
@@ -5793,13 +5793,17 @@
         padding: 9px 10px;
       }
 
+      body.staff-mode .staff-priority-strip {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 8px 10px;
+      }
+
       body.staff-mode .filters {
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         gap: 6px;
         max-width: 100%;
-        overflow-x: auto;
-        padding-bottom: 2px;
-        scrollbar-width: none;
+        overflow: visible;
       }
 
       body.staff-mode .filters::-webkit-scrollbar {
@@ -5813,7 +5817,7 @@
       }
 
       body.staff-mode .selection-tools {
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
       }
 
       body.staff-mode .case-card {
@@ -5914,19 +5918,19 @@
 
       <nav class="side-nav" aria-label="主导航">
         <div class="side-section">客服</div>
-        <button class="active" data-short="台" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
+        <button class="active" aria-label="操作台" data-short="台" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
           <span class="side-label side-label-plain"><em>操作台</em></span>
           <small id="navCasesBadge">0</small>
         </button>
-        <button data-short="复" data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
+        <button aria-label="复盘" data-short="复" data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
           <span class="side-label side-label-plain"><em>复盘</em></span>
           <small id="navLearningBadge">0</small>
         </button>
-        <button data-short="S" data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
+        <button aria-label="Segment" data-short="S" data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
           <span class="side-label side-label-plain"><em>Segment</em></span>
           <small id="navStep7Badge">待</small>
         </button>
-        <div class="side-note">客服只看需要处理的顾客；已自动继续的记录进自动记录。</div>
+        <div class="side-note">客服只看需要处理的顾客；自动 Flow 只读，不会混进待处理。</div>
 
         <div class="side-settings" aria-label="设置">
           <div class="side-settings-title"><span class="side-label side-label-plain"><em>设置</em></span></div>
@@ -5949,7 +5953,7 @@
 
       <div class="side-card frontend-only-card">
         <strong id="sideRole">客服工作台</strong>
-        <span id="sideHint">只看需要处理的顾客；自动记录只读。</span>
+        <span id="sideHint">主队列看待处理；自动 Flow 只读。</span>
         <div class="side-meter">
           <div class="side-meter-row"><span>入口</span><strong id="sideWorkspace">DEMO</strong></div>
           <div class="side-meter-row"><span>模式</span><strong id="sideConnection">审核优先</strong></div>
@@ -5983,7 +5987,7 @@
         </div>
         <div class="session-actions">
           <button class="btn danger" id="pauseAgentBtn" type="button">暂停接管</button>
-          <a class="btn" href="../login.html">切换账号</a>
+          <a class="btn" id="switchAccountLink" href="../login.html">切换账号</a>
           <button class="btn ghost" id="logoutBtn">退出</button>
         </div>
       </div>
@@ -6009,10 +6013,10 @@
 
       <div class="stats" id="statsPanel">
         <div class="stat"><b id="statAll">0</b><span>全部</span></div>
-        <div class="stat"><b id="statApproval">0</b><span>可批准</span></div>
-        <div class="stat"><b id="statHuman">0</b><span>人工</span></div>
-        <div class="stat"><b id="statOrder">0</b><span>订单</span></div>
-        <div class="stat"><b id="statAuto">0</b><span>自动</span></div>
+        <div class="stat"><b id="statApproval">0</b><span>待批准</span></div>
+        <div class="stat"><b id="statHuman">0</b><span>人工回复</span></div>
+        <div class="stat"><b id="statOrder">0</b><span>订单/付款</span></div>
+        <div class="stat"><b id="statAuto">0</b><span>自动 Flow</span></div>
       </div>
 
       <section class="ops-grid hidden" id="opsGrid" aria-label="运营状态"></section>
@@ -6054,18 +6058,14 @@
         <div class="staff-cleanup-execution-strip" id="staffCleanupExecutionStrip" aria-label="清旧卡执行条"></div>
         <div class="toolbar">
           <div class="filters">
-            <button class="pill active" data-filter="all">全部</button>
-            <button class="pill" data-filter="needs_attention">待处理</button>
-            <button class="pill" data-filter="approval_required">可批准</button>
-            <button class="pill" data-filter="return_ai">退回 AI</button>
-            <button class="pill" data-filter="human_required">要人工</button>
-            <button class="pill" data-filter="pending_manual_reply">待补回复</button>
-            <button class="pill" data-filter="order">订单/付款</button>
-            <button class="pill" data-filter="auto" id="autoFilterBtn">自动记录</button>
+            <button class="pill active" data-filter="needs_attention">全部要处理</button>
+            <button class="pill" data-filter="approval_required">待批准</button>
+            <button class="pill" data-filter="human_first">人工回复</button>
+            <button class="pill" data-filter="auto" id="autoFilterBtn">自动 Flow（不用处理）</button>
           </div>
           <div class="selection-tools" aria-label="快速选择">
             <button class="btn" id="selectVisibleBtn" type="button">选择当前</button>
-            <button class="btn danger" id="selectReturnAiVisibleBtn" type="button">选择退回 AI</button>
+            <button class="btn danger" id="selectReturnAiVisibleBtn" type="button">选择让 AI 重写</button>
           </div>
           <div class="view-toggle" aria-label="切换视图">
             <button class="active" id="gridView">卡片</button>
@@ -6077,8 +6077,8 @@
           <div class="bulk-summary"><b id="bulkCount">0</b><span>已选</span></div>
           <div class="bulk-actions">
             <button class="btn" id="bulkMarkSeen" type="button">标记已看</button>
-            <button class="btn danger" id="bulkReturnAi" type="button">批量退回 AI</button>
-            <button class="btn danger" id="bulkHandoff" type="button">批量人工接手</button>
+            <button class="btn danger" id="bulkReturnAi" type="button">批量让 AI 重写</button>
+            <button class="btn danger" id="bulkHandoff" type="button">批量转人工回复</button>
             <button class="btn ghost" id="bulkClear" type="button">清除选择</button>
           </div>
         </div>
@@ -6131,10 +6131,10 @@
 	              <div class="reply-action-group" aria-label="发送回复">
 	                <div class="operation-copy">
 	                  <span>发送回复</span>
-	                  <small>Dashboard 发送，ChatDaddy 只做底层通道</small>
+	                  <small>在这里确认内容，系统直接发给顾客</small>
 	                </div>
 	                <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
-	                <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">人工发送</button>
+	                <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">回复并发送</button>
 	              </div>
 	              <div class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
 	                <div class="operation-copy">
@@ -6154,13 +6154,13 @@
                   <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
                     <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
                     <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
-                    <button class="btn danger" id="shortVersionHandoffBtn" type="button">人工接手</button>
+                    <button class="btn danger" id="shortVersionHandoffBtn" type="button">转人工回复</button>
                   </div>
                   <div class="side-actions">
                     <button class="btn" id="manualResolveBtn" type="button">记录人工回复</button>
                     <button class="btn" id="channelReplyResolvedBtn" type="button">已由人工回复</button>
-                    <button class="btn" id="returnAiBtn" type="button">让 AI 重写</button>
-                    <button class="btn danger" id="handoffBtn" type="button">人工接手</button>
+                    <button class="btn" id="returnAiBtn" type="button" title="不要当前草稿，重新生成一版；不会发送给顾客。">让 AI 重写</button>
+                    <button class="btn danger" id="handoffBtn" type="button">转人工回复</button>
 	                <button class="btn" id="learnBtn" type="button" title="发送后记录学习候选，Owner 通过后同类问题才会少审核或自动">同类以后少审核</button>
 	                  </div>
 	                  <details class="external-flow-panel hidden" id="externalFlowPanel">
@@ -6169,12 +6169,12 @@
 	                      <small>渠道已接走</small>
 	                    </summary>
 	                    <div class="external-flow-body">
-	                      <p class="external-flow-summary">过渡期：如果顾客已被外部渠道或 Flow 处理，并且不在等这张旧草稿，可以移到自动记录；以后客服请直接在 Dashboard 回复。</p>
+	                      <p class="external-flow-summary">顾客点按钮后已由自动 Flow 继续，这张旧草稿不用发，也不会进入客服待处理。</p>
 	                      <label class="external-flow-confirm">
 	                        <input id="externalFlowCustomerClearInput" type="checkbox" />
 	                        <span>我确认顾客已被处理，这张旧回复不用发；以后同类请在 Dashboard 回复。</span>
 	                      </label>
-	                      <button class="btn" id="externalFlowRecordBtn" type="button">移到自动记录</button>
+	                      <button class="btn" id="externalFlowRecordBtn" type="button">标记为自动 Flow 已处理</button>
 	                      <details class="external-flow-advanced">
 	                        <summary>系统资料（一般不用打开）</summary>
 	                        <div class="external-flow-advanced-body">
@@ -6197,7 +6197,7 @@
             <div class="quality-eval-head">
               <div>
                 <b>质量评分</b>
-                <span>先评分，再决定发送、修改或人工接手</span>
+                <span>先评分，再决定批准、修改或转人工回复</span>
               </div>
               <span class="quality-result-pill" id="qualityEvalResult">待评分</span>
             </div>
@@ -6250,7 +6250,7 @@
               <small class="verdict-approval-signal" id="closerVerdictApprovalSignal">批准信号：可批准但先确认</small>
               <p id="closerVerdictReason">确认文案、阶段和 CTA 后再批准。</p>
               <p class="verdict-rewrite-hint" id="closerVerdictRewriteHint">改稿方向：先确认顾客最后一句已被回答。</p>
-              <p class="verdict-next-action" id="closerVerdictNextAction">客服下一步：确认后批准；不能确定就人工接手。</p>
+              <p class="verdict-next-action" id="closerVerdictNextAction">客服下一步：确认后批准；不能确定就转人工回复。</p>
               <p class="verdict-learning-capture" id="closerVerdictLearningCapture">复盘要留：顾客问题、AI 草稿、客服最终处理。</p>
             </div>
             <div class="flow-context-chain" id="flowContextChain" aria-label="顾客问题到 Flow 接法">
@@ -6260,7 +6260,7 @@
                 <b>等待选择 Case</b>
               </div>
             </div>
-            <div class="approval-first-reminder">Approval-first：AI 不会自己发；只有客服检查后点按钮才执行当前动作。不能确定就退回 AI 或人工接手。</div>
+            <div class="approval-first-reminder">AI 不会自己发：客服检查后才批准。草稿不对就让 AI 重写；需要真人判断就在这里人工回复。</div>
           </div>
           <div class="box">
             <h3>重点词</h3>
@@ -6443,7 +6443,7 @@
           words: ["投诉", "生气", "停止自动流程", "高风险"],
           customer: "你们一直催很烦，我要投诉",
           reply: "我先帮你停止自动跟进，并转给人工同事处理。我们会看清楚记录后再回复你。",
-          reason: "投诉和负面情绪必须人工接手，避免 AI 继续推销。",
+          reason: "投诉和负面情绪必须转人工回复，避免 AI 继续推销。",
         }),
         demoCase({
           id: "case-005",
@@ -6577,7 +6577,7 @@
           words: ["合约", "法律", "高风险", "人工"],
           customer: "签了 SPA 可以无条件取消吗？",
           reply: "这个涉及合约条款，我先帮你转给专业同事确认，不乱给法律建议。",
-          reason: "法律相关问题必须人工接手。",
+          reason: "法律相关问题必须转人工回复。",
         }),
       ],
       aftersales: [
@@ -6629,7 +6629,8 @@
     state.role = params.get("role") || state.session.role || "owner";
     document.body.classList.toggle("staff-mode", state.role === "staff");
     document.body.dataset.role = state.role;
-    state.sidebarCollapsed = localStorage.getItem("replypilot_sidebar_collapsed") === "1";
+    const mobileStaffViewport = window.matchMedia("(max-width: 820px)").matches;
+    state.sidebarCollapsed = mobileStaffViewport || localStorage.getItem("replypilot_sidebar_collapsed") === "1";
     applySidebarCollapsedState();
     const requestedView = params.get("view") || "";
     state.workspaceView = ["cases", "learning", "operations"].includes(requestedView) ? requestedView : state.workspaceView;
@@ -6654,6 +6655,7 @@
     adminTokenEl.placeholder = "已登录账号";
     state.settings = readProjectSettings(projectKeyEl.value || "demo");
     state.auditEvents = readAuditEvents(projectKeyEl.value || "demo");
+    updateStaffLoginLink();
 
     applySessionShell();
 
@@ -6669,13 +6671,14 @@
 
     $("logoutBtn").addEventListener("click", async () => {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const loginUrl = buildStaffLoginUrl();
       if (api && hasAccountSession()) {
         await fetch(`${api}/api/auth/logout`, { method: "POST", headers: {}, credentials: "include" }).catch(() => null);
       }
       localStorage.removeItem("agent_session");
       localStorage.removeItem("agent_admin_token");
       localStorage.removeItem("agent_staff_token");
-      window.location.href = "../login.html";
+      window.location.href = loginUrl;
     });
 
     $("pauseAgentBtn").addEventListener("click", () => {
@@ -6933,6 +6936,28 @@
 
     function hasAccountSession() {
       return state.session?.authMode === "account" || Boolean(state.session?.email || state.session?.user?.email);
+    }
+
+    function buildStaffLoginUrl() {
+      const url = new URL("../login.html", window.location.href);
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      if (api) url.searchParams.set("api", api);
+      if (project) url.searchParams.set("project_key", project);
+      return url.toString();
+    }
+
+    function updateStaffLoginLink() {
+      const link = $("switchAccountLink");
+      if (link) link.href = buildStaffLoginUrl();
+    }
+
+    function redirectStaffToLogin({ clearSession = false } = {}) {
+      if (state.role !== "staff") return false;
+      const loginUrl = buildStaffLoginUrl();
+      if (clearSession) localStorage.removeItem("agent_session");
+      window.location.href = loginUrl;
+      return true;
     }
 
     async function bootstrapSaasSession() {
@@ -7239,7 +7264,7 @@
       $("sideWorkspace").textContent = "安全模式";
       $("sideConnection").textContent = "审核优先";
       $("modeTag").textContent = state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
-      $("sideHint").textContent = "只看需要处理的顾客；自动记录只读。";
+      $("sideHint").textContent = "只看需要处理的顾客；自动 Flow 只读。";
       renderSideUsage();
 
       $("dashboardSubtitle").textContent = "只看需要处理的顾客。";
@@ -7280,11 +7305,19 @@
     }
 
     function setFilter(filter) {
+      const previousQueueStatus = dashboardQueueStatusForFilter(state.filter);
       state.filter = filter || "all";
+      const nextQueueStatus = dashboardQueueStatusForFilter(state.filter);
+      if (state.role === "staff" && staffFilterSupportsOpenBacklog(state.filter)) {
+        state.queueDateScope = "open_backlog";
+      }
       state.sidebarKey = sidebarKeyForFilter(state.filter);
       state.activeSetupStep = "4";
       syncFilterControls();
       render();
+      if (!state.demoMode && previousQueueStatus !== nextQueueStatus && apiUrlEl.value.trim()) {
+        loadCases();
+      }
     }
 
     function setWorkspaceView(view) {
@@ -7426,9 +7459,13 @@
       return cases.filter((item) => caseDateKey(item) === selected);
     }
 
+    function staffFilterSupportsOpenBacklog(filter = state.filter) {
+      return ["all", "needs_attention", "human_first", "approval_required", "return_ai", "human_required", "pending_manual_reply", "order", "auto", "records"].includes(filter || "needs_attention");
+    }
+
     function useOpenBacklogDateScope(filter = state.filter) {
       if (state.role !== "staff" || state.queueDateScope !== "open_backlog") return false;
-      return ["all", "needs_attention", "human_first", "approval_required", "return_ai", "human_required", "pending_manual_reply", "order"].includes(filter || "needs_attention");
+      return staffFilterSupportsOpenBacklog(filter);
     }
 
     function isOpenBacklogCase(item = {}) {
@@ -7437,7 +7474,9 @@
 
     function casesForCurrentQueueDateScope(cases = []) {
       if (String(state.query || "").trim()) return cases;
-      return useOpenBacklogDateScope() ? cases.filter(isOpenBacklogCase) : filterCasesBySelectedDate(cases);
+      if (!useOpenBacklogDateScope()) return filterCasesBySelectedDate(cases);
+      if (["auto", "records"].includes(state.filter)) return cases;
+      return cases.filter(isOpenBacklogCase);
     }
 
     function syncFilterControls() {
@@ -7550,7 +7589,7 @@
         <span class="status-chip ${maturityTone}">${maturity}</span>
         <span class="status-chip ${connectionTone}">${connectionText}</span>
         <span class="status-chip">客服批准</span>
-        <span class="status-chip">自动记录只读</span>
+        <span class="status-chip">记录只读</span>
       `;
     }
 
@@ -8407,6 +8446,7 @@
           showToast("已载入演示。");
           return;
         }
+        if (state.role === "staff" && redirectStaffToLogin()) return;
         const missingMessage = !api
           ? state.role === "staff"
             ? "这个客服入口缺少连接资料，不能读取顾客讯息。请用最新客服入口链接重新打开，不要用旧收藏。"
@@ -8435,8 +8475,9 @@
         });
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
 	        const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
-		        let res = await fetch(approvalUrl, authRequestOptions(token));
+	        let res = await fetch(approvalUrl, authRequestOptions(token));
 	        const data = await res.json();
+        if (res.status === 401 && state.role === "staff" && redirectStaffToLogin({ clearSession: true })) return;
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
         state.loading = false;
@@ -8486,9 +8527,9 @@
       }
     }
 
-    function dashboardQueueStatusParam(searchQuery = "") {
-      if (state.role !== "staff") return "all";
-      const filter = state.filter === "human_first" ? "needs_attention" : String(state.filter || "all");
+    function dashboardQueueStatusForFilter(rawFilter = state.filter, role = state.role) {
+      if (role !== "staff") return "all";
+      const filter = rawFilter === "human_first" ? "needs_attention" : String(rawFilter || "all");
       const map = {
         all: "open",
         needs_attention: "open",
@@ -8503,6 +8544,10 @@
         returned_to_ai: "records",
       };
       return map[filter] || "open";
+    }
+
+    function dashboardQueueStatusParam(searchQuery = "") {
+      return dashboardQueueStatusForFilter(state.filter, state.role);
     }
 
     async function loadUsageSummary(token) {
@@ -9024,7 +9069,7 @@
 	      };
 	    }
 
-    function approvalRecentContextMessages(item = {}) {
+	    function approvalRecentContextMessages(item = {}) {
       const raw = [
         item.chat_preview,
         item.conversation_context?.messages,
@@ -9033,18 +9078,21 @@
         item.decision?.signals?.recent_messages,
       ].find(Array.isArray) || [];
       return raw
-        .map((message, index) => {
-          const rawDirection = String(message?.direction || message?.role || message?.sender_type || message?.from || "").toLowerCase();
-          const isOutbound = rawDirection === "outbound" ||
-            rawDirection === "out" ||
-            rawDirection === "agent" ||
-            rawDirection === "assistant" ||
-            rawDirection === "bot" ||
-            message?.fromMe === true ||
+	        .map((message, index) => {
+	          const rawDirection = String(message?.direction || message?.role || message?.sender_type || message?.from || "").toLowerCase();
+	          const providerMessageId = firstContextText(message?.provider_message_id, message?.providerMessageId, message?.message_id, message?.messageId);
+	          const isOutbound = rawDirection === "outbound" ||
+	            rawDirection === "out" ||
+	            rawDirection === "agent" ||
+	            rawDirection === "assistant" ||
+	            rawDirection === "bot" ||
+	            /^3EB0[A-F0-9]{8,}(?:\|\d+)?$/i.test(providerMessageId) ||
+	            message?.fromMe === true ||
             message?.from_me === true ||
             message?.is_from_me === true;
-          return {
-            id: message?.id || message?.provider_message_id || `${item.id || "case"}-context-${index}`,
+	          return {
+	            id: message?.id || providerMessageId || `${item.id || "case"}-context-${index}`,
+	            provider_message_id: providerMessageId || "",
             direction: isOutbound ? "outbound" : "inbound",
             role: isOutbound ? "agent" : "customer",
             text: firstContextText(message?.text, message?.body, message?.caption, message?.content, message?.message),
@@ -9089,7 +9137,7 @@
 	        body: highRisk
 	          ? "系统看到顾客最后一句之后，渠道里已有后续回复；但内容涉及付款、附件、健康、退款/投诉或售后，客服要打开核对后再记录，不能自动清掉。"
 	          : "系统看到顾客最后一句之后，渠道里已有后续回复；确认顾客没有等这张旧草稿后，可以点「已由人工回复」收起。",
-	        buttons: highRisk ? ["记录人工回复", "确认收款 / COD", "人工接手"] : ["已由人工回复", "记录人工回复"],
+	        buttons: highRisk ? ["记录人工回复", "确认收款 / COD", "转人工回复"] : ["已由人工回复", "记录人工回复"],
 	        never: highRisk
 	          ? ["不要自动清掉", "不要重复发送旧草稿", "不要接 Flow", "没确认付款不要按确认收款 / COD"]
 	          : ["不要重复发送旧草稿", "不要接 Flow"],
@@ -9363,7 +9411,7 @@
     }
 
     function externalFlowReadOnlyMessage() {
-      return "顾客已进入下一段自动流程；这条只读，不用处理，也不会再发送旧回复。";
+      return "顾客点按钮后已由自动 Flow 继续；这条只读，不用处理，也不会再发送旧回复。";
     }
 
     function approvalAction(item) {
@@ -9387,7 +9435,7 @@
     }
 
     function approvalReason(item, status, action) {
-      if (status === "external_flow_continued" || (status === "auto_sent" && isExternalFlowProgressedApproval(item))) return "旧回复已移到自动记录，客服不用重复处理。";
+      if (status === "external_flow_continued" || (status === "auto_sent" && isExternalFlowProgressedApproval(item))) return "顾客已由自动 Flow 继续，不用重复处理。";
       if (status === "auto_sent") return "AI 已自动回复顾客；这里保留已发送内容，方便客服追踪。";
       if (status === "sent") return "这条回复已发送给顾客。";
       if (status === "purchase_confirmed") return `已确认成交${item.amount_rm || item.purchase?.amount_rm ? ` RM ${item.amount_rm || item.purchase?.amount_rm}` : ""}。`;
@@ -9409,13 +9457,13 @@
     }
 
     function returnAiSummary(item = {}) {
-      const reason = item.rejection_reason || item.handoff_result?.reason || "客服已退回 AI 重新生成。";
+      const reason = item.rejection_reason || item.handoff_result?.reason || "客服已让 AI 重新生成。";
       return `${reason} 当前建议没有发送给顾客；等待 AI 重写或 Owner 复盘。`;
     }
 
     function handoffSummary(item = {}) {
       const handoff = item.handoff_result || {};
-      const reason = item.rejection_reason || "客服已选择人工接手，不发送 AI 建议。";
+      const reason = item.rejection_reason || "客服已转为人工回复，不发送 AI 建议。";
       if (handoff.attempted && handoff.sent) return `${reason} 已同步到外部人工处理入口。`;
       if (handoff.attempted && !handoff.sent) return `${reason} 已留处理记录；人工入口同步失败，请先看 Dashboard 记录，必要时再打开渠道 Inbox 查证。`;
       if (handoff.reason) return `${reason} 已留处理记录；人工入口还没配置完成。`;
@@ -9693,31 +9741,32 @@
       const filter = state.filter;
       if (filter === "needs_attention") {
         return staffCaseSectionHtml({
-          title: "要处理",
-          body: "客服先看的顾客：批准、人工、订单、失败和待补人工回复。",
+          title: "全部要处理",
+          body: "这里只放待批准或需要客服亲自回复的顾客；自动 Flow 不会混进来。",
           items: visible,
         });
       }
       if (filter === "human_first") {
         return staffCaseSectionHtml({
-          title: "先处理",
-          body: "人工、订单、失败和待补回复优先，普通可批准回复先放后面。",
+          title: "人工回复",
+          body: "在 Dashboard 写回复并发送；付款、订单、售后和发送失败也集中在这里。",
           items: visible,
         });
       }
       if (filter === "auto") {
         return staffCaseSectionHtml({
-          title: "自动记录 / 不用处理",
-          body: "AI 已发或已接下一段的记录，只读复盘，不混在待处理里。",
+          title: "自动 Flow / 不用处理",
+          body: "顾客点按钮后由自动 Flow 继续；这里只读留档，不进入客服待处理。",
           items: visible,
-          emptyText: "今天没有自动记录。",
+          emptyText: "当前范围没有自动 Flow 记录。",
         });
       }
       if (filter === "records") {
         return staffCaseSectionHtml({
-          title: "处理记录",
-          body: "已发送、已人工接手、已成交或失败记录，只用于追踪和复盘。",
+          title: "处理记录 / 已处理",
+          body: "已发送、已转人工回复、已成交或失败记录，只用于追踪和复盘。",
           items: visible,
+          emptyText: "当前范围没有处理记录。",
         });
       }
 
@@ -9735,8 +9784,8 @@
       }
       if (auto.length) {
         sections.push(staffCaseSectionHtml({
-          title: "自动记录 / 不用处理",
-          body: "AI 已发或已接下一段的记录，不再卡住上一个批准 Case。",
+          title: "自动 Flow / 不用处理",
+          body: "顾客点按钮后已由自动 Flow 继续，不再卡住客服队列。",
           items: auto,
           countLabel: `${auto.length} 位 · ${Number(counts.auto || auto.length)} 条`,
         }));
@@ -9821,15 +9870,18 @@
     }
 
     function renderFilterCounts(counts = {}) {
+      const humanWork = Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0);
       const labels = {
         all: ["全部", counts.total],
-        needs_attention: ["待处理", counts.needs],
-        approval_required: ["可批准", counts.approval],
-        return_ai: ["退回 AI", counts.returnAi],
-        human_required: ["要人工", counts.human],
+        needs_attention: ["全部要处理", counts.needs],
+        approval_required: ["待批准", counts.approval],
+        human_first: ["人工回复", humanWork],
+        return_ai: ["让 AI 重写", counts.returnAi],
+        human_required: ["人工回复", counts.human],
         pending_manual_reply: ["待补回复", counts.pendingManualReplies],
         order: ["订单/付款", counts.orders],
-        auto: ["自动记录", counts.auto],
+        auto: ["自动 Flow", counts.auto],
+        records: ["处理记录", counts.records],
       };
       document.querySelectorAll("[data-filter]").forEach((button) => {
         const [label, value] = labels[button.dataset.filter] || [button.textContent || "", ""];
@@ -9872,13 +9924,13 @@
     function selectVisibleCases(mode = "actionable") {
       const items = mode === "return_ai" ? visibleReturnAiCases() : visibleActionableCases();
       if (!items.length) {
-        showToast(mode === "return_ai" ? "当前列表没有可退回 AI 的草稿。" : "当前列表没有可选择的 case。");
+        showToast(mode === "return_ai" ? "当前列表没有可让 AI 重写 的草稿。" : "当前列表没有可选择的 case。");
         return;
       }
       state.selected.clear();
       items.forEach((item) => state.selected.add(item.id));
       render();
-      showToast(mode === "return_ai" ? `已选择 ${items.length} 条退回 AI 草稿。` : `已选择当前 ${items.length} 条。`);
+      showToast(mode === "return_ai" ? `已选择 ${items.length} 条让 AI 重写的草稿。` : `已选择当前 ${items.length} 条。`);
     }
 
     function renderBulkBar() {
@@ -9912,18 +9964,18 @@
 
       const items = action === "return_ai" ? selectedReturnAiCases() : selectedActionableCases();
       if (!items.length) {
-        showToast(action === "return_ai" ? "选中的 case 没有需要退回 AI 的草稿。" : "已发送/自动记录是只读，不能批量操作。");
+        showToast(action === "return_ai" ? "选中的 case 没有需要让 AI 重写 的草稿。" : "已发送/自动记录是只读，不能批量操作。");
         return;
       }
       if (state.bulkBusy) return;
       if (action === "return_ai") {
         const skipped = ids.length - items.length;
-        const skippedText = skipped > 0 ? `\n\n已自动跳过 ${skipped} 条不适合退回 AI 的记录。` : "";
+        const skippedText = skipped > 0 ? `\n\n已自动跳过 ${skipped} 条不适合让 AI 重写 的记录。` : "";
         if (!window.confirm(`确认让 AI 重写 ${items.length} 条不能过的草稿？\n\n不会发送当前 AI 建议。${skippedText}`)) {
           return;
         }
       }
-      if (action === "handoff" && !window.confirm(`确认由人工接手 ${items.length} 条真实顾客记录？这不会发送 AI 建议给顾客。`)) {
+      if (action === "handoff" && !window.confirm(`确认由转人工回复 ${items.length} 条真实顾客记录？这不会发送 AI 建议给顾客。`)) {
         return;
       }
 
@@ -9934,15 +9986,15 @@
           if (action === "mark_seen") {
             await postCaseAction(item.id, "mark_seen", { note: "客服已看过。" }, { reload: false, reopen: false, silent: true, lock: false });
           } else if (action === "handoff") {
-            await postCaseAction(item.id, "handoff", { note: "客服批量人工接手，不发送 AI 建议。" }, { reload: false, reopen: false, silent: true, lock: false });
+            await postCaseAction(item.id, "handoff", { note: "客服批量转人工回复，不发送 AI 建议。" }, { reload: false, reopen: false, silent: true, lock: false });
           } else if (action === "return_ai") {
             const closer = closerVerdict(item);
-            await postCaseAction(item.id, "return_ai", { note: closer.reason || "客服批量退回 AI，不发送当前建议。" }, { reload: false, reopen: false, silent: true, lock: false });
+            await postCaseAction(item.id, "return_ai", { note: closer.reason || "客服批量让 AI 重写，不发送当前建议。" }, { reload: false, reopen: false, silent: true, lock: false });
           }
         }
         state.selected.clear();
         await loadCases();
-        showToast(action === "return_ai" ? `已退回 AI ${items.length} 条。` : action === "handoff" ? `已人工接手 ${items.length} 条。` : `已标记 ${items.length} 条。`);
+        showToast(action === "return_ai" ? `已让 AI 重写 ${items.length} 条。` : action === "handoff" ? `已转人工回复 ${items.length} 条。` : `已标记 ${items.length} 条。`);
       } catch (error) {
         alert(`批量操作失败：${error.message}`);
       } finally {
@@ -9979,14 +10031,14 @@
           record.history.push({
             type: "bulk_handoff_demo",
             at: now,
-            note: "演示：批量人工接手。",
+            note: "演示：批量转人工回复。",
           });
         }
 
         if (action === "return_ai") {
           const closer = closerVerdict(record);
           record.status = "rejected";
-          record.rejection_reason = closer.reason || "演示：批量退回 AI 重新生成。";
+          record.rejection_reason = closer.reason || "演示：批量让 AI 重新生成。";
           record.latest_decision = record.latest_decision || {};
           record.latest_decision.action = "ask_human";
           record.handoff_result = {
@@ -10005,7 +10057,7 @@
         record.updated_at = now;
       });
 
-      const message = action === "return_ai" ? `演示：已退回 AI ${ids.length} 条。` : action === "handoff" ? `演示：已由人工接手 ${ids.length} 位顾客。` : `演示：已标记 ${ids.length} 位顾客。`;
+      const message = action === "return_ai" ? `演示：已让 AI 重写 ${ids.length} 条。` : action === "handoff" ? `演示：已由转人工回复 ${ids.length} 位顾客。` : `演示：已标记 ${ids.length} 位顾客。`;
       addAuditEvent(action === "return_ai" ? "bulk_return_ai_demo" : action === "handoff" ? "bulk_handoff_demo" : "bulk_seen_demo", message);
       state.selected.clear();
       render();
@@ -10093,7 +10145,7 @@
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新" : "名字";
       const qaText = "";
       const staffGuide = state.role === "staff"
-        ? ` · 先人工 ${counts.human || 0}，退回 AI ${counts.returnAi || 0}，补回复 ${counts.pendingManualReplies || 0}，可批准 ${counts.approval || 0}`
+        ? ` · 待批准 ${counts.approval || 0}，人工回复 ${Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0)}，自动 Flow ${counts.auto || 0}`
         : "";
       $("queueSummary").textContent = `${queueDateScopeLabel()} · ${visibleCount}/${filteredCount} 位${queryText}${focusText} · ${sortText}${qaText}${staffGuide}`;
     }
@@ -10112,33 +10164,26 @@
     }
 
     function staffPriorityQueueSteps(counts = {}) {
-      const humanFirst = Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0);
+      const humanWork = Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0);
       return [
         {
-          action: "human_first",
-          title: "先人工/订单",
-          body: "投诉、售后、付款先接手",
-          count: humanFirst,
-          tone: humanFirst > 0 ? "risk" : "good",
-        },
-        {
-          action: "return_ai_select",
-          title: "退回 AI",
-          body: "不能过的旧草稿不要批准",
-          count: Number(counts.returnAi || 0),
-          tone: Number(counts.returnAi || 0) > 0 ? "warn" : "good",
-        },
-        {
           action: "approval",
-          title: "再批准",
-          body: "确认回答完整才发送",
+          title: "待批准",
+          body: "检查 AI 回复后批准发送",
           count: Number(counts.approval || 0),
           tone: Number(counts.approval || 0) > 0 ? "warn" : "good",
         },
         {
+          action: "human_first",
+          title: "人工回复",
+          body: "在这里写回复并直接发送",
+          count: humanWork,
+          tone: humanWork > 0 ? "risk" : "good",
+        },
+        {
           action: "auto_records",
-          title: "自动记录只读",
-          body: "已继续 Flow 不重复处理",
+          title: "自动 Flow",
+          body: "顾客点按钮后自动走，不用处理",
           count: Number(counts.auto || 0),
           tone: "good",
         },
@@ -10173,7 +10218,7 @@
           tone: activeQueue > 0 ? "warn" : "",
         },
         {
-          title: "退回 AI",
+          title: "让 AI 重写",
           body: "旧价、没答问题、接错 Flow 的草稿不要批准。",
           badge: `${returnAiCount} 条`,
           tone: returnAiCount > 0 ? "risk" : "",
@@ -10186,7 +10231,7 @@
         },
         {
           title: "复盘资料",
-          body: "人工接手后补最终回复、结果和备注，AI 才能学。",
+          body: "转人工回复后补最终回复、结果和备注，AI 才能学。",
           badge: `${pendingManual} 待补`,
           tone: pendingManual > 0 ? "warn" : "",
         },
@@ -10241,10 +10286,10 @@
         {
           action: "return_ai_select",
           title: "退回旧草稿",
-          body: "旧价、没答完、接错 Flow 的先选中退回 AI。",
+          body: "旧价、没答完、接错 Flow 的先选中让 AI 重写。",
           count: returnAiCount,
           badge: `${returnAiCount} 条`,
-          button: "选中退回 AI",
+          button: "选中让 AI 重写",
           tone: returnAiCount > 0 ? "warn" : "",
           blocksAuto: true,
         },
@@ -10482,7 +10527,7 @@
           <strong class="command-title">一个页面处理</strong>
           <div class="steps">
             ${stepHtml("批准发送", "确认后发。")}
-            ${stepHtml("人工接手", "停止 Flow。")}
+            ${stepHtml("转人工回复", "停止 Flow。")}
             ${stepHtml("提交订单", "资料齐再交。")}
             ${stepHtml("自动学习", "同类以后少审核。")}
           </div>
@@ -10558,14 +10603,14 @@
             ["Step 2", "成分 / USP / End result，讲重点，不背书", "理解"],
             ["Step 3", "Testi、公司背景、线下店、推荐，让顾客放心", "信心"],
             ["Step 4", "价格、Promotion、End Result、CTA", "成交"],
-            ["Follow Up", "价格后按顾虑追单；不懂或敏感直接人工接手", "跟进"],
+            ["Follow Up", "价格后按顾虑追单；不懂或敏感直接转人工回复", "跟进"],
           ],
           footer: "客服只需要看建议回复，改顺后按批准；不要让 AI 乱确认订单。",
         },
         "3": {
           kicker: "设置",
           title: "FAQ 资料",
-          body: "AI 只用项目方给过的资料回答。资料不够就问清楚或人工接手，不要硬编。",
+          body: "AI 只用项目方给过的资料回答。资料不够就问清楚或转人工回复，不要硬编。",
           rows: [
             ["产品", "用法、效果、成分、适合谁", "FAQ"],
             ["信任", "Testi、公司背景、线下店、认证、推荐", "Proof"],
@@ -10857,7 +10902,7 @@
 	      }
 	      if (/only keeps real actionable cases/i.test(text)) return "顾客队列只留真正要处理的顾客。";
 	      if (/reviews learning candidates/i.test(text)) return "每条学习候选都要有顾客问题、客服回复和结果。";
-	      if (/return_ai_first|before approval/i.test(text)) return "不能过的草稿先退回 AI，不要批准。";
+	      if (/return_ai_first|before approval/i.test(text)) return "不能过的草稿先让 AI 重写，不要批准。";
 	      if (/Control Room failed KPI count improves/i.test(text)) return "分数和阻塞项真的改善后，才进入下一步。";
 	      return text
 	        .replace(/Customer\s+Queue/gi, "顾客队列")
@@ -10865,7 +10910,7 @@
 	        .replace(/Control Room/g, "总检查")
 	        .replace(/approval-first/g, "审批优先")
 	        .replace(/cleanup worker behavior is /ig, "清理规则 ")
-	        .replace(/return_ai_first/g, "退回 AI");
+	        .replace(/return_ai_first/g, "让 AI 重写");
 	    }
 
 	    function ownerDecisionSignoffGateState() {
@@ -11176,7 +11221,7 @@
 	          direction: "at_least",
 	          unit: "分",
 	          owner: "CS Lead / Owner",
-	          action: learning.next || "人工接手后补最终回复、原因、结果和复盘备注。",
+	          action: learning.next || "转人工回复后补最终回复、原因、结果和复盘备注。",
 	          proof: "manual final reply + outcome + Owner review",
 	          blocks: true
 	        }),
@@ -11263,8 +11308,8 @@
 	      const learningReview = Number(summary.learning_review_count ?? contract.learning_review_count ?? 0);
 	      const candidateCount = Number(contract.candidate_count ?? summary.queue_item_count ?? items.length ?? 0);
 	      return `
-	        <section class="command-panel accent" id="handoffSelfOptimizationFunnel" data-owner-nav aria-label="人工接手自我优化漏斗">
-	          <div class="command-kicker">人工接手自我优化</div>
+	        <section class="command-panel accent" id="handoffSelfOptimizationFunnel" data-owner-nav aria-label="转人工回复自我优化漏斗">
+	          <div class="command-kicker">转人工回复自我优化</div>
 	          <strong class="command-title">人工处理后，AI 不是马上学</strong>
 	          <p class="command-copy">客服要补最终回复和结果；ReplyPilot AI 只整理候选；Owner 审核 + 回放通过后，才可能变成 FAQ / SOP / 成交话术或测试用例。</p>
 	          <div class="compact-list">
@@ -11317,7 +11362,7 @@
 
     function handoffSelfOptimizationFallbackStages() {
 	      return [
-	        { stage_id: "capture_handoff_context", owner: "客服", required_before_next: ["顾客问题", "人工接手原因"], output: "人工接手记录" },
+	        { stage_id: "capture_handoff_context", owner: "客服", required_before_next: ["顾客问题", "转人工回复原因"], output: "转人工回复记录" },
 	        { stage_id: "record_final_human_reply", owner: "客服", required_before_next: ["人工最终回复", "顾客结果"], output: "人工处理记录" },
 	        { stage_id: "judge_learning_quality", owner: "Owner / CS Lead", required_before_next: ["复盘备注", "学习判断"], output: "可学 / 要修 / 不学" },
 	        { stage_id: "draft_learning_asset", owner: "IT / ReplyPilot AI", required_before_next: ["Owner 审核意图", "资产类型"], output: "FAQ/SOP/话术草稿" },
@@ -11328,7 +11373,7 @@
 
 	    function handoffStageTitle(value = "") {
 	      const map = {
-	        capture_handoff_context: "客服记录为什么人工接手",
+	        capture_handoff_context: "客服记录为什么转人工回复",
 	        record_final_human_reply: "客服贴最终回复和结果",
 	        judge_learning_quality: "判断可学、要修或不学",
 	        draft_learning_asset: "ReplyPilot AI 整理成学习草稿",
@@ -11350,7 +11395,7 @@
 
 	    function handoffStageOutput(value = "") {
 	      const map = {
-	        handoff_context_record: "输出：人工接手上下文记录",
+	        handoff_context_record: "输出：转人工回复上下文记录",
 	        manual_resolved_record: "输出：人工处理完成记录",
 	        learn_or_reject_decision: "输出：可学 / 要修 / 不学决定",
 	        faq_sop_playbook_or_test_draft: "输出：FAQ / SOP / 成交话术 / 测试草稿",
@@ -11363,8 +11408,8 @@
 	    function handoffRequiredFieldLabel(value = "") {
 	      const map = {
 	        customer_last_message: "顾客最后一句",
-	        ai_draft_or_reason_for_handoff: "AI 草稿或人工接手原因",
-	        handoff_reason: "人工接手原因",
+	        ai_draft_or_reason_for_handoff: "AI 草稿或转人工回复原因",
+	        handoff_reason: "转人工回复原因",
 	        risk_tag: "风险标签",
 	        final_human_reply: "人工最终回复",
 	        customer_outcome: "顾客结果",
@@ -11418,7 +11463,7 @@
 	            <section class="command-panel">
 	              <div class="command-kicker">AI 复盘</div>
 	              <strong class="command-title">等待复盘资料</strong>
-	              <p class="command-copy">连接真实系统后，这里会显示 AI 从人工接手、旧草稿和真实队列里抓到的不能过模式。</p>
+	              <p class="command-copy">连接真实系统后，这里会显示 AI 从转人工回复、旧草稿和真实队列里抓到的不能过模式。</p>
 	            </section>
 	          </div>
 	        `;
@@ -11436,13 +11481,13 @@
 	            <div class="compact-list">
 	              ${compactRow("可过", `${Number(summary.can_pass_count || canPass.length)} 个判断`, "Pass")}
 	              ${compactRow("要改", `${Number(summary.needs_fix_count || needsFix.length)} 个问题`, "Fix")}
-	              ${compactRow("旧草稿", `${Number(summary.open_draft_return_count || 0)} 个要退回`, "退回 AI")}
-	              ${compactRow("人工接手", `${Number(summary.human_or_handoff_cases || 0)} 个样本`, "Learn")}
+	              ${compactRow("旧草稿", `${Number(summary.open_draft_return_count || 0)} 个要退回`, "让 AI 重写")}
+	              ${compactRow("转人工回复", `${Number(summary.human_or_handoff_cases || 0)} 个样本`, "Learn")}
 	            </div>
 	          </section>
 	          <section class="command-panel">
 	            <div class="command-kicker">不能过</div>
-	            <strong class="command-title">先退回 AI 或补资料</strong>
+	            <strong class="command-title">先让 AI 重写 或补资料</strong>
 	            <div class="compact-list">
 	              ${needsFix.slice(0, 4).map((item) => compactRow(learningSeverityLabel(item.severity), item.title || item.id || "需要复盘", item.category || "case")).join("") || compactRow("OK", "暂时没有明显不能过模式", "Pass")}
 	            </div>
@@ -11892,8 +11937,8 @@
 		          ownerShouldCheck: "确认 Beyoute 当前允许的付款方式、地区限制和客服该怎么接订单。",
 		          ownerMustConfirm: ["现在 Beyoute 允许哪些付款方式？是否按地区或订单类型不同？", "订单资料还没确认前，客服可以怎么说？", "AI 永远不能自动承诺什么？"],
 		          editedRule: "付款方式问题先确认订单、地区和渠道；不自动承诺 COD/银行卡/分期/电子钱包可用，不接普通销售 Flow。Owner must confirm allowed payment methods by current region/order type before approval.",
-		          editedReply: "可以亲爱的，付款方式我先帮你确认订单和地区；客服会再确认可用渠道，确认后才发付款/下单资料。不确定付款渠道时，必须人工接手确认，不可以自己承诺。",
-		          replayTest: "输入“有收银行卡吗？”，期待人工接手/付款 SOP；不得直接承诺可用或接产品 Flow。",
+		          editedReply: "可以亲爱的，付款方式我先帮你确认订单和地区；客服会再确认可用渠道，确认后才发付款/下单资料。不确定付款渠道时，必须转人工回复确认，不可以自己承诺。",
+		          replayTest: "输入“有收银行卡吗？”，期待转人工回复/付款 SOP；不得直接承诺可用或接产品 Flow。",
 		          rejectIf: "Reject or edit if the reply promises COD/card/installment/e-wallet availability without order/region confirmation.",
 		          kpisHelped: ["redline_findings", "answer_accuracy", "learning_capture_rate"],
 		          mustNotDo: ["不要自动发送", "不要自动接 Flow", "不要自动写入业务脑", "不要覆盖旧记录", "不要承诺银行卡/COD/分期一定可用", "不要发付款链接", "不要接产品教育 Flow"],
@@ -11927,11 +11972,11 @@
 		          suggestedDecision: "approve_as_is",
 		          artifactLabel: "客服 SOP",
 		          reason: "顾客说没人 follow up 已经是投诉语境，继续销售会降低信任。",
-		          ownerShouldCheck: "确认没人 follow up 时的道歉语气、查记录负责人和人工接手边界。",
-		          ownerMustConfirm: ["Beyoute 遇到没人 follow up 时，用什么道歉语气？", "谁负责查为什么没人跟进？", "什么时候必须变成人工接手？"],
+		          ownerShouldCheck: "确认没人 follow up 时的道歉语气、查记录负责人和转人工回复边界。",
+		          ownerMustConfirm: ["Beyoute 遇到没人 follow up 时，用什么道歉语气？", "谁负责查为什么没人跟进？", "什么时候必须变成转人工回复？"],
 		          editedRule: item.improvement || candidate.proposed_rule || "没人 follow up/no one replied -> 道歉、说明让客服查记录并真人接手，不接普通销售 Flow。",
 		          editedReply: candidate.better_reply || "不好意思亲爱的，我帮你接手查一下记录，确认为什么没有人 follow up；先不接新的优惠 Flow。",
-		          replayTest: "输入“都没有人 follow up”，期待道歉+查记录+人工接手；不得继续销售。",
+		          replayTest: "输入“都没有人 follow up”，期待道歉+查记录+转人工回复；不得继续销售。",
 		          rejectIf: "Reject or edit if the reply continues selling, minimizes the complaint, or says follow-up already happened without checking.",
 		          kpisHelped: ["redline_findings", "flow_fit_rate", "learning_capture_rate"],
 		          mustNotDo: ["不要自动发送", "不要自动接 Flow", "不要自动写入业务脑", "不要覆盖旧记录", "不要继续销售 Flow", "不要催成交", "不要假装已经有人处理"],
@@ -11990,8 +12035,8 @@
 		          risk_level: "high",
 		          priority: "P0",
 		          forceSuggestedDecision: "approve_with_edits",
-		          guidance: "不要把客服最终回复训练成自动回答；只能沉淀为“健康/哺乳/吃药/症状必须人工接手”的安全 SOP。",
-		          owner_should_check: "确认候选只写安全边界和人工接手，不提供能不能喝、疗效或安全承诺。",
+		          guidance: "不要把客服最终回复训练成自动回答；只能沉淀为“健康/哺乳/吃药/症状必须转人工回复”的安全 SOP。",
+		          owner_should_check: "确认候选只写安全边界和转人工回复，不提供能不能喝、疗效或安全承诺。",
 		          reject_if: "如果候选会自动回答能不能喝、承诺疗效/安全性，或把健康个案变成通用话术，就拒绝。",
 		          auto_learning_allowed: false,
 		          safety_sop_only: true,
@@ -12036,7 +12081,7 @@
 		          priority: "P0",
 		          forceSuggestedDecision: "approve_with_edits",
 		          guidance: "顾客说没人跟进时，要学习道歉、查记录、真人接手；不能继续普通销售 Flow。",
-		          owner_should_check: "确认道歉语气、查记录负责人、人工接手边界都清楚。",
+		          owner_should_check: "确认道歉语气、查记录负责人、转人工回复边界都清楚。",
 		          reject_if: "如果候选继续销售、催成交，或假装已经处理但没有查记录，就拒绝。",
 		          auto_learning_allowed: false,
 		          safety_sop_only: true,
@@ -12313,7 +12358,7 @@
 	        return_ai_before_approval: "让 AI 重写，不能发送旧草稿",
 	        human_followup_then_learning_note: "人工处理后补 learning note",
 	        owner_review_manual_reply: "Owner 审核人工最终回复",
-	        already_returned_or_handoff: "已退回/已人工接手，等待复盘",
+	        already_returned_or_handoff: "已退回/已转人工回复，等待复盘",
 	        record_learning_from_sent_case: "已发送样本，只做复盘",
 	      };
 	      return map[value] || value;
@@ -12330,7 +12375,7 @@
 	            <strong class="command-title">还没有学习记录</strong>
 	            <p class="command-copy">现在只是复盘建议，还不代表 AI 已经学会。人工样本也要判：可学 / 要修 / 不学；Owner 只把可学或修正后的版本批准进业务脑。</p>
 	            <div class="compact-list">
-	              ${compactRow("客服动作", "人工接手处理完后，补人工最终回复", "待补")}
+	              ${compactRow("客服动作", "转人工回复处理完后，补人工最终回复", "待补")}
 	              ${compactRow("Owner 动作", "把有用样本记录优化或批准进业务脑", "审核")}
 	              ${compactRow("安全", "不会发送 WhatsApp，也不会开启自动", "Safe")}
 	            </div>
@@ -12380,7 +12425,7 @@
           <strong class="command-title">当前适合 Pilot，不是纯自助 SaaS</strong>
           <p class="command-copy">这个工作台可以给单个品牌真实试跑。对陌生客户全面开放前，还要把入口、权限、上线检查和错误处理产品化。</p>
           <div class="steps">
-            ${stepHtml("可试跑", "Webhook、AI 判断、人工接手和记录表通过后可以用于单品牌 Pilot。")}
+            ${stepHtml("可试跑", "Webhook、AI 判断、转人工回复和记录表通过后可以用于单品牌 Pilot。")}
             ${stepHtml("要监督", "首次 20-50 个真实 case 建议人工批准，不直接全自动。")}
             ${stepHtml("客服安全", "客服入口只看顾客，不显示敏感后台设置。")}
             ${stepHtml("待 SaaS 化", "计费先不做；先补固定域名、正式账号、监控和自助接入。")}
@@ -12430,7 +12475,7 @@
 	              ${scorecard.system_score ? compactRow("状态", qualityGradeLabel(scorecard.grade), scorecard.automation_mode?.label || "审批优先") : ""}
 	              ${compactRow("AI 自检", `${Number(handoffLearning.needs_fix_count || 0)} 个 draft 要改`, "看复盘")}
 	              ${compactRow("可批准", `${Number(handoffLearning.can_pass_count || 0)} 个判断`, "Pass")}
-	              ${compactRow("退回 AI", `${Number(quality.returned_to_ai_count || 0)} 次`, "改资料")}
+	              ${compactRow("让 AI 重写", `${Number(quality.returned_to_ai_count || 0)} 次`, "改资料")}
 	            </div>
 	          </section>
           <section class="command-panel">
@@ -12639,6 +12684,10 @@
       url.searchParams.set("project_key", projectKeyEl.value.trim() || "demo");
       url.searchParams.set("role", role || "staff");
       url.searchParams.set("view", "cases");
+      url.searchParams.delete("date");
+      url.searchParams.delete("q");
+      url.searchParams.delete("query");
+      url.searchParams.delete("case_id");
       url.searchParams.delete("staff_token");
       url.searchParams.delete("operator_token");
       if (api) url.searchParams.set("api", api);
@@ -12942,7 +12991,7 @@
             <div class="settings-box">
               <h3>安全规则</h3>
               <div class="rule-list">
-                ${ruleRow("complaint", "投诉/生气", "自动停止流程，人工接手。")}
+                ${ruleRow("complaint", "投诉/生气", "自动停止流程，转人工回复。")}
                 ${ruleRow("health", "健康/敏感", "不乱承诺效果，必要时人工确认。")}
                 ${ruleRow("questions", "顾客疑问", "问用法、效果或担心没效，先待批准。")}
                 ${ruleRow("receipt", "付款截图", "金额不清楚先审核。")}
@@ -13071,15 +13120,15 @@
       const staffCards = `
         ${opsCard("今日重点", view.title, "按系统建议逐个处理。", [
           opsMini(`${counts.needs} 个需处理`, counts.needs > 0 ? "warn" : "good"),
-          opsMini(`${counts.returnAi || 0} 个退回 AI`, counts.returnAi > 0 ? "risk" : "good"),
+          opsMini(`${counts.returnAi || 0} 个让 AI 重写`, counts.returnAi > 0 ? "risk" : "good"),
           opsMini(`${counts.orders} 个订单`, "blue"),
         ], "focus")}
-        ${opsCard("处理规则", "先看成交判断", "红色退回 AI，黄色人工确认，绿色才批准。", [
-          opsMini("退回 AI", counts.returnAi > 0 ? "risk" : "warn"),
+        ${opsCard("处理规则", "先看成交判断", "红色让 AI 重写，黄色人工确认，绿色才批准。", [
+          opsMini("让 AI 重写", counts.returnAi > 0 ? "risk" : "warn"),
           opsMini("批准发送", "good"),
-          opsMini("人工接手", "warn"),
+          opsMini("转人工回复", "warn"),
         ])}
-        ${opsCard("交接记录", "动作全部留痕", "审批、人工接手、学习都能追踪。", [
+        ${opsCard("交接记录", "动作全部留痕", "审批、转人工回复、学习都能追踪。", [
           opsMini(`${learned} 条学习`, "good"),
           opsMini("可追踪", "blue"),
         ])}
@@ -13112,6 +13161,7 @@
       const human = humanOpen;
       const orders = cases.filter((item) => item.status === "order").length;
       const auto = cases.filter((item) => ["auto", "auto_sent", "external_flow_continued"].includes(item.status)).length;
+      const records = cases.filter((item) => ["auto_sent", "external_flow_continued", "sent", "handoff_done", "returned_to_ai", "manual_resolved", "send_failed", "purchase_confirmed"].includes(item.status)).length;
       const failed = cases.filter((item) => item.status === "send_failed").length;
       return {
         total: cases.length,
@@ -13121,6 +13171,7 @@
         human,
         orders,
         auto,
+        records,
         failed,
         handoffDone,
         pendingManualReplies,
@@ -13142,19 +13193,19 @@
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
-          body: "只显示可批准、要人工、退回 AI、待补人工回复、订单和发送失败。",
+          body: "只显示可批准、要人工、让 AI 重写、待补人工回复、订单和发送失败。",
         },
         approval_required: {
           title: `${counts.approval} 条回复可审核批准`,
-          body: `不含 ${counts.returnAi || 0} 条要退回 AI 的坏草稿；打开详情看完整回复后才发送。`,
+          body: `不含 ${counts.returnAi || 0} 条要让 AI 重写的坏草稿；打开详情看完整回复后才发送。`,
         },
         return_ai: {
-          title: `${counts.returnAi || 0} 条草稿要退回 AI`,
-          body: "这些草稿不能批准；打开后按退回 AI，或人工改完再记录最终回复。",
+          title: `${counts.returnAi || 0} 条草稿要让 AI 重写`,
+          body: "这些草稿不能批准；打开后按让 AI 重写，或人工改完再记录最终回复。",
         },
         human_required: {
-          title: `${counts.human} 位顾客需人工接手`,
-          body: "只显示还没接手的人工 case；已人工接手但缺最终回复的 case 在待补回复。",
+          title: `${counts.human} 位顾客需转人工回复`,
+          body: "只显示还没接手的人工 case；已转人工回复但缺最终回复的 case 在待补回复。",
         },
         human_first: {
           title: `${Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0)} 位顾客优先处理`,
@@ -13170,11 +13221,11 @@
         },
         auto: {
           title: `${counts.auto} 条自动回复记录`,
-          body: "这里可以看 AI 自动回复了什么；已发送记录只读，不会重复发送。",
+          body: "AI 已回复或外部流程已继续的记录放这里；只读，不会重复发送。",
         },
         records: {
-          title: `处理记录`,
-          body: "只看已发送、已自动回复、已人工接手和失败记录。",
+          title: `${counts.records || 0} 条处理记录`,
+          body: "只看已发送、已自动回复、已转人工回复、已成交和失败记录。",
         },
       };
       return views[filter] || views.all;
@@ -13341,7 +13392,7 @@
       if (approvalGuard.blocked && closer.tone === "fix") {
         return `
           <div class="case-action-row">
-            <button class="card-action danger" type="button" data-card-action="return_ai" data-case-id="${escapeHtml(item.id)}">退回 AI</button>
+            <button class="card-action danger" type="button" data-card-action="return_ai" data-case-id="${escapeHtml(item.id)}">让 AI 重写</button>
             <button class="card-action" type="button" data-card-action="handoff" data-case-id="${escapeHtml(item.id)}">人工</button>
           </div>
         `;
@@ -13836,7 +13887,7 @@
       const plan = replyThenFlowPlan(item);
       if (/顾客未回|无新问题|没有顾客/.test(String(plan.answer || ""))) return "只审Flow/追单";
       if (tone === "fix") return "退回AI重写";
-      if (tone === "handoff") return "人工接手处理";
+      if (tone === "handoff") return "转人工回复处理";
       if (tone === "order") return "订单/付款确认";
       if (action.includes("flow") || /(接|Flow|CTA|收单|收單|成交)/i.test(String(plan.after || ""))) return "先回复，再接Flow/CTA";
       if (tone === "pass") return "可批准回复";
@@ -13846,7 +13897,7 @@
     function caseWorkModeTone(line = "") {
       const text = String(line || "");
       if (/退回AI/.test(text)) return "fix";
-      if (/(人工接手|转人工|轉人工)/.test(text)) return "handoff";
+      if (/(转人工回复|转人工|轉人工)/.test(text)) return "handoff";
       if (/订单|付款/.test(text)) return "order";
       if (/只审Flow/.test(text)) return "flow-only";
       if (/补人工|复盘/.test(text)) return "learning";
@@ -13888,7 +13939,7 @@
       const plan = replyThenFlowPlan(item);
       const combined = `${customerText} ${sourceText} ${plan.answer || ""} ${plan.after || ""}`;
       const shouldShow = action.includes("flow") ||
-        /(Flow|Broadcast|Smart delay|Automation sent|user_current_step|Step|价格图|價格圖|Promo|CTA|收单|收單|人工接手|转人工|轉人工|Direct|问价|問價|喝法|用法|口味|English|英文)/i.test(combined);
+        /(Flow|Broadcast|Smart delay|Automation sent|user_current_step|Step|价格图|價格圖|Promo|CTA|收单|收單|转人工回复|转人工|轉人工|Direct|问价|問價|喝法|用法|口味|English|英文)/i.test(combined);
       if (!shouldShow) return "";
       const firstLabel = /顾客未回|无新问题|没有顾客/.test(String(plan.answer || "")) ? "先看" : "先答";
       return `${firstLabel}：${contextSnippet(plan.answer, 72)}｜再接：${contextSnippet(plan.after, 78)}`;
@@ -13951,7 +14002,7 @@
         return "不能自动：付款记录冲突先核对截图/后台/订单";
       }
       if (/(?:旧价|旧活动|old\s+price|outdated\s+(?:price|promo)|Mother['’]?s\s+Day|5\s*月|RM\s*398|RM\s*498|RM\s*538|RM\s*698)/i.test(combined)) {
-        return "不能自动：旧价/旧活动先退回 AI，只用当前价梯";
+        return "不能自动：旧价/旧活动先让 AI 重写，只用当前价梯";
       }
       if (/(?:英文资料接中文|英文请求接错|英文顾客中文草稿|English Flow|中英混|language)/i.test(combined) && /(?:不能过|接错|中文|Chinese)/i.test(combined)) {
         return "不能自动：语言/Flow 不匹配先修正";
@@ -13963,8 +14014,8 @@
       if (/顾客未回|无新问题|没有顾客/.test(String(plan.answer || ""))) {
         return "只审Flow：顾客未回/无新问题，不写FAQ，不当客服回复";
       }
-      if (tone === "fix") return "不能自动：退回 AI 修到能答清顾客问题才可审";
-      if (tone === "handoff") return "不能自动：先人工接手处理，贴最终回复给复盘";
+      if (tone === "fix") return "不能自动：让 AI 重写 修到能答清顾客问题才可审";
+      if (tone === "handoff") return "不能自动：先转人工回复处理，贴最终回复给复盘";
       if (tone === "order") return "不能自动：订单/付款/物流先人工确认";
       if (/^(auto_sent|external_flow_continued|sent|manual_resolved|handoff_done|returned_to_ai|purchase_confirmed)$/.test(status)) {
         return "只读复盘：记录人工/已发结果；不会重复发送或触发 Flow";
@@ -14075,7 +14126,7 @@
       $("replyBox").value = hideReplyCard || isManualFollowUp ? "" : externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
       $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : "";
       $("replyBox").readOnly = readOnly && !canManualResolve;
-      $("replyModeLabel").textContent = externalFlowReadOnly ? "外部已处理，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已人工接手，只读" : item.status === "returned_to_ai" ? "已退回 AI，只读" : readOnly ? "已记录，只读" : "可修改";
+      $("replyModeLabel").textContent = externalFlowReadOnly ? "外部已处理，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工回复，只读" : item.status === "returned_to_ai" ? "已让 AI 重写，只读" : readOnly ? "已记录，只读" : "可修改";
       $("replyTools").classList.toggle("hidden", readOnly && !canManualResolve);
       const canOptimizeCase = state.role !== "staff";
       $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
@@ -14094,10 +14145,10 @@
       const approvalGuard = effectiveApprovalGuardForCase(item, closer);
       const canManualSend = canManualSendCase(item, closer, approvalGuard);
       if (canManualSend && !$("replyBox").placeholder) {
-        $("replyBox").placeholder = "在这里写客服要发给顾客的回复；人工发送后会留下学习候选，Owner 审核后同类问题才会自动/少审核。";
+        $("replyBox").placeholder = "在这里写客服要发给顾客的回复；发送成功后会留下学习候选，Owner 审核后同类问题才会自动或少审核。";
       }
       if (canManualSend) {
-        $("replyModeLabel").textContent = "Dashboard 人工发送";
+        $("replyModeLabel").textContent = "人工回复并发送";
         $("replyTools").classList.remove("hidden");
       }
       $("closerVerdictBox").className = `closer-verdict ${closer.tone}`;
@@ -14120,7 +14171,7 @@
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
       $("manualSendBtn").classList.toggle("hidden", !canManualSend);
       $("manualSendBtn").disabled = state.actionBusy || !canManualSend;
-      $("manualSendBtn").textContent = "人工发送";
+      $("manualSendBtn").textContent = "回复并发送";
       $("manualResolveBtn").disabled = state.actionBusy || !canManualResolve;
       $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : "记录人工回复";
       $("channelReplyResolvedBtn").disabled = state.actionBusy || readOnly;
@@ -14562,7 +14613,7 @@
 	          tone: "risk",
 	          title: "图片/附件先人工看",
 	          body: "顾客只发图片/附件，Dashboard 不能判断是不是付款、Review、投诉或问题图。客服先打开确认；如果已经由人工回复或发了付款链接，按「已由人工回复」收起旧草稿。",
-	          buttons: ["已由人工回复", "人工接手", "记录人工回复"],
+	          buttons: ["已由人工回复", "转人工回复", "记录人工回复"],
 	          never: [...neverBase, "不要当成付款截图", "不要按确认收款 / COD", "不要接销售 Flow"],
 	        };
 	      }
@@ -14581,7 +14632,7 @@
 	          title: "已处理，只做复盘",
 	          body: "这张不属于待处理；只看结果和复盘，不要重复操作。",
 	          buttons: ["关闭"],
-	          never: ["不要重复发送", "不要重复人工接手", "不要覆盖旧记录"],
+	          never: ["不要重复发送", "不要重复转人工回复", "不要覆盖旧记录"],
 	        };
 	      }
 	      if (needsManualReplyAfterHandoff(item)) {
@@ -14602,7 +14653,7 @@
 	          tone: "risk",
 	          title: "订单/付款先人工确认",
 	          body: "先确认订单、地区、金额、付款方式或截图；真实付款没确认前不要按确认收款 / COD。如果已经由人工回复或发了付款链接，按「已由人工回复」收起旧草稿。",
-	          buttons: ["打开订单/付款", "已由人工回复", "人工接手", "记录人工回复"],
+	          buttons: ["打开订单/付款", "已由人工回复", "转人工回复", "记录人工回复"],
 	          never: [...neverBase, "不要承诺付款方式一定可用", "没确认付款不要按确认收款 / COD"],
 	        };
 	      }
@@ -14611,7 +14662,7 @@
 	          tone: "warn",
 	          title: "让 AI 重写",
 	          body: "当前草稿不能直接发；先让 AI 重写，或真人改完后记录最终回复。",
-	          buttons: ["让 AI 重写", "人工接手"],
+	          buttons: ["让 AI 重写", "转人工回复"],
 	          never: [...neverBase, "不要批准当前草稿"],
 	        };
 	      }
@@ -14623,9 +14674,9 @@
 	      ) {
 	        return {
 	          tone: "risk",
-	          title: "人工接手 / 记录人工回复",
+	          title: "转人工回复 / 记录人工回复",
 	          body: "这类是投诉、售后、健康敏感或语境不足；先真人接手，处理完再补最终回复做复盘。",
-	          buttons: ["人工接手", "记录人工回复"],
+	          buttons: ["转人工回复", "记录人工回复"],
 	          never: [...neverBase, "不要继续销售 Flow", "不要催成交"],
 	        };
 	      }
@@ -14642,7 +14693,7 @@
 	        tone: "good",
 	        title: "审核回复后再发送",
 	        body: "先看质量评分、答案完整度和下一步接法；确认顾客问题已答清楚才批准。",
-	        buttons: ["发送给顾客", "让 AI 重写", "人工接手"],
+	        buttons: ["发送给顾客", "让 AI 重写", "转人工回复"],
 	        never: ["不要跳过质量评分", "不要用 Flow 代替回答", "不要改 runtime"],
 	      };
 	    }
@@ -14652,8 +14703,8 @@
 	      if (learningFollowup) return { text: learningFollowup.pill, tone: learningFollowup.tone, note: learningFollowup.body };
 	      const status = item.status;
       if (status === "auto" || status === "auto_sent" || status === "external_flow_continued" || status === "sent" || status === "handoff_done" || status === "returned_to_ai" || status === "manual_resolved" || status === "purchase_confirmed") {
-        if (status === "handoff_done") return { text: "已人工接手", tone: "", note: "已留处理记录。" };
-        if (status === "returned_to_ai") return { text: "已退回 AI", tone: "", note: "等待重写或复盘。" };
+        if (status === "handoff_done") return { text: "已转人工回复", tone: "", note: "已留处理记录。" };
+        if (status === "returned_to_ai") return { text: "已让 AI 重写", tone: "", note: "等待重写或复盘。" };
         if (status === "manual_resolved") return { text: "已手动回", tone: "", note: "已保存人工回复。" };
         if (status === "purchase_confirmed") return { text: "已成交", tone: "", note: "已记录成交金额。" };
         return { text: status === "external_flow_continued" ? "外部已处理" : status === "auto_sent" ? "已自动回" : status === "auto" ? "自动中" : "已处理", tone: "", note: "已留记录。" };
@@ -14680,7 +14731,7 @@
         CLOSING: "成交处理",
         ORDER: "订单阶段",
         FOLLOW_UP: "跟进阶段",
-        HUMAN: "人工接手",
+        HUMAN: "转人工回复",
       };
       return map[key] || "当前阶段";
     }
@@ -14709,13 +14760,13 @@
       if (item.status === "sent") return "已发送";
       if (item.status === "purchase_confirmed") return "已成交";
       if (item.status === "manual_resolved") return "已手动回复";
-      if (item.status === "returned_to_ai") return "已退回 AI";
-      if (item.status === "handoff_done") return "已人工接手";
+      if (item.status === "returned_to_ai") return "已让 AI 重写";
+      if (item.status === "handoff_done") return "已转人工回复";
       if (item.status === "sending") return "发送中";
       if (channelOutageFailure) return "渠道/API断开";
       if (item.status === "send_failed") return "发送失败";
       if (decision.action === "trigger_flow") return "不用发送";
-      if (decision.action === "ask_human") return "按「人工接手」";
+      if (decision.action === "ask_human") return "按「转人工回复」";
       if (item.status === "order") return "检查后提交";
       if (decision.send_now) return "自动流程中";
       return "按「批准发送」";
@@ -14746,13 +14797,13 @@
       if (item.status === "purchase_confirmed") return "成交金额已记录，广告数据按配置回流。";
       if (item.status === "manual_resolved") return "客服已手动回复，系统保留最终回复做复盘。";
       if (item.status === "returned_to_ai") return "这条没有发送 AI 建议，已让 AI 重写或等待复盘。";
-      if (item.status === "handoff_done") return "这条没有发送 AI 建议，已留下人工接手记录。";
+      if (item.status === "handoff_done") return "这条没有发送 AI 建议，已留下转人工回复记录。";
       if (item.status === "sending") return "系统正在发送这条回复，先不要重复点击。";
       if (channelOutageFailure) return "渠道或 API 已断开：先去 App Dashboard 完成 Data Use Checkup / 重连 WhatsApp，再回 Dashboard 处理；不要重复批准或重发。";
       if (item.status === "send_failed") return "这条没有成功发送，需要检查错误或人工处理。";
       if (decision.action === "trigger_flow") return "已交给自动流程，AI 不补发文字";
       if (decision.action === "ask_human" && decision.previous_agent_text) return "顾客只回短答案或 emoji，先看上一句 Agent 再接手";
-      if (decision.action === "ask_human") return "停止自动流程，人工接手";
+      if (decision.action === "ask_human") return "停止自动流程，转人工回复";
       if (item.status === "order") return "确认资料后再提交订单";
       if (decision.send_now) return "固定自动流程或已排程动作继续执行";
 	      return "顾客有疑问或成交语境，需要人确认";
@@ -15061,8 +15112,8 @@
 	      if (paymentOrService || action === "ask_human") {
 	        return {
 	          answer: "先真人确认订单、付款、售后或风险资料；不要用销售 Flow 猜。",
-	          after: "停止 Flow / 人工接手；处理完把真正发给顾客的回复贴回 Dashboard。",
-	          learning: "可学：客服 SOP / 人工接手边界；不写进普通 FAQ 自动回复。"
+	          after: "停止 Flow / 转人工回复；处理完把真正发给顾客的回复贴回 Dashboard。",
+	          learning: "可学：客服 SOP / 转人工回复边界；不写进普通 FAQ 自动回复。"
 	        };
 	      }
 	      if (postPriceStage) {
@@ -15089,7 +15140,7 @@
 	      }
 	      return {
 	        answer: "先回答顾客最后一句，不确定就看上一句 Agent 和聊天记录。",
-	        after: "问题答完才决定：接 Flow、给 CTA、收单，或人工接手。",
+	        after: "问题答完才决定：接 Flow、给 CTA、收单，或转人工回复。",
 	        learning: "可学：顾客问题 -> 正确回复 -> 下一步动作。"
 	      };
 	    }
@@ -15129,7 +15180,7 @@
 		        : action.includes("flow")
 		          ? `接 Flow：${nextFlow || "未标明 Flow，先确认 Step"}`
 		          : action === "ask_human"
-		            ? "停止 Flow / 人工接手"
+		            ? "停止 Flow / 转人工回复"
 		            : actionLabel(decision.action);
 	      return [
 	        ["判断顺序", "先看顾客最后一句；Flow 只是上下文，问题没答完不能接 Flow"],
@@ -15274,7 +15325,7 @@
           answer: "不好意思让你等了，我先帮你接手。喝法是一天一次，餐前 15-30 分钟，用 150-200ml 常温水冲泡。你方便给我订单名字或电话尾数吗？我查回你的订单和原本跟进记录。",
           mustInclude: ["先道歉接手", "喝法", "订单名字/电话尾数"],
           mustNotDo: ["价格 CTA", "LAST CALL", "销售 Flow"],
-          nextAction: "人工接手查订单；处理完补人工最终回复做复盘。"
+          nextAction: "转人工回复查订单；处理完补人工最终回复做复盘。"
         },
         {
           id: "ql_answer_payment_method_safe",
@@ -15313,7 +15364,7 @@
           answer: "可以，我先把现在能确认的配套给你：1盒 RM150，2盒 RM258，3盒 RM378。赠品/活动要看当天库存和当前活动，我会确认清楚才下单，避免给你旧资料。你比较想先试 1 盒，还是直接拿 2/3 盒比较划算？",
           mustInclude: ["当前价", "当天库存/当前活动", "客服确认"],
           mustNotDo: ["保证赠品", "旧活动", "乱给折扣"],
-          nextAction: "赠品/活动必须确认当天版本；不确定就人工接手。"
+          nextAction: "赠品/活动必须确认当天版本；不确定就转人工回复。"
         },
         {
           id: "ql_cta_official_channel",
@@ -15339,7 +15390,7 @@
           answer: "明白，你这个不是普通新客咨询，是亲友/多盒订单的情况。我先帮你查妹妹的订单和你这边有没有符合活动资格。你可以发妹妹下单名字或电话尾数，我帮你确认。",
           mustInclude: ["亲友/多盒边界", "查订单/资格", "名字或电话尾数"],
           mustNotDo: ["普通新客 Flow", "乱报特别价", "直接自动成交"],
-          nextAction: "人工接手查亲友订单或多盒资格。"
+          nextAction: "转人工回复查亲友订单或多盒资格。"
         },
         {
           id: "ql_cta_bulk_referral",
@@ -15359,13 +15410,13 @@
           title: "投诉 / 嫌烦",
           mode: "人工处理",
           customerFacing: true,
-          flowPolicy: "停止跟进，人工接手",
+          flowPolicy: "停止跟进，转人工回复",
           priority: 99,
           patterns: [/(投诉|投訴|很烦|很煩|一直催|不要再发|不要再發|complaint|annoying|stop)/i],
           answer: "不好意思让你有这样的感觉，我先帮你停止跟进和销售信息。你可以把你遇到的情况发给我，我会查记录再回复你。",
           mustInclude: ["道歉", "停止跟进", "人工查记录"],
           mustNotDo: ["继续销售", "继续 Flow", "争辩"],
-          nextAction: "人工接手处理投诉；最终回复要回填复盘。"
+          nextAction: "转人工回复处理投诉；最终回复要回填复盘。"
         },
         {
           id: "ql_capture_no_follow_up_handoff",
@@ -15378,7 +15429,7 @@
           answer: "不好意思让你等这么久，我先帮你接手查记录。这个我不会再接销售内容给你，我先确认之前是谁跟进、目前卡在哪里，再给你一个准确回复。你方便发订单名字、电话尾数或之前跟进的截图吗？",
           mustInclude: ["道歉接手", "查记录", "订单名字/电话尾数或截图"],
           mustNotDo: ["继续销售 Flow", "催成交", "假装已经有人处理"],
-          nextAction: "人工接手服务恢复；补 final_human_reply、handoff_reason、customer_outcome 才能学习。"
+          nextAction: "转人工回复服务恢复；补 final_human_reply、handoff_reason、customer_outcome 才能学习。"
         }
       ];
     }
@@ -15398,7 +15449,7 @@
           answer: dashboardSafeAttachmentReply(),
           mustInclude: ["客服打开确认", "确认后再回复"],
           mustNotDo: ["当成付款截图", "按确认收款 / COD", "接销售 Flow"],
-          nextAction: "人工接手打开原始图片/附件；处理完把最终人工回复补回 Dashboard。"
+          nextAction: "转人工回复打开原始图片/附件；处理完把最终人工回复补回 Dashboard。"
         };
       }
       const decision = item.latest_decision || {};
@@ -15495,7 +15546,7 @@
       const hasGiftBoundary = /(当天|當天|库存|庫存|当前活动|目前活动|客服.*确认|team.*confirm|stock|today)/i.test(reply);
       const fullEnglish = /[a-z]{12,}/i.test(reply) && !/[\u4e00-\u9fff]/.test(reply);
       const riskOrOps = /(付款|付钱|付錢|receipt|payment|pay|订单|訂單|delivery|shipping|refund|退款|投诉|投訴|complaint|怀孕|懷孕|吃药|吃藥|糖尿|血糖|不舒服|售后|售後|after.?sales)/i.test(combined);
-      const humanBoundary = /(人工接手|转人工|轉人工|人工|客服.*确认|先.*确认|查单|查订单|审核|review|confirm)/i.test(reply)
+      const humanBoundary = /(转人工回复|转人工|轉人工|人工|客服.*确认|先.*确认|查单|查订单|审核|review|confirm)/i.test(reply)
         || /ask_human|handoff|manual/i.test(`${decision.action || ""} ${item.status || ""}`);
 
       if (/(一天|几次|幾次|怎么喝|怎麼喝|怎样喝|怎樣喝|喝法|用法|饭前|飯前|饭后|飯後|drink|take|consume|餐前|水)/i.test(combined)) {
@@ -15602,7 +15653,7 @@
       const hasCurrentPrice = /(?:1\s*(?:盒|box)\s*RM\s*150|2\s*(?:盒|boxes?)\s*RM\s*258|3\s*(?:盒|boxes?)\s*RM\s*378|RM\s*(?:150|258|378)\b)/i.test(reply);
       const hasTrust = /(放心|真实|真實|反馈|反饋|顾客|顧客|资料|資料|为什么|為什麼|阻断|阻斷|燃脂|排宿便|review|testimonial|confidence|result)/i.test(reply);
       const hasCta = /(我帮你|我幫你|帮你安排|幫你安排|先试|先試|适合你|適合你|要拿|下单|下單|订|訂|order|配套|1\s*盒|2\s*盒|3\s*盒|RM\s*(?:150|258|378))/i.test(reply);
-      const hasHumanBoundary = /(人工接手|转人工|轉人工|人工|客服.*确认|先.*确认|查单|审核|review|confirm)/i.test(reply)
+      const hasHumanBoundary = /(转人工回复|转人工|轉人工|人工|客服.*确认|先.*确认|查单|审核|review|confirm)/i.test(reply)
         || /ask_human|handoff|manual/i.test(`${action} ${item.status || ""}`);
       const rows = [];
 
@@ -15757,18 +15808,18 @@
       if (manualFollowUp && (!manualReply || isPlaceholderManualReply(manualReply))) {
         tone = "warn";
         resultLabel = "待补回复";
-        summary = "人工接手后还没补最终回复。";
+        summary = "转人工回复后还没补最终回复。";
         nextAction = "把真正发给顾客的人工回复贴回回复框";
       } else if (criticalFails.length) {
         tone = "danger";
         resultLabel = "不能过";
         summary = "有红线，不能批准发送。";
-        nextAction = "退回 AI / 人工改稿，不发送当前草稿";
+        nextAction = "让 AI 重写 / 人工改稿，不发送当前草稿";
       } else if (approvalGuard.blocked && closer.tone === "handoff") {
         tone = "danger";
-        resultLabel = "人工接手";
+        resultLabel = "转人工回复";
         summary = "这类 Case 需要真人处理。";
-        nextAction = "人工接手，处理完补人工最终回复";
+        nextAction = "转人工回复，处理完补人工最终回复";
       } else if (approvalGuard.blocked) {
         tone = "warn";
         resultLabel = "要修改";
@@ -15788,7 +15839,7 @@
         tone = "danger";
         resultLabel = "不学习";
         summary = "质量不够，不能沉淀成规则。";
-        nextAction = "退回 AI 或人工接手";
+        nextAction = "让 AI 重写 或转人工回复";
       }
 
       return {
@@ -15844,7 +15895,7 @@
           status: safetyOk && (!asksPriceOrGift || factOk) ? "过" : "不能直接过",
           tone: safetyOk && (!asksPriceOrGift || factOk) ? "pass" : "fail",
           detail: !safetyOk
-            ? "有安全红线，先退回 AI 或人工接手。"
+            ? "有安全红线，先让 AI 重写 或转人工回复。"
             : asksPriceOrGift && !factOk
               ? "价格、赠品或活动资料不够确定，先人工确认。"
               : "没有旧价、医疗承诺、退款承诺或强推成交。"
@@ -15967,15 +16018,15 @@
           blocked: true,
           label: "不能批准",
           title: "先退回 / 改稿",
-          reason: "成交高手判定这张草稿不能过。请退回 AI、手动改稿，或记录人工最终回复做复盘。"
+          reason: "成交高手判定这张草稿不能过。请让 AI 重写、手动改稿，或记录人工最终回复做复盘。"
         };
       }
       if (closer.tone === "handoff") {
         return {
           blocked: true,
           label: "先人工处理",
-          title: "人工接手 / 记录回复",
-          reason: "这类 Case 需要人工确认。请人工接手或记录人工最终回复，让系统生成复盘候选。"
+          title: "转人工回复 / 记录回复",
+          reason: "这类 Case 需要人工确认。请转人工回复或记录人工最终回复，让系统生成复盘候选。"
         };
       }
       return { blocked: false, label: "" };
@@ -15984,8 +16035,8 @@
     function closerVerdictApprovalSignal(closer = {}, item = {}) {
       const tone = String(closer.tone || "").toLowerCase();
       const action = String(item.latest_decision?.action || "").toLowerCase();
-      if (tone === "fix") return "批准信号：不能批准，先退回 AI / 改稿";
-      if (tone === "handoff") return "批准信号：不能批准，先人工接手";
+      if (tone === "fix") return "批准信号：不能批准，先让 AI 重写 / 改稿";
+      if (tone === "handoff") return "批准信号：不能批准，先转人工回复";
       if (tone === "order") return "批准信号：先审款 / 查订单";
       if (action === "trigger_flow") return "批准信号：可接 Flow，先确认 Step";
       if (tone === "pass") return "批准信号：可批准";
@@ -16007,7 +16058,7 @@
         if (needsManualReplyAfterHandoff(item)) {
           return "客服下一步：把真正发给顾客的人工回复贴进回复框，再点「补人工回复」。";
         }
-        return "客服下一步：点「人工接手」接手；处理完后回 Dashboard 补人工最终回复。";
+        return "客服下一步：点「转人工回复」接手；处理完后回 Dashboard 补人工最终回复。";
       }
       if (/语音先人工摘要/i.test(titleReason)) {
         return "客服下一步：先听语音并补一句顾客问题摘要；没有摘要前不要批准/学习/接 Flow。";
@@ -16087,16 +16138,16 @@
         return "改稿方向：这是售后使用问题，不是销售。可回：可以喝的亲爱的；如果经期不舒服、痛经或经量比较多，就先暂停，结束后再继续喝。不要接 LAST CALL、配套、赠品、付款或成交 Flow。";
       }
       if (/旧活动 Flow|活动版本|Mother/i.test(titleReason)) {
-        return "改稿方向：换成当前活动 / 当前价格 Flow；英文 Flow 也要确认月份、价钱和赠品是今天能用的，不确定就人工接手确认。";
+        return "改稿方向：换成当前活动 / 当前价格 Flow；英文 Flow 也要确认月份、价钱和赠品是今天能用的，不确定就转人工回复确认。";
       }
       if (/加购已拒绝|不加购|add-on declined/i.test(titleReason)) {
         return "改稿方向：尊重顾客拒绝加购；不要再推 RM68 / top up，直接回到付款、资料或订单确认。";
       }
       if (/身体适合度强承诺|健康敏感|更年期|跟年期|特殊身体状态/i.test(titleReason)) {
-        return "改稿方向：特殊身体状态先用安全边界回复；不要说更适合、加速燃烧脂肪或保证效果。不确定就人工接手确认。";
+        return "改稿方向：特殊身体状态先用安全边界回复；不要说更适合、加速燃烧脂肪或保证效果。不确定就转人工回复确认。";
       }
       if (/多问没答完|几盒|幾盒|几个月|幾个月|几包|幾包|经期|經期|年期|100KG|100\s*kg/i.test(titleReason)) {
-        return "改稿方向：逐条答：RM658=8盒=4个月；1盒15小包；经期/100kg这类适用问题按安全口径回答或人工接手确认。全部答完再接信心 CTA / FAQ Flow。";
+        return "改稿方向：逐条答：RM658=8盒=4个月；1盒15小包；经期/100kg这类适用问题按安全口径回答或转人工回复确认。全部答完再接信心 CTA / FAQ Flow。";
       }
       if (/没回答就接 Flow|用法|喝法/.test(titleReason)) {
         return "改稿方向：先答喝法：一天1次，想快可2次；餐前用150-200ml常温水冲泡，15-30分钟后再吃饭。";
@@ -16108,7 +16159,7 @@
         return "改稿方向：整段英文回复；需要接 Flow 时只接 English Flow，不送回中文 Step。";
       }
       if (/赠品|活动可审|free gift|promotion/i.test(titleReason)) {
-        return "改稿方向：列当前价梯和当天赠品确认边界；不确定库存或旧活动就先人工接手确认。";
+        return "改稿方向：列当前价梯和当天赠品确认边界；不确定库存或旧活动就先转人工回复确认。";
       }
       if (/不能乱给折扣|折扣问题可审|discount|便宜/i.test(titleReason)) {
         return "改稿方向：不要私自降价；守当前 RM150 / RM258 / RM378 活动边界，用价值、服务、真实反馈和一个明确下单问题收口。";
@@ -16280,7 +16331,7 @@
         if (needsManualReplyAfterHandoff(item)) {
           return "复盘要留：人工最后怎么回、为什么这样回、下次同类是否继续人工。";
         }
-        return "复盘要留：人工接手原因、顾客原话、人工处理完的最终回复。";
+        return "复盘要留：转人工回复原因、顾客原话、人工处理完的最终回复。";
       }
       if (tone === "fix") {
         return "复盘要留：AI 原草稿哪里错、正确写法、要补 FAQ / SOP / 成交话术哪一种。";
@@ -16788,13 +16839,13 @@
         return { tone: "review", title: "客服已教 AI 一次", reason: "把最终人工回复拿去复盘，Owner 批准后才写进业务脑。" };
       }
 	      if (status === "returned_to_ai") {
-		return { tone: "review", title: "已退回 AI，等重写", reason: "当前建议没有发送给顾客；这类样本要复盘为什么原草稿不能过。" };
+		return { tone: "review", title: "已让 AI 重写，等重写", reason: "当前建议没有发送给顾客；这类样本要复盘为什么原草稿不能过。" };
 	      }
 	      if (needsManualReplyAfterHandoff(item)) {
 		return { tone: "handoff", title: "待补人工回复", reason: "客服处理完后，把最后真正发给顾客的回复贴回来，AI 才能学到正确答案。" };
 	      }
 	      if (status === "handoff_done") {
-		return { tone: "handoff", title: "不能直接过", reason: "已人工接手；这类样本要总结为什么 AI 当时不该回。" };
+		return { tone: "handoff", title: "不能直接过", reason: "已转人工回复；这类样本要总结为什么 AI 当时不该回。" };
       }
       if (channelOutageFailure) {
         return { tone: "fix", title: "不能过：渠道/API断开", reason: "ManyChat/ChatDaddy 显示 API access disrupted、Data Use Checkup 或 WhatsApp channel turned off；这不是话术问题，先修 App Dashboard / WhatsApp 渠道，不能重复批准或重发。" };
@@ -16806,7 +16857,7 @@
         return { tone: "handoff", title: "图片/附件先人工看", reason: "顾客只发图片/附件，Dashboard 不能知道它是不是汇款截图、Review、投诉或问题图。客服先打开确认，再决定审款、售后、回答问题或接 Flow；不要让 AI 猜。" };
       }
       if (outdatedPriceDraft) {
-        return { tone: "fix", title: "不能过：草稿含旧价", reason: "草稿仍有 RM368、加 RM10、3送1 或旧送盒说法；旧 pending 不要批准。退回 AI 重新生成，或手动改成当前可用价：1盒 RM150 / 2盒 RM258 / 3盒 RM378【新人疗程配套】后再处理。" };
+        return { tone: "fix", title: "不能过：草稿含旧价", reason: "草稿仍有 RM368、加 RM10、3送1 或旧送盒说法；旧 pending 不要批准。让 AI 重新生成，或手动改成当前可用价：1盒 RM150 / 2盒 RM258 / 3盒 RM378【新人疗程配套】后再处理。" };
       }
       if (outdatedCampaignDraft) {
         return { tone: "fix", title: "不能过：旧活动 Flow", reason: "草稿或 Flow 仍在用 5月/Mother's Day/旧 early bird 活动，或 RM398/RM498/RM538/RM698 旧价；即使是英文 Flow 也不能直接批准。先换当前活动 Flow，或人工确认今天价格、赠品和库存。" };
@@ -16881,7 +16932,7 @@
 		        return { tone: "handoff", title: "地点/现货先确认", reason: "顾客问所在地、门店、药店或现货；没有实时门店/库存资料时，不要乱讲有卖或没卖，先人工确认。" };
 		      }
 		      if (englishMixedDraft) {
-		        return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；退回 AI 或手动改英文后再批准。" };
+		        return { tone: "fix", title: "不能过：英文请求混中文", reason: "顾客要求 English 或看不懂中文，草稿必须整段英文；让 AI 重写 或手动改英文后再批准。" };
 		      }
 		      if (englishCustomerChineseDraft) {
 		        return { tone: "fix", title: "不能过：英文顾客中文草稿", reason: "顾客正在用英文沟通，或资料显示英文顾客；草稿不要继续中文 Step、中文价格图或中文促销长文。改成短英文，先回答她最后一句，再给一个明确下单问题。" };
@@ -16920,7 +16971,7 @@
 	        return { tone: "review", title: "糖/甜味可审：成分边界", reason: "草稿有回答甜味/糖分边界，没有保证血糖或疾病适用，也没有继续销售 Flow；客服确认标签和口径后可以批准。" };
 	      }
 			      if (annoyedSalesPushDraft) {
-			        return { tone: "fix", title: "不能过：顾客嫌烦别继续卖", reason: "顾客已经嫌烦、要求别打扰或被标记不要买；不能继续 LAST CALL、优惠、价格 CTA 或 Flow。先道歉，暂停自动跟进/停止 follow-up，必要时人工接手记录投诉。" };
+			        return { tone: "fix", title: "不能过：顾客嫌烦别继续卖", reason: "顾客已经嫌烦、要求别打扰或被标记不要买；不能继续 LAST CALL、优惠、价格 CTA 或 Flow。先道歉，暂停自动跟进/停止 follow-up，必要时转人工回复记录投诉。" };
 			      }
 			      if (annoyedStopSafeDraft) {
 			        return { tone: "pass", title: "停止打扰可过", reason: "已承接顾客嫌烦/不要买，并停止自动跟进；不再销售、不接 Flow。" };
@@ -16938,7 +16989,7 @@
 	        return { tone: "review", title: "促销追单：不学问答", reason: "没有看到顾客问题；这是 ManyChat/人工在订单提醒、Smart Delay 或促销上下文里的追单动作。可以审价格、活动和 CTA 是否正确，但不要把它写进 FAQ 或顾客问答学习。" };
 	      }
       if (absoluteProductOverclaimDraft && (automationOnlyFlowContext || !rawCustomerText || noCustomerPromoRecoveryContext)) {
-        return { tone: "fix", title: "不能过：强承诺 Flow", reason: "ManyChat Said：即使顾客没有投诉，草稿/Flow 也不能写绝对看到效果、保证瘦/变白、不会反弹或不可能有副作用。这类话术要退回 AI，改成真实反馈 + 个体差异 + 客服审核边界。" };
+        return { tone: "fix", title: "不能过：强承诺 Flow", reason: "ManyChat Said：即使顾客没有投诉，草稿/Flow 也不能写绝对看到效果、保证瘦/变白、不会反弹或不可能有副作用。这类话术要让 AI 重写，改成真实反馈 + 个体差异 + 客服审核边界。" };
       }
 	      if (automationOnlyFlowContext) {
 	        return { tone: "review", title: "纯自动 Flow：不学问答", reason: "这条没有顾客问题，只是 ManyChat automation / Broadcast 自己推进。可以审 Flow 是否该继续，但不要把它当成顾客问答、FAQ 或成交话术样本。" };
@@ -16962,10 +17013,10 @@
         return { tone: "handoff", title: "目标体重先人工配套", reason: "顾客问从当前体重瘦到目标体重要几个配套；Dashboard 应让客服按目标、预算和当前活动建议配套，不让 AI 自己保证效果或乱配疗程。" };
       }
       if (absoluteProductOverclaimDraft) {
-        return { tone: "fix", title: "不能过：强承诺 Flow", reason: "ManyChat Said：即使顾客没有投诉，草稿/Flow 也不能写绝对看到效果、保证瘦/变白、不会反弹或不可能有副作用。这类话术要退回 AI，改成真实反馈 + 个体差异 + 客服审核边界。" };
+        return { tone: "fix", title: "不能过：强承诺 Flow", reason: "ManyChat Said：即使顾客没有投诉，草稿/Flow 也不能写绝对看到效果、保证瘦/变白、不会反弹或不可能有副作用。这类话术要让 AI 重写，改成真实反馈 + 个体差异 + 客服审核边界。" };
       }
       if (strongSuitabilityOverclaimDraft) {
-        return { tone: "fix", title: "不能过：身体适合度强承诺", reason: "顾客问更年期、经期或体重这类特殊身体状态；草稿不能说更适合、加速燃烧脂肪或保证达到减肥效果。改成安全边界回复，必要时人工接手确认。" };
+        return { tone: "fix", title: "不能过：身体适合度强承诺", reason: "顾客问更年期、经期或体重这类特殊身体状态；草稿不能说更适合、加速燃烧脂肪或保证达到减肥效果。改成安全边界回复，必要时转人工回复确认。" };
       }
       if (cycleComfortOverclaimDraft) {
         return { tone: "fix", title: "不能过：售后经期缺安全边界", reason: "ManyChat Estee：顾客问经期能不能喝时，不能学“温性所以不会宫寒/不会不舒服”这种保证式说法。要改成：可以喝；如果经期不舒服、痛经或经量比较多，先暂停，结束后再继续；不接销售 Flow。" };
@@ -17088,7 +17139,7 @@
         return { tone: "review", title: "资料缺口可审：先答已确认价", reason: "草稿守住当前已确认价梯，并把 4+2、隐藏配套或特殊价交给客服/老板确认。Dashboard 要把这类问题变成老板补 FAQ/SOP 的资料缺口卡。" };
       }
 	      if (directNewPriceContext && !directPriceAnswered) {
-	        return { tone: "fix", title: "不能过：Direct问价没桥接Flow", reason: "Direct 新客只问多少钱时，不要只沉默、人工接手或乱接旧活动。要么短桥接后接产品 Flow，要么直接给当前价并补 CTA；不能让问题悬空。" };
+	        return { tone: "fix", title: "不能过：Direct问价没桥接Flow", reason: "Direct 新客只问多少钱时，不要只沉默、转人工回复或乱接旧活动。要么短桥接后接产品 Flow，要么直接给当前价并补 CTA；不能让问题悬空。" };
 	      }
 	      if (directPriceQuestion && !specialPromoAddon && !legacyPromo && !directPriceAnswered) {
 	        return { tone: "fix", title: "不能过：问价没给当前价", reason: "顾客已经问一盒/多少钱/配套；草稿不要继续产品教育，至少要答一盒 RM150。若给完整价梯，则用当前 RM150/RM258/RM378。" };
@@ -17203,7 +17254,7 @@
         };
       }
       if (!hasReply && action !== "trigger_flow") {
-        return { tone: "fix", title: "不能过，缺回复", reason: "没有可审核文案，客服必须补写或人工接手。" };
+        return { tone: "fix", title: "不能过，缺回复", reason: "没有可审核文案，客服必须补写或转人工回复。" };
       }
       if (action === "trigger_flow") {
         return { tone: "review", title: "可接 Flow，但先确认阶段", reason: "AI 不补发文字；确认顾客确实在这个 Step，再让流程继续。" };
@@ -17244,10 +17295,10 @@
         ai_decision_demo: "AI 完成判断",
         approved_sent_demo: "人工批准发送",
         learned_rule_created_demo: "建立学习规则",
-        marked_handoff_demo: "人工接手处理",
+        marked_handoff_demo: "转人工回复处理",
         operator_seen_demo: "已标记查看",
-        bulk_handoff_demo: "批量人工接手",
-        bulk_return_ai_demo: "批量退回 AI",
+        bulk_handoff_demo: "批量转人工回复",
+        bulk_return_ai_demo: "批量让 AI 重写",
         case_purchase_confirmed: "确认成交",
         case_mark_purchase: "确认成交",
         case_mark_purchase_demo: "演示确认成交",
@@ -17256,20 +17307,20 @@
         copied_access_link: "复制团队入口",
         case_approve: "真实批准发送",
         case_learn: "真实建立规则",
-        case_handoff: "真实人工接手",
-        case_return_ai: "真实退回 AI",
+        case_handoff: "真实转人工回复",
+        case_return_ai: "真实让 AI 重写",
         case_approve_demo: "演示批准发送",
         case_learn_demo: "演示建立规则",
-        case_handoff_demo: "演示人工接手",
-        case_return_ai_demo: "演示退回 AI",
+        case_handoff_demo: "演示转人工回复",
+        case_return_ai_demo: "演示让 AI 重写",
         case_learning_note: "优化 AI 记录",
         auto_reply_sent: "AI 自动回复",
         auto_reply_failed: "自动回复失败",
         reply_sent: "回复已发送",
         reply_sending: "回复发送中",
-        handoff_done: "已人工接手",
-        returned_to_ai: "退回 AI",
-        handoff_recorded: "人工接手记录",
+        handoff_done: "已转人工回复",
+        returned_to_ai: "让 AI 重写",
+        handoff_recorded: "转人工回复记录",
         manual_resolved: "已手动回复",
         external_flow_continued: "外部已处理",
         order_tracked: "订单已标记",
@@ -17363,7 +17414,7 @@
 	    function caseLearningTargetGuide(candidate = {}) {
 	      const artifactType = String(candidate.artifact_type || "").toLowerCase();
 	      const map = {
-	        faq: "FAQ 标准答案：适合用法、口味、物流、英文这类重复问题；资料不足仍人工接手。",
+	        faq: "FAQ 标准答案：适合用法、口味、物流、英文这类重复问题；资料不足仍转人工回复。",
 	        closer_script: "成交话术 / CTA map：适合价格、信任、异议、免邮/COD 和看价后成交。",
 	        ops_sop: "客服 SOP：适合审款、查单、送货、付款、售后接手和订单异常。",
 	        safety_sop: "安全 SOP / risk_policy：适合健康敏感、不适反应、孕期/药物和效果投诉。",
@@ -17416,13 +17467,13 @@
 	        : "复盘证据包：顾客原话、上一段 Flow、AI 原草稿、人工最终回复已齐，可以判可学 / 要修 / 不学。";
 	      const title = closer.title || candidate.title || "待复盘";
 	      const noResultSelfAudit = /没效果|沒效果|效果投诉|效果投訴|没瘦|沒瘦|no\s+(?:effect|result)|not\s+effective|lost\s+confiden/i.test([title, closer.reason, customerText, originalAiReply, manualReplyText].filter(Boolean).join(" "));
-	      const issue = pendingReply ? "人工接手后缺人工最终回复，AI 还不能判断正确答案。" : title;
+	      const issue = pendingReply ? "转人工回复后缺人工最终回复，AI 还不能判断正确答案。" : title;
 	      const artifactLabel = candidate.artifact_label || "学习候选";
 	      const artifactType = candidate.artifact_type || "";
 	      const artifactLine = artifactType ? `${artifactLabel} / ${artifactType}` : artifactLabel;
 	      const replay = candidate.replay_test || "用同类真实顾客句子重跑，确认 verdict 和下一步动作都正确。";
 	      const nextAction = pendingReply
-	        ? "补人工最终回复后，再判断下次自动答、退回 AI、还是继续人工。"
+	        ? "补人工最终回复后，再判断下次自动答、让 AI 重写、还是继续人工。"
 	        : (candidate.next_owner_action || `Owner 审核是否写入 ${artifactLabel}。`);
 	      return [
 	        `错因：${issue}`,
@@ -17449,7 +17500,7 @@
 	        ? "客服处理完，把最后发给顾客的回复贴回来。"
 	        : manualReply
 	          ? "已保存人工最终回复，可以做复盘样本。"
-	          : "已记录人工接手/退回原因，等人工结果补齐。";
+	          : "已记录转人工回复/退回原因，等人工结果补齐。";
 	      const stepTwo = `${label}：${candidate.proposed_rule || candidate.summary || "整理成 FAQ / SOP / 成交话术 / 测试用例候选。"}`;
 	      const stepThree = "Owner 批准后才进业务脑；不会发送 WhatsApp，也不会开启自动。";
 	      const tone = pendingReply ? "needs-input" : "ready";
@@ -17529,7 +17580,7 @@
 	          detail: validManualReply ? contextSnippet(manualReply) : "必须贴最后真正发给顾客的完整文字，不要只写已回复/Done。"
 	        },
 	        {
-	          label: "人工接手原因",
+	          label: "转人工回复原因",
 	          ok: Boolean(reason),
 	          detail: reason || "写清为什么 AI 不能自己回：付款、投诉、健康、售后、资料不足等。"
 	        },
@@ -17541,7 +17592,7 @@
 		        {
 		          label: "复盘备注",
 		          ok: Boolean(note),
-		          detail: note || "写下下次怎么处理：自动答、退回 AI、接 Flow、CTA，还是继续人工。"
+		          detail: note || "写下下次怎么处理：自动答、让 AI 重写、接 Flow、CTA，还是继续人工。"
 		        },
 		        {
 		          label: "学习判断",
@@ -17563,14 +17614,14 @@
 		      return `
 		        <div class="handoff-completion-fields" id="handoffCompletionFields">
 		          ${handoffRiskAdvisorHtml(advisor)}
-		          <label>人工接手原因
+		          <label>转人工回复原因
 		            <input id="handoffReasonInput" value="${escapeHtml(reason)}" placeholder="例：投诉/健康敏感/付款确认/资料不足" />
 	          </label>
 	          <label>顾客结果
 	            <input id="customerOutcomeInput" value="${escapeHtml(outcome)}" placeholder="例：已安抚/已下单/已退款申请/等客服查单" />
 	          </label>
 		          <label>复盘备注
-		            <input id="learningOutcomeInput" value="${escapeHtml(note)}" placeholder="例：下次先答问题，再人工接手；不要接销售 Flow" />
+		            <input id="learningOutcomeInput" value="${escapeHtml(note)}" placeholder="例：下次先答问题，再转人工回复；不要接销售 Flow" />
 		          </label>
 		          <label>学习判断
 		            <select id="learnabilityInput">
@@ -17635,7 +17686,7 @@
 	          guidance: "健康、哺乳、吃药、疾病或症状问题不能自动给饮用建议。",
 	          handoff_reason: "健康/哺乳/身体状况敏感问题，需要人工确认，不能自动给饮用建议。",
 	          customer_outcome: "已由客服人工处理；如涉及身体状况，应建议先咨询医生/专业人士。",
-	          learning_outcome_note: "只可沉淀安全边界：健康、哺乳、吃药、疾病/症状类问题必须人工接手；不可自动学习成直接饮用建议。",
+	          learning_outcome_note: "只可沉淀安全边界：健康、哺乳、吃药、疾病/症状类问题必须转人工回复；不可自动学习成直接饮用建议。",
 	          safe_reply_draft: "亲，这个涉及身体状况/哺乳/用药这类敏感情况，我这边不能只根据讯息帮你做身体判断🙏 为了安全，建议你先问医生或专业人士确认；我这里可以先帮你保留资料，确认清楚后再继续安排。",
 	          do_not_do: ["不要自动回答能不能喝。", "不要承诺疗效或安全性。", "不要接销售 Flow。"]
 	        });
@@ -17662,8 +17713,8 @@
 	          risk_level: "high",
 	          risk_label: "高风险",
 	          learnability: "needs_owner",
-	          guidance: "顾客说没人跟进或要查记录时，先人工接手服务恢复。",
-	          handoff_reason: "顾客在投诉没人跟进/需要查记录，必须人工接手服务恢复。",
+	          guidance: "顾客说没人跟进或要查记录时，先转人工回复服务恢复。",
+	          handoff_reason: "顾客在投诉没人跟进/需要查记录，必须转人工回复服务恢复。",
 	          customer_outcome: "客服已接手查记录并向顾客说明下一步。",
 	          learning_outcome_note: "可学习为服务恢复 SOP：先道歉、接手查记录、给明确下一步；不可接普通销售 Flow。",
 	          safe_reply_draft: "亲，真的不好意思让你等这么久🙏 我这边先帮你接手查一下记录，确认是哪一段没有 follow up。查到后我会直接给你下一步，不会让你一直等 ❤️",
@@ -17737,7 +17788,7 @@
 	        risk_label: "中风险",
 	        learnability: "needs_owner",
 	        guidance: "补齐最终人工回复和结果后，再交 Owner 判断能不能学。",
-	        handoff_reason: "人工接手 Case，需要客服补最终回复和结果后再判断能否学习。",
+	        handoff_reason: "转人工回复 Case，需要客服补最终回复和结果后再判断能否学习。",
 	        customer_outcome: "客服已人工处理并记录下一步。",
 	        learning_outcome_note: "先作为 Owner 审核候选；通过后才可沉淀为 FAQ/SOP/话术。",
 	        safe_reply_draft: "亲，我先帮你确认清楚这个问题🙏 处理好后我会把下一步直接发给你。",
@@ -17858,13 +17909,13 @@
       button.textContent = action === "return_ai" ? "退回中" : action === "handoff" ? "处理中" : "发送中";
       try {
         if (action === "handoff") {
-          await postCaseAction(item.id, "handoff", { note: "客服在卡片上人工接手，不发送 AI 建议。" }, { reopen: false, lock: false });
-          showToast("已人工接手。");
+          await postCaseAction(item.id, "handoff", { note: "客服在卡片上转人工回复，不发送 AI 建议。" }, { reopen: false, lock: false });
+          showToast("已转人工回复。");
           return;
         }
         if (action === "return_ai") {
           const closer = closerVerdict(item);
-          await postCaseAction(item.id, "return_ai", { note: closer.reason || "客服在卡片上退回 AI，不发送当前建议。" }, { reopen: false, lock: false });
+          await postCaseAction(item.id, "return_ai", { note: closer.reason || "客服在卡片上让 AI 重写，不发送当前建议。" }, { reopen: false, lock: false });
           showToast("已让 AI 重写。");
           return;
         }
@@ -17882,7 +17933,7 @@
       const name = customerDisplayLabel(item) || "这位顾客";
       if (action === "handoff") {
         if (state.demoMode) return true;
-        return window.confirm(`确认由人工接手 ${name}？\n\n不会发送 AI 建议给顾客，只留下人工处理记录。`);
+        return window.confirm(`确认由转人工回复 ${name}？\n\n不会发送 AI 建议给顾客，只留下人工处理记录。`);
       }
       if (action === "return_ai") {
         const closer = closerVerdict(item);
@@ -17892,7 +17943,7 @@
       const closer = closerVerdict(item);
       const approvalGuard = approvalGuardForVerdict(closer);
       if (approvalGuard.blocked) {
-        alert(`这张 Case 不能直接批准：${closer.title}\n\n${closer.reason}\n\n请先人工接手、记录人工回复，或退回 AI。`);
+        alert(`这张 Case 不能直接批准：${closer.title}\n\n${closer.reason}\n\n请先转人工回复、记录人工回复，或让 AI 重写。`);
         return false;
       }
       if (state.demoMode) return true;
@@ -17926,9 +17977,9 @@
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
       if (!confirmLiveAction("handoff", state.active)) return;
-      const result = await postCaseAction(state.active.id, "handoff", { note: "客服在中控台人工接手。" });
+      const result = await postCaseAction(state.active.id, "handoff", { note: "客服在中控台转人工回复。" });
       if (actionLearningNoteRecorded(result)) {
-        showToast("已人工接手，复盘候选待审核。");
+        showToast("已转人工回复，复盘候选待审核。");
       }
     }
 
@@ -17958,7 +18009,7 @@
         manualReplyText,
         ...completion.payload,
         note: manualReplyText
-          ? `客服已按 Dashboard 回复框内容手动回复；人工接手原因：${completion.payload.handoff_reason || "-"}；顾客结果：${completion.payload.customer_outcome || "-"}`
+          ? `客服已按 Dashboard 回复框内容手动回复；转人工回复原因：${completion.payload.handoff_reason || "-"}；顾客结果：${completion.payload.customer_outcome || "-"}`
           : "客服已手动回复；未保存最终回复内容。",
       });
       if (actionLearningNoteRecorded(result)) {
@@ -17996,14 +18047,14 @@
 	        create_learning_candidate: true,
 	      });
 	      if (actionLearningNoteRecorded(result)) {
-	        showToast("已人工发送，学习候选待 Owner 审核。");
+	        showToast("已回复并发送，学习候选待 Owner 审核。");
 	      }
 	    }
 
 	    function manualSendLearningPayload(item = state.active, closer = null) {
 	      const verdict = closer || closerVerdict(item);
 	      const completion = handoffCompletionPayload(item);
-	      const reason = completion.payload.handoff_reason || verdict.reason || "客服在 Dashboard 人工接手回复。";
+	      const reason = completion.payload.handoff_reason || verdict.reason || "客服在 Dashboard 转人工回复回复。";
 	      const outcome = completion.payload.customer_outcome || "已由客服在 Dashboard 人工回复顾客。";
 	      const note = completion.payload.learning_outcome_note || "把顾客原话、AI 草稿和这次人工最终回复保留为学习候选；Owner 审核后，同类问题才可自动或少审核。";
 	      const learnability = completion.payload.learnability || "needs_owner";
@@ -18053,7 +18104,7 @@
 	      const note = String(document.getElementById("learningOutcomeInput")?.value || caseLearningCompletionNote(item) || "").trim();
 	      const learnability = normalizeLearnabilityDecision(document.getElementById("learnabilityInput")?.value || caseLearnabilityDecision(item) || "");
 	      const missing = [];
-	      if (!reason) missing.push("人工接手原因");
+	      if (!reason) missing.push("转人工原因");
 	      if (!outcome) missing.push("顾客结果");
 	      if (!note) missing.push("复盘备注");
 	      if (!learnability) missing.push("学习判断");
@@ -18089,10 +18140,10 @@
       if (!confirmLiveAction("return_ai", state.active)) return;
       const closer = closerVerdict(state.active);
       const result = await postCaseAction(state.active.id, "return_ai", {
-        note: closer.reason || "客服在中控台退回 AI，不发送当前建议。",
+        note: closer.reason || "客服在 Dashboard 让 AI 重写，不发送当前建议。",
       });
       if (actionLearningNoteRecorded(result)) {
-        showToast("已退回 AI，复盘候选待审核。");
+        showToast("已让 AI 重写；当前草稿没有发送。");
       }
     }
 
@@ -18426,7 +18477,7 @@
           tone: "reject",
           title: "不学：服务/订单问题继续卖",
           reason: "顾客在否认订单、查付款、查物流或投诉没人跟进时，继续销售会误导 AI。",
-          action: "只保留为负例，补 SOP：先查记录、安抚、人工接手。"
+          action: "只保留为负例，补 SOP：先查记录、安抚、转人工回复。"
         };
       }
       if (manualClarifiesPriorPriceFlow) {
@@ -18449,7 +18500,7 @@
         return {
           tone: "reject",
           title: "不学成自动回复",
-          reason: "这类样本应该沉淀人工接手边界或客服 SOP，不应该让 AI 以后自动回。",
+          reason: "这类样本应该沉淀转人工回复边界或客服 SOP，不应该让 AI 以后自动回。",
           action: "Owner 写入 handoff / SOP 规则。"
         };
       }
@@ -18588,7 +18639,7 @@
 	          artifact_type: "safety_sop",
 	          artifact_label: "安全 SOP",
           title: "身体反应/健康敏感要沉淀安全 SOP",
-          proposed_rule: "身体反应或健康敏感问题先问清楚情况并人工接手，不给医疗判断，不继续强推成交。",
+          proposed_rule: "身体反应或健康敏感问题先问清楚情况并转人工回复，不给医疗判断，不继续强推成交。",
           next_owner_action: "审核后加入 risk_policy、客服 SOP 和测试用例。"
         };
       } else if (/price|rm|价钱|價錢|价格|贵|貴|折扣|cod|免邮|免郵|shipping|保证|保證|信心|认证|認證|trust/.test(combined)) {
@@ -18612,7 +18663,7 @@
           artifact_type: "flow_context_rule",
           artifact_label: "Flow/上下文规则",
           title: "短回复/emoji 要沉淀上下文规则",
-          proposed_rule: "顾客短回复、emoji 或选项回复必须先看上一句 Agent/Flow 问题；看不懂就人工接手，不脑补。",
+          proposed_rule: "顾客短回复、emoji 或选项回复必须先看上一句 Agent/Flow 问题；看不懂就转人工回复，不脑补。",
           next_owner_action: "审核后加入上下文判断规则、Flow step 测试和 Dashboard 卡片提示。"
         };
       } else if (/怎么喝|怎样喝|一天|几次|幾次|饭前|飯前|效果|多久|成分|ingredient|english|英文|delivery|快递|物流|运输|運輸/.test(combined)) {
@@ -18620,7 +18671,7 @@
           artifact_type: "faq",
           artifact_label: "FAQ",
           title: "重复产品问题要沉淀 FAQ",
-          proposed_rule: "用法、效果、成分、语言切换和物流问题要用固定安全口径回答；资料不足才人工接手。",
+          proposed_rule: "用法、效果、成分、语言切换和物流问题要用固定安全口径回答；资料不足才转人工回复。",
           next_owner_action: "审核后加入 FAQ、英文版 FAQ 和回放测试。"
         };
       }
@@ -18666,10 +18717,10 @@
         rules.push("如果能确认是 Step 1 选项，就直接回答对应主题；“以上全部”要一次回答用法、效果、成分、配套。");
       }
       if (/看不到|原文|截图|receipt|收据|付款|订单|下单|confirm|确定|确认订单/i.test(text)) {
-        rules.push("订单/Receipt 看不到顾客原文或附件时，只能人工接手/审核，不能写“确认订单、已安排、已提交”。");
+        rules.push("订单/Receipt 看不到顾客原文或附件时，只能转人工回复/审核，不能写“确认订单、已安排、已提交”。");
       }
-      if (/不会|不懂|人工接手|转人工|轉人工|敷衍|乱回|低.?信心|low confidence/i.test(text)) {
-        rules.push("低信心或资料不足时，动作必须是人工接手；不要发安抚式模板给顾客。");
+      if (/不会|不懂|转人工回复|转人工|轉人工|敷衍|乱回|低.?信心|low confidence/i.test(text)) {
+        rules.push("低信心或资料不足时，动作必须是转人工回复；不要发安抚式模板给顾客。");
       }
       if (/重叠|同顾客|重复|卡片|case/i.test(text)) {
         rules.push("同顾客多个 Case 要用会话/电话/有效名字分组，前台只显示最新主卡，后卡重叠提示数量。");
@@ -18820,7 +18871,7 @@
       if (/price|promo|gift|旧价|价格|赠品|活动|信心|cta|objection/.test(combined)) return "closer_script";
       if (/payment|delivery|marketplace|follow|referral|seller|order|receipt|付款|送货|物流|官方|没人|亲友|售后/.test(combined)) return "ops_sop";
       if (/english|usage|faq|用法|英文|喝法|成分/.test(combined)) return "faq";
-      if (/handoff|low_context|flow|上下文|人工接手|转人工|轉人工/.test(combined)) return "flow_context_rule";
+      if (/handoff|low_context|flow|上下文|转人工回复|转人工|轉人工/.test(combined)) return "flow_context_rule";
       return "reply_rule";
     }
 
@@ -18878,7 +18929,7 @@
 	      if (/(audio|voice|语音|語音|音频|音訊)/.test(combined)) {
 	        return "回放测试：顾客只发语音/音频时，先要求客服补顾客问题摘要，不从人工回复倒推 FAQ 或接 Flow。";
 	      }
-	      if (artifactType === "faq") return "回放测试：用同一句顾客问题验证 FAQ 能回答完整；资料不足时人工接手。";
+	      if (artifactType === "faq") return "回放测试：用同一句顾客问题验证 FAQ 能回答完整；资料不足时转人工回复。";
       if (artifactType === "ops_sop") return "回放测试：用同类订单/付款/售后句子验证只能查记录或审款，不能承诺已安排。";
       if (artifactType === "flow_context_rule") return "回放测试：用短回复/上一句/emoji 验证 AI 会读上下文，不能脑补。";
       return "回放测试：用同类真实顾客句子重跑，确认 verdict 和下一步动作都正确。";
@@ -19141,7 +19192,7 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-	          setPanelBusy(true, action === "handoff" ? "人工接手中..." : action === "return_ai" ? "退回 AI 中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "人工发送中..." : action === "channel_reply_resolved" ? "记录中..." : action === "external_flow_continued" ? "移动中..." : "发送中...");
+	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
 	        }
         const isApproval = active?.source === "approval";
         const endpoint = action === "mark_purchase"
@@ -19190,7 +19241,7 @@
         const closer = closerVerdict(item);
         const approvalGuard = effectiveApprovalGuardForCase(item, closer);
         if (approvalGuard.blocked) {
-          alert(`这张 Case 不能直接批准：${closer.title}\n\n${closer.reason}\n\n请先人工接手、记录人工回复，或退回 AI。`);
+          alert(`这张 Case 不能直接批准：${closer.title}\n\n${closer.reason}\n\n请转人工回复，或让 AI 重写。`);
           return false;
         }
         if (!reply) {
@@ -19201,14 +19252,14 @@
       }
       if (action === "manual_send") {
         if (!reply) {
-          alert("回复框是空的，不能人工发送。请先写要发给顾客的完整回复。");
+          alert("回复框是空的。请先写要发给顾客的完整回复。");
           $("replyBox").focus();
           return false;
         }
       }
       if (state.demoMode) return true;
       if (action === "handoff") {
-        return window.confirm(`确认由人工接手 ${name}？\n\n这不会发送 AI 建议给顾客，会留下处理记录。`);
+        return window.confirm(`确认把 ${name} 转为人工回复？\n\n这一步不会发送 AI 草稿；请在回复框写好内容后点「回复并发送」。`);
       }
 	      if (action === "return_ai") {
 	        const closer = closerVerdict(item);
@@ -19230,7 +19281,7 @@
           ? `\n\n将保存人工最终回复：\n${manualReply.slice(0, 180)}${manualReply.length > 180 ? "..." : ""}`
           : "\n\n回复框为空：只记录已处理，不保存最终回复内容。";
 	        const completionPreview = completion.complete
-	          ? `\n\n复盘资料：\n人工接手原因：${completion.payload.handoff_reason}\n顾客结果：${completion.payload.customer_outcome}\n复盘备注：${completion.payload.learning_outcome_note}`
+	          ? `\n\n复盘资料：\n转人工回复原因：${completion.payload.handoff_reason}\n顾客结果：${completion.payload.customer_outcome}\n复盘备注：${completion.payload.learning_outcome_note}`
 	          : "";
 	        const learnabilityPreview = completion.payload?.learnability
 	          ? `\n学习判断：${learnabilityLabel(completion.payload.learnability)}`
@@ -19243,7 +19294,7 @@
 	            ? "\n\n这会同时生成一条待 Owner 审核的学习候选。"
 	            : "\n\n没有人工最终回复时，不会生成可直接学习的回复候选。";
         const actionLine = isManualFollowUp
-          ? "这会把人工接手后的最终人工回复补回 Dashboard。"
+          ? "这会把转人工回复后的最终人工回复补回 Dashboard。"
           : "系统不会发送 AI 建议，只会留下处理记录。";
 	        return window.confirm(`确认 ${name} 已经由客服人工处理？\n\n${actionLine}${preview}${completionPreview}${learnabilityPreview}${learningLine}`);
       }
@@ -19253,7 +19304,7 @@
 	        const emojiHint = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}❤❤️]/u.test(reply)
 	          ? ""
 	          : "\n\n语气提醒：可以保持亲切，适合时加 ❤️/😊/🙏，但付款、投诉、健康问题不要过度可爱。";
-	        return window.confirm(`确认由 Dashboard 人工发送给 ${name}？\n\n将真实发送：\n${preview}${reply.length > 180 ? "..." : ""}\n\n这不会触发 Flow；发送成功后会记录学习候选，Owner 审核后同类问题才会自动或少审核。\n\n复盘：${learning.handoff_reason}${emojiHint}`);
+	        return window.confirm(`确认从 Dashboard 回复 ${name}？\n\n将真实发送：\n${preview}${reply.length > 180 ? "..." : ""}\n\n这不会触发 Flow；发送成功后会记录学习候选，Owner 审核后同类问题才会自动或少审核。\n\n复盘：${learning.handoff_reason}${emojiHint}`);
 	      }
 	      const actionText = action === "learn" ? "发送，并标记同类以后少审核" : "发送给真实顾客";
 	      const preview = reply.slice(0, 180);
@@ -19304,12 +19355,12 @@
 	        return;
 	      }
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : state.active.status === "order" ? "确认已处理" : "发送给顾客";
-	      $("manualSendBtn").textContent = "人工发送";
+	      $("manualSendBtn").textContent = "回复并发送";
 	      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录人工回复";
 	      $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "已由人工回复";
 	      $("returnAiBtn").textContent = approvalGuard.blocked ? "让 AI 重写" : readOnly ? "已记录" : "让 AI 重写";
 	      $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(state.active, canResendPurchase);
-	      $("externalFlowRecordBtn").textContent = "移到自动记录";
+	      $("externalFlowRecordBtn").textContent = "标记为自动 Flow 已处理";
 	      updateExternalFlowButtonState(state.active);
 	    }
 
@@ -19345,13 +19396,13 @@
       }
       if (action === "handoff") {
         return {
-          reason: body.note || "客服选择人工接手，不发送 AI 建议。",
+          reason: body.note || "客服选择转人工回复，不发送 AI 建议。",
           user: state.session.displayName || roleName(state.role),
         };
       }
       if (action === "return_ai") {
         return {
-          reason: body.note || "客服退回 AI 重新生成，不发送当前建议。",
+          reason: body.note || "客服让 AI 重新生成，不发送当前建议。",
           rejectedBy: state.session.displayName || roleName(state.role),
           returnAi: true,
           skipExternalHandoff: true,
@@ -19426,7 +19477,7 @@
           customer_outcome: body.customer_outcome || "",
           learning_outcome_note: body.learning_outcome_note || "",
           learnability: body.learnability || "needs_owner",
-          note: body.note || "客服在 Dashboard 人工发送；发送后记录学习候选，Owner 审核后才应用。",
+          note: body.note || "客服在 Dashboard 回复并发送；发送后记录学习候选，Owner 审核后才应用。",
           user: state.session.displayName || roleName(state.role),
         };
       }
@@ -19472,7 +19523,7 @@
         record.latest_reply_sent = manualReplyText;
         record.final_human_reply = manualReplyText;
         record.manual_reply_text = manualReplyText;
-        record.handoff_reason = body.handoff_reason || record.handoff_reason || "演示：Dashboard 人工发送。";
+        record.handoff_reason = body.handoff_reason || record.handoff_reason || "演示：Dashboard 回复并发送。";
         record.customer_outcome = body.customer_outcome || record.customer_outcome || "已人工回复顾客。";
         record.learning_outcome_note = body.learning_outcome_note || record.learning_outcome_note || "演示：发送后记录学习候选。";
         record.learnability = normalizeLearnabilityDecision(body.learnability) || "needs_owner";
@@ -19481,9 +19532,9 @@
         record.history.push({
           type: "approved_sent_demo",
           at: now,
-          note: "演示：已人工发送，并记录学习候选；不会真的发 WhatsApp。",
+          note: "演示：已回复并发送，并记录学习候选；不会真的发 WhatsApp。",
         });
-        showToast("演示：已人工发送，并记录学习候选。");
+        showToast("演示：已回复并发送，并记录学习候选。");
       }
 
       if (action === "learn") {
@@ -19503,14 +19554,14 @@
         record.history.push({
           type: "marked_handoff_demo",
           at: now,
-          note: "演示：已人工接手。",
+          note: "演示：已转人工回复。",
         });
-        showToast("演示：已人工接手。");
+        showToast("演示：已转人工回复。");
       }
 
       if (action === "return_ai") {
         record.status = "rejected";
-        record.rejection_reason = body.note || "演示：退回 AI 重新生成。";
+        record.rejection_reason = body.note || "演示：让 AI 重新生成。";
         record.latest_decision = record.latest_decision || {};
         record.latest_decision.action = "ask_human";
         record.handoff_result = {
@@ -19524,7 +19575,7 @@
           at: now,
           note: record.rejection_reason,
         });
-        showToast("演示：已退回 AI，不会发送。");
+        showToast("演示：已让 AI 重写，不会发送。");
       }
 
       if (action === "manual_resolve") {
@@ -19659,7 +19710,7 @@
           </div>
         `;
       }
-      const empty = viewCopy(state.filter, { total: 0, needs: 0, approval: 0, human: 0, orders: 0, auto: 0, failed: 0 });
+      const empty = viewCopy(state.filter, { total: 0, needs: 0, approval: 0, human: 0, orders: 0, auto: 0, records: 0, failed: 0 });
       const title = state.query ? `找不到「${state.query}」` : empty.title;
       const body = state.query
         ? "试试看搜索顾客名字、电话号码、关键词，或先清空搜索。"
@@ -19667,6 +19718,8 @@
           ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。"
           : state.filter === "auto"
             ? `${queueDateScopeLabel()}没有自动记录；AI 已回复或外部流程已继续的 Case 会放在这里，只读复盘。`
+            : state.filter === "records"
+              ? `${queueDateScopeLabel()}没有处理记录；已发送、已转人工回复、已成交或失败的 Case 会放在这里，只读追踪。`
             : state.role === "staff"
               ? `${queueDateScopeLabel()}没有待处理顾客；有新讯息或需要人工的 Case 会显示在这里。`
               : "确认顾客讯息入口已经连接，然后用真实 WhatsApp 发一条测试消息。";
@@ -19743,14 +19796,14 @@
 
     function statusLabel(status, risk) {
       if (status === "approval_required") return "待批准";
-      if (status === "human_required") return "要人工接手";
-      if (status === "handoff_done") return "已人工接手";
-      if (status === "returned_to_ai") return "已退回 AI";
+      if (status === "human_required") return "人工回复";
+      if (status === "handoff_done") return "待补人工结果";
+      if (status === "returned_to_ai") return "AI 重写中";
       if (status === "manual_resolved") return "已手动回复";
       if (status === "purchase_confirmed") return "已成交";
       if (status === "order") return "订单";
-      if (status === "auto") return "自动";
-      if (status === "external_flow_continued") return "外部已处理";
+      if (status === "auto") return "自动 Flow";
+      if (status === "external_flow_continued") return "自动 Flow 已处理";
       if (status === "auto_sent") return "已自动回复";
       if (status === "sent") return "已发送";
       if (status === "sending") return "发送中";
@@ -19765,20 +19818,20 @@
         send_reply: "发送给顾客",
         auto_reply: "AI 自动回复",
         approve_reply: "发送给顾客",
-        ask_human: "人工接手",
-        handoff_done: "已人工接手",
+        ask_human: "人工回复",
+        handoff_done: "待补人工结果",
         collect_order: "收订单",
         review_receipt: "审核付款",
         mark_purchase: "确认成交",
         trigger_flow: "进 Step 1",
         approve: "发送给顾客",
         learn: "建立自动规则",
-        handoff: "人工接手",
+        handoff: "转人工回复",
 	        return_ai: "让 AI 重写",
 	        manual_resolve: "记录人工回复",
-	        manual_send: "人工发送",
+	        manual_send: "回复并发送",
 	        channel_reply_resolved: "已由人工回复",
-	        external_flow_continued: "移到自动记录",
+	        external_flow_continued: "自动 Flow 已处理",
 	        mark_purchase_action: "确认成交",
         mark_seen: "标记已看",
         wait: "等待",
