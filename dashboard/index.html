@@ -8843,7 +8843,9 @@
       if (!options.silent) renderInboxView();
       if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = true;
       try {
-        const params = new URLSearchParams({ limit: "100", scan_limit: "1600" });
+        // Keep the staff Inbox broad enough that a broadcast burst cannot hide
+        // ordinary live conversations from the default view.
+        const params = new URLSearchParams({ limit: "300", scan_limit: "600" });
         if (query) params.set("q", query);
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${params.toString()}`;
         const res = await fetch(endpoint, authRequestOptions(token));
