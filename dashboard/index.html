@@ -6022,6 +6022,16 @@
       gap: 8px;
     }
 
+    .inbox-load-more {
+      display: flex;
+      justify-content: center;
+      min-height: 40px;
+    }
+
+    .inbox-load-more .btn {
+      min-width: 180px;
+    }
+
     .inbox-conversation-card {
       display: grid;
       gap: 10px;
@@ -6267,6 +6277,7 @@
           </div>
           <div class="inbox-summary-strip" id="inboxSummaryStrip"></div>
           <div class="inbox-conversation-list" id="inboxConversationList"></div>
+          <div class="inbox-load-more" id="inboxLoadMore"></div>
         </div>
       </section>
       <section class="workspace-view hidden" id="operationsView" aria-label="运营设置"></section>
@@ -6555,9 +6566,14 @@
       inboxConversations: [],
       inboxSummary: {},
       inboxQuery: "",
+      inboxAppliedQuery: "",
+      inboxOffset: 0,
+      inboxNextOffset: null,
+      inboxHasMore: false,
       inboxSearchTimer: null,
       inboxRequestSeq: 0,
       inboxLoading: false,
+      inboxLoadingMore: false,
       inboxError: "",
       inboxUpdatedAt: "",
       filter: "needs_attention",
@@ -6647,6 +6663,7 @@
     const caseNextDateEl = $("caseNextDate");
     const inboxSearchEl = $("inboxSearch");
     const inboxRefreshBtnEl = $("inboxRefreshBtn");
+    const inboxLoadMoreEl = $("inboxLoadMore");
     const todayISO = localDateIso();
 
     const DEMO_SCENARIOS = {
@@ -6993,12 +7010,12 @@
         renderInboxView();
         if (state.inboxSearchTimer) clearTimeout(state.inboxSearchTimer);
         state.inboxSearchTimer = setTimeout(() => {
-          loadInboxConversations({ silent: true, query: state.inboxQuery });
+          loadInboxConversations({ silent: true, query: state.inboxQuery, reset: true });
         }, 350);
       });
     }
     if (inboxRefreshBtnEl) {
-      inboxRefreshBtnEl.addEventListener("click", () => loadInboxConversations());
+      inboxRefreshBtnEl.addEventListener("click", () => loadInboxConversations({ reset: true }));
     }
 
     $("gridView").addEventListener("click", () => setView("grid"));
@@ -8828,24 +8845,37 @@
       const token = adminTokenEl.value.trim();
       const requestSeq = ++state.inboxRequestSeq;
       const query = String(options.query !== undefined ? options.query : state.inboxQuery || "").trim();
+      const append = options.append === true && !query && Number.isFinite(Number(state.inboxNextOffset));
+      const preserveLoaded = options.preserveLoaded === true && !query && !append && state.inboxConversations.length > 0;
+      const requestedOffset = append ? Math.max(0, Number(state.inboxNextOffset)) : 0;
       const hasAuth = Boolean(token || hasAccountSession());
       if (!api || !hasAuth || state.demoMode) {
         state.inboxConversations = [];
         state.inboxSummary = {};
+        state.inboxAppliedQuery = "";
+        state.inboxOffset = 0;
+        state.inboxNextOffset = null;
+        state.inboxHasMore = false;
         state.inboxLoading = false;
+        state.inboxLoadingMore = false;
         state.inboxError = hasAuth ? "" : "请先登录。";
         renderInboxView();
         return;
       }
 
-      state.inboxLoading = true;
+      const priorConversations = state.inboxConversations;
+      const priorNextOffset = state.inboxNextOffset;
+      const priorHasMore = state.inboxHasMore;
+      state.inboxLoading = !append;
+      state.inboxLoadingMore = append;
       state.inboxError = "";
       if (!options.silent) renderInboxView();
       if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = true;
       try {
         // Keep the staff Inbox broad enough that a broadcast burst cannot hide
-        // ordinary live conversations from the default view.
-        const params = new URLSearchParams({ limit: "300", scan_limit: "600" });
+        // ordinary live conversations from the default view. Pagination keeps
+        // the same lookup usable when the project grows beyond this page.
+        const params = new URLSearchParams({ limit: "300", scan_limit: "600", offset: String(requestedOffset) });
         if (query) params.set("q", query);
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${params.toString()}`;
         const res = await fetch(endpoint, authRequestOptions(token));
@@ -8853,8 +8883,24 @@
         if (res.status === 401 && state.role === "staff" && redirectStaffToLogin({ clearSession: true })) return;
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         if (requestSeq !== state.inboxRequestSeq) return;
-        state.inboxConversations = Array.isArray(data.items) ? data.items : [];
-        state.inboxSummary = data.counts || {};
+        const incoming = Array.isArray(data.items) ? data.items : [];
+        state.inboxConversations = append || preserveLoaded
+          ? mergeInboxConversationPages(incoming, priorConversations)
+          : incoming;
+        state.inboxSummary = inboxConversationCounts(state.inboxConversations);
+        state.inboxAppliedQuery = query;
+        state.inboxOffset = requestedOffset;
+        const nextOffset = Number(data.next_offset);
+        if (preserveLoaded) {
+          const offsets = [priorNextOffset, Number.isFinite(nextOffset) ? nextOffset : null]
+            .filter((value) => Number.isFinite(Number(value)) && Number(value) >= 0)
+            .map(Number);
+          state.inboxNextOffset = offsets.length ? Math.max(...offsets) : null;
+          state.inboxHasMore = Boolean(data.has_more || priorHasMore);
+        } else {
+          state.inboxNextOffset = Boolean(data.has_more) && Number.isFinite(nextOffset) ? nextOffset : null;
+          state.inboxHasMore = Boolean(data.has_more) && state.inboxNextOffset !== null;
+        }
         state.inboxUpdatedAt = new Date().toISOString();
         state.inboxError = "";
       } catch (error) {
@@ -8863,6 +8909,7 @@
       } finally {
         if (requestSeq !== state.inboxRequestSeq) return;
         state.inboxLoading = false;
+        state.inboxLoadingMore = false;
         if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = false;
         renderInboxView();
       }
@@ -8875,7 +8922,7 @@
 	    if (state.role !== "staff" || !apiUrlEl.value.trim() || (!adminTokenEl.value.trim() && !hasAccountSession())) return;
 	    Promise.all([
 	      loadCases({ silent: true, refreshActive: true, preserveSelection: true }),
-	      loadInboxConversations({ silent: true }),
+	      loadInboxConversations({ silent: true, preserveLoaded: true }),
 	    ]).catch(() => null);
 	  }, 20000);
 	}
@@ -10026,20 +10073,23 @@
 
       const query = String(state.inboxQuery || "").trim().toLowerCase();
       const all = Array.isArray(state.inboxConversations) ? state.inboxConversations : [];
+      const serverSearchCurrent = Boolean(query && state.inboxAppliedQuery === String(state.inboxQuery || "").trim());
       const visible = all
-        .filter((item) => !query || inboxConversationSearchHaystack(item).includes(query))
+        .filter((item) => serverSearchCurrent || !query || inboxConversationSearchHaystack(item).includes(query))
         .sort((a, b) => new Date(b.latest_at || 0) - new Date(a.latest_at || 0));
-      const counts = state.inboxSummary || {};
+      const counts = inboxConversationCounts(all);
+      const loadedCount = `${all.length}${state.inboxHasMore ? "+" : ""}`;
 
       updated.textContent = state.inboxUpdatedAt
-        ? `更新于 ${formatDate(state.inboxUpdatedAt)}`
+        ? `已加载 ${loadedCount} 条 · 更新于 ${formatDate(state.inboxUpdatedAt)}`
         : state.inboxLoading ? "正在同步" : "等待同步";
       summary.innerHTML = [
-        [counts.total ?? all.length, "全部对话"],
-        [counts.needs_attention ?? all.filter((item) => item.requires_attention).length, "要处理"],
-        [counts.customer_latest ?? all.filter((item) => item.latest_direction === "customer").length, "顾客最后发"],
-        [counts.outbound_latest ?? all.filter((item) => item.latest_direction === "agent").length, "客服 / Flow 最后发"],
+        [counts.total, "全部对话"],
+        [counts.needs_attention, "要处理"],
+        [counts.customer_latest, "顾客最后发"],
+        [counts.outbound_latest, "客服 / Flow 最后发"],
       ].map(([value, label]) => `<div class="inbox-summary-item"><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span></div>`).join("");
+      renderInboxLoadMore(query, visible.length);
 
       if (state.inboxLoading && !all.length) {
         list.innerHTML = `<div class="box"><h3>正在读取最新讯息</h3></div>`;
@@ -10062,6 +10112,44 @@
           openInboxCase(button.dataset.inboxCaseId, button.dataset.inboxAttention === "1");
         });
       });
+    }
+
+    function renderInboxLoadMore(query = "", displayedCount = 0) {
+      if (!inboxLoadMoreEl) return;
+      if (query || !state.inboxHasMore) {
+        inboxLoadMoreEl.innerHTML = "";
+        return;
+      }
+      const error = state.inboxError
+        ? `<span class="subtitle">${escapeHtml(state.inboxError)}</span>`
+        : "";
+      inboxLoadMoreEl.innerHTML = `
+        ${error}
+        <button class="btn" id="inboxLoadMoreButton" type="button" ${state.inboxLoadingMore ? "disabled" : ""}>
+          ${state.inboxLoadingMore ? "正在加载..." : `加载更多（已显示 ${escapeHtml(displayedCount)} 条）`}
+        </button>`;
+      const button = $("inboxLoadMoreButton");
+      if (button) button.addEventListener("click", () => loadInboxConversations({ append: true }));
+    }
+
+    function mergeInboxConversationPages(incoming = [], existing = []) {
+      const byConversationId = new Map();
+      [...(incoming || []), ...(existing || [])].forEach((item) => {
+        const key = String(item?.conversation_id || item?.id || "").trim();
+        if (!key || byConversationId.has(key)) return;
+        byConversationId.set(key, item);
+      });
+      return [...byConversationId.values()].sort((a, b) => new Date(b.latest_at || 0) - new Date(a.latest_at || 0));
+    }
+
+    function inboxConversationCounts(items = []) {
+      return (items || []).reduce((counts, item) => {
+        counts.total += 1;
+        if (item?.requires_attention) counts.needs_attention += 1;
+        if (item?.latest_direction === "customer") counts.customer_latest += 1;
+        if (item?.latest_direction === "agent") counts.outbound_latest += 1;
+        return counts;
+      }, { total: 0, needs_attention: 0, customer_latest: 0, outbound_latest: 0 });
     }
 
     function inboxConversationCardHtml(item = {}) {
