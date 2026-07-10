@@ -7144,6 +7144,14 @@
         return;
       }
 
+      const ownerDecisionSubmit = event.target.closest("[data-submit-owner-decision]");
+      if (ownerDecisionSubmit) {
+        event.preventDefault();
+        event.stopPropagation();
+        submitOwnerDecision(ownerDecisionSubmit.dataset.submitOwnerDecision);
+        return;
+      }
+
       const ownerDecisionDrafts = event.target.closest("[data-copy-owner-decision-drafts]");
       if (ownerDecisionDrafts) {
         event.preventDefault();
@@ -12140,7 +12148,7 @@
 	        <section class="command-panel owner-completion-gate" id="ownerDecisionCompletionGatePanel" data-owner-nav aria-label="Owner 完成检查">
 	          <div class="command-kicker">Owner 完成检查</div>
 		          <strong class="command-title">${context.readyForPreview ? "Owner 决定已齐，可做学习预览" : `还差 ${context.pendingCount} 个决定`}</strong>
-		          <p class="command-copy">这块只告诉老板还差什么；待决定归 0 才能生成学习预览。它不会发送 WhatsApp、不会写业务脑、不会开启自动。</p>
+	          <p class="command-copy">这块只告诉老板还差什么；选定后可直接记录 Owner 决定，待决定归 0 才能生成学习预览。记录决定不会发送 WhatsApp、不会写业务脑、不会开启自动。</p>
 	          <div class="compact-list">
 		            ${compactRow("Owner 决定", `${context.pendingCount}/${context.totalCount} 待决定`, context.pendingCount ? "未完成" : "完成")}
 		            ${compactRow("安全红线", `${context.p0PendingCount} 条未审`, context.p0PendingCount ? "先审" : "OK")}
@@ -12281,7 +12289,7 @@
 	        <section class="command-panel accent" id="ownerDecisionFastReviewPanel" data-owner-nav aria-label="Owner 快审工作台">
 	          <div class="command-kicker">Owner 快审工作台</div>
 	          <strong class="command-title">先审安全红线，再决定能不能学</strong>
-	          <p class="command-copy">Suggested decision 不是正式批准。复制决定草稿后，Owner 仍要填回 decision template；这里不会发送 WhatsApp、不会写业务脑、不会开启自动。</p>
+	          <p class="command-copy">Suggested decision 不是正式批准。先选一项、补齐必要说明，再点「记录 Owner 决定」；复制草稿只作复核备份。记录决定不会发送 WhatsApp、不会写业务脑、不会开启自动。</p>
 	          <div class="compact-list">
 	            ${compactRow("待审候选", `${pendingCount}/${allCards.length} 待决定`, sourceLabel)}
 		            ${compactRow("安全红线", `${p0Count} 条售后/付款优先`, p0Count ? "先审" : "无")}
@@ -12306,9 +12314,10 @@
 	                <span>${escapeHtml(`建议：${card.decisionLabel}｜必填：${card.requiredFields.join("、")}`)}</span>
 		                <span>${escapeHtml(`先检查：${card.ownerShouldCheck || ownerDecisionReviewCheck(card)}`)}</span>
 		                <span>${escapeHtml(`回放：${card.replayTest}`)}</span>
-		                <small>${escapeHtml(`${card.artifactLabel}｜${Number(card.count || 0)} 次｜样本 ${card.sourceCaseIds?.length || 0}｜只复制预览`)}</small>
-		                ${ownerDecisionChoiceButtonsHtml(card)}
-		                <button class="quick-action" type="button" data-copy-owner-decision="${escapeHtml(card.id)}">复制系统建议草稿</button>
+	                <small>${escapeHtml(`${card.artifactLabel}｜${Number(card.count || 0)} 次｜样本 ${card.sourceCaseIds?.length || 0}｜记录决定不会写业务脑`)}</small>
+	                ${ownerDecisionChoiceButtonsHtml(card)}
+	                ${ownerDecisionSubmitButtonHtml(card)}
+	                <button class="quick-action" type="button" data-copy-owner-decision="${escapeHtml(card.id)}">复制系统建议草稿</button>
 		              </div>
 	            `).join("")}
 	          </div>
@@ -12364,7 +12373,7 @@
 	        <section class="command-panel" id="owner${escapeHtml(priority)}DecisionBatchPanel" data-owner-nav aria-label="Owner ${escapeHtml(priority)} 决策批次">
 		          <div class="command-kicker">${escapeHtml(ownerDecisionPriorityLabel(priority))}批次</div>
 	          <strong class="command-title">${escapeHtml(title)}</strong>
-		          <p class="command-copy">这一批只生成复制草稿；Owner 仍要填回决定模板。先完成安全红线，才有资格让红线从 3 往 0 走。</p>
+	          <p class="command-copy">每张卡都可在 Dashboard 记录 Owner 决定；复制草稿只作复核备份。先完成安全红线，才有资格让红线从 3 往 0 走。</p>
 	          <div class="compact-list">
 		            ${compactRow("数量", `${cards.length} 条待决定`, badge || ownerDecisionPriorityLabel(priority))}
 		            ${compactRow("建议决定", ownerDecisionBatchDecisionMix(cards), "复核")}
@@ -12380,9 +12389,10 @@
 	                ${ownerDecisionOutcomeEvidenceHtml(card)}
 	                <span>${escapeHtml(`先检查：${card.ownerShouldCheck || ownerDecisionReviewCheck(card)}`)}</span>
 		                <span>${escapeHtml(`不能做：${(card.mustNotDo || []).slice(0, 4).join("、")}`)}</span>
-		                <small>${escapeHtml(`必填：${(card.requiredFields || []).join("、")}｜${ownerDecisionKpisHelped(card).join("、")}`)}</small>
-		                ${ownerDecisionChoiceButtonsHtml(card, { compact: true })}
-		              </div>
+	                <small>${escapeHtml(`必填：${(card.requiredFields || []).join("、")}｜${ownerDecisionKpisHelped(card).join("、")}`)}</small>
+	                ${ownerDecisionChoiceButtonsHtml(card, { compact: true })}
+	                ${ownerDecisionSubmitButtonHtml(card, { compact: true })}
+	              </div>
 	            `).join("")}
 	          </div>
 	          <button class="quick-action" type="button" data-copy-owner-decision-batch="${escapeHtml(priority)}">复制 ${escapeHtml(ownerDecisionPriorityLabel(priority))}批次草稿</button>
@@ -12394,8 +12404,8 @@
 		      return Array.isArray(state.ownerReviewWorkbench?.decision_cards) && state.ownerReviewWorkbench.decision_cards.length > 0;
 		    }
 
-		    function ownerDecisionChoiceButtonsHtml(card = {}, options = {}) {
-		      const selectedDecision = ownerDecisionDraftForCard(card.id)?.decision || "";
+	    function ownerDecisionChoiceButtonsHtml(card = {}, options = {}) {
+	      const selectedDecision = ownerDecisionDraftForCard(card.id)?.decision || "";
 		      const choices = [
 		        { decision: "approve_as_is", label: "批准", tone: "good" },
 		        { decision: "approve_with_edits", label: "批准但改", tone: "warn" },
@@ -12418,10 +12428,31 @@
 		            return `<button class="${escapeHtml(classes)}" type="button" data-copy-owner-decision-choice="${escapeHtml(card.id)}" data-decision-choice="${escapeHtml(choice.decision)}" title="选择并复制 ${escapeHtml(choice.decision)} 草稿；必填：${escapeHtml(fields)}">${escapeHtml(options.compact && !recommended && !selected ? choice.label : `${choice.label}${selected ? "（已选）" : recommended ? "（建议）" : ""}`)}</button>`;
 		          }).join("")}
 		        </div>
-		      `;
-		    }
+	      `;
+	    }
 
-		    function ownerDecisionCardsForDashboard(recommendations = []) {
+	    function ownerDecisionSubmitButtonHtml(card = {}, options = {}) {
+	      if (!card.workbenchSource) return "";
+	      const currentDecision = String(card.ownerDecisionCurrent || "pending");
+	      if (currentDecision !== "pending") {
+	        const owner = String(card.ownerName || card.source?.owner_name || "Owner").trim();
+	        const at = String(card.decisionAt || card.source?.decision_at || "").trim();
+	        const when = at ? `｜${ownerDecisionObservedSentAtLabel(at)}` : "";
+	        return `<small class="owner-outcome-observation">已记录 Owner 决定：${escapeHtml(ownerDecisionShortLabel(currentDecision))}｜${escapeHtml(owner)}${escapeHtml(when)}。尚未写业务脑、不会发送讯息。</small>`;
+	      }
+	      const selectedDecision = ownerDecisionAllowedDecision(ownerDecisionDraftForCard(card.id)?.decision || "");
+	      const selectedLabel = selectedDecision ? ownerDecisionShortLabel(selectedDecision) : "先选择决定";
+	      const disabled = !selectedDecision || state.actionBusy;
+	      const compactClass = options.compact ? " compact" : "";
+	      return `
+	        <div class="quick-actions owner-decision-record${compactClass}">
+	          <button class="quick-action primary" type="button" data-submit-owner-decision="${escapeHtml(card.id)}" ${disabled ? "disabled" : ""}>记录 Owner 决定：${escapeHtml(selectedLabel)}</button>
+	          <small>只记录审核；不发送、不接 Flow、不写业务脑。</small>
+	        </div>
+	      `;
+	    }
+
+	    function ownerDecisionCardsForDashboard(recommendations = []) {
 		      if (ownerDecisionUsingWorkbench()) {
 		        return ownerDecisionReviewCardsFromWorkbench(state.ownerReviewWorkbench.decision_cards);
 		      }
@@ -12464,11 +12495,19 @@
 		          sourceCaseIds,
 		          customerOutcome: item.customer_outcome || "",
 		          customerOutcomeSource: item.customer_outcome_source || "",
-		          outcomeObservation: item.outcome_observation || null,
-		          evidenceComplete: item.evidence_complete === true,
-		          mustNotDo: Array.isArray(item.must_not_do) ? item.must_not_do : ownerDecisionDefaultMustNotDo(item, {}),
-		          ownerDecisionCurrent: item.owner_decision_current || "pending",
-		          safeApprovalHint: item.safe_approval_hint || "",
+	          outcomeObservation: item.outcome_observation || null,
+	          evidenceComplete: item.evidence_complete === true,
+	          mustNotDo: Array.isArray(item.must_not_do) ? item.must_not_do : ownerDecisionDefaultMustNotDo(item, {}),
+	          ownerDecisionCurrent: item.owner_decision_current || "pending",
+	          ownerDecision: item.owner_decision || null,
+	          ownerName: item.owner_name || item.owner_decision?.owner_name || "",
+	          decisionAt: item.decision_at || item.owner_decision?.decision_at || "",
+	          ownerDecisionRecordedAt: item.owner_decision_recorded_at || item.owner_decision?.recorded_at || "",
+	          editedRule: item.edited_rule || item.owner_decision?.edited_rule || "",
+	          editedReply: item.edited_reply || item.owner_decision?.edited_reply || "",
+	          rejectReason: item.reject_reason || item.owner_decision?.reject_reason || "",
+	          evidenceRequest: item.evidence_request || item.owner_decision?.evidence_request || "",
+	          safeApprovalHint: item.safe_approval_hint || "",
 		          workbenchSource: true,
 		        });
 		      });
@@ -13365,6 +13404,118 @@
       }
       fallbackCopy(text, finish);
     }
+
+	    async function submitOwnerDecision(decisionId = "") {
+	      if (state.role === "staff" || state.actionBusy) return;
+	      const cards = ownerDecisionCardsForDashboard(Array.isArray(state.handoffLearningReview?.recommendations) ? state.handoffLearningReview.recommendations : []);
+	      const card = cards.find((item) => String(item.id || "").trim() === String(decisionId || "").trim());
+	      if (!card || !card.workbenchSource) {
+	        showToast("这条候选没有连接到真实 Owner 审核记录。请刷新后再试。");
+	        return;
+	      }
+	      if (String(card.ownerDecisionCurrent || "pending") !== "pending") {
+	        showToast("这条 Owner 决定已经记录过了。它仍未自动写入业务脑。");
+	        return;
+	      }
+	      const decision = ownerDecisionAllowedDecision(ownerDecisionDraftForCard(card.id)?.decision || "");
+	      if (!decision) {
+	        showToast("先选择「批准 / 批准但改 / 要证据 / 拒绝」其中一个决定。");
+	        return;
+	      }
+	      const extra = ownerDecisionRequiredInput(card, decision);
+	      if (!extra) return;
+	      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+	      const project = projectKeyEl.value.trim() || "beyoute";
+	      if (!api || (!adminTokenEl.value.trim() && !hasAccountSession())) {
+	        showToast("请先用 Owner 管理员账号登录真实 Dashboard，才可记录决定。");
+	        return;
+	      }
+	      const decisionLabel = ownerDecisionShortLabel(decision);
+	      const confirmed = window.confirm(
+	        `确认记录 Owner 决定：${decisionLabel}？\n\n`
+	        + `候选：${card.title || card.id}\n\n`
+	        + "这一步只保存审核记录：不会发送 WhatsApp、不会触发 Flow、不会写入业务脑、不会改变自动开关。\n"
+	        + "业务脑应用和自动化签核仍需单独完成。"
+	      );
+	      if (!confirmed) return;
+
+	      state.actionBusy = true;
+	      render();
+	      try {
+	        const response = await fetch(`${api}/api/hermas/projects/${encodeURIComponent(project)}/owner-review-decisions`, authRequestOptions(adminTokenEl.value.trim(), {
+	          method: "POST",
+	          headers: { "content-type": "application/json" },
+	          body: JSON.stringify({
+	            decision_id: card.id,
+	            candidate_id: card.sourceRecommendationId || "",
+	            source_case_ids: Array.isArray(card.sourceCaseIds) ? card.sourceCaseIds : [],
+	            decision,
+	            owner_name: state.session.displayName || roleName(state.role),
+	            decision_at: new Date().toISOString(),
+	            ...extra
+	          })
+	        }));
+	        const result = await response.json().catch(() => ({}));
+	        if (!response.ok || result.ok === false || result.recorded !== true) {
+	          throw new Error(result.error || result.message || result.next || `HTTP ${response.status}`);
+	        }
+	        delete state.ownerDecisionDrafts[String(card.id || "")];
+	        addAuditEvent("owner_decision_recorded", `${card.priority || "P?"} ${card.title || card.id}：${decision}`);
+	        await loadOwnerAdminSummaries(adminTokenEl.value.trim());
+	        showToast(`已记录「${decisionLabel}」。尚未写业务脑，也没有发送任何讯息。`);
+	      } catch (error) {
+	        alert(`记录 Owner 决定失败：${error.message}`);
+	      } finally {
+	        state.actionBusy = false;
+	        render();
+	      }
+	    }
+
+	    function ownerDecisionRequiredInput(card = {}, decision = "") {
+	      if (decision === "approve_as_is") return {};
+	      if (decision === "approve_with_edits") {
+	        const editedRule = window.prompt(
+	          "请写修改后的规则。这里只记录给后续回放/业务脑审核，不会自动应用。",
+	          String(card.editedRule || card.proposedRule || "").trim()
+	        );
+	        if (editedRule === null) return null;
+	        const editedReply = window.prompt(
+	          "请写修改后的示例回复。它不会发送给顾客。",
+	          String(card.editedReply || card.proposedReply || "").trim()
+	        );
+	        if (editedReply === null) return null;
+	        if (!editedRule.trim() || !editedReply.trim()) {
+	          showToast("「批准但改」必须同时填写修改后的规则和示例回复。");
+	          return null;
+	        }
+	        return { edited_rule: editedRule.trim(), edited_reply: editedReply.trim() };
+	      }
+	      if (decision === "reject") {
+	        const rejectReason = window.prompt(
+	          "请写拒绝原因，方便以后复盘。",
+	          String(card.rejectReason || card.rejectIf || "").trim()
+	        );
+	        if (rejectReason === null) return null;
+	        if (!rejectReason.trim()) {
+	          showToast("「拒绝」必须写明原因。");
+	          return null;
+	        }
+	        return { reject_reason: rejectReason.trim() };
+	      }
+	      if (decision === "needs_more_evidence") {
+	        const evidenceRequest = window.prompt(
+	          "请写需要补什么资料。",
+	          String(card.evidenceRequest || "请补顾客原话、上一段 Flow、AI 草稿、人工最终回复和结果。").trim()
+	        );
+	        if (evidenceRequest === null) return null;
+	        if (!evidenceRequest.trim()) {
+	          showToast("「要证据」必须写明需要补的资料。");
+	          return null;
+	        }
+	        return { evidence_request: evidenceRequest.trim() };
+	      }
+	      return null;
+	    }
 
 	    function recordOwnerDecisionDraft(card = {}) {
 	      const id = String(card.id || "").trim();
