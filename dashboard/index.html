@@ -4581,6 +4581,45 @@
       font-weight: 850;
     }
 
+    .bubble-text + .bubble-media,
+    .bubble-media + .bubble-state {
+      margin-top: 8px;
+    }
+
+    .bubble-media {
+      display: grid;
+      gap: 8px;
+      width: min(100%, 520px);
+    }
+
+    .bubble-media img,
+    .bubble-media video {
+      display: block;
+      width: auto;
+      max-width: 100%;
+      max-height: 360px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #111;
+      object-fit: contain;
+    }
+
+    .bubble-media audio {
+      display: block;
+      width: min(100%, 420px);
+      min-height: 40px;
+    }
+
+    .bubble-file-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      color: #066a64;
+      font-weight: 850;
+      text-decoration: underline;
+      overflow-wrap: anywhere;
+    }
+
     textarea {
       width: 100%;
       min-height: 132px;
@@ -9152,12 +9191,13 @@
             message_at: firstContextText(message?.message_at, message?.at, message?.created_at, message?.timestamp),
             status: message?.status || "",
             provider_status: providerStatus || "",
-            delivery_status: providerStatus || "",
-            delivery_cancelled: deliveryCancelled,
-            cancel_reason: deliveryCancelled ? cancelReason || providerStatus : "",
-          };
-        })
-        .filter((message) => message.text || /attachment|image|photo|file|audio|voice/i.test(message.type));
+	            delivery_status: providerStatus || "",
+	            delivery_cancelled: deliveryCancelled,
+	            cancel_reason: deliveryCancelled ? cancelReason || providerStatus : "",
+	            attachments: dashboardContextAttachments(message),
+	          };
+	        })
+	        .filter((message) => message.text || message.attachments.length || /attachment|image|photo|file|audio|voice|video/i.test(message.type));
     }
 
     function latestInboundContextMessage(messages = []) {
@@ -9165,7 +9205,7 @@
         .filter((message) => {
           const direction = String(message.direction || message.role || "").toLowerCase();
           if (direction === "outbound" || direction === "agent" || direction === "assistant" || direction === "bot") return false;
-          return Boolean(firstContextText(message.text)) || /attachment|image|photo|file|audio|voice/i.test(String(message.type || ""));
+	          return Boolean(firstContextText(message.text)) || dashboardContextAttachments(message).length > 0 || /attachment|image|photo|file|audio|voice|video/i.test(String(message.type || ""));
         })
         .sort((a, b) => new Date(a.at || a.message_at || 0) - new Date(b.at || b.message_at || 0))
         .at(-1) || null;
@@ -14258,7 +14298,7 @@
         const cancelledLabel = cancelled
           ? `<span class="bubble-state">未发送 · 顾客回复后 ChatDaddy 自动取消</span>`
           : "";
-        return `<div class="bubble ${klass}">${escapeHtml(messageDisplayText(msg))}${cancelledLabel}</div>`;
+        return `<div class="bubble ${klass}">${messageBubbleContentHtml(msg)}${cancelledLabel}</div>`;
       }).join("") + (!readOnly && !hasOutbound && contextTextValue(decision.reply_message) ? `<div class="bubble out">${escapeHtml(contextTextValue(decision.reply_message))}</div>` : "");
 
       $("panelWords").innerHTML = (item.word_cloud || []).map(localizedWord).filter(Boolean).map((word, index) => {
@@ -14957,8 +14997,85 @@
 	      );
 	      if (text) return text;
 	      const typeText = firstContextText(message.type, message.message_type, message.messageType, message.mime_type, message.mimeType);
-	      const detail = firstContextText(message.filename, message.file_name, message.fileName, message.url, message.media_url, message.mediaUrl);
+	      const firstAttachment = dashboardContextAttachments(message)[0] || {};
+	      const detail = firstContextText(message.filename, message.file_name, message.fileName, message.url, message.media_url, message.mediaUrl, firstAttachment.name, firstAttachment.url);
 	      return attachmentDisplayLabel(typeText, detail) || "";
+	    }
+
+	    function dashboardContextAttachments(message = {}) {
+	      const arrays = [
+	        message.attachments,
+	        message.content?.attachments,
+	        message.payload?.attachments,
+	        message.data?.attachments,
+	      ].filter(Array.isArray);
+	      const candidates = arrays.flatMap((items) => items || []);
+	      const directUrl = firstContextText(message.url, message.media_url, message.mediaUrl, message.file_url, message.fileUrl);
+	      if (directUrl) {
+	        candidates.push({
+	          url: directUrl,
+	          type: firstContextText(message.type, message.message_type, message.messageType, message.mime_type, message.mimeType),
+	          name: firstContextText(message.filename, message.file_name, message.fileName),
+	        });
+	      }
+	      const seen = new Set();
+	      return candidates.map((item) => {
+	        if (typeof item === "string") return { url: item, type: "attachment", name: "" };
+	        return {
+	          url: firstContextText(item?.url, item?.link, item?.media_url, item?.mediaUrl, item?.file_url, item?.fileUrl),
+	          type: firstContextText(item?.type, item?.message_type, item?.messageType, item?.mime_type, item?.mimeType),
+	          name: firstContextText(item?.name, item?.filename, item?.file_name, item?.fileName),
+	        };
+	      }).filter((item) => {
+	        const safeUrl = safeDashboardMediaUrl(item.url);
+	        if (!safeUrl) return false;
+	        item.url = safeUrl;
+	        const key = `${safeUrl}|${String(item.type || "").toLowerCase()}`;
+	        if (seen.has(key)) return false;
+	        seen.add(key);
+	        return true;
+	      });
+	    }
+
+	    function safeDashboardMediaUrl(value = "") {
+	      try {
+	        const parsed = new URL(String(value || "").trim(), window.location.href);
+	        return ["https:", "http:"].includes(parsed.protocol) ? parsed.href : "";
+	      } catch (_error) {
+	        return "";
+	      }
+	    }
+
+	    function dashboardAttachmentKind(attachment = {}, message = {}) {
+	      const combined = `${attachment.type || ""} ${attachment.name || ""} ${attachment.url || ""} ${message.type || ""} ${message.message_type || ""}`.toLowerCase();
+	      if (/image|photo|picture|jpeg|jpg|png|webp|gif|receipt|screenshot/.test(combined)) return "image";
+	      if (/audio|voice|ogg|mpeg|mp3|m4a|wav/.test(combined)) return "audio";
+	      if (/video|mp4|mov|webm/.test(combined)) return "video";
+	      return "file";
+	    }
+
+	    function messageMediaHtml(message = {}) {
+	      const attachments = dashboardContextAttachments(message);
+	      if (!attachments.length) return "";
+	      return `<div class="bubble-media">${attachments.map((attachment) => {
+	        const url = escapeHtml(attachment.url);
+	        const label = escapeHtml(attachment.name || attachmentDisplayLabel(attachment.type, attachment.url) || "打开附件");
+	        const kind = dashboardAttachmentKind(attachment, message);
+	        if (kind === "image") return `<a href="${url}" target="_blank" rel="noopener noreferrer" aria-label="打开图片原图"><img src="${url}" alt="${label || "顾客图片"}" loading="lazy" /></a>`;
+	        if (kind === "audio") return `<audio controls preload="none" src="${url}" aria-label="播放顾客语音"></audio>`;
+	        if (kind === "video") return `<video controls playsinline preload="metadata" src="${url}" aria-label="播放顾客视频"></video>`;
+	        return `<a class="bubble-file-link" href="${url}" target="_blank" rel="noopener noreferrer">${label || "打开附件"}</a>`;
+	      }).join("")}</div>`;
+	    }
+
+	    function messageBubbleContentHtml(message = {}) {
+	      const media = messageMediaHtml(message);
+	      const text = messageDisplayText(message);
+	      const mediaOnlyLabel = /^\[(?:图片|语音|视频|贴图|附件)/.test(text);
+	      const textHtml = text && !(media && mediaOnlyLabel)
+	        ? `<div class="bubble-text">${escapeHtml(text)}</div>`
+	        : "";
+	      return `${textHtml}${media}` || `<div class="bubble-text">${escapeHtml(text || "[附件]")}</div>`;
 	    }
 
 	    function contextSnippet(value, limit = 132) {
