@@ -1000,7 +1000,7 @@
         const nextParams = new URLSearchParams({ project_key: session.projectKey, role });
         nextParams.set("api", apiUrl);
         if (role === "staff") {
-          nextParams.set("view", "cases");
+          nextParams.set("view", "inbox");
           window.location.href = `dashboard/index.html?${nextParams.toString()}`;
         } else {
           window.location.href = `admin.html?${nextParams.toString()}`;
