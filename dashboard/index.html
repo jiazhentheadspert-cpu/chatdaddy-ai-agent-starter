@@ -12299,10 +12299,11 @@
 	          <div class="audit-list">
 	            ${cards.map((card) => `
 		              <div class="audit-item">
-			                <b>${escapeHtml(`${ownerDecisionPriorityLabel(card.priority)} · ${card.title}`)}</b>
-		                <span>${escapeHtml(contextTextValue(card.reason))}</span>
-		                ${ownerLearningSafetyAdvisorHtml(card)}
-		                <span>${escapeHtml(`建议：${card.decisionLabel}｜必填：${card.requiredFields.join("、")}`)}</span>
+	                <b>${escapeHtml(`${ownerDecisionPriorityLabel(card.priority)} · ${card.title}`)}</b>
+	                <span>${escapeHtml(contextTextValue(card.reason))}</span>
+	                ${ownerLearningSafetyAdvisorHtml(card)}
+	                ${ownerDecisionOutcomeEvidenceHtml(card)}
+	                <span>${escapeHtml(`建议：${card.decisionLabel}｜必填：${card.requiredFields.join("、")}`)}</span>
 		                <span>${escapeHtml(`先检查：${card.ownerShouldCheck || ownerDecisionReviewCheck(card)}`)}</span>
 		                <span>${escapeHtml(`回放：${card.replayTest}`)}</span>
 		                <small>${escapeHtml(`${card.artifactLabel}｜${Number(card.count || 0)} 次｜样本 ${card.sourceCaseIds?.length || 0}｜只复制预览`)}</small>
@@ -12373,10 +12374,11 @@
 	          <div class="audit-list">
 	            ${cards.slice(0, 4).map((card) => `
 		              <div class="audit-item">
-		                <b>${escapeHtml(card.title)}</b>
-		                <span>${escapeHtml(`建议：${card.decisionLabel}`)}</span>
-		                ${ownerLearningSafetyAdvisorHtml(card)}
-		                <span>${escapeHtml(`先检查：${card.ownerShouldCheck || ownerDecisionReviewCheck(card)}`)}</span>
+	                <b>${escapeHtml(card.title)}</b>
+	                <span>${escapeHtml(`建议：${card.decisionLabel}`)}</span>
+	                ${ownerLearningSafetyAdvisorHtml(card)}
+	                ${ownerDecisionOutcomeEvidenceHtml(card)}
+	                <span>${escapeHtml(`先检查：${card.ownerShouldCheck || ownerDecisionReviewCheck(card)}`)}</span>
 		                <span>${escapeHtml(`不能做：${(card.mustNotDo || []).slice(0, 4).join("、")}`)}</span>
 		                <small>${escapeHtml(`必填：${(card.requiredFields || []).join("、")}｜${ownerDecisionKpisHelped(card).join("、")}`)}</small>
 		                ${ownerDecisionChoiceButtonsHtml(card, { compact: true })}
@@ -12460,6 +12462,10 @@
 		          ownerShouldCheck: item.owner_should_check || ownerDecisionReviewCheck({ id: item.decision_id, title: item.title, reason: item.proposed_rule, artifactLabel: item.artifact_label }),
 		          ownerMustConfirm: Array.isArray(item.owner_must_confirm) ? item.owner_must_confirm : [],
 		          sourceCaseIds,
+		          customerOutcome: item.customer_outcome || "",
+		          customerOutcomeSource: item.customer_outcome_source || "",
+		          outcomeObservation: item.outcome_observation || null,
+		          evidenceComplete: item.evidence_complete === true,
 		          mustNotDo: Array.isArray(item.must_not_do) ? item.must_not_do : ownerDecisionDefaultMustNotDo(item, {}),
 		          ownerDecisionCurrent: item.owner_decision_current || "pending",
 		          safeApprovalHint: item.safe_approval_hint || "",
@@ -12617,6 +12623,31 @@
 		          <small>${escapeHtml(`Owner 建议：${ownerDecisionShortLabel(advisor.forceSuggestedDecision || card.suggestedDecision)}｜${advisor.auto_learning_allowed ? "可进入审核学习" : "不可变自动回复"}${advisor.safety_sop_only ? "｜只学安全 SOP" : ""}`)}</small>
 		        </div>
 		      `;
+		    }
+
+		    function ownerDecisionOutcomeEvidenceHtml(card = {}) {
+		      if (card.customerOutcomeSource !== "system_delivery_observation") return "";
+		      const observation = card.outcomeObservation || {};
+		      const status = observation.status === "followup_message_synced"
+		        ? "已同步顾客后续讯息"
+		        : observation.status === "no_followup_message_synced"
+		          ? "目前未同步到顾客后续讯息"
+		          : "仅有发送成功记录";
+		      const sentAt = observation.sent_at ? `｜发送记录 ${ownerDecisionObservedSentAtLabel(observation.sent_at)}` : "";
+		      return `<small class="owner-outcome-observation">结果证据：系统只观察到「${escapeHtml(status)}」${escapeHtml(sentAt)}。这不是顾客满意、成交或问题已解决；Owner 仍要核对。</small>`;
+		    }
+
+		    function ownerDecisionObservedSentAtLabel(value = "") {
+		      const date = new Date(value);
+		      if (!Number.isFinite(date.getTime())) return String(value || "").slice(0, 40);
+		      return date.toLocaleString("zh-CN", {
+		        year: "numeric",
+		        month: "2-digit",
+		        day: "2-digit",
+		        hour: "2-digit",
+		        minute: "2-digit",
+		        hour12: false
+		      });
 		    }
 
 		    function ownerLearningSafetyAdvisor(card = {}) {
