@@ -5953,6 +5953,178 @@
         grid-template-columns: 1fr;
       }
     }
+
+    .inbox-shell {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .inbox-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .inbox-head h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .inbox-head-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .inbox-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: min(100%, 420px);
+    }
+
+    .inbox-controls input {
+      width: min(320px, 58vw);
+      min-width: 0;
+    }
+
+    .inbox-summary-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .inbox-summary-item {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .inbox-summary-item b,
+    .inbox-summary-item span {
+      display: block;
+    }
+
+    .inbox-summary-item b { font-size: 20px; }
+    .inbox-summary-item span { color: var(--muted); font-size: 12px; font-weight: 850; }
+
+    .inbox-conversation-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .inbox-conversation-card {
+      display: grid;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-left: 4px solid #9aa7ad;
+      border-radius: 8px;
+      background: #fff;
+      min-width: 0;
+    }
+
+    .inbox-conversation-card.needs-attention { border-left-color: #d97706; }
+    .inbox-conversation-card.customer-latest:not(.needs-attention) { border-left-color: #0f8f83; }
+    .inbox-conversation-card.outbound-latest { border-left-color: #2f6fed; }
+
+    .inbox-conversation-head,
+    .inbox-conversation-person,
+    .inbox-conversation-actions,
+    .inbox-message-meta {
+      display: flex;
+      align-items: center;
+    }
+
+    .inbox-conversation-head { justify-content: space-between; gap: 12px; }
+    .inbox-conversation-person { gap: 10px; min-width: 0; }
+    .inbox-conversation-actions { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .inbox-avatar {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      border: 1px solid #b8dbe3;
+      border-radius: 8px;
+      background: #eefaff;
+      color: #073f45;
+      font-weight: 950;
+    }
+
+    .inbox-person-copy { min-width: 0; }
+    .inbox-person-copy strong { display: block; overflow-wrap: anywhere; }
+    .inbox-person-copy span { color: var(--muted); font-size: 12px; font-weight: 760; }
+
+    .inbox-state,
+    .inbox-direction {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f5f7f8;
+      color: #41515a;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .inbox-state.needs_attention { border-color: #f2c986; background: #fff8e9; color: #9a5c05; }
+    .inbox-state.auto_flow { border-color: #a8ddd0; background: #effbf6; color: #087568; }
+    .inbox-state.handled { border-color: #b8cbee; background: #f2f6ff; color: #2857a5; }
+    .inbox-direction.customer { border-color: #a8ddd0; background: #effbf6; color: #087568; }
+    .inbox-direction.staff,
+    .inbox-direction.channel_outbound { border-color: #b8cbee; background: #f2f6ff; color: #2857a5; }
+    .inbox-direction.flow { border-color: #d8c4ed; background: #faf6ff; color: #68419a; }
+
+    .inbox-message-meta { justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; font-weight: 760; }
+
+    .inbox-latest-text {
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 820;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .inbox-thread-preview {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+
+    .inbox-thread-preview summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .inbox-thread-messages { display: grid; gap: 6px; margin-top: 8px; }
+    .inbox-thread-message { max-width: min(88%, 760px); padding: 8px 10px; border-radius: 8px; background: #f4f6f7; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+    .inbox-thread-message.outbound { justify-self: end; background: #eff6ff; }
+    .inbox-thread-message.inbound { justify-self: start; background: #effbf6; }
+
+    @media (max-width: 760px) {
+      .inbox-head,
+      .inbox-conversation-head { align-items: flex-start; flex-direction: column; }
+      .inbox-controls { width: 100%; min-width: 0; }
+      .inbox-controls input { width: 100%; }
+      .inbox-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .inbox-conversation-actions { justify-content: flex-start; }
+    }
   </style>
 </head>
 <body>
@@ -5973,6 +6145,10 @@
 
       <nav class="side-nav" aria-label="主导航">
         <div class="side-section">客服</div>
+        <button aria-label="最新讯息" data-short="讯" data-side-key="inbox" data-side-filter="needs_attention" data-workspace-target="inbox">
+          <span class="side-label side-label-plain"><em>最新讯息</em></span>
+          <small id="navInboxBadge">0</small>
+        </button>
         <button class="active" aria-label="操作台" data-short="台" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
           <span class="side-label side-label-plain"><em>操作台</em></span>
           <small id="navCasesBadge">0</small>
@@ -5985,7 +6161,7 @@
           <span class="side-label side-label-plain"><em>Segment</em></span>
           <small id="navStep7Badge">待</small>
         </button>
-        <div class="side-note">客服只看需要处理的顾客；自动 Flow 只读，不会混进待处理。</div>
+        <div class="side-note">最新讯息看全部对话；操作台只放需要处理的顾客。</div>
 
         <div class="side-settings" aria-label="设置">
           <div class="side-settings-title"><span class="side-label side-label-plain"><em>设置</em></span></div>
@@ -6008,7 +6184,7 @@
 
       <div class="side-card frontend-only-card">
         <strong id="sideRole">客服工作台</strong>
-        <span id="sideHint">主队列看待处理；自动 Flow 只读。</span>
+        <span id="sideHint">最新讯息看全部；操作台处理动作。</span>
         <div class="side-meter">
           <div class="side-meter-row"><span>入口</span><strong id="sideWorkspace">DEMO</strong></div>
           <div class="side-meter-row"><span>模式</span><strong id="sideConnection">审核优先</strong></div>
@@ -6077,6 +6253,22 @@
       <section class="ops-grid hidden" id="opsGrid" aria-label="运营状态"></section>
 
       <section class="workspace-view" id="overviewView" aria-label="中控台总览"></section>
+      <section class="workspace-view hidden" id="inboxView" aria-label="最新讯息">
+        <div class="inbox-shell">
+          <div class="inbox-head">
+            <div>
+              <h2>最新讯息</h2>
+              <div class="inbox-head-meta" id="inboxUpdatedAt">等待同步</div>
+            </div>
+            <div class="inbox-controls">
+              <input id="inboxSearch" placeholder="搜索顾客 / 电话 / 讯息" aria-label="搜索最新讯息" />
+              <button class="btn" id="inboxRefreshBtn" type="button">刷新</button>
+            </div>
+          </div>
+          <div class="inbox-summary-strip" id="inboxSummaryStrip"></div>
+          <div class="inbox-conversation-list" id="inboxConversationList"></div>
+        </div>
+      </section>
       <section class="workspace-view hidden" id="operationsView" aria-label="运营设置"></section>
       <section class="workspace-view hidden" id="learningView" aria-label="AI 复盘"></section>
 
@@ -6360,6 +6552,12 @@
 
     const state = {
       cases: [],
+      inboxConversations: [],
+      inboxSummary: {},
+      inboxQuery: "",
+      inboxLoading: false,
+      inboxError: "",
+      inboxUpdatedAt: "",
       filter: "needs_attention",
       active: null,
       demoMode: false,
@@ -6445,6 +6643,8 @@
     const casePrevDateEl = $("casePrevDate");
     const caseTodayDateEl = $("caseTodayDate");
     const caseNextDateEl = $("caseNextDate");
+    const inboxSearchEl = $("inboxSearch");
+    const inboxRefreshBtnEl = $("inboxRefreshBtn");
     const todayISO = localDateIso();
 
     const DEMO_SCENARIOS = {
@@ -6689,7 +6889,9 @@
     state.sidebarCollapsed = mobileStaffViewport || localStorage.getItem("replypilot_sidebar_collapsed") === "1";
     applySidebarCollapsedState();
     const requestedView = params.get("view") || "";
-    state.workspaceView = ["cases", "learning", "operations"].includes(requestedView) ? requestedView : state.workspaceView;
+    state.workspaceView = ["inbox", "cases", "learning", "operations"].includes(requestedView)
+      ? requestedView
+      : state.role === "staff" ? "inbox" : state.workspaceView;
     state.pendingCaseId = params.get("case_id") || null;
     const requestedQuery = String(params.get("q") || params.get("query") || hashParams.get("q") || "").trim().slice(0, 120);
     if (requestedQuery) {
@@ -6723,6 +6925,7 @@
       state.settings = readProjectSettings(projectKeyEl.value.trim() || "demo");
       state.auditEvents = readAuditEvents(projectKeyEl.value.trim() || "demo");
       loadCases();
+      loadInboxConversations();
     });
 
     $("logoutBtn").addEventListener("click", async () => {
@@ -6781,6 +6984,15 @@
         }
         setSelectedDate(todayISO);
       });
+    }
+    if (inboxSearchEl) {
+      inboxSearchEl.addEventListener("input", () => {
+        state.inboxQuery = inboxSearchEl.value.trim();
+        renderInboxView();
+      });
+    }
+    if (inboxRefreshBtnEl) {
+      inboxRefreshBtnEl.addEventListener("click", () => loadInboxConversations());
     }
 
     $("gridView").addEventListener("click", () => setView("grid"));
@@ -7306,8 +7518,8 @@
 
     function applySessionShell() {
       if (state.role === "staff") {
-        state.workspaceView = "cases";
-        state.sidebarKey = "ai_reply";
+        state.workspaceView = ["inbox", "cases"].includes(state.workspaceView) ? state.workspaceView : "inbox";
+        state.sidebarKey = state.workspaceView === "inbox" ? "inbox" : "ai_reply";
         state.activeSetupStep = "4";
         state.filter = "needs_attention";
       }
@@ -7319,11 +7531,11 @@
       $("sideRole").textContent = "客服工作台";
       $("sideWorkspace").textContent = "安全模式";
       $("sideConnection").textContent = "审核优先";
-      $("modeTag").textContent = state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
-      $("sideHint").textContent = "只看需要处理的顾客；自动 Flow 只读。";
+      $("modeTag").textContent = state.workspaceView === "inbox" ? "最新讯息" : state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
+      $("sideHint").textContent = "最新讯息看全部；操作台处理动作。";
       renderSideUsage();
 
-      $("dashboardSubtitle").textContent = "只看需要处理的顾客。";
+      $("dashboardSubtitle").textContent = state.workspaceView === "inbox" ? "全部新对话。" : "只看需要处理的顾客。";
 
       $("setupPanel").classList.toggle("hidden", true);
       $("autoFilterBtn").classList.toggle("hidden", false);
@@ -7379,6 +7591,9 @@
     function setWorkspaceView(view) {
       state.workspaceView = view || "cases";
       render();
+      if (state.workspaceView === "inbox" && !state.demoMode && !state.inboxLoading && !state.inboxConversations.length) {
+        loadInboxConversations({ silent: true }).catch(() => null);
+      }
     }
 
 	    function localDateIso(value = new Date()) {
@@ -7569,6 +7784,7 @@
         step_5: "learning",
         step_6: "learning",
         step_7: "operations",
+        inbox: "inbox",
         ai_reply: "cases",
         brand_brain: "operations",
         content: "overview",
@@ -7587,6 +7803,7 @@
     function syncWorkspaceView() {
       const view = state.workspaceView || "cases";
       const isCases = view === "cases";
+      const isInbox = view === "inbox";
       const isOverview = view === "overview";
       const viewMeta = workspaceMeta(view);
 
@@ -7596,7 +7813,7 @@
 
       $("sideConnection").textContent = "审核优先";
       renderSideUsage();
-      $("modeTag").textContent = view === "learning" ? "复盘" : view === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
+      $("modeTag").textContent = isInbox ? "最新讯息" : view === "learning" ? "复盘" : view === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
       $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
       $("statusStrip").classList.toggle("hidden", true);
@@ -7610,6 +7827,7 @@
       $("opsGrid").classList.add("hidden");
 
       $("overviewView").classList.toggle("hidden", !isOverview);
+      $("inboxView").classList.toggle("hidden", !isInbox);
       $("operationsView").classList.toggle("hidden", view !== "operations");
       $("learningView").classList.toggle("hidden", view !== "learning");
     }
@@ -7623,6 +7841,10 @@
         cases: {
           title: "操作台",
           subtitle: "只看需要处理的顾客。",
+        },
+        inbox: {
+          title: "最新讯息",
+          subtitle: "全部新对话。",
         },
         operations: {
           title: state.activeSetupStep === "7" ? "Segment" : "设置",
@@ -8594,12 +8816,53 @@
       }
     }
 
+    async function loadInboxConversations(options = {}) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      const hasAuth = Boolean(token || hasAccountSession());
+      if (!api || !hasAuth || state.demoMode) {
+        state.inboxConversations = [];
+        state.inboxSummary = {};
+        state.inboxLoading = false;
+        state.inboxError = hasAuth ? "" : "请先登录。";
+        renderInboxView();
+        return;
+      }
+
+      state.inboxLoading = true;
+      state.inboxError = "";
+      if (!options.silent) renderInboxView();
+      if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = true;
+      try {
+        const params = new URLSearchParams({ limit: "100", scan_limit: "1600" });
+        const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${params.toString()}`;
+        const res = await fetch(endpoint, authRequestOptions(token));
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401 && state.role === "staff" && redirectStaffToLogin({ clearSession: true })) return;
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        state.inboxConversations = Array.isArray(data.items) ? data.items : [];
+        state.inboxSummary = data.counts || {};
+        state.inboxUpdatedAt = new Date().toISOString();
+        state.inboxError = "";
+      } catch (error) {
+        state.inboxError = `最新讯息读取失败：${error.message || error}`;
+      } finally {
+        state.inboxLoading = false;
+        if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = false;
+        renderInboxView();
+      }
+    }
+
 	function startQueueAutoRefresh() {
 	  if (state.queueAutoRefreshTimer) clearInterval(state.queueAutoRefreshTimer);
 	  state.queueAutoRefreshTimer = setInterval(() => {
 	    if (document.hidden || state.demoMode || state.actionBusy || state.bulkBusy || state.selected.size > 0) return;
 	    if (state.role !== "staff" || !apiUrlEl.value.trim() || (!adminTokenEl.value.trim() && !hasAccountSession())) return;
-	    loadCases({ silent: true, refreshActive: true, preserveSelection: true }).catch(() => null);
+	    Promise.all([
+	      loadCases({ silent: true, refreshActive: true, preserveSelection: true }),
+	      loadInboxConversations({ silent: true }),
+	    ]).catch(() => null);
 	  }, 20000);
 	}
 
@@ -9702,6 +9965,7 @@
       syncFilterControls();
       renderOpsLayer(all);
       renderWorkspaceViews(all, counts, learned);
+      renderInboxView();
       syncWorkspaceView();
       pruneSelection(all);
       const filtered = state.query ? all : filterCases(all, state.filter);
@@ -9738,6 +10002,141 @@
         state.deepLinkOpened = true;
         requestAnimationFrame(() => openCase(state.pendingCaseId));
       }
+    }
+
+    function renderInboxView() {
+      const list = $("inboxConversationList");
+      const summary = $("inboxSummaryStrip");
+      const updated = $("inboxUpdatedAt");
+      if (!list || !summary || !updated) return;
+
+      const query = String(state.inboxQuery || "").trim().toLowerCase();
+      const all = Array.isArray(state.inboxConversations) ? state.inboxConversations : [];
+      const visible = all
+        .filter((item) => !query || inboxConversationSearchHaystack(item).includes(query))
+        .sort((a, b) => new Date(b.latest_at || 0) - new Date(a.latest_at || 0));
+      const counts = state.inboxSummary || {};
+
+      updated.textContent = state.inboxUpdatedAt
+        ? `更新于 ${formatDate(state.inboxUpdatedAt)}`
+        : state.inboxLoading ? "正在同步" : "等待同步";
+      summary.innerHTML = [
+        [counts.total ?? all.length, "全部对话"],
+        [counts.needs_attention ?? all.filter((item) => item.requires_attention).length, "要处理"],
+        [counts.customer_latest ?? all.filter((item) => item.latest_direction === "customer").length, "顾客最后发"],
+        [counts.outbound_latest ?? all.filter((item) => item.latest_direction === "agent").length, "客服 / Flow 最后发"],
+      ].map(([value, label]) => `<div class="inbox-summary-item"><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span></div>`).join("");
+
+      if (state.inboxLoading && !all.length) {
+        list.innerHTML = `<div class="box"><h3>正在读取最新讯息</h3></div>`;
+        return;
+      }
+      if (state.inboxError && !all.length) {
+        list.innerHTML = `<div class="box"><h3>最新讯息暂时无法读取</h3><p class="subtitle">${escapeHtml(state.inboxError)}</p></div>`;
+        return;
+      }
+      if (!visible.length) {
+        list.innerHTML = `<div class="box"><h3>${escapeHtml(query ? `找不到「${state.inboxQuery}」` : "没有最新讯息")}</h3></div>`;
+        return;
+      }
+
+      list.innerHTML = visible.map(inboxConversationCardHtml).join("");
+      list.querySelectorAll("[data-inbox-case-id]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          openInboxCase(button.dataset.inboxCaseId, button.dataset.inboxAttention === "1");
+        });
+      });
+    }
+
+    function inboxConversationCardHtml(item = {}) {
+      const name = firstCleanCustomerName(item.customer?.name, item.customer?.display_name) || fallbackCustomerNameFromDigits(item.customer?.phone || item.customer?.external_customer_id);
+      const phone = String(item.customer?.phone || item.customer?.phone_e164 || item.customer?.external_customer_id || "").trim();
+      const latest = item.latest_message || {};
+      const preview = messageDisplayText(latest) || "[附件]";
+      const stateKey = String(item.state || "inbox_only");
+      const actor = String(item.latest_actor || (item.latest_direction === "agent" ? "channel_outbound" : "customer"));
+      const directionClass = item.latest_direction === "agent" ? "outbound-latest" : "customer-latest";
+      const attentionClass = item.requires_attention ? "needs-attention" : "";
+      const recentMessages = Array.isArray(item.messages) ? item.messages.slice(-6) : [];
+      const caseButton = item.case_id
+        ? `<button class="btn ${item.requires_attention ? "primary" : ""}" type="button" data-inbox-case-id="${escapeHtml(item.case_id)}" data-inbox-attention="${item.requires_attention ? "1" : "0"}">${item.requires_attention ? "打开处理" : "查看记录"}</button>`
+        : "";
+      return `
+        <article class="inbox-conversation-card ${escapeHtml(directionClass)} ${escapeHtml(attentionClass)}">
+          <div class="inbox-conversation-head">
+            <div class="inbox-conversation-person">
+              <span class="inbox-avatar">${escapeHtml(initialsFor(name))}</span>
+              <div class="inbox-person-copy">
+                <strong>${escapeHtml(name)}</strong>
+                <span>${escapeHtml(phone)}</span>
+              </div>
+            </div>
+            <div class="inbox-conversation-actions">
+              <span class="inbox-state ${escapeHtml(stateKey)}">${escapeHtml(inboxConversationStateLabel(item))}</span>
+              ${caseButton}
+            </div>
+          </div>
+          <div class="inbox-message-meta">
+            <span class="inbox-direction ${escapeHtml(actor)}">${escapeHtml(inboxConversationActorLabel(actor))}</span>
+            <time>${escapeHtml(formatDate(item.latest_at))}</time>
+          </div>
+          <div class="inbox-latest-text">${escapeHtml(preview)}</div>
+          ${recentMessages.length ? `
+            <details class="inbox-thread-preview">
+              <summary>最近 ${recentMessages.length} 条</summary>
+              <div class="inbox-thread-messages">
+                ${recentMessages.map((message) => {
+                  const outbound = String(message.direction || message.role || "").toLowerCase().match(/outbound|agent|assistant|bot/);
+                  return `<div class="inbox-thread-message ${outbound ? "outbound" : "inbound"}">${messageBubbleContentHtml(message)}</div>`;
+                }).join("")}
+              </div>
+            </details>` : ""}
+        </article>
+      `;
+    }
+
+    function inboxConversationStateLabel(item = {}) {
+      const stateKey = String(item.state || "inbox_only");
+      if (stateKey === "needs_attention") return item.unhandled_customer_message && !item.case_id ? "新讯息待建 Case" : "要处理";
+      if (stateKey === "auto_flow") return "自动 Flow";
+      if (stateKey === "handled") return "已处理";
+      if (stateKey === "outbound") return "已回复";
+      if (stateKey === "context_only") return "确认 / reaction";
+      return "已同步";
+    }
+
+    function inboxConversationActorLabel(actor = "") {
+      if (actor === "customer") return "顾客发出";
+      if (actor === "staff") return "客服发出";
+      if (actor === "flow") return "自动 Flow 发出";
+      return "客服 / Flow 发出";
+    }
+
+    function inboxConversationSearchHaystack(item = {}) {
+      return [
+        item.customer?.name,
+        item.customer?.display_name,
+        item.customer?.phone,
+        item.customer?.external_customer_id,
+        item.latest_message?.text,
+        ...(item.messages || []).slice(-5).map((message) => messageDisplayText(message)),
+      ].filter(Boolean).join(" ").toLowerCase();
+    }
+
+    function openInboxCase(caseId = "", needsAttention = false) {
+      const id = String(caseId || "").trim();
+      if (!id) return;
+      state.workspaceView = "cases";
+      state.sidebarKey = "ai_reply";
+      state.activeSetupStep = "4";
+      state.filter = needsAttention ? "needs_attention" : "records";
+      if (state.role === "staff" && needsAttention) state.queueDateScope = "open_backlog";
+      render();
+      const existing = state.cases.find((record) => String(record.id || "") === id);
+      if (existing) openCase(id);
+      else loadCaseDetailAndOpen(id);
     }
 
     function shouldUseStaffCaseSections() {
@@ -9956,6 +10355,7 @@
         if (element) element.textContent = value;
       };
       setBadge("navOverviewBadge", counts.needs > 0 ? "重点" : "正常");
+      setBadge("navInboxBadge", Number(state.inboxSummary?.total || state.inboxConversations?.length || 0));
       setBadge("navCasesBadge", casesLabel);
       setBadge("navOpsBadge", opsLabel);
       setBadge("navLearningBadge", learned || 0);
@@ -20081,7 +20481,7 @@
 
     (async function bootDashboard() {
       await bootstrapSaasSession();
-      await loadCases();
+      await Promise.all([loadCases(), loadInboxConversations()]);
 	  startQueueAutoRefresh();
     })();
   </script>
