@@ -6057,7 +6057,7 @@
               <button class="queue-date-button today" id="caseTodayDate" type="button">今天</button>
               <button class="queue-date-button" id="caseNextDate" type="button" aria-label="后一天">&gt;</button>
             </div>
-            <input id="caseSearch" placeholder="搜索顾客 / 电话 / 关键词" />
+            <input id="caseSearch" placeholder="搜索全部顾客 / 电话 / 关键词" />
             <select id="caseSort" aria-label="排序方式">
               <option value="priority">优先级排序</option>
               <option value="newest">最新更新</option>
@@ -6078,6 +6078,7 @@
             <button class="pill" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_first">人工回复</button>
             <button class="pill" data-filter="auto" id="autoFilterBtn">自动 Flow（不用处理）</button>
+            <button class="pill" data-filter="records" id="recordsFilterBtn">已处理记录</button>
           </div>
           <div class="selection-tools" aria-label="快速选择">
             <button class="btn" id="selectVisibleBtn" type="button">选择当前</button>
@@ -8583,6 +8584,7 @@
     }
 
     function dashboardQueueStatusParam(searchQuery = "") {
+      if (String(searchQuery || "").trim()) return "all";
       return dashboardQueueStatusForFilter(state.filter, state.role);
     }
 
@@ -9048,7 +9050,10 @@
         },
       ];
       const messages = contextMessages.length ? contextMessages : fallbackMessages;
-      if (sentLike && finalReply) {
+      const finalReplyAlreadyInMessages = finalReply && messages.some((message) => (
+        message.direction === "outbound" && compactCompareText(message.text || "") === compactCompareText(finalReply)
+      ));
+      if (sentLike && finalReply && !finalReplyAlreadyInMessages) {
         messages.push({
           id: `${item.id}-out`,
           direction: "outbound",
@@ -9098,6 +9103,13 @@
         meta_capi_purchase_result: item.meta_capi_purchase_result || item.purchase?.meta_capi || null,
 	        purchase_sync_result: item.purchase_sync_result || null,
 	        manual_reply_text: item.manual_reply_text || null,
+	        final_human_reply: item.final_human_reply || item.manual_resolution?.final_human_reply || item.manual_reply_text || null,
+	        handoff_reason: item.handoff_reason || item.manual_resolution?.handoff_reason || null,
+	        customer_outcome: item.customer_outcome || item.manual_resolution?.customer_outcome || null,
+	        learning_outcome_note: item.learning_outcome_note || item.manual_resolution?.learning_outcome_note || null,
+	        learnability: item.learnability || item.manual_resolution?.learnability || null,
+	        learning_evidence: item.learning_evidence || null,
+	        learning_candidate_source: item.learning_candidate_source || item.manual_resolution?.resolution_origin || null,
 	        manual_resolve_reason: item.manual_resolve_reason || null,
 	        manual_learning_candidate: manualLearningCandidate,
 	        original_ai_reply: originalAiReply,
