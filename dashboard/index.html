@@ -6184,7 +6184,7 @@
 
       <div class="side-card frontend-only-card">
         <strong id="sideRole">客服工作台</strong>
-        <span id="sideHint">最新讯息看全部；操作台处理动作。</span>
+        <span id="sideHint">最新讯息看全部；操作台处理动作；已自动继续的记录进自动记录。</span>
         <div class="side-meter">
           <div class="side-meter-row"><span>入口</span><strong id="sideWorkspace">DEMO</strong></div>
           <div class="side-meter-row"><span>模式</span><strong id="sideConnection">审核优先</strong></div>
@@ -7538,7 +7538,7 @@
       $("sideWorkspace").textContent = "安全模式";
       $("sideConnection").textContent = "审核优先";
       $("modeTag").textContent = state.workspaceView === "inbox" ? "最新讯息" : state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
-      $("sideHint").textContent = "最新讯息看全部；操作台处理动作。";
+      $("sideHint").textContent = "最新讯息看全部；操作台处理动作；已自动继续的记录进自动记录。";
       renderSideUsage();
 
       $("dashboardSubtitle").textContent = state.workspaceView === "inbox" ? "全部新对话。" : "只看需要处理的顾客。";
