@@ -6427,6 +6427,7 @@
                   <div class="side-actions">
                     <button class="btn" id="manualResolveBtn" type="button">记录人工回复</button>
                     <button class="btn" id="channelReplyResolvedBtn" type="button">已由人工回复</button>
+                    <button class="btn hidden" id="noReplyNeededBtn" type="button">无需回复</button>
                     <button class="btn" id="returnAiBtn" type="button" title="不要当前草稿，重新生成一版；不会发送给顾客。">让 AI 重写</button>
                     <button class="btn danger" id="handoffBtn" type="button">转人工回复</button>
 	                <button class="btn" id="learnBtn" type="button" title="发送后记录学习候选，Owner 通过后同类问题才会少审核或自动">同类以后少审核</button>
@@ -7057,6 +7058,7 @@
     $("manualResolveBtn").addEventListener("click", manualResolveActive);
     $("manualSendBtn").addEventListener("click", manualSendActive);
 	    $("channelReplyResolvedBtn").addEventListener("click", channelReplyResolvedActive);
+	    $("noReplyNeededBtn").addEventListener("click", recordNoReplyActive);
 	    $("returnAiBtn").addEventListener("click", returnAiActive);
 		    $("handoffBtn").addEventListener("click", handoffActive);
 		    $("markPurchaseBtn").addEventListener("click", markPurchaseActive);
@@ -14936,8 +14938,9 @@
 
       const decision = item.latest_decision || {};
       const isFlowOnly = decision.action === "trigger_flow";
-      const readOnly = isCaseReadOnly(item);
+	      const readOnly = isCaseReadOnly(item);
 	      const canManualResolve = canManualResolveCase(item);
+	      const canRecordNoReply = canRecordNoReplyCase(item);
 	      const isManualFollowUp = requiresManualReplyForManualResolve(item);
 	      const statusTone = riskTone(item);
       const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound" && !contextMessageWasCancelled(msg));
@@ -15006,6 +15009,8 @@
       $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : "记录人工回复";
       $("channelReplyResolvedBtn").disabled = state.actionBusy || readOnly;
       $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "已由人工回复";
+      $("noReplyNeededBtn").classList.toggle("hidden", !canRecordNoReply);
+      $("noReplyNeededBtn").disabled = state.actionBusy || !canRecordNoReply;
       $("returnAiBtn").disabled = state.actionBusy || readOnly;
       $("returnAiBtn").textContent = "让 AI 重写";
       $("handoffBtn").disabled = state.actionBusy || readOnly;
@@ -18243,12 +18248,36 @@
     }
 
     function isCaseReadOnly(item) {
-      return ["auto", "auto_sent", "external_flow_continued", "sent", "sending", "handoff_done", "returned_to_ai", "manual_resolved", "purchase_confirmed", "rejected"].includes(item.status);
+      return ["auto", "auto_record", "auto_sent", "external_flow_continued", "sent", "sending", "handoff_done", "returned_to_ai", "manual_resolved", "purchase_confirmed", "rejected"].includes(item.status);
     }
 
 	    function canManualResolveCase(item = {}) {
 	      if (!item) return false;
 	      return !["auto", "auto_sent", "external_flow_continued", "sent", "sending", "manual_resolved", "purchase_confirmed"].includes(item.status);
+	    }
+
+	    function canRecordNoReplyCase(item = {}) {
+	      if (!item || isCaseReadOnly(item)) return false;
+	      const decision = item.latest_decision || {};
+	      const risk = String(decision.risk || decision.risk_level || item.risk_level || "").toLowerCase();
+	      const context = Array.isArray(item.messages) ? item.messages : [];
+	      const inbound = context.filter((message) => !/outbound|agent|assistant|bot/i.test(String(message?.direction || message?.role || ""))).at(-1) || {};
+	      const text = contextTextValue(inbound.text || inbound.body || inbound.caption || inbound.message || item.customer_last_text || "").trim();
+	      const messageType = String(inbound.type || inbound.message_type || "").toLowerCase();
+	      const hasAttachment = Boolean(inbound.is_attachment)
+	        || (Array.isArray(inbound.attachments) && inbound.attachments.length > 0)
+	        || /(attachment|image|photo|file|document|audio|voice|video)/.test(messageType);
+	      const unsafeContext = /payment|receipt|order|refund|complaint|medical|health|付款|汇款|订单|退款|投诉|售后|怀孕|胃痛|药|疾病/i.test([
+	        item.intent,
+	        item.customer_last_text,
+	        decision.intent,
+	        decision.reason,
+	        decision.next_action
+	      ].filter(Boolean).join(" "));
+	      const reaction = /reacted\s+to\s+your\s+message|对你的消息作出|對你的訊息作出/i.test(text)
+	        || /^[👍👌🙏❤️❤💕😍🙂😊🥰]+$/u.test(text);
+	      const acknowledgement = /^(ok|okay|好的|好|收到|明白|谢谢|謝謝|thanks|thank you)[!！.。🙏❤️❤💕👌👍\s]*$/i.test(text);
+	      return risk !== "high" && !hasAttachment && !unsafeContext && (reaction || acknowledgement);
 	    }
 
 	    function canManualSendCase(item = {}, closer = null, approvalGuard = null) {
@@ -18793,6 +18822,7 @@
 		    }
 
 	    function caseStatusLabel(item = {}, risk = "") {
+	      if (item.no_reply_needed === true || item.raw_approval?.data?.no_reply_needed === true || item.raw_approval?.no_reply_needed === true) return "无需回复";
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return learningFollowup.pill;
 	      return statusLabel(item.status, risk);
@@ -18989,6 +19019,23 @@
 	        return;
 	      }
 	      showToast("已记录人工已回复；不会发送旧草稿。");
+	    }
+
+	    async function recordNoReplyActive() {
+	      if (!state.active || !canRecordNoReplyCase(state.active) || state.actionBusy) return;
+	      if (!confirmLiveAction("record_no_reply", state.active)) return;
+	      const result = await postCaseAction(state.active.id, "record_no_reply", {
+	        provider: "chatdaddy",
+	        event_at: new Date().toISOString(),
+	        staff_confirmed_no_reply_needed: true,
+	        evidence_note: "客服确认这是纯表情/简单确认，不需要回复。",
+	        source: "staff_dashboard_no_reply_record"
+	      });
+	      if (result?.blocked) {
+	        alert(result.reason || "这张 Case 不能标记无需回复，请人工处理。");
+	        return;
+	      }
+	      showToast("已记录无需回复；没有发送消息，也不会进入学习。");
 	    }
 
 	    function channelReplyResolvedPayload(item = state.active) {
@@ -20103,13 +20150,17 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
+	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" || action === "record_no_reply" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
 	        }
         const isApproval = active?.source === "approval";
         const endpoint = action === "mark_purchase"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`
           : action === "manual_send"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/approve-send`
+          : action === "channel_reply_resolved"
+          ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/human-reply-resolved`
+          : action === "record_no_reply"
+          ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/record-no-reply`
           : action === "return_ai"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/return-ai`
           : isApproval
@@ -20180,7 +20231,10 @@
 	        return window.confirm(`确认把 ${name} 这张旧卡收起？\n\n只在顾客已经被外部渠道或 Flow 接走、没有在等这条旧回复时使用。\n这不会发送消息，也不会触发新的 Flow。`);
 	      }
 	      if (action === "channel_reply_resolved") {
-	        return window.confirm(`确认 ${name} 已经由人工回复过？\n\n只在过渡期客服已经在外部渠道回复、发了付款链接，或顾客已经不等这条旧草稿时使用。\n系统只会把这张旧卡移到自动记录，不会发送消息，也不会触发 Flow。\n\n以后同类请直接在 Dashboard 回复。`);
+	        return window.confirm(`确认 ${name} 已经由人工回复过？\n\n只在过渡期客服已经在外部渠道回复、发了付款链接，或顾客已经不等这条旧草稿时使用。\n系统会记录为「人工已处理」，不会发送消息、不会触发 Flow，也不会把没有文案的记录拿去学习。\n\n以后同类请直接在 Dashboard 回复。`);
+	      }
+	      if (action === "record_no_reply") {
+	        return window.confirm(`确认 ${name} 这条只是表情或简单确认，不需要客服回复？\n\n这只会留下「无需回复」记录；不会发送消息、不会触发 Flow，也不会拿去学习。\n\n附件、付款、订单、投诉或健康问题不能用这个动作。`);
 	      }
 	      if (action === "manual_resolve") {
         const manualReply = $("replyBox").value.trim();
@@ -20234,6 +20288,7 @@
       const decision = state.active.latest_decision || {};
       const readOnly = isCaseReadOnly(state.active);
       const canManualResolve = canManualResolveCase(state.active);
+	      const canRecordNoReply = canRecordNoReplyCase(state.active);
       const isManualFollowUp = requiresManualReplyForManualResolve(state.active);
       const isFlowOnly = decision.action === "trigger_flow";
       const closer = closerVerdict(state.active);
@@ -20247,6 +20302,7 @@
       $("manualSendBtn").disabled = isBusy || !canManualSend;
       $("manualResolveBtn").disabled = isBusy || !canManualResolve;
       $("channelReplyResolvedBtn").disabled = isBusy || readOnly;
+	      $("noReplyNeededBtn").disabled = isBusy || !canRecordNoReply;
       $("returnAiBtn").disabled = isBusy || readOnly;
       $("handoffBtn").disabled = isBusy || readOnly;
       $("learnBtn").disabled = isBusy || readOnly;
@@ -20260,6 +20316,7 @@
 	        $("manualSendBtn").textContent = label;
 	        $("manualResolveBtn").textContent = label;
 	        $("channelReplyResolvedBtn").textContent = label;
+	        $("noReplyNeededBtn").textContent = label;
 	        $("returnAiBtn").textContent = label;
 	        $("markPurchaseBtn").textContent = label;
 	        $("externalFlowRecordBtn").textContent = label;
@@ -20269,6 +20326,7 @@
 	      $("manualSendBtn").textContent = "回复并发送";
 	      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录人工回复";
 	      $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "已由人工回复";
+	      $("noReplyNeededBtn").textContent = "无需回复";
 	      $("returnAiBtn").textContent = approvalGuard.blocked ? "让 AI 重写" : readOnly ? "已记录" : "让 AI 重写";
 	      $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(state.active, canResendPurchase);
 	      $("externalFlowRecordBtn").textContent = "标记为自动 Flow 已处理";
@@ -20286,7 +20344,10 @@
 	        return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/external-flow-continued`;
 	      }
 	      if (action === "channel_reply_resolved") {
-	        return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/external-flow-continued`;
+	        return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/human-reply-resolved`;
+	      }
+	      if (action === "record_no_reply") {
+	        return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/record-no-reply`;
 	      }
 	      if (action === "return_ai") {
 	        return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/return-ai`;
@@ -20359,6 +20420,17 @@
 	          evidence_note: body.evidence_note || "客服确认已由人工直接回复；ReplyPilot 旧草稿不用发送。",
 	          confirmedBy: body.confirmedBy || state.session.displayName || roleName(state.role),
 	          source: body.source || "staff_dashboard_human_reply_resolved",
+	        };
+	      }
+	      if (action === "record_no_reply") {
+	        return {
+	          provider: body.provider || "chatdaddy",
+	          provider_message_id: body.provider_message_id || "",
+	          event_at: body.event_at || new Date().toISOString(),
+	          staff_confirmed_no_reply_needed: body.staff_confirmed_no_reply_needed === true,
+	          evidence_note: body.evidence_note || "客服确认这是纯表情/简单确认，不需要回复。",
+	          confirmedBy: body.confirmedBy || state.session.displayName || roleName(state.role),
+	          source: body.source || "staff_dashboard_no_reply_record",
 	        };
 	      }
 		      if (action === "manual_resolve") {
@@ -20570,17 +20642,23 @@
 	      }
 
 	      if (action === "channel_reply_resolved") {
-	        record.status = "external_flow_continued";
-	        record.category = "auto";
+	        record.status = "manual_resolved";
+	        record.category = "manual";
 	        record.read_only = true;
 	        record.latest_decision = record.latest_decision || {};
-	        record.latest_decision.action = "external_flow_continued";
+	        record.latest_decision.action = "human_reply_resolved";
+	        record.external_human_reply_recorded = true;
+	        record.external_human_reply_evidence = {
+	          provider: body.provider || "chatdaddy",
+	          event_at: body.event_at || now,
+	          note: body.evidence_note || "演示：客服确认已在外部渠道回复。",
+	        };
 	        record.send_result = {
 	          sent: false,
 	          external_reply_seen: true,
 	          provider: body.provider || "chatdaddy",
 	          event_at: body.event_at || now,
-	          reason: "外部渠道已由人工回复；Dashboard 没有发送消息。",
+	          reason: "外部渠道已由人工回复；Dashboard 已记录人工处理，且没有发送消息。",
 	          sends_messages: false,
 	        };
 	        record.history.push({
@@ -20589,6 +20667,21 @@
 	          note: "演示：已记录外部渠道已回复；不会发送消息。",
 	        });
 	        showToast("演示：已记录外部渠道已回复；不会发送消息。");
+	      }
+
+	      if (action === "record_no_reply") {
+	        record.status = "external_flow_continued";
+	        record.category = "auto";
+	        record.read_only = true;
+	        record.no_reply_needed = true;
+	        record.latest_decision = record.latest_decision || {};
+	        record.latest_decision.action = "record_no_reply";
+	        record.history.push({
+	          type: "record_no_reply",
+	          at: now,
+	          note: "演示：客服确认无需回复；不会发送消息，也不会进入学习。",
+	        });
+	        showToast("演示：已记录无需回复；不会发送消息。");
 	      }
 
 	      record.updated_at = now;
@@ -20742,6 +20835,7 @@
 	        manual_resolve: "记录人工回复",
 	        manual_send: "回复并发送",
 	        channel_reply_resolved: "已由人工回复",
+	        record_no_reply: "无需回复",
 	        external_flow_continued: "自动 Flow 已处理",
 	        mark_purchase_action: "确认成交",
         mark_seen: "标记已看",
