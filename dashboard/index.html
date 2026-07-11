@@ -8910,12 +8910,21 @@
         const params = new URLSearchParams({ limit: "300", scan_limit: "600", offset: String(requestedOffset) });
         if (query) params.set("q", query);
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${params.toString()}`;
-        const res = await fetch(endpoint, authRequestOptions(token));
+        const liveParams = new URLSearchParams({ project_key: project, page: "0", count: "100" });
+        if (query) liveParams.set("q", query);
+        const liveEndpoint = `${api}/api/channels/chatdaddy/inbox?${liveParams.toString()}`;
+        const [res, liveRes] = await Promise.all([
+          fetch(endpoint, authRequestOptions(token)),
+          fetch(liveEndpoint, authRequestOptions(token)).catch(() => null),
+        ]);
         const data = await res.json().catch(() => ({}));
+        const liveData = liveRes ? await liveRes.json().catch(() => ({})) : {};
         if (res.status === 401 && state.role === "staff" && redirectStaffToLogin({ clearSession: true })) return;
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         if (requestSeq !== state.inboxRequestSeq) return;
-        const incoming = Array.isArray(data.items) ? data.items : [];
+        const storedItems = Array.isArray(data.items) ? data.items : [];
+        const liveItems = liveRes?.ok && liveData?.ok && Array.isArray(liveData.items) ? liveData.items : [];
+        const incoming = mergeInboxConversationPages(liveItems, storedItems);
         state.inboxConversations = append || preserveLoaded
           ? mergeInboxConversationPages(incoming, priorConversations)
           : incoming;
@@ -10182,12 +10191,52 @@
 
     function mergeInboxConversationPages(incoming = [], existing = []) {
       const byConversationId = new Map();
-      [...(incoming || []), ...(existing || [])].forEach((item) => {
-        const key = String(item?.conversation_id || item?.id || "").trim();
-        if (!key || byConversationId.has(key)) return;
-        byConversationId.set(key, item);
+      [...(existing || []), ...(incoming || [])].forEach((item) => {
+        const key = inboxConversationIdentity(item);
+        if (!key) return;
+        const current = byConversationId.get(key);
+        byConversationId.set(key, current ? mergeInboxConversationItem(current, item) : item);
       });
       return [...byConversationId.values()].sort((a, b) => new Date(b.latest_at || 0) - new Date(a.latest_at || 0));
+    }
+
+    function inboxConversationIdentity(item = {}) {
+      const customerKey = String(item.customer?.chat_id || item.customer?.external_customer_id || item.customer?.phone_e164 || item.customer?.phone || "").replace(/\D+/g, "");
+      return customerKey || String(item.conversation_id || item.id || "").trim();
+    }
+
+    function mergeInboxConversationItem(left = {}, right = {}) {
+      const leftAt = new Date(left.latest_at || 0).getTime();
+      const rightAt = new Date(right.latest_at || 0).getTime();
+      const newer = rightAt >= leftAt ? right : left;
+      const older = newer === right ? left : right;
+      const caseSource = newer.case_id ? newer : older.case_id ? older : {};
+      return {
+        ...older,
+        ...newer,
+        id: older.conversation_id || newer.conversation_id || newer.id || older.id,
+        conversation_id: older.conversation_id || newer.conversation_id || "",
+        customer_id: older.customer_id || newer.customer_id || "",
+        customer: { ...(older.customer || {}), ...(newer.customer || {}) },
+        messages: mergeInboxMessageHistory(older.messages, newer.messages),
+        case_id: caseSource.case_id || null,
+        case_status: caseSource.case_status || "",
+        case_category: caseSource.case_category || "",
+        case_action: caseSource.case_action || "",
+        case_updated_at: caseSource.case_updated_at || "",
+      };
+    }
+
+    function mergeInboxMessageHistory(...lists) {
+      const byMessage = new Map();
+      lists.flat().filter(Boolean).forEach((message) => {
+        const key = String(message.provider_message_id || message.id || `${message.at || message.message_at || ""}:${message.direction || message.role || ""}:${message.text || ""}`);
+        if (!key || byMessage.has(key)) return;
+        byMessage.set(key, message);
+      });
+      return [...byMessage.values()]
+        .sort((a, b) => new Date(a.at || a.message_at || 0) - new Date(b.at || b.message_at || 0))
+        .slice(-20);
     }
 
     function inboxConversationCounts(items = []) {
