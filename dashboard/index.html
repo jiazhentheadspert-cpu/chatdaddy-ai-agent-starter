@@ -5996,6 +5996,11 @@
       min-width: 0;
     }
 
+    .inbox-controls select {
+      width: 148px;
+      min-width: 0;
+    }
+
     .inbox-summary-strip {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -6272,6 +6277,10 @@
             </div>
             <div class="inbox-controls">
               <input id="inboxSearch" placeholder="搜索顾客 / 电话 / 讯息" aria-label="搜索最新讯息" />
+              <select id="inboxSort" aria-label="最新讯息排序">
+                <option value="customer_first">顾客回复优先</option>
+                <option value="latest">全部按最新</option>
+              </select>
               <button class="btn" id="inboxRefreshBtn" type="button">刷新</button>
             </div>
           </div>
@@ -6576,6 +6585,7 @@
       inboxLoadingMore: false,
       inboxError: "",
       inboxUpdatedAt: "",
+      inboxSort: "customer_first",
       filter: "needs_attention",
       active: null,
       demoMode: false,
@@ -6662,6 +6672,7 @@
     const caseTodayDateEl = $("caseTodayDate");
     const caseNextDateEl = $("caseNextDate");
     const inboxSearchEl = $("inboxSearch");
+    const inboxSortEl = $("inboxSort");
     const inboxRefreshBtnEl = $("inboxRefreshBtn");
     const inboxLoadMoreEl = $("inboxLoadMore");
     const todayISO = localDateIso();
@@ -7017,6 +7028,12 @@
         state.inboxSearchTimer = setTimeout(() => {
           loadInboxConversations({ silent: true, query: state.inboxQuery, reset: true });
         }, 350);
+      });
+    }
+    if (inboxSortEl) {
+      inboxSortEl.addEventListener("change", () => {
+        state.inboxSort = inboxSortEl.value === "latest" ? "latest" : "customer_first";
+        renderInboxView();
       });
     }
     if (inboxRefreshBtnEl) {
@@ -10089,12 +10106,13 @@
       const serverSearchCurrent = Boolean(query && state.inboxAppliedQuery === String(state.inboxQuery || "").trim());
       const visible = all
         .filter((item) => serverSearchCurrent || !query || inboxConversationSearchHaystack(item).includes(query))
-        .sort((a, b) => new Date(b.latest_at || 0) - new Date(a.latest_at || 0));
+        .sort(inboxConversationSort);
       const counts = inboxConversationCounts(all);
       const loadedCount = `${all.length}${state.inboxHasMore ? "+" : ""}`;
+      if (inboxSortEl && inboxSortEl.value !== state.inboxSort) inboxSortEl.value = state.inboxSort;
 
       updated.textContent = state.inboxUpdatedAt
-        ? `已加载 ${loadedCount} 条 · 更新于 ${formatDate(state.inboxUpdatedAt)}`
+        ? `已加载 ${loadedCount} 条 · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
         : state.inboxLoading ? "正在同步" : "等待同步";
       summary.innerHTML = [
         [counts.total, "全部对话"],
@@ -10125,6 +10143,21 @@
           openInboxCase(button.dataset.inboxCaseId, button.dataset.inboxAttention === "1");
         });
       });
+    }
+
+    function inboxConversationSort(left = {}, right = {}) {
+      const newestFirst = new Date(right.latest_at || 0) - new Date(left.latest_at || 0);
+      if (state.inboxSort === "latest") return newestFirst;
+      const priority = (item) => {
+        if (item?.requires_attention) return 0;
+        if (item?.unhandled_customer_message || item?.latest_direction === "customer") return 1;
+        return 2;
+      };
+      return priority(left) - priority(right) || newestFirst;
+    }
+
+    function inboxSortLabel() {
+      return state.inboxSort === "latest" ? "全部按最新" : "顾客回复优先";
     }
 
     function renderInboxLoadMore(query = "", displayedCount = 0) {
