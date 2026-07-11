@@ -13357,9 +13357,13 @@
     function roleLink(role) {
       const url = new URL(window.location.href);
       const api = apiUrlEl.value.trim() || localStorage.getItem("agent_api_url") || "";
+      const targetRole = role || "staff";
       url.searchParams.set("project_key", projectKeyEl.value.trim() || "demo");
-      url.searchParams.set("role", role || "staff");
-      url.searchParams.set("view", "cases");
+      url.searchParams.set("role", targetRole);
+      // Staff must land in the live Inbox first. The case workbench is only a
+      // filtered action queue, so using it as the shared staff entry hid new
+      // ChatDaddy conversations that did not yet need a case action.
+      url.searchParams.set("view", targetRole === "staff" ? "inbox" : "cases");
       url.searchParams.delete("date");
       url.searchParams.delete("q");
       url.searchParams.delete("query");
