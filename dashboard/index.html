@@ -6908,10 +6908,15 @@
     state.sidebarCollapsed = mobileStaffViewport || localStorage.getItem("replypilot_sidebar_collapsed") === "1";
     applySidebarCollapsedState();
     const requestedView = params.get("view") || "";
-    state.workspaceView = ["inbox", "cases", "learning", "operations"].includes(requestedView)
-      ? requestedView
-      : state.role === "staff" ? "inbox" : state.workspaceView;
     state.pendingCaseId = params.get("case_id") || null;
+    // Old staff bookmarks pointed at the filtered Case queue. That made the
+    // full Inbox look empty even while ChatDaddy had new conversations.
+    const staffLegacyCaseLanding = state.role === "staff" && requestedView === "cases" && !state.pendingCaseId;
+    state.workspaceView = staffLegacyCaseLanding
+      ? "inbox"
+      : ["inbox", "cases", "learning", "operations"].includes(requestedView)
+        ? requestedView
+        : state.role === "staff" ? "inbox" : state.workspaceView;
     const requestedQuery = String(params.get("q") || params.get("query") || hashParams.get("q") || "").trim().slice(0, 120);
     if (requestedQuery) {
       state.query = requestedQuery;
