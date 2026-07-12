@@ -7319,6 +7319,13 @@
       : ["inbox", "cases", "learning", "operations"].includes(requestedView)
         ? requestedView
         : state.role === "staff" ? "inbox" : state.workspaceView;
+    const requestedSetupStep = String(params.get("setup") || "");
+    if (["1", "2", "3"].includes(requestedSetupStep)) {
+      state.activeSetupStep = requestedSetupStep;
+      state.sidebarKey = `step_${requestedSetupStep}`;
+      state.settingsExpanded = true;
+      state.workspaceView = "operations";
+    }
     const requestedQuery = String(params.get("q") || params.get("query") || hashParams.get("q") || "").trim().slice(0, 120);
     if (requestedQuery) {
       state.query = requestedQuery;
