@@ -4710,8 +4710,32 @@
 
     .bubble-media audio {
       display: block;
-      width: min(100%, 420px);
+      width: 100%;
       min-height: 40px;
+    }
+
+    .bubble-media.has-audio {
+      width: min(420px, 70vw);
+      min-width: min(280px, 70vw);
+    }
+
+    .bubble-audio {
+      display: grid;
+      gap: 5px;
+      width: 100%;
+    }
+
+    .bubble-media-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .bubble-audio-fallback {
+      color: #066a64;
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: underline;
     }
 
     .bubble-file-link {
@@ -10717,7 +10741,9 @@
       const actor = String(item.latest_actor || (item.latest_direction === "agent" ? "channel_outbound" : "customer"));
       const directionClass = item.latest_direction === "agent" ? "outbound-latest" : "customer-latest";
       const attentionClass = item.requires_attention ? "needs-attention" : "";
-      const recentMessages = Array.isArray(item.messages) ? item.messages.slice(-6) : [];
+      const recentMessages = Array.isArray(item.messages)
+        ? item.messages.filter(messageHasRenderableContent).slice(-6)
+        : [];
       const caseButton = item.case_id
         ? `<button class="btn ${item.requires_attention ? "primary" : ""}" type="button" data-inbox-case-id="${escapeHtml(item.case_id)}" data-inbox-attention="${item.requires_attention ? "1" : "0"}">${item.requires_attention ? "打开处理" : "查看记录"}</button>`
         : "";
@@ -15658,7 +15684,7 @@
       $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(item, canResendPurchase);
 	      $("caseDetails").innerHTML = caseDetailsHtml(item);
 
-	      $("chatBox").innerHTML = (item.messages || []).filter((msg) => {
+	      $("chatBox").innerHTML = (item.messages || []).filter(messageHasRenderableContent).filter((msg) => {
 	        if (!paymentConfirmationCase) return true;
 	        const outbound = msg.direction === "outbound" || msg.direction === "out" || msg.role === "agent";
 	        return !(outbound && compactCompareText(messageDisplayText(msg)) === compactCompareText(decision.reply_message || ""));
@@ -16664,15 +16690,21 @@
 	      return "file";
 	    }
 
+	    function messageHasRenderableContent(message = {}) {
+	      return Boolean(messageDisplayText(message) || dashboardContextAttachments(message).length);
+	    }
+
 	    function messageMediaHtml(message = {}) {
 	      const attachments = dashboardContextAttachments(message);
 	      if (!attachments.length) return "";
-	      return `<div class="bubble-media">${attachments.map((attachment) => {
+	      const kinds = attachments.map((attachment) => dashboardAttachmentKind(attachment, message));
+	      const mediaClass = kinds.includes("audio") ? " has-audio" : "";
+	      return `<div class="bubble-media${mediaClass}">${attachments.map((attachment) => {
 	        const url = escapeHtml(attachment.url);
 	        const label = escapeHtml(attachment.name || attachmentDisplayLabel(attachment.type, attachment.url) || "打开附件");
 	        const kind = dashboardAttachmentKind(attachment, message);
 	        if (kind === "image") return `<a href="${url}" target="_blank" rel="noopener noreferrer" aria-label="打开图片原图"><img src="${url}" alt="${label || "顾客图片"}" loading="lazy" /></a>`;
-	        if (kind === "audio") return `<audio controls preload="none" src="${url}" aria-label="播放顾客语音"></audio>`;
+	        if (kind === "audio") return `<div class="bubble-audio"><audio controls preload="none" src="${url}" aria-label="播放顾客语音"></audio><a class="bubble-audio-fallback" href="${url}" target="_blank" rel="noopener noreferrer">无法播放时打开语音原档</a></div>`;
 	        if (kind === "video") return `<video controls playsinline preload="metadata" src="${url}" aria-label="播放顾客视频"></video>`;
 	        return `<a class="bubble-file-link" href="${url}" target="_blank" rel="noopener noreferrer">${label || "打开附件"}</a>`;
 	      }).join("")}</div>`;
@@ -16682,10 +16714,14 @@
 	      const media = messageMediaHtml(message);
 	      const text = messageDisplayText(message);
 	      const mediaOnlyLabel = /^\[(?:图片|语音|视频|贴图|附件)/.test(text);
+	      const hasAudio = dashboardContextAttachments(message).some((attachment) => dashboardAttachmentKind(attachment, message) === "audio");
+	      const mediaLabelHtml = media && mediaOnlyLabel && hasAudio
+	        ? `<div class="bubble-media-label">语音讯息</div>`
+	        : "";
 	      const textHtml = text && !(media && mediaOnlyLabel)
 	        ? `<div class="bubble-text">${escapeHtml(text)}</div>`
 	        : "";
-	      return `${textHtml}${media}` || `<div class="bubble-text">${escapeHtml(text || "[附件]")}</div>`;
+	      return `${textHtml}${mediaLabelHtml}${media}` || `<div class="bubble-text">${escapeHtml(text || "[附件]")}</div>`;
 	    }
 
 	    function contextSnippet(value, limit = 132) {
