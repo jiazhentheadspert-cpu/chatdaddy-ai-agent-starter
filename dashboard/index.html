@@ -10012,7 +10012,7 @@
         item.latest_context?.messages,
         item.decision?.signals?.recent_messages,
       ].find(Array.isArray) || [];
-      return raw
+      const mapped = raw
 	        .map((message, index) => {
 	          const rawDirection = String(message?.direction || message?.role || message?.sender_type || message?.from || "").toLowerCase();
 	          const providerMessageId = firstContextText(message?.provider_message_id, message?.providerMessageId, message?.message_id, message?.messageId);
@@ -10037,6 +10037,7 @@
             type: message?.type || message?.message_type || "text",
             at: firstContextText(message?.at, message?.message_at, message?.created_at, message?.timestamp),
             message_at: firstContextText(message?.message_at, message?.at, message?.created_at, message?.timestamp),
+            created_at: firstContextText(message?.created_at, message?.createdAt),
             status: message?.status || "",
             provider_status: providerStatus || "",
 	            delivery_status: providerStatus || "",
@@ -10046,6 +10047,7 @@
 	          };
 	        })
 	        .filter((message) => message.text || message.attachments.length || /attachment|image|photo|file|audio|voice|video/i.test(message.type));
+      return inferCancelledScheduledOutboundMessages(mapped);
     }
 
     function latestInboundContextMessage(messages = []) {
@@ -10110,6 +10112,34 @@
 	      const status = firstContextText(message?.provider_status, message?.delivery_status, message?.content?.provider_status, message?.metadata?.provider_status, message?.status);
 	      const reason = firstContextText(message?.cancel_reason, message?.content?.cancel_reason, message?.metadata?.cancel_reason);
 	      return /cancel|hold|held|skip|abort|stopp?ed|not[_\s-]?sent|failed|pending|queued|scheduled/i.test(`${status} ${reason}`);
+	    }
+
+	    function inferCancelledScheduledOutboundMessages(messages = []) {
+	      const rows = Array.isArray(messages) ? messages : [];
+	      return rows.map((message) => {
+	        if (contextMessageWasCancelled(message) || !contextMessageIsOutbound(message)) return message;
+	        const providerMessageId = firstContextText(message.provider_message_id, message.providerMessageId, message.message_id, message.id);
+	        const provider = firstContextText(message.content?.provider, message.metadata?.provider, message.provider).toLowerCase();
+	        if (!/^3EB0[A-F0-9]{8,}(?:\|\d+)?$/i.test(providerMessageId) && provider !== "chatdaddy") return message;
+	        const createdAtMs = new Date(message.created_at || 0).getTime();
+	        const scheduledAtMs = new Date(message.message_at || message.at || 0).getTime();
+	        if (!Number.isFinite(createdAtMs) || !Number.isFinite(scheduledAtMs) || scheduledAtMs - createdAtMs < 60_000) return message;
+	        const customerReplyBeforeSend = rows.some((candidate) => {
+	          const direction = String(candidate.direction || candidate.role || "").toLowerCase();
+	          if (["outbound", "agent", "assistant", "bot"].includes(direction) || !messageHasRenderableContent(candidate)) return false;
+	          const replyAtMs = messageTimeMs(candidate);
+	          return replyAtMs > createdAtMs && replyAtMs < scheduledAtMs;
+	        });
+	        if (!customerReplyBeforeSend) return message;
+	        return {
+	          ...message,
+	          provider_status: "cancelled",
+	          delivery_status: "cancelled",
+	          delivery_cancelled: true,
+	          inferred_delivery_cancelled: true,
+	          cancel_reason: "customer_replied_before_scheduled_send"
+	        };
+	      });
 	    }
 
 	    function externalHumanReplyRiskReason(item = {}, inboundText = "", inboundType = "", outboundText = "") {
@@ -10742,7 +10772,7 @@
       const directionClass = item.latest_direction === "agent" ? "outbound-latest" : "customer-latest";
       const attentionClass = item.requires_attention ? "needs-attention" : "";
       const recentMessages = Array.isArray(item.messages)
-        ? item.messages.filter(messageHasRenderableContent).slice(-6)
+        ? item.messages.filter((message) => messageHasRenderableContent(message) && !contextMessageWasCancelled(message)).slice(-6)
         : [];
       const caseButton = item.case_id
         ? `<button class="btn ${item.requires_attention ? "primary" : ""}" type="button" data-inbox-case-id="${escapeHtml(item.case_id)}" data-inbox-attention="${item.requires_attention ? "1" : "0"}">${item.requires_attention ? "打开处理" : "查看记录"}</button>`
@@ -15684,7 +15714,7 @@
       $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(item, canResendPurchase);
 	      $("caseDetails").innerHTML = caseDetailsHtml(item);
 
-	      $("chatBox").innerHTML = (item.messages || []).filter(messageHasRenderableContent).filter((msg) => {
+	      $("chatBox").innerHTML = (item.messages || []).filter((msg) => messageHasRenderableContent(msg) && !contextMessageWasCancelled(msg)).filter((msg) => {
 	        if (!paymentConfirmationCase) return true;
 	        const outbound = msg.direction === "outbound" || msg.direction === "out" || msg.role === "agent";
 	        return !(outbound && compactCompareText(messageDisplayText(msg)) === compactCompareText(decision.reply_message || ""));
