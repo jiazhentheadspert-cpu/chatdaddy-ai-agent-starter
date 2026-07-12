@@ -4677,8 +4677,8 @@
 
 	    .reply-command-bar {
 	      display: grid;
-	      grid-template-columns: auto minmax(360px, 1fr) auto;
-	      grid-template-areas: "more reply pay";
+	      grid-template-columns: auto auto minmax(320px, 1fr) auto;
+	      grid-template-areas: "more channel reply pay";
 	      align-items: center;
 	      justify-content: stretch;
 	      gap: 8px;
@@ -4900,6 +4900,119 @@
 
     .function-menu summary::-webkit-details-marker {
       display: none;
+    }
+
+    .channel-action-picker {
+      grid-area: channel;
+      position: relative;
+      align-self: stretch;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .channel-action-picker > summary {
+      list-style: none;
+      min-height: 60px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: 1px solid rgba(92,112,121,.22);
+      border-radius: 16px;
+      background: #fff;
+      color: var(--green-deep);
+      padding: 0 13px;
+      font-size: 12px;
+      font-weight: 950;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .channel-action-picker > summary::-webkit-details-marker { display: none; }
+
+    .channel-action-picker > summary > span {
+      width: 24px;
+      height: 24px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(0,168,132,.10);
+      color: #007a62;
+      font-size: 18px;
+    }
+
+    .channel-action-panel {
+      position: absolute;
+      left: 0;
+      bottom: calc(100% + 10px);
+      z-index: 24;
+      width: min(500px, calc(100vw - 42px));
+      display: grid;
+      gap: 10px;
+      border: 1px solid rgba(16,185,157,.30);
+      border-radius: 16px;
+      background: rgba(255,255,255,.99);
+      padding: 12px;
+      box-shadow: 0 24px 70px rgba(8,23,29,.20);
+    }
+
+    .channel-action-panel section {
+      display: grid;
+      gap: 8px;
+    }
+
+    .channel-action-panel section + section {
+      border-top: 1px solid rgba(92,112,121,.16);
+      padding-top: 10px;
+    }
+
+    .channel-action-section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .channel-action-section-title b { font-size: 13px; }
+    .channel-action-section-title small,
+    .flow-selection-note {
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 780;
+      line-height: 1.35;
+    }
+
+    .channel-action-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .channel-action-panel select,
+    .payment-menu-panel select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid rgba(92,112,121,.24);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 34px 0 11px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .purchase-flow-wrap {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 5px;
+    }
+
+    .purchase-flow-wrap > span {
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 850;
     }
 
     .function-menu-panel {
@@ -5505,6 +5618,7 @@
         grid-template-columns: auto minmax(0, 1fr);
         grid-template-areas:
           "more pay"
+	          "channel channel"
           "reply reply";
         gap: 7px;
         width: auto !important;
@@ -5526,6 +5640,7 @@
         min-width: 0;
       }
       .function-menu summary,
+	  .channel-action-picker > summary,
       .payment-quick > summary {
         min-height: 48px;
         border-radius: 13px;
@@ -5538,6 +5653,7 @@
         padding: 6px 12px;
       }
       .function-menu-panel,
+	  .channel-action-panel,
       .payment-menu-panel {
         position: absolute;
         bottom: calc(100% + 8px);
@@ -5550,6 +5666,10 @@
         left: 0;
         right: auto;
       }
+	  .channel-action-panel {
+	    left: 0;
+	    right: auto;
+	  }
       .payment-menu-panel {
         right: 0;
         grid-template-columns: 1fr;
@@ -6635,7 +6755,34 @@
 	        </details>
 	      </div>
 	    </details>
-	    <div class="reply-action-group" aria-label="发送回复">
+	    <details class="channel-action-picker" id="channelActionPicker" aria-label="选择 Quick Reply 或 ChatDaddy Flow">
+	      <summary>
+	        <span>＋</span>
+	        <strong id="channelActionLabel">快捷回复 / Flow</strong>
+	      </summary>
+	      <div class="channel-action-panel">
+	        <section>
+	          <div class="channel-action-section-title">
+	            <b>Quick Reply</b>
+	            <small>放进回复框，确认后才发送</small>
+	          </div>
+	          <div class="channel-action-row">
+	            <select id="quickReplySelect" aria-label="选择 Quick Reply"></select>
+	            <button class="btn" id="applyQuickReplyBtn" type="button">套用</button>
+	          </div>
+	        </section>
+	        <section>
+	          <div class="channel-action-section-title">
+	            <b>接 ChatDaddy Flow</b>
+	            <small>AI 会推荐；客服确认后才触发</small>
+	          </div>
+	          <select id="flowSelect" aria-label="选择 ChatDaddy Flow"></select>
+	          <div class="flow-selection-note" id="flowSelectionNote">正在读取项目 Flow...</div>
+	          <button class="btn primary" id="triggerFlowBtn" type="button">确认并接 Flow</button>
+	        </section>
+	      </div>
+	    </details>
+	    <div class="reply-action-group" id="replyActionGroup" aria-label="发送回复">
 	      <div class="operation-copy">
 	        <span>回复顾客</span>
 	        <small>发送前请确认上方内容</small>
@@ -6646,19 +6793,23 @@
 	    <details class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
 	      <summary>
 	        <span>收款 / COD</span>
-	        <small>只记录成交</small>
+	        <small>确认后接 Flow</small>
 	      </summary>
 	      <div class="payment-menu-panel">
 	        <div class="operation-copy">
-	          <span>确认收款 / COD</span>
-	          <small>只记录成交，不会发送顾客讯息</small>
+	          <span>确认付款并接 After Payment Flow</span>
+	          <small>先核对金额和配套，再一次完成</small>
 	        </div>
+	        <label class="purchase-flow-wrap">
+	          <span>配套 / Flow</span>
+	          <select id="paymentFlowSelect" aria-label="选择付款后 Flow"></select>
+	        </label>
 	        <label class="purchase-input-wrap">
 	          <span>RM</span>
 	          <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
 	        </label>
-	        <button class="btn primary" id="markPurchaseBtn" type="button">确认已付款</button>
-	        <div class="purchase-note" id="purchaseNote">已收到款或 COD 已确认才按；不会发顾客讯息。</div>
+	        <button class="btn primary" id="markPurchaseBtn" type="button">确认付款并接 Flow</button>
+	        <div class="purchase-note" id="purchaseNote">只有已核对付款和配套才按；系统会触发所选 ChatDaddy Flow。</div>
 	      </div>
 	    </details>
 	  </div>
@@ -6751,6 +6902,10 @@
       queueSyncStatus: null,
       selectedDate: "",
       queueDateScope: "date",
+	  flowCatalog: [],
+	  quickReplies: [],
+	  flowCatalogLoaded: false,
+	  flowCatalogError: "",
     };
 
     const DEFAULT_SETTINGS = {
@@ -6763,6 +6918,11 @@
         s4: "bot_29650314b584a2ee",
         order: "",
         payment: "bot_75cf1a1139688a88",
+		payment_meta_3_rm378: "",
+		payment_meta_4_rm508: "",
+		payment_meta_5_rm658: "",
+		after_payment_group: "",
+		after_payment_refund_policy: "",
         follow_up_1: "",
         follow_up_2: "",
         follow_up_3: "",
@@ -7183,11 +7343,26 @@
 	    $("returnAiBtn").addEventListener("click", returnAiActive);
 		    $("handoffBtn").addEventListener("click", handoffActive);
 		    $("markPurchaseBtn").addEventListener("click", markPurchaseActive);
+		    $("applyQuickReplyBtn").addEventListener("click", applyQuickReplyActive);
+		    $("triggerFlowBtn").addEventListener("click", triggerFlowActive);
+		    $("flowSelect").addEventListener("change", () => updateFlowSelectionNote(state.active));
 		    $("functionMenu").addEventListener("toggle", () => {
-		      if ($("functionMenu").open) $("purchasePanel").open = false;
+		      if ($("functionMenu").open) {
+		        $("purchasePanel").open = false;
+		        $("channelActionPicker").open = false;
+		      }
+		    });
+		    $("channelActionPicker").addEventListener("toggle", () => {
+		      if ($("channelActionPicker").open) {
+		        $("functionMenu").open = false;
+		        $("purchasePanel").open = false;
+		      }
 		    });
 		    $("purchasePanel").addEventListener("toggle", () => {
-		      if ($("purchasePanel").open) $("functionMenu").open = false;
+		      if ($("purchasePanel").open) {
+		        $("functionMenu").open = false;
+		        $("channelActionPicker").open = false;
+		      }
 		    });
 		    $("externalFlowRecordBtn").addEventListener("click", externalFlowRecordActive);
 	    $("externalFlowPanel").addEventListener("toggle", () => updateExternalFlowButtonState());
@@ -12947,7 +13122,7 @@
 		          reject_if: "如果候选会自动确认付款/订单状态、发付款链接或触发成交 Flow，就拒绝。",
 		          auto_learning_allowed: false,
 		          safety_sop_only: true,
-		          must_not_do: ["不要自动点确认已付款", "不要自动说已收到款", "不要自动回流 Meta Purchase", "不要跳过人工核对"]
+		          must_not_do: ["不要自动点确认已付款", "不要自动说已收到款", "未核对金额和配套前不要接付款 Flow", "不要跳过人工核对"]
 		        });
 		      }
 		      if (/退款|无效|退货|赔|投诉|complain|refund|售后|after.?sales/i.test(combined)) {
@@ -15112,6 +15287,7 @@
       }
       state.active = item;
 	      $("functionMenu").open = false;
+	      $("channelActionPicker").open = false;
 	      $("purchasePanel").open = false;
 
       const decision = item.latest_decision || {};
@@ -15126,18 +15302,23 @@
       const existingPurchaseAmount = casePurchaseAmount(item);
       const showPurchasePanel = shouldShowPurchasePanelForCase(item, readOnly, canResendPurchase);
       const purchaseActionComplete = purchaseActionCompleteForCase(item);
+	  const paymentConfirmationCase = isPaymentConfirmationCase(item) && !purchaseActionComplete;
       const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve && !showPurchasePanel;
+	  const hideReplyCardForMode = hideReplyCard || paymentConfirmationCase;
       const externalFlowReadOnly = item.status === "external_flow_continued";
       const baseDisplayName = customerDisplayLabel(item);
       const displayName = customerDisplayLabelWithTail(item, baseDisplayName);
 	      $("panelName").textContent = displayName;
 	      $("panelAvatar").textContent = initialsFor(baseDisplayName);
       $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
-      $("replyCard").classList.toggle("hidden", hideReplyCard);
-      $("replyBox").value = hideReplyCard || isManualFollowUp ? "" : externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
+	  $("replyCard").classList.toggle("hidden", hideReplyCardForMode);
+	  const originalProposedReply = externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
+	  const proposedReply = hideReplyCardForMode || isManualFollowUp ? "" : originalProposedReply;
+	  const misleadingPaymentDraft = paymentConfirmationCase && /(先帮你核对|先幫你核對|确认好后再回复|確認好後再回覆|稍后再回复|稍後再回覆|不会重复向你收款|不會重複向你收款)/i.test(originalProposedReply);
+      $("replyBox").value = misleadingPaymentDraft ? "" : proposedReply;
       $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : "";
       $("replyBox").readOnly = readOnly && !canManualResolve;
-      $("replyModeLabel").textContent = externalFlowReadOnly ? "外部已处理，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工回复，只读" : item.status === "returned_to_ai" ? "已让 AI 重写，只读" : readOnly ? "已记录，只读" : "可修改";
+	  $("replyModeLabel").textContent = paymentConfirmationCase ? "付款确认后接 Flow" : externalFlowReadOnly ? "外部已处理，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工回复，只读" : item.status === "returned_to_ai" ? "已让 AI 重写，只读" : readOnly ? "已记录，只读" : "可修改";
       $("replyTools").classList.toggle("hidden", readOnly && !canManualResolve);
       const canOptimizeCase = state.role !== "staff";
       $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
@@ -15196,20 +15377,27 @@
       $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
 	      $("purchasePanel").classList.toggle("hidden", !showPurchasePanel);
 	      $("purchaseAmountInput").value = existingPurchaseAmount ? String(existingPurchaseAmount) : "";
+	      $("replyActionGroup").classList.toggle("hidden", paymentConfirmationCase && !readOnly);
+	      renderChannelActions(item);
+	      $("purchasePanel").open = paymentConfirmationCase && !readOnly;
 	      updatePurchaseNote(item);
 	      updateExternalFlowPanel(item, readOnly);
 	      $("markPurchaseBtn").disabled = state.actionBusy || !showPurchasePanel || purchaseActionComplete;
       $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(item, canResendPurchase);
 	      $("caseDetails").innerHTML = caseDetailsHtml(item);
 
-      $("chatBox").innerHTML = (item.messages || []).map((msg) => {
+	      $("chatBox").innerHTML = (item.messages || []).filter((msg) => {
+	        if (!paymentConfirmationCase) return true;
+	        const outbound = msg.direction === "outbound" || msg.direction === "out" || msg.role === "agent";
+	        return !(outbound && compactCompareText(messageDisplayText(msg)) === compactCompareText(decision.reply_message || ""));
+	      }).map((msg) => {
         const cancelled = contextMessageWasCancelled(msg);
         const klass = cancelled ? "cancelled" : msg.direction === "outbound" ? "out" : "in";
         const cancelledLabel = cancelled
           ? `<span class="bubble-state">未发送 · 顾客回复后 ChatDaddy 自动取消</span>`
           : "";
         return `<div class="bubble ${klass}">${messageBubbleContentHtml(msg)}${cancelledLabel}</div>`;
-      }).join("") + (!readOnly && !hasOutbound && contextTextValue(decision.reply_message) ? `<div class="bubble out">${escapeHtml(contextTextValue(decision.reply_message))}</div>` : "");
+	  }).join("") + (!readOnly && !hasOutbound && !misleadingPaymentDraft && !paymentConfirmationCase && contextTextValue(decision.reply_message) ? `<div class="bubble out">${escapeHtml(contextTextValue(decision.reply_message))}</div>` : "");
 
       $("panelWords").innerHTML = (item.word_cloud || []).map(localizedWord).filter(Boolean).map((word, index) => {
         return `<span class="word ${index === 0 ? "big" : index < 3 ? "mid" : "small"}">${escapeHtml(word)}</span>`;
@@ -15466,7 +15654,7 @@
 	    function purchaseButtonLabelForCase(item = {}, canResendPurchase = canResendPurchaseMeta(item)) {
 	      if (canResendPurchase) return "补回流广告";
 	      if (item.status === "purchase_confirmed") return "已确认付款";
-	      return "确认已付款";
+	      return "确认付款并接 Flow";
 	    }
 
 	    function hasPurchaseActionContext(item = {}) {
@@ -15493,6 +15681,142 @@
 	      ].filter(Boolean).join(" ");
 	      return /(order|receipt|payment|paid|cod|bank|card|purchase|付款|付钱|付錢|已付|汇款|匯款|收据|收據|截图|截圖|银行|銀行|银行卡|銀行卡|信用卡|订单|訂單|下单|下單|成交|审款|審款)/i.test(combined);
 	    }
+
+	function fallbackBeyouteFlowCatalog() {
+	  return [
+	    { flow_key: "payment_meta_3_rm378", title: "Payment Flow Meta 3盒送1盒 RM378", flow_kind: "payment", stage_key: "after_payment", package_code: "3_box_rm378", amount_rm: 378, configured: false },
+	    { flow_key: "payment_meta_4_rm508", title: "Payment Flow Meta 4盒送2盒 RM508", flow_kind: "payment", stage_key: "after_payment", package_code: "4_box_rm508", amount_rm: 508, configured: false },
+	    { flow_key: "payment_meta_5_rm658", title: "Payment Flow Meta 5盒送3盒 RM658", flow_kind: "payment", stage_key: "after_payment", package_code: "5_box_rm658", amount_rm: 658, configured: false },
+	    { flow_key: "after_payment_group", title: "WA AFTER PAYMENT 进群", flow_kind: "payment", stage_key: "after_payment", package_code: "after_payment_group", configured: false },
+	    { flow_key: "after_payment_refund_policy", title: "WA AFTER PAYMENT 无效退款", flow_kind: "payment", stage_key: "after_payment_policy", package_code: "after_payment_refund_policy", configured: false },
+	    { flow_key: "payment", title: "Payment / Order / Receipt（旧通用流程）", flow_kind: "payment", stage_key: "payment", package_code: "generic_payment", configured: Boolean(DEFAULT_SETTINGS.flowMap.payment), provider_bot_id: DEFAULT_SETTINGS.flowMap.payment }
+	  ];
+	}
+
+	function fallbackBeyouteQuickReplies() {
+	  return [
+	    { key: "payment_received", label: "收到付款", text: "谢谢亲爱的，这里已经收到你的付款了❤️ 我现在帮你接上付款后的安排。" },
+	    { key: "need_package", label: "确认配套", text: "亲爱的，我先确认一下你付款的是哪个配套和金额，确认后马上帮你接上付款后的安排❤️" },
+	    { key: "need_receipt", label: "补付款截图", text: "亲爱的，方便把付款截图发我一下吗？我核对好金额后马上帮你安排❤️" },
+	    { key: "cod_confirm", label: "COD 已确认", text: "好的亲爱的，COD 订单已经帮你确认了❤️ 接下来我帮你安排订单流程。" }
+	  ];
+	}
+
+	async function loadFlowCatalog() {
+	  const api = apiUrlEl.value.trim().replace(/\/$/, "");
+	  const project = projectKeyEl.value.trim() || "beyoute";
+	  const token = adminTokenEl.value.trim();
+	  state.flowCatalogLoaded = false;
+	  state.flowCatalogError = "";
+	  try {
+	    if (!api || state.demoMode) throw new Error("flow_catalog_offline");
+	    const url = `${api}/api/hermas/projects/${encodeURIComponent(project)}/flows`;
+	    const data = await fetchJsonSafe(url, authRequestOptions(token));
+	    if (!data?.ok || !Array.isArray(data.flows)) throw new Error(data?.error || "flow_catalog_unavailable");
+	    state.flowCatalog = data.flows;
+	    state.quickReplies = Array.isArray(data.quick_replies) ? data.quick_replies : [];
+	  } catch (error) {
+	    state.flowCatalog = fallbackBeyouteFlowCatalog();
+	    state.quickReplies = fallbackBeyouteQuickReplies();
+	    state.flowCatalogError = error?.message || String(error);
+	  } finally {
+	    if (!state.flowCatalog.length) state.flowCatalog = fallbackBeyouteFlowCatalog();
+	    if (!state.quickReplies.length) state.quickReplies = fallbackBeyouteQuickReplies();
+	    state.flowCatalogLoaded = true;
+	    if (state.active) renderChannelActions(state.active);
+	  }
+	}
+
+	function flowCatalogEntry(flowKey = "") {
+	  return state.flowCatalog.find((flow) => String(flow.flow_key || "") === String(flowKey || "")) || null;
+	}
+
+	function caseFlowMatchText(item = {}) {
+	  const messageText = (item.messages || []).slice(-14).map((message) => messageDisplayText(message)).filter(Boolean).join("\n");
+	  const decision = item.latest_decision || {};
+	  return [
+	    casePurchaseAmount(item) ? `RM${casePurchaseAmount(item)}` : "",
+	    customerPreviewText(item),
+	    item.last_message,
+	    messageText,
+	    decision.reason,
+	    decision.previous_agent_text,
+	    decision.reply_message,
+	    contextTextValue(item.raw_approval?.data)
+	  ].filter(Boolean).join("\n");
+	}
+
+	function inferPaidPackage(item = {}) {
+	  const amount = casePurchaseAmount(item);
+	  const text = caseFlowMatchText(item);
+	  const definitions = [
+	    { flow_key: "payment_meta_3_rm378", package_code: "3_box_rm378", amount_rm: 378, patterns: [/\bRM\s*378(?:\.00)?\b/i, /3\s*盒\s*送\s*1\s*盒/i, /配套\s*A\b/i] },
+	    { flow_key: "payment_meta_4_rm508", package_code: "4_box_rm508", amount_rm: 508, patterns: [/\bRM\s*508(?:\.00)?\b/i, /4\s*盒\s*送\s*2\s*盒/i, /配套\s*B\b/i] },
+	    { flow_key: "payment_meta_5_rm658", package_code: "5_box_rm658", amount_rm: 658, patterns: [/\bRM\s*658(?:\.00)?\b/i, /5\s*盒\s*送\s*3\s*盒/i, /配套\s*C\b/i] }
+	  ];
+	  const amountMatch = definitions.find((entry) => amount && Math.abs(amount - entry.amount_rm) < 0.01);
+	  if (amountMatch) return { ...amountMatch, confidence: "exact_amount" };
+	  const matches = definitions.filter((entry) => entry.patterns.some((pattern) => pattern.test(text)));
+	  return matches.length === 1 ? { ...matches[0], confidence: "conversation" } : null;
+	}
+
+	function isPaymentConfirmationCase(item = {}) {
+	  if (!item?.id) return false;
+	  const decision = item.latest_decision || {};
+	  const combined = [decision.action, decision.intent, decision.stage, item.status, customerPreviewText(item), item.last_message].filter(Boolean).join(" ");
+	  return hasPurchaseActionContext(item) && /(review[_\s-]?receipt|receipt|payment|paid|付款|已付|汇款|匯款|我汇款|我匯款|收据|收據)/i.test(combined);
+	}
+
+	function recommendedFlowForCase(item = {}) {
+	  const packageMatch = inferPaidPackage(item);
+	  if (packageMatch) return flowCatalogEntry(packageMatch.flow_key);
+	  const decision = item.latest_decision || {};
+	  const explicitKey = firstContextText(decision.flow_key, decision.next_flow_key, item.flow_key, item.raw_approval?.data?.flow_key);
+	  if (explicitKey && flowCatalogEntry(explicitKey)) return flowCatalogEntry(explicitKey);
+	  return isPaymentConfirmationCase(item) ? flowCatalogEntry("after_payment_group") || flowCatalogEntry("payment") : null;
+	}
+
+	function flowOptionLabel(flow = {}) {
+	  const amount = normalizedPurchaseAmount(flow.amount_rm);
+	  const unavailable = flow.configured === true ? "" : "（未接 Bot ID）";
+	  return `${flow.title || flow.flow_key || "未命名 Flow"}${amount ? ` · RM${amount}` : ""}${unavailable}`;
+	}
+
+	function fillFlowSelect(select, flows, selectedKey = "") {
+	  if (!select) return;
+	  select.innerHTML = `<option value="">请选择 Flow</option>` + flows.map((flow) => {
+	    const selected = String(flow.flow_key || "") === String(selectedKey || "") ? " selected" : "";
+	    const disabled = flow.configured === true ? "" : " disabled";
+	    return `<option value="${escapeHtml(flow.flow_key || "")}"${selected}${disabled}>${escapeHtml(flowOptionLabel(flow))}</option>`;
+	  }).join("");
+	}
+
+	function renderChannelActions(item = state.active) {
+	  if (!item) return;
+	  const quickReplySelect = $("quickReplySelect");
+	  if (quickReplySelect) {
+	    quickReplySelect.innerHTML = `<option value="">选择 Quick Reply</option>` + state.quickReplies.map((entry) => `<option value="${escapeHtml(entry.key || "")}">${escapeHtml(entry.label || entry.key || "Quick Reply")}</option>`).join("");
+	  }
+	  const recommended = recommendedFlowForCase(item);
+	  fillFlowSelect($("flowSelect"), state.flowCatalog.filter((flow) => flow.is_active !== false), recommended?.configured ? recommended.flow_key : "");
+	  const paymentFlows = state.flowCatalog.filter((flow) => flow.is_active !== false && (flow.flow_kind === "payment" || String(flow.stage_key || "").startsWith("after_payment")));
+	  fillFlowSelect($("paymentFlowSelect"), paymentFlows, recommended?.configured ? recommended.flow_key : "");
+	  const packageMatch = inferPaidPackage(item);
+	  if (packageMatch && !$("purchaseAmountInput").value) $("purchaseAmountInput").value = String(packageMatch.amount_rm);
+	  updateFlowSelectionNote(item);
+	}
+
+	function updateFlowSelectionNote(item = state.active) {
+	  const select = $("flowSelect");
+	  const selected = flowCatalogEntry(select?.value || "");
+	  const recommended = recommendedFlowForCase(item || {});
+	  const note = $("flowSelectionNote");
+	  if (!note) return;
+	  if (selected) note.textContent = selected.configured ? `会触发：${selected.title}` : `${selected.title} 还没有接 Bot ID。`;
+	  else if (recommended && !recommended.configured) note.textContent = `AI 识别到 ${recommended.title}，但还需要接入它的 Bot ID。`;
+	  else if (recommended) note.textContent = `AI 建议：${recommended.title}`;
+	  else note.textContent = state.flowCatalogError ? "Flow 清单暂时离线；不会误触发。" : "请选择与顾客当前阶段相符的 Flow。";
+	}
 
     function initialsFor(name) {
       const text = String(name || "顾客").trim();
@@ -17177,7 +17501,7 @@
         return "客服下一步：先查付款/订单/单号或仓库；回复预计到货/追踪，不接销售 Flow。";
       }
       if (tone === "order") {
-        return "客服下一步：先审款 / 查订单 / 核对资料；确认无误才记录成交或继续处理。";
+	        return "客服下一步：先审款 / 查订单 / 核对资料；确认金额与配套后选择对应 After Payment Flow。";
       }
       if (action === "trigger_flow") {
         return "客服下一步：确认顾客确实在这个 Step；确认后才让 Flow 继续。";
@@ -18279,7 +18603,7 @@
 	        return { tone: "order", title: "已付款问包裹：查订单/追踪", reason: "ManyChat Chong：顾客已付款并询问包裹/parcel。客服先核对付款、订单资料、单号或仓库状态，再回复预计到货/追踪；不要继续销售 Flow，也不要直接承诺已出货。" };
 	      }
       if (paymentReceivedSignal) {
-        return { tone: "order", title: "付款/汇款先审款", reason: "顾客说已付款/已汇款，或草稿确认收到款；先核对金额、截图和订单资料，不继续销售，也不要直接承诺已出货。" };
+	        return { tone: "order", title: "付款/汇款先审款，再接付款后 Flow", reason: "顾客说已付款/已汇款时，先核对金额、截图、配套和订单资料；确认无误后接对应 After Payment Flow，不再发送泛用核对话术。" };
       }
       if (paymentLinkAmountMismatch) {
         return { tone: "handoff", title: "付款链接金额先确认", reason: "付款链接、PayEx、GrabPay Later 或金额出现不一致；客服要核对配套、金额、差额补偿和付款截图，不要让 AI 自动承诺链接正确或继续销售 Flow。" };
@@ -18847,12 +19171,12 @@
 	          risk_level: "high",
 	          risk_label: "高风险",
 	          learnability: "no",
-	          guidance: "付款、订单、COD、receipt 必须人工核对，不能自动确认已收款。",
+	          guidance: "付款、订单、COD、receipt 必须先由人工核对；确认金额和配套后，接对应 After Payment Flow。",
 	          handoff_reason: "付款/订单资料需要人工核对，不能自动确认。",
 	          customer_outcome: "客服已人工核对付款/订单状态。",
 	          learning_outcome_note: "不可自动学习付款确认；只能记录为人工核对流程证据。",
 	          safe_reply_draft: "亲，我先帮你核对付款/订单资料🙏 确认前我不会直接标记已付款；核对好了再告诉你下一步。",
-	          do_not_do: ["不要自动点确认已付款。", "不要自动说已收到款。", "不要触发付款 Flow。"]
+	          do_not_do: ["不要自动点确认已付款。", "不要自动说已收到款。", "未核对金额和配套前不要触发付款 Flow。"]
 	        });
 	      }
 	      if (/配套|价格|优惠|多少钱|下单|包邮|赠品|promotion|offer|discount|套餐/.test(raw)) {
@@ -19366,30 +19690,108 @@
         $("purchaseAmountInput").focus();
         return;
       }
-      if (!confirmPurchaseAction(amount, state.active, isResend)) return;
+	  if (isResend) {
+	    if (!confirmPurchaseAction(amount, state.active, true)) return;
+	    const result = await postCaseAction(state.active.id, "mark_purchase", {
+	      amount_rm: amount,
+	      currency: "MYR",
+	      order_id: casePurchaseOrderId(state.active),
+	      confirmMetaSend: true,
+	      resendMetaCapi: true,
+	      manualPurchaseOverride: false,
+	      confirmedBy: state.session.displayName || roleName(state.role),
+	      source: "staff_dashboard_resend_meta_purchase",
+	    });
+	    const meta = result?.meta_capi;
+	    showToast(meta?.sent ? `已补回流 Meta RM ${amount.toFixed(2)}。` : `成交已记录；请检查 Meta 回流状态。`);
+	    return;
+	  }
+	  const flow = flowCatalogEntry($("paymentFlowSelect").value);
+	  if (!flow) {
+	    showToast("先选择顾客付款对应的 After Payment Flow。");
+	    $("paymentFlowSelect").focus();
+	    return;
+	  }
+	  if (flow.configured !== true) {
+	    alert(`${flow.title} 还没有接入 ChatDaddy Bot ID，系统不会冒险触发。`);
+	    return;
+	  }
+	  if (!confirmFlowTrigger(flow, state.active, { amount, confirmPayment: true })) return;
       const manualPurchaseOverride = !hasPurchaseActionContext(state.active);
-      const result = await postCaseAction(state.active.id, "mark_purchase", {
+	  const result = await postCaseAction(state.active.id, "trigger_flow", {
+	    flow_key: flow.flow_key,
+	    flow_title: flow.title,
+	    provider_bot_id: flow.provider_bot_id || "",
+	    provider_flow_id: flow.provider_flow_id || "",
+	    package_code: flow.package_code || "",
         amount_rm: amount,
         currency: "MYR",
         order_id: casePurchaseOrderId(state.active),
+	    confirm_payment: true,
+	    confirmFlowTrigger: true,
         confirmMetaSend: true,
-        resendMetaCapi: isResend,
+	    resendMetaCapi: false,
         manualPurchaseOverride,
         confirmedBy: state.session.displayName || roleName(state.role),
-        source: isResend ? "staff_dashboard_resend_meta_purchase" : manualPurchaseOverride ? "staff_dashboard_manual_purchase_override" : "staff_dashboard_mark_purchase",
+	    source: "staff_dashboard_confirm_payment_and_trigger_flow",
       });
       const meta = result?.meta_capi;
       const metaDone = meta?.sent || meta?.deduped || meta?.already_sent || meta?.result?.deduped;
-      if (meta?.sent) {
-        showToast(`已记录成交，并已回流 Meta RM ${amount.toFixed(2)}。`);
-      } else if (metaDone) {
-        showToast(`这笔成交已处理过，系统已防重复回流 RM ${amount.toFixed(2)}。`);
-      } else if (meta?.configured === false || state.metaCapiStatus?.configured === false) {
-        showToast(`已记录成交 RM ${amount.toFixed(2)}；Meta 未接，未回流广告。`);
-      } else {
-        showToast(`已记录成交 RM ${amount.toFixed(2)}；请检查 Meta 回流状态。`);
-	      }
+	  if (result?.flow_trigger?.sent || result?.triggered) {
+	    showToast(`付款已确认，已接 ${flow.title}。${meta?.sent || metaDone ? " 成交也已回流。" : ""}`);
+	  } else {
+	    showToast(`付款已确认；请检查 ${flow.title} 的触发状态。`);
+	  }
 	    }
+
+	function confirmFlowTrigger(flow, item, options = {}) {
+	  if (state.demoMode) return true;
+	  const name = customerDisplayLabel(item) || "这位顾客";
+	  const paymentLine = options.confirmPayment
+	    ? `\n付款金额：RM ${Number(options.amount || 0).toFixed(2)}\n确认后会同时记录成交。`
+	    : "";
+	  return window.confirm(`确认给 ${name} 接这个 ChatDaddy Flow？\n\n${flow.title}${paymentLine}\n\nFlow 会真实发给顾客；只在配套和阶段已经确认时继续。`);
+	}
+
+	function applyQuickReplyActive() {
+	  if (!state.active || state.actionBusy) return;
+	  const entry = state.quickReplies.find((item) => String(item.key || "") === String($("quickReplySelect").value || ""));
+	  if (!entry?.text) {
+	    showToast("先选择一个 Quick Reply。");
+	    return;
+	  }
+	  $("replyBox").value = entry.text;
+	  $("replyBox").dispatchEvent(new Event("input", { bubbles: true }));
+	  $("channelActionPicker").open = false;
+	  showToast("Quick Reply 已放进回复框；确认后才发送。 ");
+	}
+
+	async function triggerFlowActive() {
+	  if (!state.active || state.actionBusy) return;
+	  const flow = flowCatalogEntry($("flowSelect").value);
+	  if (!flow) {
+	    showToast("先选择要接的 ChatDaddy Flow。");
+	    return;
+	  }
+	  if (flow.configured !== true) {
+	    alert(`${flow.title} 还没有接入 ChatDaddy Bot ID，系统不会触发。`);
+	    return;
+	  }
+	  if (!confirmFlowTrigger(flow, state.active)) return;
+	  const result = await postCaseAction(state.active.id, "trigger_flow", {
+	    flow_key: flow.flow_key,
+	    flow_title: flow.title,
+	    provider_bot_id: flow.provider_bot_id || "",
+	    provider_flow_id: flow.provider_flow_id || "",
+	    package_code: flow.package_code || "",
+	    confirm_payment: false,
+	    confirmFlowTrigger: true,
+	    confirmedBy: state.session.displayName || roleName(state.role),
+	    source: "staff_dashboard_explicit_flow",
+	  });
+	  $("channelActionPicker").open = false;
+	  showToast(result?.flow_trigger?.sent || result?.triggered ? `已接 ${flow.title}。` : `已提交；请检查 ${flow.title} 状态。`);
+	}
 
 	    async function externalFlowRecordActive() {
 	      if (!state.active || state.actionBusy) return;
@@ -20329,10 +20731,12 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" || action === "record_no_reply" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
+	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "trigger_flow" ? "正在接 Flow..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" || action === "record_no_reply" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
 	        }
         const isApproval = active?.source === "approval";
-        const endpoint = action === "mark_purchase"
+	    const endpoint = action === "trigger_flow"
+	      ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/trigger-flow`
+	      : action === "mark_purchase"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`
           : action === "manual_send"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/approve-send`
@@ -20345,7 +20749,7 @@
           : isApproval
           ? approvalActionEndpoint(api, caseId, action, project)
           : `${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`;
-        const payload = isApproval || action === "manual_send" ? approvalActionPayload(action, body) : body;
+	    const payload = isApproval || action === "manual_send" || action === "trigger_flow" ? approvalActionPayload(action, body) : body;
         const res = await fetch(endpoint, authRequestOptions(token, {
           method: "POST",
           headers: {
@@ -20489,6 +20893,11 @@
 	      $("caseOptimizerDraftBtn").disabled = isBusy;
 	      $("caseOptimizerRecordBtn").disabled = isBusy;
 	      $("markPurchaseBtn").disabled = isBusy || !showPurchasePanel || purchaseActionComplete;
+	      $("applyQuickReplyBtn").disabled = isBusy || readOnly;
+	      $("triggerFlowBtn").disabled = isBusy || readOnly;
+	      $("quickReplySelect").disabled = isBusy || readOnly;
+	      $("flowSelect").disabled = isBusy || readOnly;
+	      $("paymentFlowSelect").disabled = isBusy || readOnly;
 	      setExternalFlowFieldsDisabled(isBusy || $("externalFlowPanel").classList.contains("hidden"));
 	      updateExternalFlowButtonState(state.active);
 	      if (isBusy) {
@@ -20499,6 +20908,7 @@
 	        $("noReplyNeededBtn").textContent = label;
 	        $("returnAiBtn").textContent = label;
 	        $("markPurchaseBtn").textContent = label;
+	        $("triggerFlowBtn").textContent = label;
 	        $("externalFlowRecordBtn").textContent = label;
 	        return;
 	      }
@@ -20509,11 +20919,15 @@
 	      $("noReplyNeededBtn").textContent = "无需回复";
 	      $("returnAiBtn").textContent = approvalGuard.blocked ? "让 AI 重写" : readOnly ? "已记录" : "让 AI 重写";
 	      $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(state.active, canResendPurchase);
+	      $("triggerFlowBtn").textContent = "确认并接 Flow";
 	      $("externalFlowRecordBtn").textContent = "标记为自动 Flow 已处理";
 	      updateExternalFlowButtonState(state.active);
 	    }
 
     function approvalActionEndpoint(api, caseId, action, project) {
+	  if (action === "trigger_flow") {
+	    return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/trigger-flow`;
+	  }
       if (action === "mark_purchase") {
         return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`;
       }
@@ -20540,6 +20954,24 @@
     }
 
     function approvalActionPayload(action, body) {
+	  if (action === "trigger_flow") {
+	    return {
+	      flow_key: body.flow_key || "",
+	      flow_title: body.flow_title || "",
+	      provider_bot_id: body.provider_bot_id || "",
+	      provider_flow_id: body.provider_flow_id || "",
+	      package_code: body.package_code || "",
+	      amount_rm: body.amount_rm,
+	      currency: body.currency || "MYR",
+	      order_id: body.order_id || "",
+	      confirm_payment: body.confirm_payment === true,
+	      confirmFlowTrigger: body.confirmFlowTrigger === true,
+	      confirmMetaSend: body.confirmMetaSend !== false,
+	      manualPurchaseOverride: body.manualPurchaseOverride === true,
+	      confirmedBy: body.confirmedBy || state.session.displayName || roleName(state.role),
+	      source: body.source || "staff_dashboard_trigger_flow",
+	    };
+	  }
       if (action === "mark_seen") {
         return {
           note: body.note || "客服已看过。",
@@ -21081,7 +21513,7 @@
 
     (async function bootDashboard() {
       await bootstrapSaasSession();
-      await Promise.all([loadCases(), loadInboxConversations()]);
+	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog()]);
 	  startQueueAutoRefresh();
     })();
   </script>
