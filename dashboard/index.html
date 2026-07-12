@@ -9463,7 +9463,7 @@
           status: requestedQueueStatus,
           include_tests: visibility.includeTests ? "1" : "0",
           real_only: visibility.realOnly ? "1" : "0",
-          compact_conversations: "1",
+          compact_conversations: requestedQueueStatus === "all" ? "0" : "1",
           limit: searchQuery ? "120" : "250",
           scan_limit: searchQuery ? "2000" : "1000",
         });
@@ -9631,21 +9631,9 @@
 
     function dashboardQueueStatusForFilter(rawFilter = state.filter, role = state.role) {
       if (role !== "staff") return "all";
-      const filter = rawFilter === "human_first" ? "needs_attention" : String(rawFilter || "all");
-      const map = {
-        all: "open",
-        needs_attention: "open",
-        approval_required: "approval",
-        return_ai: "open",
-        pending_manual_reply: "open",
-        human_required: "human",
-        order: "order",
-        auto: "auto",
-        records: "records",
-        handoff_done: "records",
-        returned_to_ai: "records",
-      };
-      return map[filter] || "open";
+      // Keep one complete queue snapshot so filter changes are instant and all
+      // counters continue to describe the same data set.
+      return "all";
     }
 
     function dashboardQueueStatusParam(searchQuery = "") {
@@ -10742,11 +10730,15 @@
 
     function render() {
       const allForRole = casesForRole(state.cases);
+      const countScopeCases = String(state.query || "").trim() || useOpenBacklogDateScope()
+        ? allForRole
+        : filterCasesBySelectedDate(allForRole);
       const rawAll = casesForCurrentQueueDateScope(allForRole);
-      state.contactStats = buildContactStats(rawAll);
+      state.contactStats = buildContactStats(countScopeCases);
+      const allForCounts = state.role === "staff" ? collapseStaffActionableCasesByCustomer(countScopeCases) : countScopeCases;
       const all = state.role === "staff" ? collapseStaffActionableCasesByCustomer(rawAll) : rawAll;
-      const counts = countCases(all);
-      const learned = countLearnedRules(all);
+      const counts = countCases(allForCounts);
+      const learned = countLearnedRules(allForCounts);
       $("statAll").textContent = counts.total;
       $("statApproval").textContent = counts.approval;
       $("statHuman").textContent = counts.human;
