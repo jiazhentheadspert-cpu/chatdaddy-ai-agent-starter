@@ -218,10 +218,13 @@
       color: rgba(255,255,255,.76);
       padding: 9px 10px;
       font-weight: 900;
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
     }
 
     .side-settings-title::after {
-      content: "固定";
+      content: "+";
       display: inline-grid;
       place-items: center;
       min-width: 42px;
@@ -234,8 +237,109 @@
     }
 
     .side-settings-panel {
-      display: grid;
+      display: none;
       gap: 8px;
+    }
+
+    .side-settings.open .side-settings-panel {
+      display: grid;
+    }
+
+    .side-settings.open .side-settings-title::after {
+      content: "−";
+    }
+
+    .onboarding-summary {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .onboarding-summary-item {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .onboarding-summary-item b,
+    .onboarding-summary-item span {
+      display: block;
+    }
+
+    .onboarding-summary-item b {
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .onboarding-summary-item span {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .knowledge-section {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .knowledge-item {
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .knowledge-item b,
+    .knowledge-item span,
+    .knowledge-item small {
+      display: block;
+    }
+
+    .knowledge-item span {
+      margin-top: 5px;
+      color: var(--ink);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .knowledge-item small {
+      margin-top: 5px;
+      color: var(--muted);
+      font-weight: 750;
+      line-height: 1.4;
+    }
+
+    .project-upload {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px dashed #9fcfca;
+      border-radius: 8px;
+      background: #f4fbfa;
+    }
+
+    .project-upload input[type="file"] {
+      min-width: 0;
+      width: 100%;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .project-upload-note {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.4;
     }
 
     .side-label {
@@ -5520,7 +5624,7 @@
         border-radius: 0 0 24px 24px;
       }
       .side-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .ops-command, .command-grid, .executive-grid, .priority-lanes, .metric-strip, .steps, .queue-head, .queue-tools, .staff-priority-strip, .staff-cleanup-execution-strip, .grid, .panel-body, .panel-intel, .readiness-grid, .settings-grid { grid-template-columns: 1fr; }
+      .topbar, .setup, .demo-bar, .session-bar, .stats, .ops-grid, .ops-command, .command-grid, .executive-grid, .priority-lanes, .metric-strip, .steps, .queue-head, .queue-tools, .staff-priority-strip, .staff-cleanup-execution-strip, .grid, .panel-body, .panel-intel, .readiness-grid, .settings-grid, .onboarding-summary, .project-upload { grid-template-columns: 1fr; }
       .topbar { grid-template-columns: 1fr; }
       .grid.list .case-card { grid-template-columns: 1fr; }
       .detail-tile.wide { grid-column: auto; }
@@ -6406,20 +6510,20 @@
         </button>
         <div class="side-note">最新讯息看全部对话；操作台只放需要处理的顾客。</div>
 
-        <div class="side-settings" aria-label="设置">
-          <div class="side-settings-title"><span class="side-label side-label-plain"><em>设置</em></span></div>
+        <div class="side-settings" id="sideSettings" aria-label="设置">
+          <button class="side-settings-title" id="sideSettingsToggle" type="button" aria-expanded="false"><span class="side-label side-label-plain"><em>设置</em></span></button>
           <div class="side-settings-panel">
             <button data-short="1" data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
               <span class="side-label"><b class="side-code">1</b><em>讯息连接</em></span>
-              <small id="navStep1Badge">✅</small>
+              <small id="navStep1Badge">待</small>
             </button>
             <button data-short="2" data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
               <span class="side-label"><b class="side-code">2</b><em>回复 SOP</em></span>
-              <small id="navStep2Badge">✅</small>
+              <small id="navStep2Badge">待</small>
             </button>
             <button data-short="3" data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
               <span class="side-label"><b class="side-code">3</b><em>FAQ 资料</em></span>
-              <small id="navStep3Badge">✅</small>
+              <small id="navStep3Badge">待</small>
             </button>
           </div>
         </div>
@@ -6906,6 +7010,11 @@
 	  quickReplies: [],
 	  flowCatalogLoaded: false,
 	  flowCatalogError: "",
+      projectKnowledge: null,
+      projectKnowledgeError: "",
+      settingsExpanded: false,
+      projectDocumentFile: null,
+      projectDocumentBusy: false,
     };
 
     const DEFAULT_SETTINGS = {
@@ -7231,6 +7340,7 @@
     state.settings = readProjectSettings(projectKeyEl.value || "demo");
     state.auditEvents = readAuditEvents(projectKeyEl.value || "demo");
     updateStaffLoginLink();
+    syncSettingsDisclosure();
 
     applySessionShell();
 
@@ -7243,6 +7353,7 @@
       state.auditEvents = readAuditEvents(projectKeyEl.value.trim() || "demo");
       loadCases();
       loadInboxConversations();
+      loadProjectKnowledge();
     });
 
     $("logoutBtn").addEventListener("click", async () => {
@@ -7263,6 +7374,11 @@
 
     $("sidebarToggle").addEventListener("click", () => {
       setSidebarCollapsed(!state.sidebarCollapsed);
+    });
+
+    $("sideSettingsToggle").addEventListener("click", () => {
+      state.settingsExpanded = !state.settingsExpanded;
+      syncSettingsDisclosure();
     });
 
     $("loadDemo").addEventListener("click", () => {
@@ -7400,13 +7516,37 @@
     document.querySelectorAll("[data-side-key]").forEach((button) => {
       button.addEventListener("click", () => {
         state.sidebarKey = button.dataset.sideKey || "ai_reply";
-        if (button.dataset.stepView) state.activeSetupStep = button.dataset.stepView;
+        if (button.dataset.stepView) {
+          state.activeSetupStep = button.dataset.stepView;
+          if (["1", "2", "3"].includes(state.activeSetupStep)) {
+            state.settingsExpanded = true;
+            syncSettingsDisclosure();
+          }
+        }
         state.filter = button.dataset.sideFilter || (state.activeSetupStep === "4" ? "needs_attention" : "all");
         if (state.role === "staff" && button.dataset.workspaceTarget === "cases" && (button.dataset.sideFilter || "") === "needs_attention") {
           state.queueDateScope = "open_backlog";
         }
         setWorkspaceView(button.dataset.workspaceTarget || workspaceViewForSidebarKey(state.sidebarKey));
       });
+    });
+
+    function syncSettingsDisclosure() {
+      const shell = $("sideSettings");
+      const toggle = $("sideSettingsToggle");
+      if (!shell || !toggle) return;
+      shell.classList.toggle("open", state.settingsExpanded);
+      toggle.setAttribute("aria-expanded", state.settingsExpanded ? "true" : "false");
+    }
+
+    document.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-project-document-input]");
+      if (!input) return;
+      state.projectDocumentFile = input.files?.[0] || null;
+      const note = $("projectDocumentStatus");
+      if (note) note.textContent = state.projectDocumentFile
+        ? `已选择：${state.projectDocumentFile.name}，点击「分析并加入项目」。`
+        : "请先选择 PPTX、TXT 或 Markdown 文件。";
     });
 
     document.addEventListener("click", (event) => {
@@ -8308,7 +8448,17 @@
       if (action === "connect") {
         state.sidebarKey = "step_1";
         state.activeSetupStep = "1";
+        state.settingsExpanded = true;
+        syncSettingsDisclosure();
         setWorkspaceView("operations");
+        return;
+      }
+      if (action === "refresh-project-knowledge") {
+        loadProjectKnowledge();
+        return;
+      }
+      if (action === "analyze-project-document") {
+        analyzeSelectedProjectDocument();
         return;
       }
       if (action === "learning") {
@@ -10865,9 +11015,12 @@
       setBadge("navOrderBadge", counts.orders || 0);
       setBadge("navLogBadge", learned || "记录");
       setBadge("navConfigureBadge", "✅");
-      setBadge("navStep1Badge", state.demoMode ? "待" : "✅");
-      setBadge("navStep2Badge", "✅");
-      setBadge("navStep3Badge", "✅");
+      const onboarding = state.projectKnowledge || {};
+      const completion = onboarding.completion || {};
+      const knowledgeCounts = onboarding.counts || {};
+      setBadge("navStep1Badge", completion.message_connection && completion.project_materials ? "✅" : "待");
+      setBadge("navStep2Badge", completion.reply_sop ? `${Number(knowledgeCounts.ops_sop || 0) + Number(knowledgeCounts.safety_sop || 0) + Number(knowledgeCounts.reply_rules || 0)}` : "待");
+      setBadge("navStep3Badge", completion.faq ? Number(knowledgeCounts.faq || 0) : "待");
       setBadge("navStep4Badge", casesLabel);
       setBadge("navStep5Badge", learned || "中");
       setBadge("navStep6Badge", learned ? "看" : "中");
@@ -11582,6 +11735,7 @@
 	    }
 
 	    function setupStepScreenHtml(step, cases, counts, learned) {
+      if (["1", "2", "3"].includes(String(step))) return projectOnboardingStepHtml(String(step));
       const total = counts.total || 0;
       const pending = counts.needs || 0;
       const auto = counts.auto || 0;
@@ -11687,6 +11841,117 @@
         </section>
 	      `;
 	    }
+
+      function projectOnboardingStepHtml(step) {
+        const knowledge = state.projectKnowledge;
+        if (!knowledge) {
+          return `
+            <section class="command-panel accent">
+              <div class="command-kicker">项目 Onboarding</div>
+              <strong class="command-title">还没有读到真实项目资料</strong>
+              <p class="command-copy">${escapeHtml(state.projectKnowledgeError ? `读取失败：${state.projectKnowledgeError}` : "正在读取项目知识包。")}</p>
+              <div class="quick-actions"><button class="quick-action primary" data-dashboard-action="refresh-project-knowledge" type="button">重新读取</button></div>
+            </section>
+          `;
+        }
+        const assets = knowledge.learning_assets || {};
+        const counts = knowledge.counts || {};
+        const brand = knowledge.brand_brain || {};
+        const flows = Array.isArray(knowledge.flows) ? knowledge.flows : [];
+        const documents = Array.isArray(knowledge.source_documents) ? knowledge.source_documents : [];
+        const analyses = Array.isArray(knowledge.document_analyses) ? knowledge.document_analyses : [];
+        const header = `
+          <section class="command-panel accent">
+            <div class="command-kicker">${escapeHtml(knowledge.project_name || knowledge.project_key)} 项目 Onboarding</div>
+            <strong class="command-title">先读项目资料，再接讯息、Flow、SOP 与 FAQ</strong>
+            <p class="command-copy">这里显示的是后台真实项目包，不再用写死的 ✅。AI 生成回复时会检索这里已批准的 FAQ、SOP 与 Flow 判断。</p>
+            ${projectOnboardingSummaryHtml(knowledge)}
+          </section>
+        `;
+        if (step === "1") {
+          const documentRows = documents.length
+            ? documents.map((item) => knowledgeItemHtml(item.title || item.file_name || "项目资料", item.status || item.type || "已加入", item.analyzed_at || item.last_studied_at || "")).join("")
+            : knowledgeItemHtml("还没有项目资料", "先上传 PPTX", "没有资料时不会显示完成");
+          const latestAnalysis = analyses[0] || null;
+          return `${header}
+            <section class="command-panel">
+              <div class="command-kicker">第一步：项目资料</div>
+              <strong class="command-title">上传 PPT，让 AI 先理解项目</strong>
+              <p class="command-copy">支持 PPTX、TXT、Markdown。系统会提取文字、分析定位、目标顾客、产品、FAQ、SOP 与 Flow 用途，再写入这个项目包。</p>
+              <div class="project-upload">
+                <input type="file" data-project-document-input accept=".pptx,.txt,.md,text/plain,application/vnd.openxmlformats-officedocument.presentationml.presentation" aria-label="上传项目 PPT">
+                <button class="quick-action primary" data-dashboard-action="analyze-project-document" type="button" ${state.projectDocumentBusy ? "disabled" : ""}>${state.projectDocumentBusy ? "分析中..." : "分析并加入项目"}</button>
+                <div class="project-upload-note" id="projectDocumentStatus">先选择文件；读取与分析不会发送任何顾客讯息。</div>
+              </div>
+              <div class="knowledge-section">${documentRows}</div>
+              ${latestAnalysis ? `<div class="knowledge-section">${knowledgeItemHtml("最近一次分析", latestAnalysis.summary || latestAnalysis.positioning || "已完成", `${latestAnalysis.file_name || "PPT"} · ${latestAnalysis.analysis_mode || latestAnalysis.status || "analyzed"}`)}</div>` : ""}
+            </section>
+            <section class="command-panel">
+              <div class="command-kicker">第二步：讯息连接</div>
+              <strong class="command-title">${counts.channels > 0 ? `已连接 ${counts.channels} 个讯息渠道` : "讯息渠道还没有真实记录"}</strong>
+              <div class="compact-list">
+                ${compactRow("项目定位", brand.positioning || "待从 PPT / 项目资料确认", brand.positioning ? "已读" : "待补")}
+                ${compactRow("讯息渠道", `${Number(counts.channels || 0)} 个`, Number(counts.channels || 0) > 0 ? "已连接" : "待连接")}
+                ${compactRow("Chat Flow", `${Number(counts.configured_flows || 0)} / ${Number(counts.flows || 0)} 个已配置`, Number(counts.configured_flows || 0) > 0 ? "已读取" : "待接")}
+              </div>
+            </section>`;
+        }
+        if (step === "2") {
+          const sopItems = [
+            ...(assets.ops_sop || []).map((item) => ({ ...item, group: "客服 SOP" })),
+            ...(assets.safety_sop || []).map((item) => ({ ...item, group: "安全边界" })),
+            ...(assets.reply_rules || []).map((item) => ({ ...item, group: "回复方式" })),
+            ...(assets.closer_scripts || []).map((item) => ({ ...item, group: "成交话术" }))
+          ];
+          return `${header}
+            <section class="command-panel">
+              <div class="command-kicker">Beyoute 回复方式</div>
+              <strong class="command-title">${sopItems.length} 条真实 SOP / 安全规则 / 成交规则</strong>
+              <p class="command-copy">语气：${escapeHtml(brand.voice || "待补")}</p>
+              <div class="knowledge-section">${sopItems.map((item) => knowledgeItemHtml(item.title || item.question || item.group, item.rule || item.proposed_rule || item.guidance || item.answer || "", item.group)).join("") || knowledgeItemHtml("没有 SOP", "请先上传项目 PPT 或加入回复规则", "待补")}</div>
+            </section>
+            <section class="command-panel">
+              <div class="command-kicker">ChatDaddy Flow 地图</div>
+              <strong class="command-title">AI 要知道每个 Flow 为什么存在</strong>
+              <p class="command-copy">Flow 不是只存一个 Bot ID；每个 Flow 都必须有用途、使用条件和禁止条件，客服才不会接错。</p>
+              <div class="knowledge-section">${flows.map((flow) => flowKnowledgeItemHtml(flow)).join("") || knowledgeItemHtml("没有 Flow", "先在 ChatDaddy 接入项目 Flow，再补每个 Flow 的用途", "待接")}</div>
+            </section>`;
+        }
+        const faq = Array.isArray(assets.faq) ? assets.faq : [];
+        return `${header}
+          <section class="command-panel">
+            <div class="command-kicker">Beyoute FAQ</div>
+            <strong class="command-title">${faq.length} 条已进入项目知识包</strong>
+            <p class="command-copy">这些资料会参与回复生成；资料不足、健康敏感、付款或退款争议仍会转人工。</p>
+            <div class="knowledge-section">${faq.map((item) => knowledgeItemHtml(item.question || item.title || "FAQ", item.answer || item.better_reply || "", item.customer_pattern ? `匹配：${item.customer_pattern}` : "项目 FAQ")).join("") || knowledgeItemHtml("没有 FAQ", "请先上传 PPT 或加入 FAQ", "待补")}</div>
+          </section>`;
+      }
+
+      function projectOnboardingSummaryHtml(knowledge = {}) {
+        const counts = knowledge.counts || {};
+        const completion = knowledge.completion || {};
+        const items = [
+          ["项目资料", `${Number(counts.source_documents || 0)} 份`, completion.project_materials],
+          ["讯息连接", `${Number(counts.channels || 0)} 个渠道`, completion.message_connection],
+          ["回复 SOP", `${Number(counts.ops_sop || 0) + Number(counts.safety_sop || 0) + Number(counts.reply_rules || 0)} 条`, completion.reply_sop],
+          ["FAQ", `${Number(counts.faq || 0)} 条`, completion.faq],
+          ["Flow 定位", `${Number(counts.configured_flows || 0)} / ${Number(counts.flows || 0)}`, completion.flow_map]
+        ];
+        return `<div class="onboarding-summary">${items.map(([title, note, ready]) => `<div class="onboarding-summary-item"><b>${ready ? "✅" : "待"} ${escapeHtml(title)}</b><span>${escapeHtml(note)}</span></div>`).join("")}</div>`;
+      }
+
+      function knowledgeItemHtml(title, body, meta = "") {
+        return `<div class="knowledge-item"><b>${escapeHtml(title || "资料")}</b><span>${escapeHtml(body || "待补")}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ""}</div>`;
+      }
+
+      function flowKnowledgeItemHtml(flow = {}) {
+        const status = flow.configured ? "已接 Bot / Flow ID" : "只有用途资料，尚未接真实 ID";
+        const conditions = [
+          flow.when_to_use ? `什么时候用：${flow.when_to_use}` : "",
+          flow.do_not_use_when ? `不要在这些情况用：${flow.do_not_use_when}` : ""
+        ].filter(Boolean).join("\n");
+        return knowledgeItemHtml(flow.title || flow.flow_key || "Flow", flow.purpose || flow.description || "还没有填写用途", `${status}${conditions ? ` · ${conditions}` : ""}`);
+      }
 
 	    function autoReplyReadinessDashboardHtml() {
 	      if (state.role === "staff") return "";
@@ -15726,6 +15991,110 @@
 	    if (state.active) renderChannelActions(state.active);
 	  }
 	}
+
+    async function loadProjectKnowledge(options = {}) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      state.projectKnowledgeError = "";
+      if (!api || state.demoMode || (!token && !hasAccountSession())) {
+        state.projectKnowledge = null;
+        return null;
+      }
+      try {
+        const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/knowledge`;
+        const res = await fetch(endpoint, authRequestOptions(token));
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+        state.projectKnowledge = data;
+        if (!options.silent && state.workspaceView === "operations") showToast("已读取真实项目资料。 ");
+        render();
+        return data;
+      } catch (error) {
+        state.projectKnowledge = null;
+        state.projectKnowledgeError = error?.message || String(error);
+        render();
+        return null;
+      }
+    }
+
+    async function analyzeSelectedProjectDocument() {
+      const file = state.projectDocumentFile;
+      if (!file) {
+        showToast("请先选择项目 PPTX、TXT 或 Markdown 文件。");
+        return;
+      }
+      if (state.projectDocumentBusy) return;
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      if (!api || (!token && !hasAccountSession())) {
+        showToast("请先登录真实项目账号。");
+        return;
+      }
+      state.projectDocumentBusy = true;
+      render();
+      try {
+        const extractedText = await extractProjectDocumentText(file);
+        const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/onboarding/analyze-document`;
+        const res = await fetch(endpoint, authRequestOptions(token, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            file_name: file.name,
+            file_type: file.type,
+            extracted_text: extractedText,
+            updated_by: state.session?.user?.email || state.session?.email || "dashboard_onboarding"
+          })
+        }));
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+        state.projectKnowledge = data;
+        state.projectDocumentFile = null;
+        showToast(data.uses_openai ? "PPT 已由 AI 分析并加入项目。" : "PPT 文字已保存；AI 分析连接仍需确认。");
+      } catch (error) {
+        showToast(`项目资料分析失败：${error.message || error}`);
+      } finally {
+        state.projectDocumentBusy = false;
+        render();
+      }
+    }
+
+    async function extractProjectDocumentText(file) {
+      const name = String(file?.name || "").toLowerCase();
+      if (name.endsWith(".txt") || name.endsWith(".md")) return file.text();
+      if (!name.endsWith(".pptx")) throw new Error("目前请上传 PPTX、TXT 或 Markdown；旧 .ppt 请先另存为 .pptx。");
+      const JSZip = await ensureJsZip();
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      const slideNames = Object.keys(zip.files)
+        .filter((path) => /^ppt\/slides\/slide\d+\.xml$/i.test(path))
+        .sort((a, b) => Number(a.match(/slide(\d+)/i)?.[1] || 0) - Number(b.match(/slide(\d+)/i)?.[1] || 0));
+      const slides = [];
+      for (const path of slideNames) {
+        const xml = await zip.files[path].async("string");
+        const documentXml = new DOMParser().parseFromString(xml, "application/xml");
+        const textNodes = [...documentXml.getElementsByTagNameNS("http://schemas.openxmlformats.org/drawingml/2006/main", "t")];
+        const text = textNodes.map((node) => node.textContent || "").join(" ").replace(/\s+/g, " ").trim();
+        if (text) slides.push(`Slide ${slides.length + 1}\n${text}`);
+      }
+      const result = slides.join("\n\n");
+      if (result.length < 80) throw new Error("这个 PPTX 没有读到足够文字，可能主要是图片；请先补可复制文字或上传 TXT 摘要。");
+      return result;
+    }
+
+    function ensureJsZip() {
+      if (window.JSZip) return Promise.resolve(window.JSZip);
+      if (window.__replyPilotJsZipPromise) return window.__replyPilotJsZipPromise;
+      window.__replyPilotJsZipPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
+        script.crossOrigin = "anonymous";
+        script.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error("PPT 读取组件没有载入。"));
+        script.onerror = () => reject(new Error("PPT 读取组件载入失败，请检查网络后重试。"));
+        document.head.appendChild(script);
+      });
+      return window.__replyPilotJsZipPromise;
+    }
 
 	function flowCatalogEntry(flowKey = "") {
 	  return state.flowCatalog.find((flow) => String(flow.flow_key || "") === String(flowKey || "")) || null;
@@ -21513,7 +21882,7 @@
 
     (async function bootDashboard() {
       await bootstrapSaasSession();
-	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog()]);
+	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog(), loadProjectKnowledge({ silent: true })]);
 	  startQueueAutoRefresh();
     })();
   </script>
