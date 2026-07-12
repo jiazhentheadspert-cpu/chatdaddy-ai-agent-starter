@@ -17798,6 +17798,17 @@
       `;
     }
 
+    function qualityReplyContentProfile(value = "") {
+      const text = String(value || "").trim();
+      const meaningfulCount = (text.match(/[\p{L}\p{N}]/gu) || []).length;
+      return {
+        text,
+        meaningfulCount,
+        hasMeaningfulReply: meaningfulCount >= 4,
+        isSubstantive: meaningfulCount >= 6,
+      };
+    }
+
     function qualityEvaluationForCase(item = {}, replyTextValue = "") {
       const decision = item.latest_decision || {};
       const replyText = String(replyTextValue || "").trim();
@@ -17836,11 +17847,19 @@
       let summary = "先修正后再让客服批准。";
       let nextAction = "改回复或让 AI 重写";
 
+      const replyProfile = qualityReplyContentProfile(replyText);
+      const missingMeaningfulReply = !replyProfile.hasMeaningfulReply;
+
       if (manualFollowUp && (!manualReply || isPlaceholderManualReply(manualReply))) {
         tone = "warn";
         resultLabel = "待补回复";
         summary = "转人工回复后还没补最终回复。";
         nextAction = "把真正发给顾客的人工回复贴回回复框";
+      } else if (missingMeaningfulReply) {
+        tone = "danger";
+        resultLabel = "不能过";
+        summary = "回复为空或只有符号，不能批准发送。";
+        nextAction = "写出真正回答顾客问题的完整回复";
       } else if (criticalFails.length) {
         tone = "danger";
         resultLabel = "不能过";
@@ -17940,61 +17959,76 @@
 
     function qualityScoreChecksForCase(context = {}) {
       const { item = {}, replyText = "", customerText = "", closer = {}, action = "", humanRequired = false, manualReply = "", criticalFails = [] } = context;
+      const replyProfile = qualityReplyContentProfile(replyText);
       const asksPrice = /(多少钱|多少錢|价钱|價格|价格|how\s+much|price|package|配套)/i.test(customerText);
       const asksDrink = /(一天|几次|幾次|怎么喝|怎样喝|怎樣喝|喝法|drink|餐前|水)/i.test(customerText);
       const asksGift = /(送什么|送什麼|赠品|贈品|free\s*gift|gift|活动|活動|promo|promotion)/i.test(customerText);
-      const hasReply = Boolean(replyText);
+      const hasReply = replyProfile.hasMeaningfulReply;
       const hasCurrentPrice = /(?:1\s*(?:盒|box)\s*RM\s*150|2\s*(?:盒|boxes?)\s*RM\s*258|3\s*(?:盒|boxes?)\s*RM\s*378|RM\s*(?:150|258|378)\b)/i.test(replyText);
-      const hasDrinkAnswer = /(一天\s*(?:一|1)\s*次|餐前|15\s*[-–]?\s*30\s*分钟|150\s*[-–]?\s*200\s*ml|常温水|warm\s*water|before\s+meal)/i.test(replyText);
+      const hasFullCurrentPrice = [/(?:1\s*(?:盒|box)\s*RM\s*150|RM\s*150\b)/i, /(?:2\s*(?:盒|boxes?)\s*RM\s*258|RM\s*258\b)/i, /(?:3\s*(?:盒|boxes?)\s*RM\s*378|RM\s*378\b)/i].every((pattern) => pattern.test(replyText));
+      const drinkAnswerSignals = [
+        /一天\s*(?:一|1)\s*次/i.test(replyText),
+        /(餐前|15\s*[-–]?\s*30\s*分钟|before\s+meal)/i.test(replyText),
+        /(150\s*[-–]?\s*200\s*ml|常温水|warm\s*water)/i.test(replyText),
+      ];
+      const drinkAnswerSignalCount = drinkAnswerSignals.filter(Boolean).length;
+      const hasDrinkAnswer = drinkAnswerSignalCount >= 2;
+      const hasFullDrinkAnswer = drinkAnswerSignalCount === drinkAnswerSignals.length;
       const hasGiftBoundary = /(当天|當天|库存|庫存|当前活动|目前活动|客服.*确认|team.*confirm|stock|today)/i.test(replyText);
       const asksQuestion = /(怎么|怎样|怎樣|多少|可以|吗|嗎|how|what|why|\?)/i.test(customerText);
       const tooLong = replyText.length > 620;
       const pushy = /(马上付款|立刻付款|最后机会|不买就没有|一定要买|must\s+buy|last\s+chance)/i.test(replyText);
       const decisionText = `${closer.title || ""} ${closer.reason || ""}`;
       const directAnswerPoints = !hasReply
-        ? (/trigger_flow/.test(action) ? 8 : 0)
+        ? 0
         : closer.tone === "fix"
-          ? 10
+          ? 4
           : asksDrink
-            ? (hasDrinkAnswer ? 20 : 11)
+            ? (hasDrinkAnswer ? 20 : 0)
             : asksPrice
-              ? (hasCurrentPrice ? 20 : 10)
+              ? (hasCurrentPrice ? 20 : 0)
               : asksGift
-                ? (hasGiftBoundary ? 18 : 10)
+                ? (hasGiftBoundary ? 18 : 0)
                 : asksQuestion
-                  ? (replyText.length >= 12 ? 17 : 12)
-                  : 18;
+                  ? (replyProfile.isSubstantive ? 17 : 0)
+                  : replyProfile.isSubstantive ? 18 : 0;
       const goldenPoints = !hasReply
         ? 0
         : asksDrink
-          ? (hasDrinkAnswer ? 20 : 11)
+          ? (hasFullDrinkAnswer ? 20 : hasDrinkAnswer ? 12 : 0)
           : asksPrice
-            ? (hasCurrentPrice ? 20 : 10)
+            ? (hasFullCurrentPrice ? 20 : hasCurrentPrice ? 12 : 0)
             : asksGift
-              ? (hasCurrentPrice && hasGiftBoundary ? 20 : 12)
-              : closer.tone === "pass" || closer.tone === "review"
+              ? (hasCurrentPrice && hasGiftBoundary ? 20 : hasGiftBoundary ? 10 : 0)
+              : replyProfile.isSubstantive && (closer.tone === "pass" || closer.tone === "review")
                 ? 18
-                : 15;
-      const boundaryPoints = humanRequired
+                : replyProfile.isSubstantive ? 10 : 0;
+      const boundaryPoints = !hasReply
+        ? 0
+        : humanRequired
         ? 20
-        : /trigger_flow/.test(action) && /(问题|問题|question|怎么|怎样|多少|可以|吗|嗎|\?)/i.test(customerText) && !hasReply
-          ? 8
+        : /trigger_flow/.test(action) && /(问题|問题|question|怎么|怎样|多少|可以|吗|嗎|\?)/i.test(customerText) && directAnswerPoints < 12
+          ? 0
           : /Flow/.test(decisionText) && closer.tone === "fix"
-            ? 10
-            : 20;
-      const safetyPoints = criticalFails.some((fail) => /健康|医疗|承诺|退款|赔偿|投诉|强推/.test(fail)) ? 0 : 15;
-      const factPoints = criticalFails.some((fail) => /旧价|旧活动|赠品/.test(fail))
+            ? 5
+            : directAnswerPoints >= 12 ? 20 : 8;
+      const safetyPoints = !hasReply || criticalFails.some((fail) => /健康|医疗|承诺|退款|赔偿|投诉|强推/.test(fail)) ? 0 : 15;
+      const factPoints = !hasReply
+        ? 0
+        : criticalFails.some((fail) => /旧价|旧活动|赠品/.test(fail))
         ? 0
         : asksPrice
           ? (hasCurrentPrice ? 10 : 5)
           : asksGift
             ? (hasGiftBoundary ? 10 : 5)
-            : 8;
-      const tonePoints = !hasReply ? 0 : tooLong ? 5 : pushy ? 4 : 10;
-      const learningPoints = humanRequired
+            : replyProfile.isSubstantive ? 8 : 0;
+      const tonePoints = !hasReply ? 0 : !replyProfile.isSubstantive ? 4 : tooLong ? 5 : pushy ? 4 : 10;
+      const learningPoints = !hasReply
+        ? 0
+        : humanRequired
         ? (manualReply && !isPlaceholderManualReply(manualReply) ? 5 : 2)
-        : 5;
-      return [
+        : replyProfile.isSubstantive ? 5 : 2;
+      const checks = [
         { label: "回答顾客问题", points: directAnswerPoints, max: 20 },
         { label: "符合标准答法", points: goldenPoints, max: 20 },
         { label: "Flow / 人工边界", points: boundaryPoints, max: 20 },
@@ -18003,12 +18037,29 @@
         { label: "语气够客服", points: tonePoints, max: 10 },
         { label: "复盘资料", points: learningPoints, max: 5 }
       ];
+      if (replyProfile.isSubstantive) return checks;
+      const shortReplyCaps = {
+        "回答顾客问题": 12,
+        "符合标准答法": 6,
+        "Flow / 人工边界": 8,
+        "安全红线": 10,
+        "价格活动正确": 6,
+        "语气够客服": 4,
+        "复盘资料": 2,
+      };
+      return checks.map((check) => ({
+        ...check,
+        points: Math.min(Number(check.points || 0), Number(shortReplyCaps[check.label] || 0)),
+      }));
     }
 
     function qualityCriticalFailsForCase(item = {}, replyText = "", customerText = "", closer = {}) {
       const decision = item.latest_decision || {};
       const combined = `${customerText}\n${replyText}\n${decision.intent || ""}\n${closer.title || ""}\n${closer.reason || ""}`;
       const fails = [];
+      if (!qualityReplyContentProfile(replyText).hasMeaningfulReply) {
+        fails.push("回复为空或只有符号，不能发送");
+      }
       if (/(RM\s*368|RM\s*398|RM\s*498|RM\s*538|RM\s*698|3\s*送\s*1|3送1|Mother['’]?\s*'?s\s*Day|母亲节|母親節|early\s*bird|59%\s*OFF)/i.test(replyText)) {
         fails.push("旧价/旧活动不能发");
       }
