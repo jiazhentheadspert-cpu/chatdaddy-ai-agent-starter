@@ -4326,7 +4326,7 @@
       border: 1px solid var(--line);
       box-shadow: 0 34px 120px rgba(0,0,0,.34);
       display: grid;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto minmax(0, 1fr) auto;
     }
 
     .panel-top {
@@ -4688,16 +4688,17 @@
     }
 
     .panel.open .panel-body {
-      padding-bottom: 112px;
+      padding-bottom: 14px;
     }
 
 	    .panel.open .reply-command-bar {
-	      position: fixed;
-	      left: 50%;
-	      bottom: 18px;
-	      width: min(920px, calc(100vw - 48px));
-	      transform: translateX(-50%);
+	      position: relative;
+	      left: auto;
+	      bottom: auto;
+	      width: auto;
+	      transform: none;
 	      z-index: 60;
+      margin: 0 14px 14px;
       border: 1px solid rgba(92,112,121,.24);
       background: rgba(247,250,249,.98);
       box-shadow:
@@ -4903,7 +4904,8 @@
 
     .function-menu-panel {
       position: absolute;
-      right: 0;
+      right: auto;
+      left: 0;
       bottom: calc(100% + 10px);
       z-index: 20;
       width: min(460px, calc(100vw - 42px));
@@ -5505,8 +5507,9 @@
           "more pay"
           "reply reply";
         gap: 7px;
-        width: calc(100vw - 16px) !important;
-        bottom: 8px !important;
+        width: auto !important;
+        bottom: auto !important;
+        margin: 0 8px 8px !important;
         padding: 7px;
         border-radius: 16px;
       }
@@ -5538,7 +5541,7 @@
       .payment-menu-panel {
         position: absolute;
         bottom: calc(100% + 8px);
-        width: calc(100vw - 28px);
+        width: calc(100vw - 44px);
         max-height: min(68vh, 520px);
         overflow-y: auto;
         margin-top: 0;
@@ -5556,7 +5559,7 @@
         grid-column: 1;
       }
       .panel.open .panel-body {
-        padding-bottom: 154px;
+        padding-bottom: 12px;
       }
       .word.big { font-size: 22px; }
       .word.mid { font-size: 17px; }
@@ -6496,89 +6499,6 @@
               <button class="reply-chip" data-reply-template="ask_phone" type="button">先问电话</button>
               <button class="reply-chip" data-reply-template="shorten" type="button">缩短</button>
             </div>
-		            <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
-		              <div class="quick-action-head">
-		                <span>客服操作</span>
-		                <small>常用动作集中在这里</small>
-		              </div>
-	              <details class="function-menu" id="functionMenu">
-	                <summary aria-label="更多客服操作" title="更多客服操作">
-	                  <span class="function-menu-icon" aria-hidden="true">+</span>
-	                  <span class="function-menu-label">更多</span>
-	                </summary>
-	                <div class="function-menu-panel">
-	                  <div class="function-menu-title">
-	                    <b>更多处理</b>
-	                    <small>不会自动发送</small>
-	                  </div>
-	                  <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
-	                    <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
-	                    <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
-	                    <button class="btn danger" id="shortVersionHandoffBtn" type="button">转给人工</button>
-	                  </div>
-	                  <div class="side-actions">
-	                    <button class="btn" id="returnAiBtn" type="button" title="不要当前草稿，重新生成一版；不会发送给顾客。">让 AI 重写</button>
-	                    <button class="btn" id="channelReplyResolvedBtn" type="button">客服已回复</button>
-	                    <button class="btn" id="manualResolveBtn" type="button">记录最终回复</button>
-	                    <button class="btn hidden" id="noReplyNeededBtn" type="button">无需回复</button>
-	                    <button class="btn danger" id="handoffBtn" type="button">转给人工处理</button>
-		                <button class="btn" id="learnBtn" type="button" title="发送后记录学习候选，Owner 通过后同类问题才会少审核或自动">保存为学习范例</button>
-	                  </div>
-	                  <details class="external-flow-panel hidden" id="externalFlowPanel">
-	                    <summary>
-	                      <span>收起已处理旧卡</span>
-	                      <small>渠道已接走</small>
-	                    </summary>
-	                    <div class="external-flow-body">
-	                      <p class="external-flow-summary">顾客点按钮后已由自动 Flow 继续，这张旧草稿不用发，也不会进入客服待处理。自动 Flow 只读，不会混进待处理。</p>
-	                      <label class="external-flow-confirm">
-	                        <input id="externalFlowCustomerClearInput" type="checkbox" />
-	                        <span>我确认顾客已被处理，这张旧回复不用发；以后同类请在 Dashboard 回复。</span>
-	                      </label>
-	                      <button class="btn" id="externalFlowRecordBtn" type="button">标记为自动 Flow 已处理</button>
-	                      <details class="external-flow-advanced">
-	                        <summary>系统资料（一般不用打开）</summary>
-	                        <div class="external-flow-advanced-body">
-	                          <div class="external-flow-grid">
-	                            <input id="externalFlowIdInput" autocomplete="off" placeholder="流程资料（系统会自动填）" />
-	                            <input id="externalFlowMessageInput" autocomplete="off" placeholder="消息资料（系统会自动填）" />
-	                            <input id="externalFlowEventAtInput" type="datetime-local" />
-	                            <input id="externalFlowEvidenceInput" autocomplete="off" placeholder="备注（可不填）" />
-	                          </div>
-	                        </div>
-	                      </details>
-	                      <div class="purchase-note" id="externalFlowNote">只整理记录；不会发送顾客讯息。</div>
-	                    </div>
-	                  </details>
-	                </div>
-	              </details>
-		              <div class="reply-action-group" aria-label="发送回复">
-		                <div class="operation-copy">
-		                  <span>回复顾客</span>
-		                  <small>发送前请确认上方内容</small>
-		                </div>
-		                <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
-		                <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">回复并发送</button>
-		              </div>
-		              <details class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
-		                <summary>
-		                  <span>收款 / COD</span>
-		                  <small>只记录成交</small>
-		                </summary>
-		                <div class="payment-menu-panel">
-		                  <div class="operation-copy">
-		                    <span>确认收款 / COD</span>
-		                    <small>只记录成交，不会发送顾客讯息</small>
-		                  </div>
-		                  <label class="purchase-input-wrap">
-		                    <span>RM</span>
-		                    <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
-		                  </label>
-	                  <button class="btn primary" id="markPurchaseBtn" type="button">确认已付款</button>
-	                  <div class="purchase-note" id="purchaseNote">已收到款或 COD 已确认才按；不会发顾客讯息。</div>
-	                </div>
-	              </details>
-	            </div>
           </div>
           <div class="quality-eval-card" id="qualityEvalCard" aria-label="质量评分">
             <div class="quality-eval-head">
@@ -6659,6 +6579,89 @@
           </details>
         </aside>
       </div>
+	  <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
+	    <div class="quick-action-head">
+	      <span>客服操作</span>
+	      <small>常用动作集中在这里</small>
+	    </div>
+	    <details class="function-menu" id="functionMenu">
+	      <summary aria-label="更多客服操作" title="更多客服操作">
+	        <span class="function-menu-icon" aria-hidden="true">+</span>
+	        <span class="function-menu-label">更多</span>
+	      </summary>
+	      <div class="function-menu-panel">
+	        <div class="function-menu-title">
+	          <b>更多处理</b>
+	          <small>不会自动发送</small>
+	        </div>
+	        <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
+	          <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
+	          <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
+	          <button class="btn danger" id="shortVersionHandoffBtn" type="button">转给人工</button>
+	        </div>
+	        <div class="side-actions">
+	          <button class="btn" id="returnAiBtn" type="button" title="不要当前草稿，重新生成一版；不会发送给顾客。">让 AI 重写</button>
+	          <button class="btn" id="channelReplyResolvedBtn" type="button">客服已回复</button>
+	          <button class="btn" id="manualResolveBtn" type="button">记录最终回复</button>
+	          <button class="btn hidden" id="noReplyNeededBtn" type="button">无需回复</button>
+	          <button class="btn danger" id="handoffBtn" type="button">转给人工处理</button>
+	          <button class="btn" id="learnBtn" type="button" title="发送后记录学习候选，Owner 通过后同类问题才会少审核或自动">保存为学习范例</button>
+	        </div>
+	        <details class="external-flow-panel hidden" id="externalFlowPanel">
+	          <summary>
+	            <span>收起已处理旧卡</span>
+	            <small>渠道已接走</small>
+	          </summary>
+	          <div class="external-flow-body">
+	            <p class="external-flow-summary">顾客点按钮后已由自动 Flow 继续，这张旧草稿不用发，也不会进入客服待处理。自动 Flow 只读，不会混进待处理。</p>
+	            <label class="external-flow-confirm">
+	              <input id="externalFlowCustomerClearInput" type="checkbox" />
+	              <span>我确认顾客已被处理，这张旧回复不用发；以后同类请在 Dashboard 回复。</span>
+	            </label>
+	            <button class="btn" id="externalFlowRecordBtn" type="button">标记为自动 Flow 已处理</button>
+	            <details class="external-flow-advanced">
+	              <summary>系统资料（一般不用打开）</summary>
+	              <div class="external-flow-advanced-body">
+	                <div class="external-flow-grid">
+	                  <input id="externalFlowIdInput" autocomplete="off" placeholder="流程资料（系统会自动填）" />
+	                  <input id="externalFlowMessageInput" autocomplete="off" placeholder="消息资料（系统会自动填）" />
+	                  <input id="externalFlowEventAtInput" type="datetime-local" />
+	                  <input id="externalFlowEvidenceInput" autocomplete="off" placeholder="备注（可不填）" />
+	                </div>
+	              </div>
+	            </details>
+	            <div class="purchase-note" id="externalFlowNote">只整理记录；不会发送顾客讯息。</div>
+	          </div>
+	        </details>
+	      </div>
+	    </details>
+	    <div class="reply-action-group" aria-label="发送回复">
+	      <div class="operation-copy">
+	        <span>回复顾客</span>
+	        <small>发送前请确认上方内容</small>
+	      </div>
+	      <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
+	      <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">回复并发送</button>
+	    </div>
+	    <details class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
+	      <summary>
+	        <span>收款 / COD</span>
+	        <small>只记录成交</small>
+	      </summary>
+	      <div class="payment-menu-panel">
+	        <div class="operation-copy">
+	          <span>确认收款 / COD</span>
+	          <small>只记录成交，不会发送顾客讯息</small>
+	        </div>
+	        <label class="purchase-input-wrap">
+	          <span>RM</span>
+	          <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
+	        </label>
+	        <button class="btn primary" id="markPurchaseBtn" type="button">确认已付款</button>
+	        <div class="purchase-note" id="purchaseNote">已收到款或 COD 已确认才按；不会发顾客讯息。</div>
+	      </div>
+	    </details>
+	  </div>
     </div>
   </div>
 
