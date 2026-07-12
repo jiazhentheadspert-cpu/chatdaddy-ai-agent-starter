@@ -4873,10 +4873,17 @@
 	      display: grid;
 	      grid-template-columns: minmax(240px, 1fr) minmax(180px, auto);
 	      grid-template-areas:
-	        "composer send"
-	        "tools send";
+	        "composer send-actions"
+	        "tools send-actions";
 	      align-items: center;
 	      gap: 5px 10px;
+	    }
+
+	    .reply-send-actions {
+	      grid-area: send-actions;
+	      display: grid;
+	      gap: 6px;
+	      min-width: 180px;
 	    }
 
 	    .reply-composer-main {
@@ -4970,7 +4977,6 @@
 	    }
 
     .composer-send-button {
-	      grid-area: send;
       width: auto !important;
       min-width: 180px;
       min-height: 48px;
@@ -4980,6 +4986,23 @@
       border-color: #00a884 !important;
       box-shadow: 0 8px 18px rgba(0,168,132,.20) !important;
     }
+
+	    .composer-learn-button {
+	      width: auto !important;
+	      min-width: 180px;
+	      min-height: 42px;
+	      margin: 0 !important;
+	      border: 1px solid rgba(0, 168, 132, .34) !important;
+	      border-radius: 12px !important;
+	      background: #eafaf6 !important;
+	      color: #087c69 !important;
+	      box-shadow: none !important;
+	    }
+
+	    .composer-learn-button:hover:not(:disabled) {
+	      border-color: rgba(0, 168, 132, .58) !important;
+	      background: #ddf7f0 !important;
+	    }
 
 	    details.payment-quick {
 	      grid-area: pay;
@@ -5990,10 +6013,13 @@
 	        grid-template-areas:
 	          "composer"
 	          "tools"
-	          "send";
+	          "send-actions";
 	        gap: 5px;
         padding: 5px;
       }
+	      .reply-send-actions {
+	        min-width: 0;
+	      }
 	      .reply-composer-main {
 	        grid-template-columns: minmax(0, 1fr);
 	        padding-right: 9px;
@@ -6019,6 +6045,10 @@
         width: 100%;
         min-width: 0;
       }
+	      .composer-learn-button {
+	        width: 100% !important;
+	        min-width: 0;
+	      }
       .function-menu summary,
 	  .channel-action-picker > summary,
       .payment-quick > summary {
@@ -7165,8 +7195,11 @@
 	          <button class="reply-chip" data-reply-template="shorten" type="button">缩短</button>
 	        </div>
 	      </div>
-	      <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
-	      <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">回复并发送</button>
+	      <div class="reply-send-actions">
+	        <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
+	        <button class="btn composer-learn-button hidden" id="learnAndSendBtn" type="button" title="发送这次回复，并让同项目、同意图的低风险问题以后自动回复">发送并让 AI 学会</button>
+	        <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">回复并发送</button>
+	      </div>
 	    </div>
 	    <details class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
 	      <summary>
@@ -7748,6 +7781,7 @@
       closePanel();
     });
     $("approveBtn").addEventListener("click", approveActive);
+	$("learnAndSendBtn").addEventListener("click", learnActive);
     $("approveShortVersionBtn").addEventListener("click", approveShortVersionActive);
     $("shortenAgainBtn").addEventListener("click", () => applyShortVersionDraft(true));
     $("shortVersionHandoffBtn").addEventListener("click", handoffActive);
@@ -10144,8 +10178,8 @@
       const customer = item.customer || {};
       const reply = item.reply || {};
       const previousAgentText = previousAgentTextFromApproval(item, signals);
-      const risk = signals.risk_level || signals.risk || item.risk_level || "medium";
-      const stage = reply.stage_after || signals.stage || signals.stage_key || "CLOSING";
+      const risk = signals.risk_level || signals.risk || item.decision?.risk_level || item.decision?.risk || item.risk_level || "medium";
+      const stage = reply.stage_after || signals.stage || signals.stage_key || item.decision?.stage || "CLOSING";
       const status = approvalStatus(item);
       const words = approvalWords(item, signals, action);
       const at = item.updated_at || item.created_at || inbound.message_at || new Date().toISOString();
@@ -10234,7 +10268,7 @@
         word_cloud: words,
 	        latest_decision: {
 	          reply_message: finalReply,
-	          intent: signals.intent || signals.customer_intent || action.type || "approval",
+	          intent: signals.intent || signals.customer_intent || item.decision?.intent || action.type || "approval",
 	          stage: status === "handoff_done" || status === "returned_to_ai" || status === "manual_resolved" ? "HUMAN" : stage,
 	          risk,
 	          action: approvalAction(item),
@@ -15960,9 +15994,15 @@
       }
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
 	      $("panelStatusPill").textContent = caseStatusLabel(item, decision.risk);
-	      $("approveBtn").classList.toggle("hidden", canManualSend);
+      $("approveBtn").classList.toggle("hidden", canManualSend);
       $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : item.status === "order" ? "确认已处理" : "发送给顾客";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
+	  const canLearnAndSend = !canManualSend && !readOnly && !isFlowOnly && canCreateDirectAutoReplyRule(item);
+	  $("learnAndSendBtn").classList.toggle("hidden", !canLearnAndSend);
+	  $("learnAndSendBtn").disabled = state.actionBusy || !canLearnAndSend;
+	  $("learnAndSendBtn").title = canLearnAndSend
+	    ? "发送本次回复，并让同项目、同意图的低风险问题以后自动回复"
+	    : directAutoReplyRuleBlockReason(item);
       $("manualSendBtn").classList.toggle("hidden", !canManualSend);
       $("manualSendBtn").disabled = state.actionBusy || !canManualSend;
 	      $("manualSendBtn").textContent = "发送给顾客";
@@ -20179,9 +20219,66 @@
       if (!state.active) return;
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
-      if (!confirmLiveAction("learn", state.active)) return;
-      await postCaseAction(state.active.id, "learn", { reply_message: $("replyBox").value.trim() });
+	  if (!canCreateDirectAutoReplyRule(state.active)) {
+	    showToast("这张 Case 不是可自动学习的低风险 FAQ；请使用普通发送。");
+	    return;
+	  }
+	  if (!(await confirmLearnAndSend(state.active))) return;
+	  const result = await postCaseAction(state.active.id, "learn", { reply_message: $("replyBox").value.trim() });
+	  if (result?.auto_reply_rule?.applied === true) {
+	    showToast("已发送并学会；下次同项目、同意图的安全问题会自动回复。");
+	  } else {
+	    showToast(`已发送；自动学习未启用：${result?.auto_reply_rule?.message || result?.auto_reply_rule?.reason || "规则未通过安全检查"}`);
+	  }
     }
+
+	function directAutoReplyRuleBlockReason(item = {}) {
+	  if (!item || isCaseReadOnly(item)) return "Case 已处理";
+	  const decision = { ...(item.decision || {}), ...(item.latest_decision || {}) };
+	  const intent = String(decision.intent || "").toLowerCase();
+	  const risk = String(decision.risk || decision.risk_level || item.risk_level || "").toLowerCase();
+	  const action = String(decision.action || "").toLowerCase();
+	  const customerText = String(customerPreviewText(item) || "").trim();
+	  const combined = `${customerText} ${decision.reason || ""} ${decision.operator_instruction || ""}`;
+	  if (risk !== "low") return "只允许低风险 FAQ";
+	  if (!(intent.startsWith("faq_") || ["ingredient_question", "flavor_question"].includes(intent))) return "只允许明确 FAQ 意图";
+	  if (!customerText) return "缺少顾客原问题";
+	  if (/flow|order|payment|receipt|handoff|human|price|promo|gift/i.test(action)) return "包含 Flow、交易或人工动作";
+	  if (/(付款|付钱|汇款|转账|轉帳|receipt|订单|訂單|物流|退款|投诉|投訴|价格|價錢|多少钱|多少錢|优惠|優惠|赠品|贈品|怀孕|懷孕|哺乳|疾病|医生|醫生|吃药|吃藥|不舒服|副作用|保证|保證|一定瘦|截图|截圖|附件)/i.test(combined)) return "命中安全或交易边界";
+	  if ((item.messages || []).some((message) => Array.isArray(message.attachments) && message.attachments.length)) return "包含附件";
+	  const guard = effectiveApprovalGuardForCase(item, closerVerdict(item));
+	  if (guard.blocked) return guard.reason || "当前回复不能直接批准";
+	  return "";
+	}
+
+	function canCreateDirectAutoReplyRule(item = {}) {
+	  return !directAutoReplyRuleBlockReason(item);
+	}
+
+	function confirmLearnAndSend(item = {}) {
+	  const name = customerDisplayLabel(item) || "这位顾客";
+	  const reply = $("replyBox").value.trim();
+	  if (!reply) {
+	    showToast("回复框是空的，不能发送或学习。");
+	    $("replyBox").focus();
+	    return Promise.resolve(false);
+	  }
+	  return showSaasConfirm({
+	    eyebrow: "一次批准，未来自动",
+	    title: "发送并让 AI 学会？",
+	    subtitle: name,
+	    lead: `这次会真实发送：${reply.slice(0, 150)}${reply.length > 150 ? "..." : ""}`,
+	    facts: [
+	      { label: "本次回复", value: "立即发送" },
+	      { label: "未来同类 FAQ", value: "安全匹配后自动回复" },
+	      { label: "付款 / 订单 / 健康 / 投诉", value: "仍需人工批准" },
+	      { label: "ChatDaddy Flow", value: "不会自动触发" },
+	    ],
+	    note: "规则只属于当前项目，并绑定这次已识别的 FAQ 意图。发送失败不会学；自动回复失败会退回待批准。",
+	    cancelLabel: "返回检查",
+	    confirmLabel: "发送并学会",
+	  });
+	}
 
     async function handoffActive() {
       if (!state.active) return;
@@ -21703,6 +21800,9 @@
 	      const purchaseActionComplete = purchaseActionCompleteForCase(state.active);
 	      $("approveBtn").classList.toggle("hidden", canManualSend);
 	      $("approveBtn").disabled = isBusy || isFlowOnly || readOnly || approvalGuard.blocked;
+	      const canLearnAndSend = !canManualSend && !readOnly && !isFlowOnly && canCreateDirectAutoReplyRule(state.active);
+	      $("learnAndSendBtn").classList.toggle("hidden", !canLearnAndSend);
+	      $("learnAndSendBtn").disabled = isBusy || !canLearnAndSend;
       $("manualSendBtn").classList.toggle("hidden", !canManualSend);
       $("manualSendBtn").disabled = isBusy || !canManualSend;
       $("manualResolveBtn").disabled = isBusy || !canManualResolve;
@@ -21723,6 +21823,7 @@
 	      updateExternalFlowButtonState(state.active);
 	      if (isBusy) {
 	        $("approveBtn").textContent = label;
+	        $("learnAndSendBtn").textContent = label;
 	        $("manualSendBtn").textContent = label;
 	        $("manualResolveBtn").textContent = label;
 	        $("channelReplyResolvedBtn").textContent = label;
@@ -21734,6 +21835,7 @@
 	        return;
 	      }
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : state.active.status === "order" ? "确认已处理" : "发送给顾客";
+	      $("learnAndSendBtn").textContent = "发送并让 AI 学会";
 		      $("manualSendBtn").textContent = "发送给顾客";
 		      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录最终回复";
 		      $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "客服已回复";
@@ -21908,9 +22010,10 @@
         final_human_reply: body.reply_message,
         learnability: action === "learn" ? "yes" : "needs_owner",
         note: action === "learn"
-          ? "客服要求同类以后少审核；先记录学习候选，Owner 审核后才应用。"
+          ? "客服选择发送并学会；发送成功后建立当前项目的低风险自动回复规则。"
           : "客服批准 Dashboard 回复；记录学习候选，Owner 审核后同类问题才会自动或少审核。",
         autoApproveSimilar: action === "learn",
+		auto_reply_rule_mode: action === "learn" ? "same_project_same_intent_low_risk" : "",
         user: state.session.displayName || roleName(state.role),
       };
     }
@@ -21954,13 +22057,16 @@
       }
 
       if (action === "learn") {
+		record.status = "sent";
+		record.latest_reply_sent = body.reply_message;
+		record.messages.push({ direction: "outbound", text: body.reply_message, at: now });
         record.history.push({
           type: "learned_rule_created_demo",
           at: now,
           rule_id: `demo-rule-${Math.random().toString(16).slice(2, 8)}`,
-          note: "演示：以后类似顾客可减少审批。",
+		  note: "演示：已发送并建立同项目、同意图的低风险自动回复规则。",
         });
-        showToast("演示：已建立学习规则。");
+		showToast("演示：已发送并学会；未来同类安全 FAQ 自动回复。");
       }
 
       if (action === "handoff") {
