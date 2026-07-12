@@ -5212,6 +5212,7 @@
     }
 
     .channel-action-panel select,
+    .channel-action-panel input[type="search"],
     .payment-menu-panel select {
       width: 100%;
       min-height: 44px;
@@ -5223,6 +5224,21 @@
       font: inherit;
       font-size: 12px;
       font-weight: 820;
+    }
+
+    .flow-search-wrap {
+      display: grid;
+      gap: 6px;
+    }
+
+    .flow-search-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 780;
     }
 
     .purchase-flow-wrap {
@@ -7174,7 +7190,11 @@
 	        <section>
 	          <div class="channel-action-section-title">
 	            <b>接 ChatDaddy Flow</b>
-	            <small>AI 会推荐；客服确认后才触发</small>
+	            <small>可搜索当前项目全部 Flow</small>
+	          </div>
+	          <div class="flow-search-wrap">
+	            <input id="flowSearchInput" type="search" autocomplete="off" placeholder="搜索 Flow 名称或文件夹..." aria-label="搜索 ChatDaddy Flow" />
+	            <div class="flow-search-meta"><span id="flowCatalogCount">正在读取...</span><span>确认后才发送</span></div>
 	          </div>
 	          <select id="flowSelect" aria-label="选择 ChatDaddy Flow"></select>
 	          <div class="flow-selection-note" id="flowSelectionNote">正在读取项目 Flow...</div>
@@ -7336,6 +7356,8 @@
 	  quickReplies: [],
 	  flowCatalogLoaded: false,
 	  flowCatalogError: "",
+	  flowCatalogLiveConnected: false,
+	  flowCatalogLiveCount: 0,
       projectKnowledge: null,
       projectKnowledgeError: "",
       settingsExpanded: false,
@@ -7796,6 +7818,7 @@
 		    $("applyQuickReplyBtn").addEventListener("click", applyQuickReplyActive);
 		    $("triggerFlowBtn").addEventListener("click", triggerFlowActive);
 		    $("flowSelect").addEventListener("change", () => updateFlowSelectionNote(state.active));
+		    $("flowSearchInput").addEventListener("input", () => renderFlowPickerOptions(state.active));
 		    $("functionMenu").addEventListener("toggle", () => {
 		      if ($("functionMenu").open) {
 		        $("purchasePanel").open = false;
@@ -16349,6 +16372,8 @@
 	  const token = adminTokenEl.value.trim();
 	  state.flowCatalogLoaded = false;
 	  state.flowCatalogError = "";
+	  state.flowCatalogLiveConnected = false;
+	  state.flowCatalogLiveCount = 0;
 	  try {
 	    if (!api || state.demoMode) throw new Error("flow_catalog_offline");
 	    const url = `${api}/api/hermas/projects/${encodeURIComponent(project)}/flows`;
@@ -16356,6 +16381,9 @@
 	    if (!data?.ok || !Array.isArray(data.flows)) throw new Error(data?.error || "flow_catalog_unavailable");
 	    state.flowCatalog = data.flows;
 	    state.quickReplies = Array.isArray(data.quick_replies) ? data.quick_replies : [];
+	    state.flowCatalogLiveConnected = data.live_catalog_connected === true;
+	    state.flowCatalogLiveCount = Number(data.live_flow_count || 0);
+	    if (data.live_catalog_error) state.flowCatalogError = String(data.live_catalog_error);
 	  } catch (error) {
 	    state.flowCatalog = fallbackBeyouteFlowCatalog();
 	    state.quickReplies = fallbackBeyouteQuickReplies();
@@ -16524,7 +16552,26 @@
 	function flowOptionLabel(flow = {}) {
 	  const amount = normalizedPurchaseAmount(flow.amount_rm);
 	  const unavailable = flow.configured === true ? "" : "（未接 Bot ID）";
-	  return `${flow.title || flow.flow_key || "未命名 Flow"}${amount ? ` · RM${amount}` : ""}${unavailable}`;
+	  const folder = String(flow.folder_name || "").trim();
+	  return `${folder ? `[${folder}] ` : ""}${flow.title || flow.flow_key || "未命名 Flow"}${amount ? ` · RM${amount}` : ""}${unavailable}`;
+	}
+
+	function flowSearchText(flow = {}) {
+	  return [flow.title, flow.flow_key, flow.folder_name, flow.description, flow.purpose, ...(flow.aliases || [])]
+	    .filter(Boolean)
+	    .join(" ")
+	    .toLowerCase();
+	}
+
+	function filteredFlowCatalog() {
+	  const query = String($("flowSearchInput")?.value || "").trim().toLowerCase();
+	  return state.flowCatalog
+	    .filter((flow) => flow.is_active !== false && (!query || flowSearchText(flow).includes(query)))
+	    .sort((left, right) => {
+	      const configuredOrder = Number(right.configured === true) - Number(left.configured === true);
+	      if (configuredOrder) return configuredOrder;
+	      return flowOptionLabel(left).localeCompare(flowOptionLabel(right), "zh-Hans-CN", { numeric: true });
+	    });
 	}
 
 	function fillFlowSelect(select, flows, selectedKey = "") {
@@ -16543,11 +16590,30 @@
 	    quickReplySelect.innerHTML = `<option value="">选择 Quick Reply</option>` + state.quickReplies.map((entry) => `<option value="${escapeHtml(entry.key || "")}">${escapeHtml(entry.label || entry.key || "Quick Reply")}</option>`).join("");
 	  }
 	  const recommended = recommendedFlowForCase(item);
-	  fillFlowSelect($("flowSelect"), state.flowCatalog.filter((flow) => flow.is_active !== false), recommended?.configured ? recommended.flow_key : "");
+	  renderFlowPickerOptions(item, recommended?.configured ? recommended.flow_key : "");
 	  const paymentFlows = state.flowCatalog.filter((flow) => flow.is_active !== false && (flow.flow_kind === "payment" || String(flow.stage_key || "").startsWith("after_payment")));
 	  fillFlowSelect($("paymentFlowSelect"), paymentFlows, recommended?.configured ? recommended.flow_key : "");
 	  const packageMatch = inferPaidPackage(item);
 	  if (packageMatch && !$("purchaseAmountInput").value) $("purchaseAmountInput").value = String(packageMatch.amount_rm);
+	  updateFlowSelectionNote(item);
+	}
+
+	function renderFlowPickerOptions(item = state.active, preferredKey = "") {
+	  const select = $("flowSelect");
+	  const previousKey = String(select?.value || "");
+	  const flows = filteredFlowCatalog();
+	  const selectedKey = flows.some((flow) => String(flow.flow_key || "") === previousKey)
+	    ? previousKey
+	    : preferredKey;
+	  fillFlowSelect(select, flows, selectedKey);
+	  const count = $("flowCatalogCount");
+	  if (count) {
+	    const total = state.flowCatalog.filter((flow) => flow.is_active !== false).length;
+	    const live = state.flowCatalogLiveCount;
+	    count.textContent = state.flowCatalogLiveConnected
+	      ? `${flows.length}/${total} 条 · ChatDaddy ${live} 条`
+	      : `${flows.length}/${total} 条 · 项目目录`;
+	  }
 	  updateFlowSelectionNote(item);
 	}
 
@@ -16560,7 +16626,8 @@
 	  if (selected) note.textContent = selected.configured ? `会触发：${selected.title}` : `${selected.title} 还没有接 Bot ID。`;
 	  else if (recommended && !recommended.configured) note.textContent = `AI 识别到 ${recommended.title}，但还需要接入它的 Bot ID。`;
 	  else if (recommended) note.textContent = `AI 建议：${recommended.title}`;
-	  else note.textContent = state.flowCatalogError ? "Flow 清单暂时离线；不会误触发。" : "请选择与顾客当前阶段相符的 Flow。";
+	  else if (state.flowCatalogLiveConnected) note.textContent = "已同步 ChatDaddy 全部 Message Flows；请选择与顾客当前阶段相符的 Flow。";
+	  else note.textContent = state.flowCatalogError ? "ChatDaddy 实时目录暂时离线；当前只显示已保存的项目 Flow。" : "请选择与顾客当前阶段相符的 Flow。";
 	}
 
     function initialsFor(name) {
@@ -21818,6 +21885,7 @@
 	      $("triggerFlowBtn").disabled = isBusy || readOnly;
 	      $("quickReplySelect").disabled = isBusy || readOnly;
 	      $("flowSelect").disabled = isBusy || readOnly;
+	      $("flowSearchInput").disabled = isBusy || readOnly;
 	      $("paymentFlowSelect").disabled = isBusy || readOnly;
 	      setExternalFlowFieldsDisabled(isBusy || $("externalFlowPanel").classList.contains("hidden"));
 	      updateExternalFlowButtonState(state.active);
