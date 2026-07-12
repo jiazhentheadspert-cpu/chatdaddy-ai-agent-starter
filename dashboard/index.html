@@ -5632,6 +5632,165 @@
       transform: translateX(-50%) translateY(-4px);
     }
 
+    .saas-confirm-dialog {
+      width: min(560px, calc(100vw - 32px));
+      max-height: min(720px, calc(100vh - 32px));
+      padding: 0;
+      border: 1px solid rgba(8, 47, 50, .16);
+      border-radius: 8px;
+      background: var(--panel-solid);
+      color: var(--ink);
+      box-shadow: 0 28px 90px rgba(5, 22, 27, .24);
+      overflow: hidden;
+    }
+
+    .saas-confirm-dialog::backdrop {
+      background: rgba(5, 18, 21, .48);
+      backdrop-filter: blur(5px);
+    }
+
+    .saas-confirm-header {
+      padding: 22px 24px 18px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff, #f7fbfb);
+    }
+
+    .saas-confirm-eyebrow {
+      margin: 0 0 7px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .saas-confirm-title {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.25;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .saas-confirm-subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .saas-confirm-body {
+      padding: 20px 24px;
+    }
+
+    .saas-confirm-lead {
+      margin: 0;
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.55;
+      font-weight: 750;
+    }
+
+    .saas-confirm-facts {
+      display: grid;
+      margin: 18px 0 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .saas-confirm-fact {
+      display: grid;
+      grid-template-columns: minmax(110px, 138px) 1fr;
+      gap: 18px;
+      align-items: center;
+      min-height: 46px;
+      padding: 8px 0;
+    }
+
+    .saas-confirm-fact + .saas-confirm-fact {
+      border-top: 1px solid var(--line);
+    }
+
+    .saas-confirm-fact span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .saas-confirm-fact strong {
+      color: var(--green-deep);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .saas-confirm-note {
+      margin: 16px 0 0;
+      padding: 12px 14px;
+      border-left: 3px solid var(--cyan);
+      background: var(--soft-cyan);
+      color: #164e57;
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 750;
+    }
+
+    .saas-confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--line);
+      background: #fbfdfd;
+    }
+
+    .saas-confirm-actions .btn {
+      min-width: 112px;
+      min-height: 44px;
+      border-radius: 8px;
+    }
+
+    .saas-confirm-actions .confirm-primary {
+      border-color: #087d70;
+      background: #0c9c88;
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(12, 156, 136, .20);
+    }
+
+    .saas-confirm-actions .confirm-primary:hover {
+      background: #087d70;
+    }
+
+    .saas-confirm-actions .btn:focus-visible {
+      outline: 3px solid rgba(0, 183, 216, .22);
+      outline-offset: 2px;
+      border-color: rgba(0, 183, 216, .48);
+    }
+
+    @media (max-width: 560px) {
+      .saas-confirm-dialog {
+        width: calc(100vw - 20px);
+        max-height: calc(100vh - 20px);
+      }
+
+      .saas-confirm-header,
+      .saas-confirm-body {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .saas-confirm-fact {
+        grid-template-columns: 100px 1fr;
+        gap: 12px;
+      }
+
+      .saas-confirm-actions {
+        padding: 14px 18px 18px;
+      }
+
+      .saas-confirm-actions .btn {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+    }
+
     .error {
       margin: 12px 16px 0;
       color: var(--red);
@@ -6943,6 +7102,25 @@
 	  </div>
     </div>
   </div>
+
+  <dialog class="saas-confirm-dialog" id="actionConfirmDialog" aria-labelledby="actionConfirmTitle" aria-describedby="actionConfirmLead">
+    <form method="dialog">
+      <header class="saas-confirm-header">
+        <p class="saas-confirm-eyebrow" id="actionConfirmEyebrow">确认操作</p>
+        <h2 class="saas-confirm-title" id="actionConfirmTitle">确认已由人工回复？</h2>
+        <p class="saas-confirm-subtitle" id="actionConfirmSubtitle"></p>
+      </header>
+      <div class="saas-confirm-body">
+        <p class="saas-confirm-lead" id="actionConfirmLead"></p>
+        <div class="saas-confirm-facts" id="actionConfirmFacts"></div>
+        <p class="saas-confirm-note" id="actionConfirmNote"></p>
+      </div>
+      <footer class="saas-confirm-actions">
+        <button class="btn" id="actionConfirmCancel" type="submit" value="cancel" autofocus>取消</button>
+        <button class="btn confirm-primary" id="actionConfirmSubmit" type="submit" value="confirm">确认已处理</button>
+      </footer>
+    </form>
+  </dialog>
 
   <div class="toast" id="toast">已完成</div>
 
@@ -19957,7 +20135,7 @@
 	      if (!state.active) return;
 	      if (isCaseReadOnly(state.active)) return;
 	      if (state.actionBusy) return;
-	      if (!confirmLiveAction("channel_reply_resolved", state.active)) return;
+	      if (!(await confirmChannelReplyResolved(state.active))) return;
 	      const result = await postCaseAction(state.active.id, "channel_reply_resolved", channelReplyResolvedPayload(state.active));
 	      if (result?.blocked) {
 	        alert(result.reason || "这张 Case 不能收起，请人工处理。");
@@ -21221,6 +21399,63 @@
       }
     }
 
+    function showSaasConfirm(options = {}) {
+      const dialog = $("actionConfirmDialog");
+      if (!dialog || typeof dialog.showModal !== "function") {
+        return Promise.resolve(window.confirm(`${options.title || "确认操作"}\n\n${options.lead || ""}`));
+      }
+      $("actionConfirmEyebrow").textContent = options.eyebrow || "确认操作";
+      $("actionConfirmTitle").textContent = options.title || "确认操作";
+      $("actionConfirmSubtitle").textContent = options.subtitle || "";
+      $("actionConfirmLead").textContent = options.lead || "";
+      $("actionConfirmNote").textContent = options.note || "";
+      $("actionConfirmNote").classList.toggle("hidden", !options.note);
+      $("actionConfirmCancel").textContent = options.cancelLabel || "取消";
+      $("actionConfirmSubmit").textContent = options.confirmLabel || "确认";
+      const facts = $("actionConfirmFacts");
+      facts.replaceChildren(...(options.facts || []).map((fact) => {
+        const row = document.createElement("div");
+        row.className = "saas-confirm-fact";
+        const label = document.createElement("span");
+        label.textContent = fact.label || "";
+        const value = document.createElement("strong");
+        value.textContent = fact.value || "";
+        row.append(label, value);
+        return row;
+      }));
+      dialog.returnValue = "";
+      return new Promise((resolve) => {
+        const onBackdrop = (event) => {
+          if (event.target === dialog) dialog.close("cancel");
+        };
+        const onClose = () => {
+          dialog.removeEventListener("click", onBackdrop);
+          resolve(dialog.returnValue === "confirm");
+        };
+        dialog.addEventListener("click", onBackdrop);
+        dialog.addEventListener("close", onClose, { once: true });
+        dialog.showModal();
+      });
+    }
+
+    function confirmChannelReplyResolved(item = {}) {
+      const name = customerDisplayLabel(item) || "这位顾客";
+      return showSaasConfirm({
+        eyebrow: "人工处理记录",
+        title: "确认已由人工回复？",
+        subtitle: name,
+        lead: "只在客服已经通过外部渠道回复，或顾客已经不再等待这张旧草稿时确认。",
+        facts: [
+          { label: "发送消息", value: "不会发送" },
+          { label: "ChatDaddy Flow", value: "不会触发" },
+          { label: "AI 学习", value: "不会学习空记录" },
+        ],
+        note: "确认后，这张 Case 会记录为「人工已处理」。以后同类情况请直接在 Dashboard 回复顾客。",
+        cancelLabel: "返回检查",
+        confirmLabel: "确认已处理",
+      });
+    }
+
     function confirmLiveAction(action, item) {
       const name = customerDisplayLabel(item) || "这位顾客";
       const reply = $("replyBox").value.trim();
@@ -21254,9 +21489,6 @@
 	      }
 	      if (action === "external_flow_continued") {
 	        return window.confirm(`确认把 ${name} 这张旧卡收起？\n\n只在顾客已经被外部渠道或 Flow 接走、没有在等这条旧回复时使用。\n这不会发送消息，也不会触发新的 Flow。`);
-	      }
-	      if (action === "channel_reply_resolved") {
-	        return window.confirm(`确认 ${name} 已经由人工回复过？\n\n只在过渡期客服已经在外部渠道回复、发了付款链接，或顾客已经不等这条旧草稿时使用。\n系统会记录为「人工已处理」，不会发送消息、不会触发 Flow，也不会把没有文案的记录拿去学习。\n\n以后同类请直接在 Dashboard 回复。`);
 	      }
 	      if (action === "record_no_reply") {
 	        return window.confirm(`确认 ${name} 这条只是表情或简单确认，不需要客服回复？\n\n这只会留下「无需回复」记录；不会发送消息、不会触发 Flow，也不会拿去学习。\n\n附件、付款、订单、投诉或健康问题不能用这个动作。`);
