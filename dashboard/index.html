@@ -4665,59 +4665,55 @@
 
     .quick-action-card {
       display: grid;
-      gap: 10px;
-      border: 1px solid rgba(16,185,157,.30);
-      border-radius: 16px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.98), rgba(237,251,247,.98));
-      padding: 12px;
+      gap: 8px;
+      border: 1px solid rgba(92,112,121,.22);
+      border-radius: 18px;
+      background: rgba(247,250,249,.98);
+      padding: 8px;
       box-shadow:
-        0 18px 42px rgba(8, 23, 29, .14),
+        0 18px 48px rgba(8, 23, 29, .16),
         0 1px 0 rgba(255,255,255,.92) inset;
     }
 
 	    .reply-command-bar {
 	      display: grid;
-	      grid-template-columns: minmax(140px, .62fr) minmax(260px, 1.04fr) minmax(430px, 1.55fr) minmax(118px, .42fr);
-	      grid-template-areas: "head reply pay more";
-	      align-items: stretch;
+	      grid-template-columns: auto minmax(360px, 1fr) auto;
+	      grid-template-areas: "more reply pay";
+	      align-items: center;
 	      justify-content: stretch;
-	      gap: 10px;
+	      gap: 8px;
 	      margin-top: 12px;
-	      padding: 10px;
-      border-radius: 14px;
+	      padding: 8px;
+      border-radius: 18px;
     }
 
     .panel.open .panel-body {
-      padding-bottom: 164px;
+      padding-bottom: 112px;
     }
 
 	    .panel.open .reply-command-bar {
 	      position: fixed;
 	      left: 50%;
-	      bottom: 24px;
-	      width: min(1320px, calc(100vw - 56px));
+	      bottom: 18px;
+	      width: min(920px, calc(100vw - 48px));
 	      transform: translateX(-50%);
 	      z-index: 60;
-      border: 1px solid rgba(16,185,157,.34);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.99), rgba(236,251,247,.99));
+      border: 1px solid rgba(92,112,121,.24);
+      background: rgba(247,250,249,.98);
       box-shadow:
-        0 24px 70px rgba(8,23,29,.24),
+        0 22px 64px rgba(8,23,29,.24),
         0 1px 0 rgba(255,255,255,.92) inset;
+      backdrop-filter: blur(16px);
     }
 
 	    .reply-command-bar .quick-action-head {
-	      grid-area: head;
-	      display: grid;
-	      align-content: center;
-	      justify-items: start;
-	      gap: 3px;
-	      min-width: 0;
-	      padding: 8px 10px;
-	      border: 1px solid rgba(16,185,157,.20);
-	      border-radius: 14px;
-	      background: rgba(255,255,255,.58);
+	      position: absolute;
+	      width: 1px;
+	      height: 1px;
+	      overflow: hidden;
+	      clip: rect(0 0 0 0);
+	      clip-path: inset(50%);
+	      white-space: nowrap;
 	    }
 
 	    .reply-command-bar .quick-action-head span {
@@ -4734,21 +4730,21 @@
 	      line-height: 1.25;
 	    }
 
-	    .reply-action-group,
-    .payment-quick {
-      border: 1px solid rgba(0,183,216,.18);
-      border-radius: 14px;
-      background: rgba(255,255,255,.78);
-      padding: 8px;
+	    .reply-action-group {
+      border: 1px solid rgba(92,112,121,.22);
+      border-radius: 16px;
+      background: #fff;
+      padding: 6px;
       min-width: 0;
+      box-shadow: 0 2px 8px rgba(8,23,29,.04);
     }
 
 	    .reply-action-group {
 	      grid-area: reply;
 	      display: grid;
-	      grid-template-columns: minmax(82px, .46fr) minmax(170px, 1fr);
+	      grid-template-columns: minmax(150px, 1fr) minmax(180px, auto);
 	      align-items: center;
-	      gap: 8px;
+	      gap: 10px;
 	    }
 
 	    .operation-label,
@@ -4763,6 +4759,7 @@
 	      min-width: 0;
 	      display: grid;
 	      gap: 2px;
+	      padding-left: 8px;
 	    }
 
 	    .operation-copy small {
@@ -4774,38 +4771,86 @@
 	    }
 
     .composer-send-button {
-      width: 100% !important;
+      width: auto !important;
       min-width: 180px;
-      min-height: 46px;
+      min-height: 48px;
       margin-top: 0 !important;
+      border-radius: 13px !important;
+      background: #00a884 !important;
+      border-color: #00a884 !important;
+      box-shadow: 0 8px 18px rgba(0,168,132,.20) !important;
     }
 
-	    .payment-quick {
+	    details.payment-quick {
 	      grid-area: pay;
-		      display: grid;
-		      grid-template-columns: minmax(120px, .58fr) minmax(128px, .62fr) minmax(190px, 1fr);
-		      align-items: center;
-		      gap: 8px;
-		      min-width: 0;
+	      position: relative;
+	      min-width: 0;
     }
 
     .payment-quick.hidden {
       display: none !important;
     }
 
-    .payment-quick .purchase-input-wrap,
-    .payment-quick .btn {
-      min-height: 46px;
+    .payment-quick > summary {
+      list-style: none;
+      min-height: 60px;
+      display: grid;
+      align-content: center;
+      gap: 2px;
+      border: 1px solid rgba(92,112,121,.22);
+      border-radius: 16px;
+      background: #fff;
+      color: var(--green-deep);
+      padding: 8px 14px;
+      font-weight: 950;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .payment-quick > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .payment-quick > summary small {
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 780;
+    }
+
+    .payment-menu-panel {
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 10px);
+      z-index: 22;
+      width: min(390px, calc(100vw - 36px));
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) minmax(170px, 1fr);
+      gap: 9px;
+      border: 1px solid rgba(16,185,157,.28);
+      border-radius: 16px;
+      background: rgba(255,255,255,.99);
+      padding: 12px;
+      box-shadow: 0 24px 70px rgba(8,23,29,.20);
+    }
+
+    .payment-menu-panel .operation-copy,
+    .payment-menu-panel .purchase-note {
+      grid-column: 1 / -1;
+      padding-left: 0;
+    }
+
+    .payment-menu-panel .purchase-input-wrap,
+    .payment-menu-panel .btn {
+      min-height: 44px;
       margin: 0 !important;
     }
 
-	    .payment-quick .purchase-note {
-	      grid-column: 2 / -1;
+	    .payment-menu-panel .purchase-note {
 	      margin-top: 0;
-	      font-size: 10.5px;
-	      line-height: 1.25;
+	      font-size: 11px;
+	      line-height: 1.35;
 	      white-space: normal;
-	      overflow: hidden;
     }
 
     .function-menu {
@@ -4818,22 +4863,38 @@
 
     .function-menu summary {
       list-style: none;
-      min-height: 46px;
+      min-height: 60px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      border: 1px solid rgba(0,183,216,.26);
-      border-radius: 999px;
-      background: rgba(255,255,255,.94);
+      gap: 6px;
+      border: 1px solid rgba(92,112,121,.22);
+      border-radius: 16px;
+      background: #fff;
       color: var(--green-deep);
-      padding: 0 16px;
+      padding: 0 14px;
       font-weight: 950;
       cursor: pointer;
       user-select: none;
-      box-shadow: 0 8px 22px rgba(8,23,29,.08);
+      box-shadow: none;
       width: 100%;
       min-height: 100%;
+    }
+
+    .function-menu-icon {
+      width: 24px;
+      height: 24px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(0,168,132,.10);
+      color: #007a62;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .function-menu-label {
+      font-size: 12px;
     }
 
     .function-menu summary::-webkit-details-marker {
@@ -4845,7 +4906,7 @@
       right: 0;
       bottom: calc(100% + 10px);
       z-index: 20;
-      width: min(430px, calc(100vw - 42px));
+      width: min(460px, calc(100vw - 42px));
       display: grid;
       gap: 10px;
       border: 1px solid rgba(16,185,157,.30);
@@ -4853,6 +4914,25 @@
       background: rgba(255,255,255,.98);
       padding: 12px;
       box-shadow: 0 24px 70px rgba(8,23,29,.20);
+    }
+
+    .function-menu-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 2px 2px 4px;
+    }
+
+    .function-menu-title b {
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .function-menu-title small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 780;
     }
 
     .quick-action-head {
@@ -5420,38 +5500,63 @@
       .reply-card { margin-top: 10px; }
       .reply-command-bar {
         align-items: stretch;
-        grid-template-columns: 1fr;
+        grid-template-columns: auto minmax(0, 1fr);
         grid-template-areas:
-          "head"
-          "reply"
-          "pay"
-          "more";
-      }
-      .reply-command-bar .quick-action-head {
-        margin-right: 0;
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 4px;
+          "more pay"
+          "reply reply";
+        gap: 7px;
+        width: calc(100vw - 16px) !important;
+        bottom: 8px !important;
+        padding: 7px;
+        border-radius: 16px;
       }
       .reply-action-group {
         grid-template-columns: 1fr;
+        gap: 0;
+        padding: 5px;
       }
-      .composer-send-button,
-      .payment-quick,
-      .function-menu summary {
+      .reply-action-group .operation-copy {
+        display: none;
+      }
+      .composer-send-button {
         width: 100%;
+        min-width: 0;
       }
-      .payment-quick {
-        grid-template-columns: 1fr;
+      .function-menu summary,
+      .payment-quick > summary {
+        min-height: 48px;
+        border-radius: 13px;
       }
-      .payment-quick .purchase-note {
-        grid-column: 1 / -1;
-        white-space: normal;
+      .function-menu summary {
+        padding: 0 12px;
+      }
+      .payment-quick > summary {
+        min-width: 148px;
+        padding: 6px 12px;
+      }
+      .function-menu-panel,
+      .payment-menu-panel {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        width: calc(100vw - 28px);
+        max-height: min(68vh, 520px);
+        overflow-y: auto;
+        margin-top: 0;
       }
       .function-menu-panel {
-        position: static;
-        width: 100%;
-        margin-top: 10px;
+        left: 0;
+        right: auto;
+      }
+      .payment-menu-panel {
+        right: 0;
+        grid-template-columns: 1fr;
+      }
+      .payment-menu-panel .operation-copy,
+      .payment-menu-panel .purchase-note {
+        grid-column: 1;
+      }
+      .panel.open .panel-body {
+        padding-bottom: 154px;
       }
       .word.big { font-size: 22px; }
       .word.mid { font-size: 17px; }
@@ -6391,46 +6496,33 @@
               <button class="reply-chip" data-reply-template="ask_phone" type="button">先问电话</button>
               <button class="reply-chip" data-reply-template="shorten" type="button">缩短</button>
             </div>
-	            <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
-	              <div class="quick-action-head">
-	                <span>客服操作</span>
-	                <small>选一个动作就好。</small>
-	              </div>
-	              <div class="reply-action-group" aria-label="发送回复">
-	                <div class="operation-copy">
-	                  <span>发送回复</span>
-	                  <small>在这里确认内容，系统直接发给顾客</small>
-	                </div>
-	                <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
-	                <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">回复并发送</button>
-	              </div>
-	              <div class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
-	                <div class="operation-copy">
-	                  <span>确认收款 / COD</span>
-	                  <small>只记录成交，不发讯息</small>
-	                </div>
-	                <label class="purchase-input-wrap">
-	                  <span>RM</span>
-	                  <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
-	                </label>
-                <button class="btn primary" id="markPurchaseBtn" type="button">确认已付款</button>
-                <div class="purchase-note" id="purchaseNote">已收到款或 COD 已确认才按；不会发顾客讯息。</div>
-              </div>
-              <details class="function-menu" id="functionMenu">
-                <summary>其他处理</summary>
-                <div class="function-menu-panel">
-                  <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
-                    <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
-                    <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
-                    <button class="btn danger" id="shortVersionHandoffBtn" type="button">转人工回复</button>
-                  </div>
-                  <div class="side-actions">
-                    <button class="btn" id="manualResolveBtn" type="button">记录人工回复</button>
-                    <button class="btn" id="channelReplyResolvedBtn" type="button">已由人工回复</button>
-                    <button class="btn hidden" id="noReplyNeededBtn" type="button">无需回复</button>
-                    <button class="btn" id="returnAiBtn" type="button" title="不要当前草稿，重新生成一版；不会发送给顾客。">让 AI 重写</button>
-                    <button class="btn danger" id="handoffBtn" type="button">转人工回复</button>
-	                <button class="btn" id="learnBtn" type="button" title="发送后记录学习候选，Owner 通过后同类问题才会少审核或自动">同类以后少审核</button>
+		            <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
+		              <div class="quick-action-head">
+		                <span>客服操作</span>
+		                <small>常用动作集中在这里</small>
+		              </div>
+	              <details class="function-menu" id="functionMenu">
+	                <summary aria-label="更多客服操作" title="更多客服操作">
+	                  <span class="function-menu-icon" aria-hidden="true">+</span>
+	                  <span class="function-menu-label">更多</span>
+	                </summary>
+	                <div class="function-menu-panel">
+	                  <div class="function-menu-title">
+	                    <b>更多处理</b>
+	                    <small>不会自动发送</small>
+	                  </div>
+	                  <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
+	                    <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
+	                    <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
+	                    <button class="btn danger" id="shortVersionHandoffBtn" type="button">转给人工</button>
+	                  </div>
+	                  <div class="side-actions">
+	                    <button class="btn" id="returnAiBtn" type="button" title="不要当前草稿，重新生成一版；不会发送给顾客。">让 AI 重写</button>
+	                    <button class="btn" id="channelReplyResolvedBtn" type="button">客服已回复</button>
+	                    <button class="btn" id="manualResolveBtn" type="button">记录最终回复</button>
+	                    <button class="btn hidden" id="noReplyNeededBtn" type="button">无需回复</button>
+	                    <button class="btn danger" id="handoffBtn" type="button">转给人工处理</button>
+		                <button class="btn" id="learnBtn" type="button" title="发送后记录学习候选，Owner 通过后同类问题才会少审核或自动">保存为学习范例</button>
 	                  </div>
 	                  <details class="external-flow-panel hidden" id="externalFlowPanel">
 	                    <summary>
@@ -6458,9 +6550,35 @@
 	                      <div class="purchase-note" id="externalFlowNote">只整理记录；不会发送顾客讯息。</div>
 	                    </div>
 	                  </details>
-                </div>
-              </details>
-            </div>
+	                </div>
+	              </details>
+		              <div class="reply-action-group" aria-label="发送回复">
+		                <div class="operation-copy">
+		                  <span>回复顾客</span>
+		                  <small>发送前请确认上方内容</small>
+		                </div>
+		                <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
+		                <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">回复并发送</button>
+		              </div>
+		              <details class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
+		                <summary>
+		                  <span>收款 / COD</span>
+		                  <small>只记录成交</small>
+		                </summary>
+		                <div class="payment-menu-panel">
+		                  <div class="operation-copy">
+		                    <span>确认收款 / COD</span>
+		                    <small>只记录成交，不会发送顾客讯息</small>
+		                  </div>
+		                  <label class="purchase-input-wrap">
+		                    <span>RM</span>
+		                    <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
+		                  </label>
+	                  <button class="btn primary" id="markPurchaseBtn" type="button">确认已付款</button>
+	                  <div class="purchase-note" id="purchaseNote">已收到款或 COD 已确认才按；不会发顾客讯息。</div>
+	                </div>
+	              </details>
+	            </div>
           </div>
           <div class="quality-eval-card" id="qualityEvalCard" aria-label="质量评分">
             <div class="quality-eval-head">
@@ -7062,6 +7180,12 @@
 	    $("returnAiBtn").addEventListener("click", returnAiActive);
 		    $("handoffBtn").addEventListener("click", handoffActive);
 		    $("markPurchaseBtn").addEventListener("click", markPurchaseActive);
+		    $("functionMenu").addEventListener("toggle", () => {
+		      if ($("functionMenu").open) $("purchasePanel").open = false;
+		    });
+		    $("purchasePanel").addEventListener("toggle", () => {
+		      if ($("purchasePanel").open) $("functionMenu").open = false;
+		    });
 		    $("externalFlowRecordBtn").addEventListener("click", externalFlowRecordActive);
 	    $("externalFlowPanel").addEventListener("toggle", () => updateExternalFlowButtonState());
 	    ["externalFlowIdInput", "externalFlowMessageInput", "externalFlowEventAtInput", "externalFlowEvidenceInput", "externalFlowCustomerClearInput"].forEach((id) => {
@@ -14984,6 +15108,8 @@
         return;
       }
       state.active = item;
+	      $("functionMenu").open = false;
+	      $("purchasePanel").open = false;
 
       const decision = item.latest_decision || {};
       const isFlowOnly = decision.action === "trigger_flow";
@@ -15049,15 +15175,16 @@
       }
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
 	      $("panelStatusPill").textContent = caseStatusLabel(item, decision.risk);
+	      $("approveBtn").classList.toggle("hidden", canManualSend);
       $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : item.status === "order" ? "确认已处理" : "发送给顾客";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
       $("manualSendBtn").classList.toggle("hidden", !canManualSend);
       $("manualSendBtn").disabled = state.actionBusy || !canManualSend;
-      $("manualSendBtn").textContent = "回复并发送";
-      $("manualResolveBtn").disabled = state.actionBusy || !canManualResolve;
-      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : "记录人工回复";
-      $("channelReplyResolvedBtn").disabled = state.actionBusy || readOnly;
-      $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "已由人工回复";
+	      $("manualSendBtn").textContent = "发送给顾客";
+	      $("manualResolveBtn").disabled = state.actionBusy || !canManualResolve;
+	      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : "记录最终回复";
+	      $("channelReplyResolvedBtn").disabled = state.actionBusy || readOnly;
+	      $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "客服已回复";
       $("noReplyNeededBtn").classList.toggle("hidden", !canRecordNoReply);
       $("noReplyNeededBtn").disabled = state.actionBusy || !canRecordNoReply;
       $("returnAiBtn").disabled = state.actionBusy || readOnly;
@@ -20345,8 +20472,9 @@
       const canManualSend = canManualSendCase(state.active, closer, approvalGuard);
       const canResendPurchase = canResendPurchaseMeta(state.active);
       const showPurchasePanel = shouldShowPurchasePanelForCase(state.active, readOnly, canResendPurchase);
-      const purchaseActionComplete = purchaseActionCompleteForCase(state.active);
-      $("approveBtn").disabled = isBusy || isFlowOnly || readOnly || approvalGuard.blocked;
+	      const purchaseActionComplete = purchaseActionCompleteForCase(state.active);
+	      $("approveBtn").classList.toggle("hidden", canManualSend);
+	      $("approveBtn").disabled = isBusy || isFlowOnly || readOnly || approvalGuard.blocked;
       $("manualSendBtn").classList.toggle("hidden", !canManualSend);
       $("manualSendBtn").disabled = isBusy || !canManualSend;
       $("manualResolveBtn").disabled = isBusy || !canManualResolve;
@@ -20372,9 +20500,9 @@
 	        return;
 	      }
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : state.active.status === "order" ? "确认已处理" : "发送给顾客";
-	      $("manualSendBtn").textContent = "回复并发送";
-	      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录人工回复";
-	      $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "已由人工回复";
+		      $("manualSendBtn").textContent = "发送给顾客";
+		      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录最终回复";
+		      $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "客服已回复";
 	      $("noReplyNeededBtn").textContent = "无需回复";
 	      $("returnAiBtn").textContent = approvalGuard.blocked ? "让 AI 重写" : readOnly ? "已记录" : "让 AI 重写";
 	      $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(state.active, canResendPurchase);
