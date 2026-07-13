@@ -7882,9 +7882,6 @@
           }
         }
         state.filter = button.dataset.sideFilter || (state.activeSetupStep === "4" ? "needs_attention" : "all");
-        if (state.role === "staff" && button.dataset.workspaceTarget === "cases" && (button.dataset.sideFilter || "") === "needs_attention") {
-          state.queueDateScope = "open_backlog";
-        }
         setWorkspaceView(button.dataset.workspaceTarget || workspaceViewForSidebarKey(state.sidebarKey));
       });
     });
@@ -8428,19 +8425,15 @@
     }
 
     function setFilter(filter) {
-      const previousQueueStatus = dashboardQueueStatusForFilter(state.filter);
       state.filter = filter || "all";
-      const nextQueueStatus = dashboardQueueStatusForFilter(state.filter);
       // Queue category and date scope are independent controls. Once staff
       // chooses today (or a specific date), switching categories must keep that
       // date instead of silently reopening the full historical backlog.
       state.sidebarKey = sidebarKeyForFilter(state.filter);
       state.activeSetupStep = "4";
+      syncDateControls();
       syncFilterControls();
       render();
-      if (!state.demoMode && previousQueueStatus !== nextQueueStatus && apiUrlEl.value.trim()) {
-        loadCases();
-      }
     }
 
     function setWorkspaceView(view) {
@@ -8606,9 +8599,8 @@
     }
 
     function syncFilterControls() {
-      const activeFilter = state.filter === "human_first" ? "needs_attention" : state.filter;
       document.querySelectorAll("[data-filter]").forEach((item) => {
-        item.classList.toggle("active", item.dataset.filter === activeFilter);
+        item.classList.toggle("active", item.dataset.filter === state.filter);
       });
       syncSidebarControls();
     }
@@ -8783,7 +8775,6 @@
         state.filter = "approval_required";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
-        if (state.role === "staff") state.queueDateScope = "open_backlog";
         setWorkspaceView("cases");
         return;
       }
@@ -8791,7 +8782,6 @@
         state.filter = "order";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
-        if (state.role === "staff") state.queueDateScope = "open_backlog";
         setWorkspaceView("cases");
         return;
       }
@@ -8799,7 +8789,6 @@
         state.filter = "human_required";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
-        if (state.role === "staff") state.queueDateScope = "open_backlog";
         setWorkspaceView("cases");
         return;
       }
@@ -8829,7 +8818,6 @@
         state.filter = "needs_attention";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
-        if (state.role === "staff") state.queueDateScope = "open_backlog";
         setWorkspaceView("cases");
       }
     }
@@ -10888,6 +10876,7 @@
     }
 
     function render() {
+      syncDateControls();
       const allForRole = casesForRole(state.cases);
       const countScopeCases = String(state.query || "").trim() || useOpenBacklogDateScope()
         ? allForRole
@@ -11175,7 +11164,6 @@
       state.sidebarKey = "ai_reply";
       state.activeSetupStep = "4";
       state.filter = needsAttention ? "needs_attention" : "records";
-      if (state.role === "staff" && needsAttention) state.queueDateScope = "open_backlog";
       render();
       const existing = state.cases.find((record) => String(record.id || "") === id);
       if (existing) openCase(id);
