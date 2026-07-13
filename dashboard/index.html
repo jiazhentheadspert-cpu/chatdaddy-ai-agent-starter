@@ -20317,7 +20317,7 @@
 	  if (risk !== "low") return "只允许低风险 FAQ";
 	  if (!(intent.startsWith("faq_") || ["ingredient_question", "flavor_question"].includes(intent))) return "只允许明确 FAQ 意图";
 	  if (!customerText) return "缺少顾客原问题";
-	  if (/flow|order|payment|receipt|handoff|human|price|promo|gift/i.test(action)) return "包含 Flow、交易或人工动作";
+	  if (/order|payment|receipt|handoff|human|price|promo|gift/i.test(action)) return "包含交易或人工动作";
 	  if (/(付款|付钱|汇款|转账|轉帳|receipt|订单|訂單|物流|退款|投诉|投訴|价格|價錢|多少钱|多少錢|优惠|優惠|赠品|贈品|怀孕|懷孕|哺乳|疾病|医生|醫生|吃药|吃藥|不舒服|副作用|保证|保證|一定瘦|截图|截圖|附件)/i.test(combined)) return "命中安全或交易边界";
 	  if ((item.messages || []).some((message) => Array.isArray(message.attachments) && message.attachments.length)) return "包含附件";
 	  const guard = effectiveApprovalGuardForCase(item, closerVerdict(item));
@@ -20346,7 +20346,7 @@
 	      { label: "本次回复", value: "立即发送" },
 	      { label: "未来同类 FAQ", value: "立即开启自动回复" },
 	      { label: "付款 / 订单 / 健康 / 投诉", value: "仍需人工批准" },
-	      { label: "ChatDaddy Flow", value: "不会自动触发" },
+	      { label: "这张 Case 的 Flow", value: "不会继承，也不会自动触发" },
 	    ],
 	    note: "规则只属于当前项目，并绑定这次已识别的 FAQ 意图。发送失败不会学；自动回复失败会退回待批准。",
 	    cancelLabel: "返回检查",
