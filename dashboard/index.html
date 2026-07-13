@@ -4592,6 +4592,46 @@
         var(--panel-soft);
     }
 
+    .panel-body > .left {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      min-width: 0;
+    }
+
+    .case-intel-details {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,.86);
+      overflow: hidden;
+    }
+
+    .case-intel-details > summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .case-intel-details > summary small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .case-intel-details[open] > summary {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .case-intel-details .panel-intel {
+      margin: 0;
+      padding: 10px;
+    }
+
     .box {
       border: 1px solid var(--line);
       border-radius: 16px;
@@ -5416,6 +5456,84 @@
       box-shadow: var(--glow);
     }
 
+    .action-card-details {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .action-card-details > summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 14px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .action-card-details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .action-card-details > summary span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .action-card-details > summary b {
+      display: block;
+      margin: 3px 0 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .action-card-details > summary small {
+      color: var(--green-deep);
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .action-card-details[open] > summary {
+      border-bottom: 1px solid rgba(0,183,216,.18);
+    }
+
+    .action-card-body {
+      padding: 0 14px 14px;
+    }
+
+    .action-card-body > #actionReason {
+      margin-top: 12px;
+    }
+
+    .queue-ops-disclosure {
+      border-bottom: 1px solid rgba(92,112,121,.14);
+      background: rgba(248,251,251,.72);
+    }
+
+    .queue-ops-disclosure > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 16px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .queue-ops-disclosure > summary small {
+      font-size: 10.5px;
+      font-weight: 760;
+    }
+
+    .queue-ops-disclosure[open] > summary {
+      border-bottom: 1px solid rgba(92,112,121,.12);
+    }
+
     .action-card b {
       display: block;
       font-size: 26px;
@@ -6080,7 +6198,7 @@
       .panel-intel { margin-bottom: 10px; }
       .action-stack {
         position: static;
-        order: -1;
+        order: initial;
         min-width: 0;
         max-width: 100%;
       }
@@ -6124,10 +6242,10 @@
       }
       .reply-action-group {
 	        grid-template-columns: minmax(0, 1fr);
-		        grid-template-areas:
-		          "composer"
-		          "tools"
-		          "send-actions";
+	        grid-template-areas:
+	          "composer"
+	          "tools"
+	          "send-actions";
 	        gap: 5px;
         padding: 5px;
       }
@@ -6182,23 +6300,22 @@
       .function-menu-panel,
 	  .channel-action-panel,
       .payment-menu-panel {
-        position: absolute;
-        bottom: calc(100% + 8px);
-        width: calc(100vw - 44px);
-        max-height: min(68vh, 520px);
+        position: fixed;
+        left: 12px !important;
+        right: 12px !important;
+        bottom: calc(128px + env(safe-area-inset-bottom));
+        width: auto;
+        max-height: min(58vh, 520px);
         overflow-y: auto;
         margin-top: 0;
       }
       .function-menu-panel {
-        left: 0;
-        right: auto;
+        right: 12px;
       }
 	  .channel-action-panel {
-	    left: 0;
-	    right: auto;
+	    right: 12px;
 	  }
       .payment-menu-panel {
-        right: 0;
         grid-template-columns: 1fr;
       }
       .payment-menu-panel .operation-copy,
@@ -6286,6 +6403,14 @@
       --staff-sidebar-width: 76px;
     }
 
+    body:not(.staff-mode).sidebar-collapsed .app-shell {
+      grid-template-columns: 76px minmax(0, 1fr);
+    }
+
+    body:not(.staff-mode).sidebar-collapsed::before {
+      width: 76px;
+    }
+
     body.staff-mode .app-shell {
       width: 100vw;
       max-width: 100vw;
@@ -6329,13 +6454,13 @@
       max-width: calc(100vw - var(--staff-sidebar-width));
     }
 
-    body.staff-mode.sidebar-collapsed .sidebar {
+    body.sidebar-collapsed .sidebar {
       padding: 18px 10px;
       overflow-x: hidden;
       gap: 12px;
     }
 
-    body.staff-mode.sidebar-collapsed .sidebar-toggle {
+    body.sidebar-collapsed .sidebar-toggle {
       position: fixed;
       top: 18px;
       left: 14px;
@@ -6343,29 +6468,29 @@
       z-index: 24;
     }
 
-    body.staff-mode.sidebar-collapsed .brand {
+    body.sidebar-collapsed .brand {
       justify-content: center;
       margin-top: 48px;
     }
 
-    body.staff-mode.sidebar-collapsed .brand-copy,
-    body.staff-mode.sidebar-collapsed .side-section,
-    body.staff-mode.sidebar-collapsed .side-note,
-    body.staff-mode.sidebar-collapsed .side-settings-title,
-    body.staff-mode.sidebar-collapsed .frontend-only-card {
+    body.sidebar-collapsed .brand-copy,
+    body.sidebar-collapsed .side-section,
+    body.sidebar-collapsed .side-note,
+    body.sidebar-collapsed .side-settings-title,
+    body.sidebar-collapsed .frontend-only-card {
       display: none !important;
     }
 
-    body.staff-mode.sidebar-collapsed .side-nav,
-    body.staff-mode.sidebar-collapsed .side-settings,
-    body.staff-mode.sidebar-collapsed .side-settings-panel {
+    body.sidebar-collapsed .side-nav,
+    body.sidebar-collapsed .side-settings,
+    body.sidebar-collapsed .side-settings-panel {
       gap: 8px;
       padding-right: 0;
       justify-items: center;
       overflow: hidden;
     }
 
-    body.staff-mode.sidebar-collapsed .side-nav button[data-short] {
+    body.sidebar-collapsed .side-nav button[data-short] {
       width: 48px;
       height: 48px;
       min-height: 48px;
@@ -6375,11 +6500,11 @@
       margin: 0 auto;
     }
 
-    body.staff-mode.sidebar-collapsed .side-nav button[data-short] > * {
+    body.sidebar-collapsed .side-nav button[data-short] > * {
       display: none !important;
     }
 
-    body.staff-mode.sidebar-collapsed .side-nav button[data-short]::before {
+    body.sidebar-collapsed .side-nav button[data-short]::before {
       content: attr(data-short);
       display: grid;
       place-items: center;
@@ -6392,12 +6517,12 @@
       line-height: 1;
     }
 
-    body.staff-mode.sidebar-collapsed .side-nav button[data-short].active::before {
+    body.sidebar-collapsed .side-nav button[data-short].active::before {
       background: rgba(0,183,216,.18);
       color: #fff;
     }
 
-    body.staff-mode.sidebar-collapsed .sidebar-toggle {
+    body.sidebar-collapsed .sidebar-toggle {
       width: 48px;
       height: 42px;
       min-height: 42px;
@@ -6407,11 +6532,11 @@
       border-color: rgba(0,183,216,.36);
     }
 
-    body.staff-mode.sidebar-collapsed .sidebar-toggle-text {
+    body.sidebar-collapsed .sidebar-toggle-text {
       display: none;
     }
 
-    body.staff-mode.sidebar-collapsed .sidebar-toggle-icon {
+    body.sidebar-collapsed .sidebar-toggle-icon {
       transform: rotate(180deg);
     }
 
@@ -6440,8 +6565,7 @@
     }
 
     body.staff-mode .staff-priority-title small,
-    body.staff-mode .staff-cleanup-guide,
-    body.staff-mode .staff-cleanup-execution-strip {
+    body.staff-mode .queue-ops-disclosure {
       display: none !important;
     }
 
@@ -6453,7 +6577,7 @@
         grid-template-columns: minmax(0, 1fr);
       }
 
-      body.staff-mode .panel-intel,
+      body.staff-mode .case-intel-details,
       body.staff-mode .action-stack {
         display: none !important;
       }
@@ -7076,8 +7200,11 @@
           <span>可搜索顾客名字或电话打开 Case；已收款/COD 确认后填金额点「确认收款 / COD」。</span>
         </div>
         <div class="staff-priority-strip" id="staffPriorityStrip" aria-label="今日处理顺序"></div>
-        <div class="staff-cleanup-guide" id="staffCleanupGuide" aria-label="队列清理标准"></div>
-        <div class="staff-cleanup-execution-strip" id="staffCleanupExecutionStrip" aria-label="清旧卡执行条"></div>
+        <details class="queue-ops-disclosure">
+          <summary><span>队列说明与清理工具</span><small>一般不用展开</small></summary>
+          <div class="staff-cleanup-guide" id="staffCleanupGuide" aria-label="队列清理标准"></div>
+          <div class="staff-cleanup-execution-strip" id="staffCleanupExecutionStrip" aria-label="清旧卡执行条"></div>
+        </details>
         <div class="toolbar">
           <div class="filters">
             <button class="pill active" data-filter="needs_attention">全部要处理</button>
@@ -7132,11 +7259,14 @@
       </div>
       <div class="panel-body">
         <div class="left">
-          <div class="panel-intel" id="caseDetails"></div>
           <div class="box">
             <div class="box-title">聊天 <span>最新在下</span></div>
             <div class="chat" id="chatBox"></div>
           </div>
+          <details class="case-intel-details" id="caseIntelDetails">
+            <summary><span>系统判断</span><small>阶段、风险与自动边界</small></summary>
+            <div class="panel-intel" id="caseDetails"></div>
+          </details>
           <div class="quality-eval-card is-collapsed" id="qualityEvalCard" aria-label="质量评分">
             <div class="quality-eval-head">
               <div class="quality-eval-head-main">
@@ -7193,9 +7323,12 @@
           </div>
         </div>
         <aside class="action-stack">
-          <div class="action-card">
-            <span>Agent Action</span>
-            <b id="actionTitle">按「批准发送」</b>
+          <details class="action-card action-card-details" id="agentActionDetails">
+            <summary>
+              <span>AI 建议<b id="actionTitle">按「批准发送」</b></span>
+              <small>查看判断</small>
+            </summary>
+            <div class="action-card-body">
             <p id="actionReason">确认回复后发送。</p>
             <div class="closer-verdict review" id="closerVerdictBox">
               <span id="closerVerdictLabel">成交高手判定</span>
@@ -7214,7 +7347,8 @@
               </div>
             </div>
             <div class="approval-first-reminder">AI 不会自己发：客服检查后才批准。草稿不对就让 AI 重写；需要真人判断就在这里人工回复。</div>
-          </div>
+            </div>
+          </details>
           <div class="box">
             <h3>重点词</h3>
             <div class="word-cloud" id="panelWords"></div>
@@ -7448,6 +7582,7 @@
       deepLinkOpened: false,
       loadingCaseDetailId: "",
       loading: false,
+      refreshing: false,
       actionBusy: false,
       bulkBusy: false,
       sidebarCollapsed: false,
@@ -8519,7 +8654,7 @@
     }
 
     function applySidebarCollapsedState() {
-      const collapsed = state.role === "staff" && Boolean(state.sidebarCollapsed);
+      const collapsed = Boolean(state.sidebarCollapsed);
       document.body.classList.toggle("sidebar-collapsed", collapsed);
       const toggle = $("sidebarToggle");
       if (!toggle) return;
@@ -9737,6 +9872,7 @@
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
         state.loading = false;
+        state.refreshing = false;
         state.queueSyncStatus = data.sync_status || null;
 	        const previousActiveId = String(state.active?.id || "");
 	        if (!options.preserveSelection) state.selected.clear();
@@ -9789,8 +9925,16 @@
           loadUsageSummary(token).catch(() => null);
         }
       } catch (error) {
-        errorEl.textContent = `连接失败：${error.message}`;
-        setRealQueueEmpty(`连接失败：${error.message}`);
+        const message = `同步失败：${error.message}`;
+        if (state.cases.length) {
+          state.loading = false;
+          state.refreshing = false;
+          $("modeTag").textContent = activeModeLabel();
+          errorEl.textContent = `${message}。仍显示上一次成功读取的资料。`;
+          render();
+        } else {
+          setRealQueueEmpty(`连接失败：${error.message}`);
+        }
       }
     }
 
@@ -10038,13 +10182,14 @@
 
     function setLoadingQueue(message = "正在读取真实讯息。") {
       state.demoMode = false;
-      state.loading = true;
-      state.selected.clear();
-      $("modeTag").textContent = "读取中";
+      const hasSnapshot = state.cases.length > 0;
+      state.loading = !hasSnapshot;
+      state.refreshing = true;
+      if (!hasSnapshot) state.selected.clear();
+      $("modeTag").textContent = hasSnapshot ? "同步中" : "读取中";
       errorEl.textContent = "";
-      state.cases = [];
       state.loadingMessage = message;
-      state.queueSyncStatus = null;
+      if (!hasSnapshot) state.queueSyncStatus = null;
       render();
     }
 
@@ -10215,6 +10360,7 @@
     function setRealQueueEmpty(message = "") {
       state.demoMode = false;
       state.loading = false;
+      state.refreshing = false;
       state.selected.clear();
       state.usageSummary = null;
       state.metaCapiStatus = null;
@@ -10978,6 +11124,8 @@
         return;
       }
       state.demoMode = true;
+      state.loading = false;
+      state.refreshing = false;
       state.scenario = demoScenarioEl.value || "ecommerce";
       state.selected.clear();
       state.usageSummary = null;
@@ -11800,7 +11948,8 @@
       const staffGuide = state.role === "staff"
         ? ` · 待批准 ${counts.approval || 0}，人工回复 ${Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0)}，自动 Flow ${counts.auto || 0}`
         : "";
-      $("queueSummary").textContent = `${queueDateScopeLabel()} · ${visibleCount}/${filteredCount} 位${queryText}${focusText} · ${sortText}${qaText}${staffGuide}`;
+      const refreshText = state.refreshing ? " · 正在同步" : "";
+      $("queueSummary").textContent = `${queueDateScopeLabel()} · ${visibleCount}/${filteredCount} 位${queryText}${focusText} · ${sortText}${qaText}${staffGuide}${refreshText}`;
     }
 
     function renderStaffPriorityQueue(counts = {}) {
@@ -16049,6 +16198,8 @@
 	      $("functionMenu").open = false;
 	      $("channelActionPicker").open = false;
 	      $("purchasePanel").open = false;
+          if ($("caseIntelDetails")) $("caseIntelDetails").open = false;
+          if ($("agentActionDetails")) $("agentActionDetails").open = false;
 
       const decision = item.latest_decision || {};
       const isFlowOnly = decision.action === "trigger_flow";
@@ -16102,7 +16253,7 @@
       $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = actionHint(item);
       if (canManualSend && !$("replyBox").placeholder) {
-        $("replyBox").placeholder = "在这里写客服要发给顾客的回复；发送成功后会留下学习候选，Owner 审核后同类问题才会自动或少审核。";
+        $("replyBox").placeholder = "在这里写客服要发给顾客的回复；发送成功后会留下学习候选；Owner 审核后，同类问题才会自动或少审核。";
       }
       if (canManualSend) {
 	        $("replyModeLabel").textContent = manualConversationMode || readOnly ? "人工连续对话" : "人工回复并发送";
@@ -20349,7 +20500,7 @@
         showToast("先检查完整回复，再在详情里批准发送。");
         return;
       }
-      if (!confirmCardAction(action, item)) return;
+      if (!(await confirmCardAction(action, item))) return;
 
       const originalText = button.textContent;
       state.actionBusy = true;
@@ -20377,16 +20528,38 @@
       }
     }
 
-    function confirmCardAction(action, item) {
+    async function confirmCardAction(action, item) {
       const name = customerDisplayLabel(item) || "这位顾客";
       if (action === "handoff") {
         if (state.demoMode) return true;
-        return window.confirm(`确认由转人工回复 ${name}？\n\n不会发送 AI 建议给顾客，只留下人工处理记录。`);
+        return showSaasConfirm({
+          eyebrow: "转人工回复",
+          title: "把这张 Case 转给客服？",
+          subtitle: name,
+          lead: "当前 AI 草稿不会发送，Case 会进入人工回复队列。",
+          facts: [
+            { label: "顾客消息", value: "不会发送" },
+            { label: "下一步", value: "客服在 Dashboard 回复" },
+          ],
+          cancelLabel: "返回",
+          confirmLabel: "转人工回复",
+        });
       }
       if (action === "return_ai") {
         const closer = closerVerdict(item);
         if (state.demoMode) return true;
-        return window.confirm(`确认让 AI 重写 ${name} 这张草稿？\n\n不会发送当前 AI 建议。\n\n原因：${closer.title}\n${closer.reason}`);
+        return showSaasConfirm({
+          eyebrow: "AI 重写",
+          title: "让 AI 重新写这张草稿？",
+          subtitle: name,
+          lead: closer.reason || "当前草稿不会发送。",
+          facts: [
+            { label: "当前草稿", value: "不会发送" },
+            { label: "重写原因", value: closer.title || "需要调整" },
+          ],
+          cancelLabel: "返回",
+          confirmLabel: "让 AI 重写",
+        });
       }
       const closer = closerVerdict(item);
       const approvalGuard = approvalGuardForVerdict(closer);
@@ -20401,14 +20574,25 @@
         return false;
       }
       const preview = reply.slice(0, 160);
-      return window.confirm(`确认发送给 ${name}？\n\n将发送：\n${preview}${reply.length > 160 ? "..." : ""}`);
+      return showSaasConfirm({
+        eyebrow: "真实发送",
+        title: "确认发送给顾客？",
+        subtitle: name,
+        lead: `${preview}${reply.length > 160 ? "..." : ""}`,
+        facts: [
+          { label: "顾客消息", value: "立即发送" },
+          { label: "ChatDaddy Flow", value: "不会触发" },
+        ],
+        cancelLabel: "返回检查",
+        confirmLabel: "确认发送",
+      });
     }
 
     async function approveActive() {
       if (!state.active) return;
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
-      if (!confirmLiveAction("approve", state.active)) return;
+      if (!(await confirmLiveAction("approve", state.active))) return;
       await postCaseAction(state.active.id, "approve", { reply_message: $("replyBox").value.trim() });
     }
 
@@ -20481,7 +20665,7 @@
       if (!state.active) return;
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
-      if (!confirmLiveAction("handoff", state.active)) return;
+      if (!(await confirmLiveAction("handoff", state.active))) return;
       const result = await postCaseAction(state.active.id, "handoff", { note: "客服在中控台转人工回复。" });
       if (actionLearningNoteRecorded(result)) {
         showToast("已转人工回复，复盘候选待审核。");
@@ -20509,7 +20693,7 @@
         focusFirstMissingHandoffCompletion(completion);
         return;
       }
-      if (!confirmLiveAction("manual_resolve", state.active)) return;
+      if (!(await confirmLiveAction("manual_resolve", state.active))) return;
       const result = await postCaseAction(state.active.id, "manual_resolve", {
         manualReplyText,
         ...completion.payload,
@@ -20539,7 +20723,7 @@
 	        $("replyBox").focus();
 	        return;
 	      }
-	      if (!confirmLiveAction("manual_send", state.active)) return;
+	      if (!(await confirmLiveAction("manual_send", state.active))) return;
 	      const learning = manualSendLearningPayload(state.active, closer);
 	      const result = await postCaseAction(state.active.id, "manual_send", {
 	        reply_message: manualReplyText,
@@ -20595,7 +20779,7 @@
 
 	    async function recordNoReplyActive() {
 	      if (!state.active || !canRecordNoReplyCase(state.active) || state.actionBusy) return;
-	      if (!confirmLiveAction("record_no_reply", state.active)) return;
+	      if (!(await confirmLiveAction("record_no_reply", state.active))) return;
 	      const result = await postCaseAction(state.active.id, "record_no_reply", {
 	        provider: "chatdaddy",
 	        event_at: new Date().toISOString(),
@@ -20667,7 +20851,7 @@
       if (!state.active) return;
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
-      if (!confirmLiveAction("return_ai", state.active)) return;
+      if (!(await confirmLiveAction("return_ai", state.active))) return;
       const closer = closerVerdict(state.active);
       const result = await postCaseAction(state.active.id, "return_ai", {
         note: closer.reason || "客服在 Dashboard 让 AI 重写，不发送当前建议。",
@@ -20726,7 +20910,7 @@
       return item.status === "purchase_confirmed" && !casePurchaseMetaDone(item);
     }
 
-    function confirmPurchaseAction(amount, item, isResend = false) {
+    async function confirmPurchaseAction(amount, item, isResend = false) {
       if (state.demoMode) return true;
       const name = customerDisplayLabel(item) || "这位顾客";
       const metaConfigured = state.metaCapiStatus?.configured === true;
@@ -20734,7 +20918,18 @@
         const resendMetaLine = metaConfigured
           ? "会尝试把成交金额补回流到广告管理工具。"
           : "现在还没接好广告回流，只会保留补回流入口。";
-        return window.confirm(`补回流 ${name} 这笔已成交订单 RM ${amount.toFixed(2)}？\n\n${resendMetaLine}\n这不会重新确认一笔新成交；系统会用订单编号去重。`);
+        return showSaasConfirm({
+          eyebrow: "成交回流",
+          title: "补回流这笔已成交订单？",
+          subtitle: name,
+          lead: `RM ${amount.toFixed(2)} · ${resendMetaLine}`,
+          facts: [
+            { label: "顾客消息", value: "不会发送" },
+            { label: "重复成交", value: "订单编号去重" },
+          ],
+          cancelLabel: "返回",
+          confirmLabel: "确认补回流",
+        });
       }
       const metaLine = metaConfigured
         ? "确认后会把成交金额回流广告管理工具。"
@@ -20742,7 +20937,20 @@
       const manualLine = hasPurchaseActionContext(item)
         ? ""
         : "\n\n这张 Case 不是 AI 判断的订单；如果你已经人工确认收款/COD，可以补登记。";
-      return window.confirm(`确认 ${name} 已成交 RM ${amount.toFixed(2)}？\n\n只有收到付款，或 COD 订单已经确认，才可以按。${manualLine}\n${metaLine}`);
+      return showSaasConfirm({
+        eyebrow: "确认成交",
+        title: "确认已收款或 COD？",
+        subtitle: name,
+        lead: `成交金额 RM ${amount.toFixed(2)}。只有已经收到付款，或 COD 订单已经确认时才继续。`,
+        facts: [
+          { label: "顾客消息", value: "不会发送" },
+          { label: "成交记录", value: "立即写入" },
+          { label: "广告回流", value: metaConfigured ? "会尝试回流" : "尚未连接" },
+        ],
+        note: manualLine.trim() || metaLine,
+        cancelLabel: "返回检查",
+        confirmLabel: "确认成交",
+      });
     }
 
 	    async function markPurchaseActive() {
@@ -20760,7 +20968,7 @@
         return;
       }
 	  if (isResend) {
-	    if (!confirmPurchaseAction(amount, state.active, true)) return;
+	    if (!(await confirmPurchaseAction(amount, state.active, true))) return;
 	    const result = await postCaseAction(state.active.id, "mark_purchase", {
 	      amount_rm: amount,
 	      currency: "MYR",
@@ -20785,7 +20993,7 @@
 	    alert(`${flow.title} 还没有接入 ChatDaddy Bot ID，系统不会冒险触发。`);
 	    return;
 	  }
-	  if (!confirmFlowTrigger(flow, state.active, { amount, confirmPayment: true })) return;
+	  if (!(await confirmFlowTrigger(flow, state.active, { amount, confirmPayment: true }))) return;
       const manualPurchaseOverride = !hasPurchaseActionContext(state.active);
 	  const result = await postCaseAction(state.active.id, "trigger_flow", {
 	    flow_key: flow.flow_key,
@@ -20813,13 +21021,24 @@
 	  }
 	    }
 
-	function confirmFlowTrigger(flow, item, options = {}) {
+	async function confirmFlowTrigger(flow, item, options = {}) {
 	  if (state.demoMode) return true;
 	  const name = customerDisplayLabel(item) || "这位顾客";
-	  const paymentLine = options.confirmPayment
-	    ? `\n付款金额：RM ${Number(options.amount || 0).toFixed(2)}\n确认后会同时记录成交。`
-	    : "";
-	  return window.confirm(`确认给 ${name} 接这个 ChatDaddy Flow？\n\n${flow.title}${paymentLine}\n\nFlow 会真实发给顾客；只在配套和阶段已经确认时继续。`);
+	  const confirmPayment = options.confirmPayment === true;
+	  return showSaasConfirm({
+	    eyebrow: "ChatDaddy Flow",
+	    title: "确认接这个 Flow？",
+	    subtitle: name,
+	    lead: flow.title,
+	    facts: [
+	      { label: "顾客消息", value: "Flow 会真实发送" },
+	      { label: "付款记录", value: confirmPayment ? `同时记录 RM ${Number(options.amount || 0).toFixed(2)}` : "不会变更" },
+	      { label: "使用条件", value: "配套与阶段已确认" },
+	    ],
+	    note: "Flow 发出后不能从 Dashboard 撤回，请先确认顾客选择和当前阶段。",
+	    cancelLabel: "返回检查",
+	    confirmLabel: "确认接 Flow",
+	  });
 	}
 
 	function applyQuickReplyActive() {
@@ -20846,7 +21065,7 @@
 	    alert(`${flow.title} 还没有接入 ChatDaddy Bot ID，系统不会触发。`);
 	    return;
 	  }
-	  if (!confirmFlowTrigger(flow, state.active)) return;
+	  if (!(await confirmFlowTrigger(flow, state.active))) return;
 	  const result = await postCaseAction(state.active.id, "trigger_flow", {
 	    flow_key: flow.flow_key,
 	    flow_title: flow.title,
@@ -20879,7 +21098,7 @@
 	        $("externalFlowCustomerClearInput").focus();
 	        return;
 	      }
-	      if (!confirmLiveAction("external_flow_continued", state.active)) return;
+	      if (!(await confirmLiveAction("external_flow_continued", state.active))) return;
 	      const result = await postCaseAction(state.active.id, "external_flow_continued", payload);
 		      if (result?.blocked) {
 		        alert(result.reason || "这张 Case 不能移到自动记录，请人工处理。");
@@ -21924,7 +22143,7 @@
       });
     }
 
-    function confirmLiveAction(action, item) {
+    async function confirmLiveAction(action, item) {
       const name = customerDisplayLabel(item) || "这位顾客";
       const reply = $("replyBox").value.trim();
       if (action === "approve" || action === "learn") {
@@ -21949,17 +22168,65 @@
       }
       if (state.demoMode) return true;
       if (action === "handoff") {
-        return window.confirm(`确认把 ${name} 转为人工回复？\n\n这一步不会发送 AI 草稿；请在回复框写好内容后点「回复并发送」。`);
+        return showSaasConfirm({
+          eyebrow: "转人工回复",
+          title: "把这张 Case 转给客服？",
+          subtitle: name,
+          lead: "当前 AI 草稿不会发送，Case 会进入人工回复队列。",
+          facts: [
+            { label: "顾客消息", value: "不会发送" },
+            { label: "下一步", value: "客服在 Dashboard 回复" },
+          ],
+          cancelLabel: "返回",
+          confirmLabel: "转人工回复",
+        });
       }
 	      if (action === "return_ai") {
 	        const closer = closerVerdict(item);
-	        return window.confirm(`确认让 AI 重写 ${name} 这张草稿？\n\n不会发送当前 AI 建议。\n\n原因：${closer.title}\n${closer.reason}`);
+	        return showSaasConfirm({
+	          eyebrow: "AI 重写",
+	          title: "让 AI 重新写这张草稿？",
+	          subtitle: name,
+	          lead: closer.reason || "当前草稿需要调整。",
+	          facts: [
+	            { label: "当前草稿", value: "不会发送" },
+	            { label: "重写原因", value: closer.title || "需要调整" },
+	          ],
+	          cancelLabel: "返回",
+	          confirmLabel: "让 AI 重写",
+	        });
 	      }
 	      if (action === "external_flow_continued") {
-	        return window.confirm(`确认把 ${name} 这张旧卡收起？\n\n只在顾客已经被外部渠道或 Flow 接走、没有在等这条旧回复时使用。\n这不会发送消息，也不会触发新的 Flow。`);
+	        return showSaasConfirm({
+	          eyebrow: "收起旧卡",
+	          title: "确认顾客已由外部 Flow 接走？",
+	          subtitle: name,
+	          lead: "只在顾客没有等待这张旧草稿时确认。",
+	          facts: [
+	            { label: "顾客消息", value: "不会发送" },
+	            { label: "新的 Flow", value: "不会触发" },
+	            { label: "Case 状态", value: "移到处理记录" },
+	          ],
+	          note: "这不会发送消息，也不会触发新的 Flow。",
+	          cancelLabel: "返回检查",
+	          confirmLabel: "确认收起",
+	        });
 	      }
 	      if (action === "record_no_reply") {
-	        return window.confirm(`确认 ${name} 这条只是表情或简单确认，不需要客服回复？\n\n这只会留下「无需回复」记录；不会发送消息、不会触发 Flow，也不会拿去学习。\n\n附件、付款、订单、投诉或健康问题不能用这个动作。`);
+	        return showSaasConfirm({
+	          eyebrow: "无需回复",
+	          title: "确认这条不用回复？",
+	          subtitle: name,
+	          lead: "只适用于纯表情、谢谢、收到等简单确认。",
+	          facts: [
+	            { label: "顾客消息", value: "不会发送" },
+	            { label: "ChatDaddy Flow", value: "不会触发" },
+	            { label: "AI 学习", value: "不会学习" },
+	          ],
+	          note: "附件、付款、订单、投诉或健康问题不能使用这个动作。",
+	          cancelLabel: "返回检查",
+	          confirmLabel: "确认无需回复",
+	        });
 	      }
 	      if (action === "manual_resolve") {
         const manualReply = $("replyBox").value.trim();
@@ -21967,44 +22234,65 @@
         const originalAiReply = caseOptimizerOriginalAiReply(item) || item.latest_decision?.reply_message || "";
         const sameAsAi = manualReply && compactCompareText(manualReply) === compactCompareText(originalAiReply);
         const isManualFollowUp = requiresManualReplyForManualResolve(item);
-        const preview = manualReply
-          ? `\n\n将保存人工最终回复：\n${manualReply.slice(0, 180)}${manualReply.length > 180 ? "..." : ""}`
-          : "\n\n回复框为空：只记录已处理，不保存最终回复内容。";
-	        const completionPreview = completion.complete
-	          ? `\n\n复盘资料：\n转人工回复原因：${completion.payload.handoff_reason}\n顾客结果：${completion.payload.customer_outcome}\n复盘备注：${completion.payload.learning_outcome_note}`
-	          : "";
-	        const learnabilityPreview = completion.payload?.learnability
-	          ? `\n学习判断：${learnabilityLabel(completion.payload.learnability)}`
-	          : "";
-	        const learningLine = sameAsAi
-	          ? "\n\n注意：回复框看起来还是 AI 草稿。只有客服确实照这段人工回复了，才这样记录；否则先改成真实人工回复。"
-	          : manualReply && completion.payload?.learnability === "no"
-	            ? "\n\n这次标记不可学：只保存人工处理记录，不生成学习候选。"
-	          : manualReply
-	            ? "\n\n这会同时生成一条待 Owner 审核的学习候选。"
-	            : "\n\n没有人工最终回复时，不会生成可直接学习的回复候选。";
         const actionLine = isManualFollowUp
           ? "这会把转人工回复后的最终人工回复补回 Dashboard。"
           : "系统不会发送 AI 建议，只会留下处理记录。";
-	        return window.confirm(`确认 ${name} 已经由客服人工处理？\n\n${actionLine}${preview}${completionPreview}${learnabilityPreview}${learningLine}`);
+        const learnability = completion.payload?.learnability === "no"
+          ? "不可学，只留记录"
+          : manualReply
+            ? "生成 Owner 审核候选"
+            : "不生成回复候选";
+	        return showSaasConfirm({
+	          eyebrow: "人工处理记录",
+	          title: "确认客服已经处理？",
+	          subtitle: name,
+	          lead: manualReply ? manualReply.slice(0, 180) : actionLine,
+	          facts: [
+	            { label: "顾客消息", value: "不会再次发送" },
+	            { label: "人工最终回复", value: manualReply ? "会保存" : "没有内容" },
+	            { label: "AI 学习", value: learnability },
+	          ],
+	          note: sameAsAi ? "回复框仍像原 AI 草稿，请确认这真的是客服最终使用的文字。" : actionLine,
+	          cancelLabel: "返回检查",
+	          confirmLabel: "确认已处理",
+	        });
       }
 	      if (action === "manual_send") {
 	        const learning = manualSendLearningPayload(item, closerVerdict(item));
 	        const preview = reply.slice(0, 180);
-	        const emojiHint = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}❤❤️]/u.test(reply)
-	          ? ""
-	          : "\n\n语气提醒：可以保持亲切，适合时加 ❤️/😊/🙏，但付款、投诉、健康问题不要过度可爱。";
-	        return window.confirm(`确认从 Dashboard 回复 ${name}？\n\n将真实发送：\n${preview}${reply.length > 180 ? "..." : ""}\n\n这不会触发 Flow；发送成功后会记录学习候选，Owner 审核后同类问题才会自动或少审核。\n\n复盘：${learning.handoff_reason}${emojiHint}`);
+	        return showSaasConfirm({
+	          eyebrow: "人工连续对话",
+	          title: "确认从 Dashboard 回复？",
+	          subtitle: name,
+	          lead: `${preview}${reply.length > 180 ? "..." : ""}`,
+	          facts: [
+	            { label: "顾客消息", value: "立即发送" },
+	            { label: "ChatDaddy Flow", value: "不会触发" },
+	            { label: "AI 学习", value: "建立 Owner 审核候选" },
+	          ],
+	          note: learning.handoff_reason || "发送成功后仍可继续在同一张 Case 回复。",
+	          cancelLabel: "返回修改",
+	          confirmLabel: "确认发送",
+	        });
 	      }
 	      const actionText = action === "learn" ? "发送，并标记同类以后少审核" : "发送给真实顾客";
 	      const preview = reply.slice(0, 180);
-	      const learningLine = action === "learn"
-	        ? "这会生成高优先学习候选；Owner 通过后，同阶段/同意图/低风险问题才会少审核或自动。"
-	        : "发送成功后会记录学习候选；Owner 审核后，同类问题才会自动或少审核。";
-	      const emojiHint = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}❤❤️]/u.test(reply)
-	        ? ""
-	        : "\n\n语气提醒：Beyoute 回复要亲切，适合时加 ❤️/😊/🙏；付款、投诉、健康问题保持稳重。";
-	      return window.confirm(`确认${actionText}：${name}？\n\n将发送内容：\n${preview}${reply.length > 180 ? "..." : ""}\n\n${learningLine}${emojiHint}`);
+	      return showSaasConfirm({
+	        eyebrow: action === "learn" ? "批准并学习" : "真实发送",
+	        title: `确认${actionText}？`,
+	        subtitle: name,
+	        lead: `${preview}${reply.length > 180 ? "..." : ""}`,
+	        facts: [
+	          { label: "顾客消息", value: "立即发送" },
+	          { label: "ChatDaddy Flow", value: "不会触发" },
+	          { label: "AI 学习", value: action === "learn" ? "高优先候选" : "建立审核候选" },
+	        ],
+	        note: action === "learn"
+	          ? "Owner 通过后，同阶段/同意图/低风险问题才会少审核或自动。Beyoute 回复要亲切，适合时加 ❤️/😊/🙏。"
+	          : "发送成功后会记录学习候选；Owner 审核后，同类问题才会自动或少审核。Beyoute 回复要亲切，适合时加 ❤️/😊/🙏。",
+	        cancelLabel: "返回修改",
+	        confirmLabel: "确认发送",
+	      });
 	    }
 
     function setPanelBusy(isBusy, label = "处理中...") {
