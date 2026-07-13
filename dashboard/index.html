@@ -4805,14 +4805,14 @@
 
 	    .reply-command-bar {
 	      display: grid;
-	      grid-template-columns: auto auto minmax(320px, 1fr) auto;
+	      grid-template-columns: auto auto minmax(360px, 1fr) auto;
 	      grid-template-areas: "more channel reply pay";
 	      align-items: center;
 	      justify-content: stretch;
-	      gap: 8px;
-	      margin-top: 12px;
-	      padding: 8px;
-      border-radius: 18px;
+	      gap: 6px;
+	      margin-top: 10px;
+	      padding: 6px;
+	      border-radius: 14px;
     }
 
     .panel.open .panel-body {
@@ -4860,10 +4860,10 @@
 	    }
 
 	    .reply-action-group {
-      border: 1px solid rgba(92,112,121,.22);
-      border-radius: 16px;
-      background: #fff;
-      padding: 6px;
+	      border: 1px solid rgba(92,112,121,.22);
+	      border-radius: 12px;
+	      background: #fff;
+	      padding: 4px;
       min-width: 0;
       box-shadow: 0 2px 8px rgba(8,23,29,.04);
     }
@@ -4871,19 +4871,21 @@
 	    .reply-action-group {
 	      grid-area: reply;
 	      display: grid;
-	      grid-template-columns: minmax(240px, 1fr) minmax(180px, auto);
+	      grid-template-columns: minmax(220px, 1fr) auto;
 	      grid-template-areas:
 	        "composer send-actions"
 	        "tools send-actions";
 	      align-items: center;
-	      gap: 5px 10px;
+	      gap: 3px 6px;
 	    }
 
 	    .reply-send-actions {
 	      grid-area: send-actions;
-	      display: grid;
-	      gap: 6px;
-	      min-width: 180px;
+	      display: flex;
+	      align-items: center;
+	      justify-content: flex-end;
+	      gap: 5px;
+	      min-width: 0;
 	    }
 
 	    .reply-composer-main {
@@ -4896,7 +4898,7 @@
 	      border: 1px solid rgba(92,112,121,.18);
 	      border-radius: 12px;
 	      background: #fff;
-	      padding: 3px 5px 3px 10px;
+	      padding: 2px 4px 2px 9px;
 	      transition: border-color .16s ease, box-shadow .16s ease;
 	    }
 
@@ -4910,16 +4912,16 @@
 	    }
 
 	    #replyBox {
-	      min-height: 46px;
-	      max-height: 132px;
-	      height: 46px;
+	      min-height: 40px;
+	      max-height: 104px;
+	      height: 40px;
 	      resize: none;
 	      overflow-y: auto;
 	      border: 0;
 	      border-radius: 0;
 	      background: transparent;
-	      padding: 11px 0 9px;
-	      font-size: 15px;
+	      padding: 9px 0 7px;
+	      font-size: 14px;
 	      line-height: 1.45;
 	      font-weight: 720;
 	      box-shadow: none;
@@ -4978,10 +4980,11 @@
 
     .composer-send-button {
       width: auto !important;
-      min-width: 180px;
-      min-height: 48px;
-      margin-top: 0 !important;
-      border-radius: 13px !important;
+	      min-width: 112px;
+	      min-height: 42px;
+	      padding: 0 15px !important;
+	      margin-top: 0 !important;
+	      border-radius: 10px !important;
       background: #00a884 !important;
       border-color: #00a884 !important;
       box-shadow: 0 8px 18px rgba(0,168,132,.20) !important;
@@ -4989,11 +4992,12 @@
 
 	    .composer-learn-button {
 	      width: auto !important;
-	      min-width: 180px;
+	      min-width: 178px;
 	      min-height: 42px;
+	      padding: 0 12px !important;
 	      margin: 0 !important;
 	      border: 1px solid rgba(0, 168, 132, .34) !important;
-	      border-radius: 12px !important;
+	      border-radius: 10px !important;
 	      background: #eafaf6 !important;
 	      color: #087c69 !important;
 	      box-shadow: none !important;
@@ -5014,17 +5018,17 @@
       display: none !important;
     }
 
-    .payment-quick > summary {
-      list-style: none;
-      min-height: 60px;
+	    .payment-quick > summary {
+	      list-style: none;
+	      min-height: 44px;
       display: grid;
       align-content: center;
       gap: 2px;
       border: 1px solid rgba(92,112,121,.22);
-      border-radius: 16px;
+	      border-radius: 11px;
       background: #fff;
       color: var(--green-deep);
-      padding: 8px 14px;
+	      padding: 5px 11px;
       font-weight: 950;
       cursor: pointer;
       user-select: none;
@@ -5076,32 +5080,33 @@
 	      white-space: normal;
     }
 
-    .function-menu {
+	    .function-menu {
       grid-area: more;
       position: relative;
-      align-self: stretch;
+	      align-self: center;
       display: flex;
-      align-items: stretch;
+	      align-items: center;
     }
 
-    .function-menu summary {
-      list-style: none;
-      min-height: 60px;
+	    .function-menu summary {
+	      list-style: none;
+	      min-height: 44px;
+	      height: 44px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       border: 1px solid rgba(92,112,121,.22);
-      border-radius: 16px;
+	      border-radius: 11px;
       background: #fff;
       color: var(--green-deep);
-      padding: 0 14px;
+	      padding: 0 10px;
       font-weight: 950;
       cursor: pointer;
       user-select: none;
       box-shadow: none;
       width: 100%;
-      min-height: 100%;
+	      min-height: 44px;
     }
 
     .function-menu-icon {
@@ -5124,26 +5129,27 @@
       display: none;
     }
 
-    .channel-action-picker {
+	    .channel-action-picker {
       grid-area: channel;
       position: relative;
-      align-self: stretch;
+	      align-self: center;
       display: flex;
-      align-items: stretch;
+	      align-items: center;
     }
 
-    .channel-action-picker > summary {
-      list-style: none;
-      min-height: 60px;
+	    .channel-action-picker > summary {
+	      list-style: none;
+	      min-height: 44px;
+	      height: 44px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 7px;
       border: 1px solid rgba(92,112,121,.22);
-      border-radius: 16px;
+	      border-radius: 11px;
       background: #fff;
       color: var(--green-deep);
-      padding: 0 13px;
+	      padding: 0 10px;
       font-size: 12px;
       font-weight: 950;
       cursor: pointer;
@@ -6010,40 +6016,42 @@
       }
       textarea { min-height: 150px; }
       .reply-card { margin-top: 0; }
-      .reply-command-bar {
-        align-items: stretch;
-        grid-template-columns: auto minmax(0, 1fr);
-        grid-template-areas:
-          "more pay"
-	          "channel channel"
-          "reply reply";
-        gap: 7px;
+	      .reply-command-bar {
+	        align-items: stretch;
+	        grid-template-columns: auto minmax(0, 1fr) auto;
+	        grid-template-areas:
+	          "more channel pay"
+	          "reply reply reply";
+	        gap: 6px;
         width: auto !important;
         bottom: auto !important;
         margin: 0 8px 8px !important;
-        padding: 7px;
-        border-radius: 16px;
+	        padding: 6px;
+	        border-radius: 14px;
       }
       .reply-action-group {
-        grid-template-columns: 1fr;
-	        grid-template-areas:
-	          "composer"
-	          "tools"
-	          "send-actions";
+	        grid-template-columns: minmax(0, 1fr);
+		        grid-template-areas:
+		          "composer"
+		          "tools"
+		          "send-actions";
 	        gap: 5px;
         padding: 5px;
       }
 	      .reply-send-actions {
 	        min-width: 0;
+	        display: flex;
+	        justify-content: flex-end;
+	        gap: 5px;
 	      }
 	      .reply-composer-main {
 	        grid-template-columns: minmax(0, 1fr);
 	        padding-right: 9px;
 	      }
 	      #replyBox {
-	        min-height: 46px;
-	        max-height: 116px;
-	        height: 46px;
+	        min-height: 40px;
+	        max-height: 96px;
+	        height: 40px;
 	      }
 	      .reply-mode-badge {
 	        display: none;
@@ -6057,27 +6065,27 @@
 	      .reply-action-group .reply-tools::-webkit-scrollbar {
 	        display: none;
       }
-      .composer-send-button {
-        width: 100%;
-        min-width: 0;
-      }
-	      .composer-learn-button {
-	        width: 100% !important;
-	        min-width: 0;
+	      .composer-send-button {
+	        width: auto !important;
+	        min-width: 96px;
 	      }
+		      .composer-learn-button {
+		        width: auto !important;
+		        min-width: 164px;
+		      }
       .function-menu summary,
 	  .channel-action-picker > summary,
       .payment-quick > summary {
-        min-height: 48px;
-        border-radius: 13px;
+	        min-height: 44px;
+	        border-radius: 11px;
       }
       .function-menu summary {
         padding: 0 12px;
       }
-      .payment-quick > summary {
-        min-width: 148px;
-        padding: 6px 12px;
-      }
+	      .payment-quick > summary {
+	        min-width: 92px;
+	        padding: 5px 9px;
+	      }
       .function-menu-panel,
 	  .channel-action-panel,
       .payment-menu-panel {
@@ -7216,8 +7224,8 @@
 	        </div>
 	      </div>
 	      <div class="reply-send-actions">
-	        <button class="btn primary composer-send-button" id="approveBtn" type="button">发送给顾客</button>
-	        <button class="btn composer-learn-button hidden" id="learnAndSendBtn" type="button" title="发送这次回复，并让同项目、同意图的低风险问题以后自动回复">发送并让 AI 学会</button>
+	        <button class="btn primary composer-send-button" id="approveBtn" type="button">批准并发送</button>
+	        <button class="btn composer-learn-button hidden" id="learnAndSendBtn" type="button" title="批准并发送这次回复；同项目、同意图的低风险问题以后自动回复">批准并开启自动回复</button>
 	        <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">回复并发送</button>
 	      </div>
 	    </div>
@@ -16010,13 +16018,13 @@
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
 	      $("panelStatusPill").textContent = caseStatusLabel(item, decision.risk);
       $("approveBtn").classList.toggle("hidden", canManualSend);
-      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : item.status === "order" ? "确认已处理" : "发送给顾客";
+	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : item.status === "order" ? "确认已处理" : "批准并发送";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
 	  const canLearnAndSend = !canManualSend && !readOnly && !isFlowOnly && canCreateDirectAutoReplyRule(item);
 	  $("learnAndSendBtn").classList.toggle("hidden", !canLearnAndSend);
 	  $("learnAndSendBtn").disabled = state.actionBusy || !canLearnAndSend;
 	  $("learnAndSendBtn").title = canLearnAndSend
-	    ? "发送本次回复，并让同项目、同意图的低风险问题以后自动回复"
+	    ? "批准并发送本次回复；同项目、同意图的低风险问题以后自动回复"
 	    : directAutoReplyRuleBlockReason(item);
       $("manualSendBtn").classList.toggle("hidden", !canManualSend);
       $("manualSendBtn").disabled = state.actionBusy || !canManualSend;
@@ -20292,7 +20300,7 @@
 	  if (!(await confirmLearnAndSend(state.active))) return;
 	  const result = await postCaseAction(state.active.id, "learn", { reply_message: $("replyBox").value.trim() });
 	  if (result?.auto_reply_rule?.applied === true) {
-	    showToast("已发送并学会；下次同项目、同意图的安全问题会自动回复。");
+	    showToast("已发送；这类安全问题已开启自动回复。");
 	  } else {
 	    showToast(`已发送；自动学习未启用：${result?.auto_reply_rule?.message || result?.auto_reply_rule?.reason || "规则未通过安全检查"}`);
 	  }
@@ -20330,19 +20338,19 @@
 	    return Promise.resolve(false);
 	  }
 	  return showSaasConfirm({
-	    eyebrow: "一次批准，未来自动",
-	    title: "发送并让 AI 学会？",
+	    eyebrow: "批准一次，未来自动",
+	    title: "批准这次，并开启自动回复？",
 	    subtitle: name,
 	    lead: `这次会真实发送：${reply.slice(0, 150)}${reply.length > 150 ? "..." : ""}`,
 	    facts: [
 	      { label: "本次回复", value: "立即发送" },
-	      { label: "未来同类 FAQ", value: "安全匹配后自动回复" },
+	      { label: "未来同类 FAQ", value: "立即开启自动回复" },
 	      { label: "付款 / 订单 / 健康 / 投诉", value: "仍需人工批准" },
 	      { label: "ChatDaddy Flow", value: "不会自动触发" },
 	    ],
 	    note: "规则只属于当前项目，并绑定这次已识别的 FAQ 意图。发送失败不会学；自动回复失败会退回待批准。",
 	    cancelLabel: "返回检查",
-	    confirmLabel: "发送并学会",
+	    confirmLabel: "批准、发送并开启",
 	  });
 	}
 
@@ -21929,8 +21937,8 @@
 	        $("externalFlowRecordBtn").textContent = label;
 	        return;
 	      }
-	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : state.active.status === "order" ? "确认已处理" : "发送给顾客";
-	      $("learnAndSendBtn").textContent = "发送并让 AI 学会";
+	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : state.active.status === "order" ? "确认已处理" : "批准并发送";
+	      $("learnAndSendBtn").textContent = "批准并开启自动回复";
 		      $("manualSendBtn").textContent = "发送给顾客";
 		      $("manualResolveBtn").textContent = isManualFollowUp ? "补人工回复" : readOnly ? "已记录" : "记录最终回复";
 		      $("channelReplyResolvedBtn").textContent = readOnly ? "已记录" : "客服已回复";
