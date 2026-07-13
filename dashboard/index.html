@@ -8431,9 +8431,9 @@
       const previousQueueStatus = dashboardQueueStatusForFilter(state.filter);
       state.filter = filter || "all";
       const nextQueueStatus = dashboardQueueStatusForFilter(state.filter);
-      if (state.role === "staff" && staffFilterSupportsOpenBacklog(state.filter)) {
-        state.queueDateScope = "open_backlog";
-      }
+      // Queue category and date scope are independent controls. Once staff
+      // chooses today (or a specific date), switching categories must keep that
+      // date instead of silently reopening the full historical backlog.
       state.sidebarKey = sidebarKeyForFilter(state.filter);
       state.activeSetupStep = "4";
       syncFilterControls();
