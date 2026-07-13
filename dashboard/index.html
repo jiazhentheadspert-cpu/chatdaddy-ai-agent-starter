@@ -1973,6 +1973,20 @@
       box-shadow: 0 12px 28px rgba(0, 60, 55, .07);
     }
 
+    .quality-eval-card.is-collapsed {
+      gap: 0;
+      padding-block: 10px;
+    }
+
+    .quality-eval-details {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quality-eval-card.is-collapsed .quality-eval-details {
+      display: none;
+    }
+
     .quality-eval-card.warn {
       border-color: rgba(183, 121, 31, .30);
       background: linear-gradient(135deg, rgba(255, 248, 232, .96), rgba(255, 255, 255, .93));
@@ -1990,6 +2004,71 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+    }
+
+    .quality-eval-head-main {
+      min-width: 0;
+    }
+
+    .quality-eval-title-row,
+    .quality-eval-head-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quality-eval-compact-score {
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .quality-eval-card.warn .quality-eval-compact-score {
+      color: var(--amber);
+    }
+
+    .quality-eval-card.danger .quality-eval-compact-score {
+      color: var(--red);
+    }
+
+    .quality-eval-toggle {
+      position: relative;
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(0, 83, 76, .16);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .86);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .quality-eval-toggle::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: translate(-50%, -65%) rotate(45deg);
+      transition: transform .16s ease;
+    }
+
+    .quality-eval-card:not(.is-collapsed) .quality-eval-toggle::before {
+      transform: translate(-50%, -35%) rotate(225deg);
+    }
+
+    .quality-eval-toggle:hover {
+      border-color: rgba(0, 183, 160, .36);
+      background: #fff;
+    }
+
+    .quality-eval-toggle:focus-visible {
+      outline: 3px solid rgba(0, 183, 160, .18);
+      outline-offset: 2px;
     }
 
     .quality-eval-head b {
@@ -2040,6 +2119,20 @@
       font-size: 28px;
       line-height: 1;
       margin-bottom: 2px;
+    }
+
+    @media (max-width: 720px) {
+      .quality-eval-head {
+        align-items: flex-start;
+      }
+
+      .quality-eval-head-actions {
+        gap: 5px;
+      }
+
+      .quality-eval-head-actions .quality-score-pill {
+        display: none;
+      }
     }
 
     .quality-checks {
@@ -7044,29 +7137,38 @@
             <div class="box-title">聊天 <span>最新在下</span></div>
             <div class="chat" id="chatBox"></div>
           </div>
-          <div class="quality-eval-card" id="qualityEvalCard" aria-label="质量评分">
+          <div class="quality-eval-card is-collapsed" id="qualityEvalCard" aria-label="质量评分">
             <div class="quality-eval-head">
-              <div>
-                <b>质量评分</b>
+              <div class="quality-eval-head-main">
+                <div class="quality-eval-title-row">
+                  <b>质量评分</b>
+                  <span class="quality-eval-compact-score" id="qualityEvalCompactScore">-- 分</span>
+                </div>
                 <span>先评分，再决定批准、修改或转人工回复</span>
               </div>
-              <span class="quality-result-pill" id="qualityEvalResult">待评分</span>
-            </div>
-            <div class="quality-eval-score-row">
-              <div class="quality-score-copy">
-                <strong id="qualityEvalScore">--</strong>
-                <span id="qualityEvalSummary">打开 Case 后自动判断。</span>
+              <div class="quality-eval-head-actions">
+                <span class="quality-result-pill" id="qualityEvalResult">待评分</span>
+                <span class="quality-score-pill" id="qualityEvalCompactRedline">红线 0</span>
+                <button class="quality-eval-toggle" id="qualityEvalToggle" type="button" aria-expanded="false" aria-controls="qualityEvalDetails" aria-label="展开质量评分细节" title="展开质量评分细节"></button>
               </div>
-              <span class="quality-score-pill" id="qualityEvalRedlineCount">红线 0</span>
             </div>
-            <div class="quality-checks" id="qualityEvalChecks"></div>
-            <div class="answer-accuracy-checklist" id="answerAccuracyChecklist" aria-label="回答准确检查"></div>
-            <div class="answer-coverage-guide" id="answerCoverageGuide" aria-label="答案完整度提示"></div>
-            <div class="standard-answer-anchor" id="standardAnswerAnchor" aria-label="标准答案锚点"></div>
-            <div class="next-step-policy-guide" id="nextStepPolicyGuide" aria-label="下一步接法提示"></div>
-            <div class="reply-quality-wizard" id="replyQualityWizard" aria-label="回复质量向导"></div>
-            <div class="quality-redline" id="qualityEvalRedline">没有红线时，客服也要确认语气、活动和下一步。</div>
-            <div class="quality-next-action" id="qualityEvalNextAction">下一步：先选择顾客。</div>
+            <div class="quality-eval-details" id="qualityEvalDetails">
+              <div class="quality-eval-score-row">
+                <div class="quality-score-copy">
+                  <strong id="qualityEvalScore">--</strong>
+                  <span id="qualityEvalSummary">打开 Case 后自动判断。</span>
+                </div>
+                <span class="quality-score-pill" id="qualityEvalRedlineCount">红线 0</span>
+              </div>
+              <div class="quality-checks" id="qualityEvalChecks"></div>
+              <div class="answer-accuracy-checklist" id="answerAccuracyChecklist" aria-label="回答准确检查"></div>
+              <div class="answer-coverage-guide" id="answerCoverageGuide" aria-label="答案完整度提示"></div>
+              <div class="standard-answer-anchor" id="standardAnswerAnchor" aria-label="标准答案锚点"></div>
+              <div class="next-step-policy-guide" id="nextStepPolicyGuide" aria-label="下一步接法提示"></div>
+              <div class="reply-quality-wizard" id="replyQualityWizard" aria-label="回复质量向导"></div>
+              <div class="quality-redline" id="qualityEvalRedline">没有红线时，客服也要确认语气、活动和下一步。</div>
+              <div class="quality-next-action" id="qualityEvalNextAction">下一步：先选择顾客。</div>
+            </div>
           </div>
           <div class="case-optimizer-card hidden" id="caseOptimizerCard">
             <div class="case-optimizer-head">
@@ -7804,6 +7906,11 @@
     $("gridView").addEventListener("click", () => setView("grid"));
     $("listView").addEventListener("click", () => setView("list"));
     $("closePanel").addEventListener("click", closePanel);
+    $("qualityEvalToggle").addEventListener("click", () => {
+      const card = $("qualityEvalCard");
+      setQualityEvaluationExpanded(card?.classList.contains("is-collapsed") === true);
+    });
+    setQualityEvaluationExpanded(localStorage.getItem("replypilot_quality_eval_expanded") === "1", false);
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       if (!$("panel").classList.contains("open")) return;
@@ -17452,6 +17559,19 @@
 	      `;
 	    }
 
+    function setQualityEvaluationExpanded(expanded, persist = true) {
+      const card = document.getElementById("qualityEvalCard");
+      const toggle = document.getElementById("qualityEvalToggle");
+      const isExpanded = Boolean(expanded);
+      if (card) card.classList.toggle("is-collapsed", !isExpanded);
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+        toggle.setAttribute("aria-label", isExpanded ? "收起质量评分细节" : "展开质量评分细节");
+        toggle.setAttribute("title", isExpanded ? "收起质量评分细节" : "展开质量评分细节");
+      }
+      if (persist) localStorage.setItem("replypilot_quality_eval_expanded", isExpanded ? "1" : "0");
+    }
+
     function updateQualityEvaluationPanel(item = state.active) {
       const card = document.getElementById("qualityEvalCard");
       if (!card || !item) return;
@@ -17463,11 +17583,14 @@
       card.classList.toggle("hidden", emptyConversationComposer);
       if (emptyConversationComposer) return;
       const evaluation = qualityEvaluationForCase(item, replyText);
-      card.className = `quality-eval-card ${evaluation.tone}`;
+      const collapsedClass = card.classList.contains("is-collapsed") ? " is-collapsed" : "";
+      card.className = `quality-eval-card ${evaluation.tone}${collapsedClass}`;
       $("qualityEvalResult").textContent = evaluation.resultLabel;
       $("qualityEvalScore").textContent = `${evaluation.score}`;
+      $("qualityEvalCompactScore").textContent = `${evaluation.score} 分`;
       $("qualityEvalSummary").textContent = evaluation.summary;
       $("qualityEvalRedlineCount").textContent = `红线 ${evaluation.criticalFailCount}`;
+      $("qualityEvalCompactRedline").textContent = `红线 ${evaluation.criticalFailCount}`;
       $("qualityEvalChecks").innerHTML = evaluation.checks.map((check) => `
         <div class="quality-check-row">
           <b>${escapeHtml(check.label)}</b>
