@@ -15954,6 +15954,9 @@
 	      const canRecordNoReply = canRecordNoReplyCase(item);
 	      const isManualFollowUp = requiresManualReplyForManualResolve(item);
 	      const statusTone = riskTone(item);
+      const closer = closerVerdict(item);
+      const approvalGuard = effectiveApprovalGuardForCase(item, closer);
+      const canManualSend = canManualSendCase(item, closer, approvalGuard);
       const hasOutbound = (item.messages || []).some((msg) => msg.direction === "outbound" && !contextMessageWasCancelled(msg));
       const canResendPurchase = canResendPurchaseMeta(item);
       const existingPurchaseAmount = casePurchaseAmount(item);
@@ -15961,7 +15964,7 @@
       const purchaseActionComplete = purchaseActionCompleteForCase(item);
 	  const paymentConfirmationCase = isPaymentConfirmationCase(item) && !purchaseActionComplete;
       const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve && !showPurchasePanel;
-	  const hideReplyCardForMode = hideReplyCard || paymentConfirmationCase;
+	  const hideReplyCardForMode = hideReplyCard && !canManualSend;
       const externalFlowReadOnly = item.status === "external_flow_continued";
       const baseDisplayName = customerDisplayLabel(item);
       const displayName = customerDisplayLabelWithTail(item, baseDisplayName);
@@ -15969,15 +15972,19 @@
 	      $("panelAvatar").textContent = initialsFor(baseDisplayName);
       $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
 	  $("replyCard").classList.toggle("hidden", hideReplyCardForMode);
+	  const renderableMessages = (item.messages || []).filter((message) => messageHasRenderableContent(message) && !contextMessageWasCancelled(message));
+	  const latestMessage = renderableMessages.at(-1) || {};
+	  const latestMessageOutbound = /outbound|agent|assistant|bot/i.test(String(latestMessage.direction || latestMessage.role || latestMessage.sender_type || ""));
+	  const manualConversationMode = canManualSend && (readOnly || paymentConfirmationCase || latestMessageOutbound);
 	  const originalProposedReply = externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
-	  const proposedReply = hideReplyCardForMode || isManualFollowUp ? "" : originalProposedReply;
+	  const proposedReply = hideReplyCardForMode || isManualFollowUp || manualConversationMode ? "" : originalProposedReply;
 	  const misleadingPaymentDraft = paymentConfirmationCase && /(先帮你核对|先幫你核對|确认好后再回复|確認好後再回覆|稍后再回复|稍後再回覆|不会重复向你收款|不會重複向你收款)/i.test(originalProposedReply);
       $("replyBox").value = misleadingPaymentDraft ? "" : proposedReply;
-      $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : "输入回复给顾客...";
-      $("replyBox").readOnly = readOnly && !canManualResolve;
+      $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : manualConversationMode ? "输入下一条讯息，发送后还可以继续回复..." : "输入回复给顾客...";
+      $("replyBox").readOnly = readOnly && !canManualResolve && !canManualSend;
 	  requestAnimationFrame(resizeReplyComposer);
-	  $("replyModeLabel").textContent = paymentConfirmationCase ? "付款确认后接 Flow" : externalFlowReadOnly ? "外部已处理，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工回复，只读" : item.status === "returned_to_ai" ? "已让 AI 重写，只读" : readOnly ? "已记录，只读" : "可修改";
-      $("replyTools").classList.toggle("hidden", readOnly && !canManualResolve);
+	  $("replyModeLabel").textContent = manualConversationMode ? "人工连续对话" : paymentConfirmationCase ? "可回复 / 可确认 COD" : externalFlowReadOnly ? "外部已处理，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工回复，只读" : item.status === "returned_to_ai" ? "已让 AI 重写，只读" : readOnly ? "已记录，只读" : "可修改";
+      $("replyTools").classList.toggle("hidden", readOnly && !canManualResolve && !canManualSend);
       const canOptimizeCase = state.role !== "staff";
       $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
       $("caseOptimizerInput").value = "";
@@ -15991,15 +15998,12 @@
       $("caseOptimizerJudgment").innerHTML = manualSampleLearningJudgmentHtml(item);
       $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = actionHint(item);
-      const closer = closerVerdict(item);
-      const approvalGuard = effectiveApprovalGuardForCase(item, closer);
-      const canManualSend = canManualSendCase(item, closer, approvalGuard);
       if (canManualSend && !$("replyBox").placeholder) {
         $("replyBox").placeholder = "在这里写客服要发给顾客的回复；发送成功后会留下学习候选，Owner 审核后同类问题才会自动或少审核。";
       }
       if (canManualSend) {
-        $("replyModeLabel").textContent = "人工回复并发送";
-        $("replyTools").classList.remove("hidden");
+	        $("replyModeLabel").textContent = manualConversationMode || readOnly ? "人工连续对话" : "人工回复并发送";
+	        $("replyTools").classList.remove("hidden");
       }
       $("closerVerdictBox").className = `closer-verdict ${closer.tone}`;
       $("closerVerdictTitle").textContent = closer.title;
@@ -16041,7 +16045,7 @@
       $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
 	      $("purchasePanel").classList.toggle("hidden", !showPurchasePanel);
 	      $("purchaseAmountInput").value = existingPurchaseAmount ? String(existingPurchaseAmount) : "";
-	      $("replyActionGroup").classList.toggle("hidden", paymentConfirmationCase && !readOnly);
+	      $("replyActionGroup").classList.remove("hidden");
 	      renderChannelActions(item);
 	      $("purchasePanel").open = paymentConfirmationCase && !readOnly;
 	      updatePurchaseNote(item);
@@ -17457,6 +17461,11 @@
       if (!card || !item) return;
       const replyBox = document.getElementById("replyBox");
       const replyText = replyBox ? replyBox.value : (item.latest_decision?.reply_message || "");
+      const closer = closerVerdict(item);
+      const canManualSend = canManualSendCase(item, closer, effectiveApprovalGuardForCase(item, closer));
+      const emptyConversationComposer = canManualSend && !String(replyText || "").trim();
+      card.classList.toggle("hidden", emptyConversationComposer);
+      if (emptyConversationComposer) return;
       const evaluation = qualityEvaluationForCase(item, replyText);
       card.className = `quality-eval-card ${evaluation.tone}`;
       $("qualityEvalResult").textContent = evaluation.resultLabel;
@@ -19660,9 +19669,11 @@
 	    function canManualSendCase(item = {}, closer = null, approvalGuard = null) {
 	      if (!item) return false;
 	      const status = String(item.status || "").toLowerCase();
-	      if (["auto", "auto_sent", "external_flow_continued", "sent", "sending", "manual_resolved", "purchase_confirmed"].includes(status)) return false;
+	      if (["auto", "auto_sent", "auto_record", "external_flow_continued", "sending"].includes(status)) return false;
 	      const decision = item.latest_decision || {};
-	      if (decision.action === "trigger_flow") return false;
+	      const conversationContinuation = ["sent", "manual_resolved", "purchase_confirmed", "closed"].includes(status);
+	      if (decision.action === "trigger_flow" && !conversationContinuation) return false;
+	      if (conversationContinuation) return true;
 	      const verdict = closer || closerVerdict(item);
 	      const guard = approvalGuard || effectiveApprovalGuardForCase(item, verdict);
 	      return canManualResolveCase(item) && (
@@ -20415,6 +20426,7 @@
 	        reply_message: manualReplyText,
 	        manualReplyText,
 	        final_human_reply: manualReplyText,
+	        client_message_id: createClientMessageId(),
 	        ...learning,
 	        note: learning.note,
 	        source: "dashboard_manual_reply_send",
@@ -20424,6 +20436,13 @@
 	      if (actionLearningNoteRecorded(result)) {
 	        showToast("已回复并发送，学习候选待 Owner 审核。");
 	      }
+	    }
+
+	    function createClientMessageId() {
+	      if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+	        return globalThis.crypto.randomUUID();
+	      }
+	      return `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 	    }
 
 	    function manualSendLearningPayload(item = state.active, closer = null) {
@@ -21670,7 +21689,7 @@
 	      : action === "mark_purchase"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`
           : action === "manual_send"
-          ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/approve-send`
+          ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/conversation-reply`
           : action === "channel_reply_resolved"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/human-reply-resolved`
           : action === "record_no_reply"
@@ -21699,7 +21718,16 @@
         if (options.reload !== false) {
           await loadCases();
           const returnedCase = data.case || data.item;
+          if (returnedCase) upsertReturnedCase(returnedCase);
           if (options.reopen !== false && returnedCase) openCase(returnedCase.id);
+	      if (action === "manual_send" && returnedCase) {
+	        $("replyBox").value = "";
+	        $("replyBox").placeholder = "输入下一条讯息，发送后还可以继续回复...";
+	        $("replyModeLabel").textContent = "人工连续对话";
+	        resizeReplyComposer();
+	        updateQualityEvaluationPanel(returnedCase);
+	        $("replyBox").focus();
+	      }
         }
         return data;
       } catch (error) {
@@ -21709,6 +21737,16 @@
         if (shouldLock) setPanelBusy(false);
       }
     }
+
+	function upsertReturnedCase(record = {}) {
+	  const id = String(record.id || "").trim();
+	  if (!id) return;
+	  const caseIndex = state.cases.findIndex((item) => String(item.id || "") === id);
+	  if (caseIndex >= 0) state.cases[caseIndex] = record;
+	  else state.cases.push(record);
+	  const visibleIndex = state.visibleCases.findIndex((item) => String(item.id || "") === id);
+	  if (visibleIndex >= 0) state.visibleCases[visibleIndex] = record;
+	}
 
     function showSaasConfirm(options = {}) {
       const dialog = $("actionConfirmDialog");
@@ -21881,9 +21919,10 @@
 	      $("caseOptimizerDraftBtn").disabled = isBusy;
 	      $("caseOptimizerRecordBtn").disabled = isBusy;
 	      $("markPurchaseBtn").disabled = isBusy || !showPurchasePanel || purchaseActionComplete;
-	      $("applyQuickReplyBtn").disabled = isBusy || readOnly;
+	      const conversationLocked = readOnly && !canManualSend;
+	      $("applyQuickReplyBtn").disabled = isBusy || conversationLocked;
 	      $("triggerFlowBtn").disabled = isBusy || readOnly;
-	      $("quickReplySelect").disabled = isBusy || readOnly;
+	      $("quickReplySelect").disabled = isBusy || conversationLocked;
 	      $("flowSelect").disabled = isBusy || readOnly;
 	      $("flowSearchInput").disabled = isBusy || readOnly;
 	      $("paymentFlowSelect").disabled = isBusy || readOnly;
@@ -22055,6 +22094,7 @@
           reply_message: body.reply_message || body.manualReplyText || "",
           manualReplyText: body.manualReplyText || body.reply_message || "",
           final_human_reply: body.final_human_reply || body.manualReplyText || body.reply_message || "",
+          client_message_id: body.client_message_id || createClientMessageId(),
           confirmLiveSend: true,
           create_learning_candidate: true,
           source: body.source || "dashboard_manual_reply_send",
