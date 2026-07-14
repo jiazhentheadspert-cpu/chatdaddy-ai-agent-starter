@@ -1,12 +1,15 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="refresh" content="0; url=login.html" />
-  <title>ChatDaddy AI Agent Starter</title>
+  <title>CTG Supply Chain Portal</title>
+  <script>
+    const suffix = `${window.location.search || ""}${window.location.hash || ""}`;
+    window.location.replace(`login.html${suffix}`);
+  </script>
 </head>
 <body>
-  <p>Opening <a href="login.html">ReplyPilot AI Login</a>...</p>
+  <p>Opening <a href="login.html">CTG Supply Chain Portal</a>…</p>
 </body>
 </html>

@@ -1774,6 +1774,7 @@
     }
 
     .field-grid input,
+    .field-grid select,
     .field-grid textarea {
       width: 100%;
       border: 1px solid var(--line);
@@ -1792,6 +1793,7 @@
     }
 
     .field-grid input:focus,
+    .field-grid select:focus,
     .field-grid textarea:focus {
       border-color: rgba(0,183,216,.36);
       box-shadow: 0 0 0 4px rgba(0,183,216,.10);
@@ -7112,8 +7114,7 @@
         </div>
         <div class="session-actions">
           <button class="btn danger" id="pauseAgentBtn" type="button">暂停接管</button>
-          <a class="btn" id="switchAccountLink" href="../login.html">切换账号</a>
-          <button class="btn ghost" id="logoutBtn">退出</button>
+          <button class="btn ghost" id="logoutBtn" type="button">退出</button>
         </div>
       </div>
 
@@ -7939,7 +7940,6 @@
     adminTokenEl.placeholder = "已登录账号";
     state.settings = readProjectSettings(projectKeyEl.value || "demo");
     state.auditEvents = readAuditEvents(projectKeyEl.value || "demo");
-    updateStaffLoginLink();
     syncSettingsDisclosure();
 
     applySessionShell();
@@ -7956,20 +7956,16 @@
       loadProjectKnowledge();
     });
 
+    $("pauseAgentBtn").addEventListener("click", () => {
+      togglePauseAgent();
+    });
+
     $("logoutBtn").addEventListener("click", async () => {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
-      const loginUrl = buildStaffLoginUrl();
       if (api && hasAccountSession()) {
         await fetch(`${api}/api/auth/logout`, { method: "POST", headers: {}, credentials: "include" }).catch(() => null);
       }
-      localStorage.removeItem("agent_session");
-      localStorage.removeItem("agent_admin_token");
-      localStorage.removeItem("agent_staff_token");
-      window.location.href = loginUrl;
-    });
-
-    $("pauseAgentBtn").addEventListener("click", () => {
-      togglePauseAgent();
+      redirectToUnifiedLogin({ clearSession: true });
     });
 
     $("sidebarToggle").addEventListener("click", () => {
@@ -8308,7 +8304,7 @@
       return state.session?.authMode === "account" || Boolean(state.session?.email || state.session?.user?.email);
     }
 
-    function buildStaffLoginUrl() {
+    function unifiedLoginUrl() {
       const url = new URL("../login.html", window.location.href);
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "beyoute";
@@ -8317,16 +8313,14 @@
       return url.toString();
     }
 
-    function updateStaffLoginLink() {
-      const link = $("switchAccountLink");
-      if (link) link.href = buildStaffLoginUrl();
-    }
-
-    function redirectStaffToLogin({ clearSession = false } = {}) {
-      if (state.role !== "staff") return false;
-      const loginUrl = buildStaffLoginUrl();
-      if (clearSession) localStorage.removeItem("agent_session");
-      window.location.href = loginUrl;
+    function redirectToUnifiedLogin({ clearSession = false } = {}) {
+      if (clearSession) {
+        localStorage.removeItem("agent_session");
+        localStorage.removeItem("agent_admin_token");
+        localStorage.removeItem("agent_staff_token");
+        state.session = {};
+      }
+      window.location.replace(unifiedLoginUrl());
       return true;
     }
 
@@ -9056,6 +9050,18 @@
       }
       if (action === "analyze-project-document") {
         analyzeSelectedProjectDocument();
+        return;
+      }
+      if (action === "save-project-sales-process") {
+        saveProjectSalesProcessFromOnboarding();
+        return;
+      }
+      if (action === "mock-publish-project-brain") {
+        mockTestAndPublishProjectBrain();
+        return;
+      }
+      if (action === "save-project-media-asset") {
+        saveProjectMediaAssetFromOnboarding();
         return;
       }
       if (action === "learning") {
@@ -9837,14 +9843,13 @@
           showToast("已载入演示。");
           return;
         }
-        if (state.role === "staff" && redirectStaffToLogin()) return;
+        if (state.role === "staff") {
+          redirectToUnifiedLogin();
+          return;
+        }
         const missingMessage = !api
-          ? state.role === "staff"
-            ? "这个客服入口缺少连接资料，不能读取顾客讯息。请用最新客服入口链接重新打开，不要用旧收藏。"
-            : "这个入口缺少系统接口地址，不能读取真实讯息。请用正式 Beyoute Dashboard 链接重新打开。"
-          : state.role === "staff"
-            ? "这个客服入口还没登录，所以没有权限读取真实顾客。请用正式客服账号重新登录。"
-            : "请先用管理员账号登录。";
+          ? "这个入口缺少系统接口地址，不能读取真实讯息。"
+          : "当前账号没有工作台权限。";
         setRealQueueEmpty(missingMessage);
         return;
       }
@@ -9868,7 +9873,7 @@
 	        const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
 	        let res = await fetch(approvalUrl, authRequestOptions(token));
 	        const data = await res.json();
-        if (res.status === 401 && state.role === "staff" && redirectStaffToLogin({ clearSession: true })) return;
+	        if (res.status === 401 && state.role === "staff" && redirectToUnifiedLogin({ clearSession: true })) return;
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.demoMode = false;
         state.loading = false;
@@ -9957,7 +9962,11 @@
         state.inboxHasMore = false;
         state.inboxLoading = false;
         state.inboxLoadingMore = false;
-        state.inboxError = hasAuth ? "" : "请先登录。";
+        state.inboxError = hasAuth
+          ? ""
+          : state.role === "staff"
+            ? "Dashboard 已打开；公司 Portal 尚未提供工作台权限。"
+            : "当前账号没有工作台权限。";
         renderInboxView();
         return;
       }
@@ -9986,7 +9995,10 @@
         ]);
         const data = await res.json().catch(() => ({}));
         const liveData = liveRes ? await liveRes.json().catch(() => ({})) : {};
-        if (res.status === 401 && state.role === "staff" && redirectStaffToLogin({ clearSession: true })) return;
+        if (res.status === 401 && state.role === "staff") {
+          redirectToUnifiedLogin({ clearSession: true });
+          return;
+        }
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         if (requestSeq !== state.inboxRequestSeq) return;
         const storedItems = Array.isArray(data.items) ? data.items : [];
@@ -10449,6 +10461,7 @@
       const inbound = item.inbound || {};
       const customer = item.customer || {};
       const reply = item.reply || {};
+      const executionPlan = item.execution_plan || item.decision?.execution_plan || null;
       const previousAgentText = previousAgentTextFromApproval(item, signals);
       const risk = signals.risk_level || signals.risk || item.decision?.risk_level || item.decision?.risk || item.risk_level || "medium";
       const stage = reply.stage_after || signals.stage || signals.stage_key || item.decision?.stage || "CLOSING";
@@ -10550,7 +10563,9 @@
 	          previous_agent_text: previousAgentText,
 	          original_ai_reply: originalAiReply,
 	          source: reply.model || "live_agent",
+	          execution_plan: executionPlan,
 	        },
+        execution_plan: executionPlan,
         messages,
         history,
         purchase: item.purchase || null,
@@ -12501,6 +12516,8 @@
         const assets = knowledge.learning_assets || {};
         const counts = knowledge.counts || {};
         const brand = knowledge.brand_brain || {};
+        const projectLabel = String(knowledge.project_name || knowledge.project_key || "当前项目").trim() || "当前项目";
+        const salesProcess = knowledge.sales_process || {};
         const flows = Array.isArray(knowledge.flows) ? knowledge.flows : [];
         const documents = Array.isArray(knowledge.source_documents) ? knowledge.source_documents : [];
         const analyses = Array.isArray(knowledge.document_analyses) ? knowledge.document_analyses : [];
@@ -12547,9 +12564,66 @@
             ...(assets.reply_rules || []).map((item) => ({ ...item, group: "回复方式" })),
             ...(assets.closer_scripts || []).map((item) => ({ ...item, group: "成交话术" }))
           ];
+          const configuredStages = Array.isArray(salesProcess.stages) ? salesProcess.stages : [];
+          const stageRows = Array.from({ length: 4 }, (_, index) => {
+            const stage = configuredStages[index] || {
+              stage_key: `step_${index + 1}`,
+              order: index + 1,
+              purpose: ["产品介绍，并了解顾客面对的问题", "USP、End Result 与产品成分", "Testimonial、线下店、认证与信心", "价格、真实优惠、Urgency 与成交"][index],
+              flow_key: `s${index + 1}`,
+              provider_flow_id: "",
+              provider_bot_id: "",
+              contains_media: false,
+            };
+            return `<div class="settings-box" data-sales-stage-row="${index + 1}">
+              <h3>Step ${index + 1}${stage.stage_key === salesProcess.price_stage_key ? " · 价格阶段" : ""}</h3>
+              <div class="field-grid">
+                <label>这个 Step 的目的<input data-sales-purpose="${index + 1}" value="${escapeHtml(stage.purpose || "")}"></label>
+                <label>Flow Key<input data-sales-flow-key="${index + 1}" value="${escapeHtml(stage.flow_key || `s${index + 1}`)}"></label>
+                <label>ChatDaddy Flow ID<input data-sales-provider-flow-id="${index + 1}" value="${escapeHtml(stage.provider_flow_id || "")}" placeholder="可填 Flow ID"></label>
+                <label>ChatDaddy Bot ID<input data-sales-provider-bot-id="${index + 1}" value="${escapeHtml(stage.provider_bot_id || "")}" placeholder="可填 Bot ID"></label>
+                <label><input type="checkbox" data-sales-contains-media="${index + 1}" ${stage.contains_media ? "checked" : ""}> 这个 Flow 已经包含图片 / 视频 / 语音</label>
+              </div>
+            </div>`;
+          }).join("");
+          const priceOptions = Array.from({ length: 4 }, (_, index) => `<option value="step_${index + 1}" ${salesProcess.price_stage_key === `step_${index + 1}` ? "selected" : ""}>Step ${index + 1}</option>`).join("");
+          const proofText = Array.isArray(salesProcess.post_price_policy?.proof) ? salesProcess.post_price_policy.proof.join("\n") : "";
+          const ctaText = String(salesProcess.post_price_policy?.cta || "");
+          const urgencyText = Array.isArray(salesProcess.post_price_policy?.urgency) ? salesProcess.post_price_policy.urgency.join("\n") : "";
           return `${header}
+            <section class="command-panel accent">
+              <div class="command-kicker">成交流程与渠道</div>
+              <strong class="command-title">一个项目一个脑袋：设置 1–4 Step、价格阶段和成交节奏</strong>
+              <p class="command-copy">这里保存进当前项目的 Project Brain，不会影响其他项目。顾客连续追问时，系统默认只回答，不会每轮重复 Proof 和 CTA。</p>
+              <div class="field-grid">
+                <label>项目有几个销售 Step<select id="salesStepCountInput">${[1,2,3,4].map((count) => `<option value="${count}" ${Number(salesProcess.step_count || 4) === count ? "selected" : ""}>${count} Step</option>`).join("")}</select></label>
+                <label>哪个 Step 会显示价格<select id="salesPriceStageInput">${priceOptions}</select></label>
+                <label>顾客提前问价格<select id="salesEarlyPricePolicyInput"><option value="answer_now_and_enter_closer" ${salesProcess.early_price_policy !== "bridge_then_continue_flow" ? "selected" : ""}>直接回答并进入成交阶段</option><option value="bridge_then_continue_flow" ${salesProcess.early_price_policy === "bridge_then_continue_flow" ? "selected" : ""}>Bridge 后继续教育 Flow</option></select></label>
+                <label>批准过的价格后 Proof（每行一项）<textarea id="salesPostPriceProofInput">${escapeHtml(proofText)}</textarea></label>
+                <label>价格后 CTA<input id="salesPostPriceCtaInput" value="${escapeHtml(ctaText)}" placeholder="例如：你想先从哪个配套开始？"></label>
+                <label>真实 Urgency（每行一项，必须有活动依据）<textarea id="salesPostPriceUrgencyInput">${escapeHtml(urgencyText)}</textarea></label>
+              </div>
+              <div class="settings-grid">${stageRows}</div>
+              <div class="quick-actions">
+                <button class="quick-action primary" data-dashboard-action="save-project-sales-process" type="button">保存为 Project Brain 草稿</button>
+                <button class="quick-action" data-dashboard-action="mock-publish-project-brain" type="button">运行 Mock Test 并发布</button>
+              </div>
+              <div class="settings-box">
+                <h3>加入项目批准素材</h3>
+                <div class="field-grid">
+                  <label>素材名称<input id="projectMediaTitleInput" placeholder="例如：门店证明图"></label>
+                  <label>素材类型<select id="projectMediaTypeInput"><option value="image">图片</option><option value="video">视频</option><option value="audio">预录语音</option></select></label>
+                  <label>Provider Media ID<input id="projectMediaProviderIdInput" placeholder="ChatDaddy 已上传素材的 ID"></label>
+                  <label>或媒体 URL<input id="projectMediaUrlInput" placeholder="https://..."></label>
+                  <label>适用 Step（逗号分隔）<input id="projectMediaStagesInput" placeholder="step_2, step_3"></label>
+                  <label>适用 Intent（逗号分隔）<input id="projectMediaIntentsInput" placeholder="trust_question, price_objection"></label>
+                  <label><input type="checkbox" id="projectMediaRequiredInput"> 这是必需素材；失败时不可接下一条 Flow</label>
+                </div>
+                <div class="quick-actions"><button class="quick-action" data-dashboard-action="save-project-media-asset" type="button">批准并加入当前项目</button></div>
+              </div>
+            </section>
             <section class="command-panel">
-              <div class="command-kicker">Beyoute 回复方式</div>
+              <div class="command-kicker">${escapeHtml(projectLabel)} 回复方式</div>
               <strong class="command-title">${sopItems.length} 条真实 SOP / 安全规则 / 成交规则</strong>
               <p class="command-copy">语气：${escapeHtml(brand.voice || "待补")}</p>
               <div class="knowledge-section">${sopItems.map((item) => knowledgeItemHtml(item.title || item.question || item.group, item.rule || item.proposed_rule || item.guidance || item.answer || "", item.group)).join("") || knowledgeItemHtml("没有 SOP", "请先上传项目 PPT 或加入回复规则", "待补")}</div>
@@ -12564,7 +12638,7 @@
         const faq = Array.isArray(assets.faq) ? assets.faq : [];
         return `${header}
           <section class="command-panel">
-            <div class="command-kicker">Beyoute FAQ</div>
+            <div class="command-kicker">${escapeHtml(projectLabel)} FAQ</div>
             <strong class="command-title">${faq.length} 条已进入项目知识包</strong>
             <p class="command-copy">这些资料会参与回复生成；资料不足、健康敏感、付款或退款争议仍会转人工。</p>
             <div class="knowledge-section">${faq.map((item) => knowledgeItemHtml(item.question || item.title || "FAQ", item.answer || item.better_reply || "", item.customer_pattern ? `匹配：${item.customer_pattern}` : "项目 FAQ")).join("") || knowledgeItemHtml("没有 FAQ", "请先上传 PPT 或加入 FAQ", "待补")}</div>
@@ -12574,12 +12648,14 @@
       function projectOnboardingSummaryHtml(knowledge = {}) {
         const counts = knowledge.counts || {};
         const completion = knowledge.completion || {};
+        const process = knowledge.sales_process || {};
         const items = [
-          ["项目资料", `${Number(counts.source_documents || 0)} 份`, completion.project_materials],
-          ["讯息连接", `${Number(counts.channels || 0)} 个渠道`, completion.message_connection],
-          ["回复 SOP", `${Number(counts.ops_sop || 0) + Number(counts.safety_sop || 0) + Number(counts.reply_rules || 0)} 条`, completion.reply_sop],
-          ["FAQ", `${Number(counts.faq || 0)} 条`, completion.faq],
-          ["Flow 定位", `${Number(counts.configured_flows || 0)} / ${Number(counts.flows || 0)}`, completion.flow_map]
+          ["项目事实", `${Number(counts.source_documents || 0)} 份资料`, completion.project_materials],
+          ["顾客心理", `${(knowledge.brand_brain?.audience || []).length || 0} 类顾客`, Boolean(knowledge.brand_brain?.positioning)],
+          ["回复个性", `${Number(counts.ops_sop || 0) + Number(counts.reply_rules || 0)} 条规则`, completion.reply_sop],
+          ["Step Flow Map", `${Number(process.step_count || 0)} Step · 价格 ${process.price_stage_key || "待设"}`, completion.sales_process && completion.flow_map],
+          ["成交打法", `CTA 冷却 ${process.post_price_policy?.cadence?.soft_cta_min_customer_turns_since_last_cta || 3} 回合`, completion.sales_process],
+          ["安全与自动化", `Level ${Number(process.automation_level || 1)} · ${Number(counts.approved_media_assets || 0)} 素材`, completion.reply_sop]
         ];
         return `<div class="onboarding-summary">${items.map(([title, note, ready]) => `<div class="onboarding-summary-item"><b>${ready ? "✅" : "待"} ${escapeHtml(title)}</b><span>${escapeHtml(note)}</span></div>`).join("")}</div>`;
       }
@@ -16342,7 +16418,7 @@
         state.query = id;
         if (caseSearchEl) caseSearchEl.value = id;
         render();
-        showToast("请先登录，再打开这张 Case。");
+        showToast(state.role === "staff" ? "公司 Portal 尚未提供工作台权限。" : "当前账号没有工作台权限。");
         return;
       }
       state.loadingCaseDetailId = id;
@@ -16544,6 +16620,9 @@
 	    }
 
     function purchaseMetaStatusForCase(item = {}) {
+      if (item.flow_trigger_retry_required === true) {
+        return { text: "付款已记录；After Payment Flow 尚未发出，修好或重新选择后可重试。", tone: "warn" };
+      }
       if (item.status === "purchase_confirmed") {
         if (casePurchaseMetaDone(item)) return { text: "已确认付款，广告已回流或已防重复。", tone: "ok" };
         return { text: "已确认付款；如广告未回流，可补回流。", tone: "warn" };
@@ -16570,10 +16649,12 @@
 	    }
 
 	    function purchaseActionCompleteForCase(item = {}) {
+	      if (item.flow_trigger_retry_required === true) return false;
 	      return item.status === "purchase_confirmed" && casePurchaseMetaDone(item);
 	    }
 
 	    function purchaseButtonLabelForCase(item = {}, canResendPurchase = canResendPurchaseMeta(item)) {
+	      if (item.flow_trigger_retry_required === true) return "重试 After Payment Flow";
 	      if (canResendPurchase) return "补回流广告";
 	      if (item.status === "purchase_confirmed") return "已确认付款";
 	      return "确认付款并接 Flow";
@@ -16643,12 +16724,14 @@
 	    state.flowCatalogLiveCount = Number(data.live_flow_count || 0);
 	    if (data.live_catalog_error) state.flowCatalogError = String(data.live_catalog_error);
 	  } catch (error) {
-	    state.flowCatalog = fallbackBeyouteFlowCatalog();
-	    state.quickReplies = fallbackBeyouteQuickReplies();
+	    const allowBeyouteFallback = String(project || "").trim().toLowerCase() === "beyoute";
+	    state.flowCatalog = allowBeyouteFallback ? fallbackBeyouteFlowCatalog() : [];
+	    state.quickReplies = allowBeyouteFallback ? fallbackBeyouteQuickReplies() : [];
 	    state.flowCatalogError = error?.message || String(error);
 	  } finally {
-	    if (!state.flowCatalog.length) state.flowCatalog = fallbackBeyouteFlowCatalog();
-	    if (!state.quickReplies.length) state.quickReplies = fallbackBeyouteQuickReplies();
+	    const allowBeyouteFallback = String(project || "").trim().toLowerCase() === "beyoute";
+	    if (!state.flowCatalog.length && allowBeyouteFallback) state.flowCatalog = fallbackBeyouteFlowCatalog();
+	    if (!state.quickReplies.length && allowBeyouteFallback) state.quickReplies = fallbackBeyouteQuickReplies();
 	    state.flowCatalogLoaded = true;
 	    if (state.active) renderChannelActions(state.active);
 	  }
@@ -16719,6 +16802,166 @@
       } finally {
         state.projectDocumentBusy = false;
         render();
+      }
+    }
+
+    async function saveProjectSalesProcessFromOnboarding() {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      if (!api || (!token && !hasAccountSession())) {
+        showToast("请先登录真实项目账号。");
+        return;
+      }
+      const stepCount = Math.max(1, Math.min(4, Number($("salesStepCountInput")?.value || 4)));
+      const priceStageKey = String($("salesPriceStageInput")?.value || `step_${stepCount}`);
+      if (Number(priceStageKey.replace(/\D+/g, "")) > stepCount) {
+        showToast("价格阶段不能超过项目的 Step 数量。");
+        return;
+      }
+      const stages = Array.from({ length: stepCount }, (_, index) => {
+        const order = index + 1;
+        return {
+          stage_key: `step_${order}`,
+          order,
+          purpose: document.querySelector(`[data-sales-purpose="${order}"]`)?.value?.trim() || `Sales Step ${order}`,
+          flow_key: document.querySelector(`[data-sales-flow-key="${order}"]`)?.value?.trim() || `s${order}`,
+          provider_flow_id: document.querySelector(`[data-sales-provider-flow-id="${order}"]`)?.value?.trim() || null,
+          provider_bot_id: document.querySelector(`[data-sales-provider-bot-id="${order}"]`)?.value?.trim() || null,
+          next_stage_key: order < stepCount ? `step_${order + 1}` : null,
+          language: "zh-MY",
+          contains_media: document.querySelector(`[data-sales-contains-media="${order}"]`)?.checked === true,
+          active: true,
+        };
+      });
+      try {
+        const packageEndpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/package`;
+        const currentRes = await fetch(packageEndpoint, authRequestOptions(token));
+        const current = await currentRes.json().catch(() => ({}));
+        if (!currentRes.ok || !current.ok) throw new Error(current.message || current.error || `HTTP ${currentRes.status}`);
+        const projectPackage = current.project_package || {};
+        const existingPolicy = projectPackage.sales_process?.post_price_policy || {};
+        projectPackage.sales_process = {
+          ...(projectPackage.sales_process || {}),
+          step_count: stepCount,
+          entry_stage_key: "step_1",
+          price_stage_key: priceStageKey,
+          stages,
+          early_price_policy: $("salesEarlyPricePolicyInput")?.value || "answer_now_and_enter_closer",
+          post_price_policy: {
+            ...existingPolicy,
+            proof_enabled: true,
+            proof: String($("salesPostPriceProofInput")?.value || "").split(/\n+/).map((value) => value.trim()).filter(Boolean),
+            cta: String($("salesPostPriceCtaInput")?.value || "").trim(),
+            urgency: String($("salesPostPriceUrgencyInput")?.value || "").split(/\n+/).map((value) => value.trim()).filter(Boolean),
+            cadence: {
+              first_question: "answer_with_one_relevant_proof_and_soft_cta",
+              continued_questions: "answer_only",
+              soft_cta_min_customer_turns_since_last_cta: 3,
+              max_cta_per_funnel: 3,
+              proof_reuse_cooldown_turns: 3,
+              strong_buying_signal_can_cta_immediately: true,
+              stop_signals_pause_automation: true,
+            },
+          },
+          follow_up_policy: { owner: "channel", stop_on_customer_reply: true },
+          automation_level: Number(projectPackage.sales_process?.automation_level || 1),
+        };
+        const savedRes = await fetch(packageEndpoint, authRequestOptions(token, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            project_package: projectPackage,
+            updated_by: state.session?.user?.email || state.session?.email || "dashboard_onboarding",
+            note: "Dashboard 成交流程与渠道设置",
+          }),
+        }));
+        const saved = await savedRes.json().catch(() => ({}));
+        if (!savedRes.ok || !saved.ok) throw new Error(saved.message || saved.error || `HTTP ${savedRes.status}`);
+        showToast(`已保存 ${stepCount} Step Project Brain 草稿；通过 Mock Test 后再发布。`);
+        await loadProjectKnowledge({ silent: true });
+      } catch (error) {
+        showToast(`成交流程保存失败：${error.message || error}`);
+      }
+    }
+
+    async function mockTestAndPublishProjectBrain() {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      if (!api || (!token && !hasAccountSession())) {
+        showToast("请先登录真实项目账号。");
+        return;
+      }
+      try {
+        showToast("正在运行 Step、价格后节奏与安全 Mock Test...");
+        const testEndpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/test-cases/run`;
+        const testRes = await fetch(testEndpoint, authRequestOptions(token, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ mode: "project_sales_orchestrator_v2" }),
+        }));
+        const test = await testRes.json().catch(() => ({}));
+        if (!testRes.ok || !test.ok || Number(test.failed_count || 0) > 0) {
+          const failed = (test.tests || []).filter((item) => item.passed === false).map((item) => item.name).join(", ");
+          throw new Error(failed ? `Mock Test 未通过：${failed}` : test.message || test.error || `HTTP ${testRes.status}`);
+        }
+        const publishEndpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/package/publish`;
+        const publishRes = await fetch(publishEndpoint, authRequestOptions(token, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            mock_test_passed: true,
+            mock_test_reference: `dashboard:${new Date().toISOString()}`,
+          }),
+        }));
+        const published = await publishRes.json().catch(() => ({}));
+        if (!publishRes.ok || !published.ok) throw new Error(published.message || published.error || `HTTP ${publishRes.status}`);
+        showToast(`Project Brain v${published.version_no} 已发布；新 Case 会锁定这个版本。`);
+        await loadProjectKnowledge({ silent: true });
+      } catch (error) {
+        showToast(`Mock / 发布失败：${error.message || error}`);
+      }
+    }
+
+    async function saveProjectMediaAssetFromOnboarding() {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      const title = String($("projectMediaTitleInput")?.value || "").trim();
+      const providerMediaId = String($("projectMediaProviderIdInput")?.value || "").trim();
+      const mediaUrl = String($("projectMediaUrlInput")?.value || "").trim();
+      if (!title || (!providerMediaId && !mediaUrl)) {
+        showToast("请填写素材名称，以及 Provider Media ID 或媒体 URL。");
+        return;
+      }
+      try {
+        const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/media-assets`;
+        const res = await fetch(endpoint, authRequestOptions(token, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            title,
+            asset_type: $("projectMediaTypeInput")?.value || "image",
+            provider_media_id: providerMediaId,
+            media_url: mediaUrl,
+            stage_keys: String($("projectMediaStagesInput")?.value || "").split(/[,，\n]+/).map((value) => value.trim()).filter(Boolean),
+            intent_keys: String($("projectMediaIntentsInput")?.value || "").split(/[,，\n]+/).map((value) => value.trim()).filter(Boolean),
+            required: $("projectMediaRequiredInput")?.checked === true,
+            approval_status: "approved",
+            provider: "chatdaddy",
+          }),
+        }));
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+        showToast("素材已批准并只加入当前项目。AI 不会选择其他项目的素材。");
+        for (const id of ["projectMediaTitleInput", "projectMediaProviderIdInput", "projectMediaUrlInput", "projectMediaStagesInput", "projectMediaIntentsInput"]) {
+          if ($(id)) $(id).value = "";
+        }
+        if ($("projectMediaRequiredInput")) $("projectMediaRequiredInput").checked = false;
+        await loadProjectKnowledge({ silent: true });
+      } catch (error) {
+        showToast(`素材保存失败：${error.message || error}`);
       }
     }
 
@@ -20593,7 +20836,31 @@
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
       if (!(await confirmLiveAction("approve", state.active))) return;
-      await postCaseAction(state.active.id, "approve", { reply_message: $("replyBox").value.trim() });
+      await postCaseAction(state.active.id, "approve_execute", {
+        reply_message: $("replyBox").value.trim(),
+        execution_plan: salesExecutionPlanForCase(state.active),
+      });
+    }
+
+    function salesExecutionPlanForCase(item = {}) {
+      const plan = item.execution_plan || item.latest_decision?.execution_plan || {};
+      return plan && typeof plan === "object" ? { ...plan } : {};
+    }
+
+    function executionPlanSummary(item = {}) {
+      const plan = salesExecutionPlanForCase(item);
+      const mediaCount = Array.isArray(plan.media_asset_ids) ? plan.media_asset_ids.length : 0;
+      const flowValue = plan.action === "reply_then_flow" && plan.flow_key
+        ? `回复后接 ${plan.flow_key}`
+        : "不会触发";
+      const cadenceValue = plan.cta_mode === "answer_only"
+        ? "只回答，不重复 CTA"
+        : plan.cta_mode === "direct_cta"
+          ? "购买信号，可直接 CTA"
+          : plan.cta_mode === "soft_cta"
+            ? "最多一项 Proof + 轻 CTA"
+            : "不使用 CTA";
+      return { plan, mediaCount, flowValue, cadenceValue };
     }
 
     async function learnActive() {
@@ -20627,6 +20894,8 @@
 	  if (/order|payment|receipt|handoff|human|price|promo|gift/i.test(action)) return "包含交易或人工动作";
 	  if (/(付款|付钱|汇款|转账|轉帳|receipt|订单|訂單|物流|退款|投诉|投訴|价格|價錢|多少钱|多少錢|优惠|優惠|赠品|贈品|怀孕|懷孕|哺乳|疾病|医生|醫生|吃药|吃藥|不舒服|副作用|保证|保證|一定瘦|截图|截圖|附件)/i.test(combined)) return "命中安全或交易边界";
 	  if ((item.messages || []).some((message) => Array.isArray(message.attachments) && message.attachments.length)) return "包含附件";
+	  const executionPlan = salesExecutionPlanForCase(item);
+	  if (executionPlan.action === "reply_then_flow" || (executionPlan.media_asset_ids || []).length) return "这张 Case 必须用完整动作批准，不能只学文字";
 	  const guard = effectiveApprovalGuardForCase(item, closerVerdict(item));
 	  if (guard.blocked) return guard.reason || "当前回复不能直接批准";
 	  return "";
@@ -20955,6 +21224,7 @@
 
 	    async function markPurchaseActive() {
 	      if (!state.active) return;
+	      const paymentAlreadyRecorded = state.active.purchase_confirmed === true || state.active.status === "purchase_confirmed";
 	      const isResend = canResendPurchaseMeta(state.active);
 	      if (purchaseActionCompleteForCase(state.active)) {
 	        showToast("这笔成交已经确认并处理过了。");
@@ -20993,7 +21263,7 @@
 	    alert(`${flow.title} 还没有接入 ChatDaddy Bot ID，系统不会冒险触发。`);
 	    return;
 	  }
-	  if (!(await confirmFlowTrigger(flow, state.active, { amount, confirmPayment: true }))) return;
+	  if (!(await confirmFlowTrigger(flow, state.active, { amount, confirmPayment: true, paymentAlreadyRecorded }))) return;
       const manualPurchaseOverride = !hasPurchaseActionContext(state.active);
 	  const result = await postCaseAction(state.active.id, "trigger_flow", {
 	    flow_key: flow.flow_key,
@@ -21014,7 +21284,9 @@
       });
       const meta = result?.meta_capi;
       const metaDone = meta?.sent || meta?.deduped || meta?.already_sent || meta?.result?.deduped;
-	  if (result?.flow_trigger?.sent || result?.triggered) {
+	  if (result?.flow_retry_required) {
+	    showToast("付款已记录；After Payment Flow 尚未发出。检查 Flow 后按同一个按钮重试。");
+	  } else if (result?.flow_trigger?.sent || result?.triggered) {
 	    showToast(`付款已确认，已接 ${flow.title}。${meta?.sent || metaDone ? " 成交也已回流。" : ""}`);
 	  } else {
 	    showToast(`付款已确认；请检查 ${flow.title} 的触发状态。`);
@@ -21032,7 +21304,7 @@
 	    lead: flow.title,
 	    facts: [
 	      { label: "顾客消息", value: "Flow 会真实发送" },
-	      { label: "付款记录", value: confirmPayment ? `同时记录 RM ${Number(options.amount || 0).toFixed(2)}` : "不会变更" },
+	      { label: "付款记录", value: options.paymentAlreadyRecorded ? "已经记录，不会重复" : (confirmPayment ? `同时记录 RM ${Number(options.amount || 0).toFixed(2)}` : "不会变更") },
 	      { label: "使用条件", value: "配套与阶段已确认" },
 	    ],
 	    note: "Flow 发出后不能从 Dashboard 撤回，请先确认顾客选择和当前阶段。",
@@ -22019,10 +22291,12 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "trigger_flow" ? "正在接 Flow..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" || action === "record_no_reply" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
+          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "trigger_flow" ? "正在接 Flow..." : action === "approve_execute" ? "正在执行回复、素材与 Flow..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" || action === "record_no_reply" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
 	        }
         const isApproval = active?.source === "approval";
-	    const endpoint = action === "trigger_flow"
+	    const endpoint = action === "approve_execute"
+          ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/approve-execute`
+          : action === "trigger_flow"
 	      ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/trigger-flow`
 	      : action === "mark_purchase"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/mark-purchase`
@@ -22037,7 +22311,7 @@
           : isApproval
           ? approvalActionEndpoint(api, caseId, action, project)
           : `${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`;
-	    const payload = isApproval || action === "manual_send" || action === "trigger_flow" ? approvalActionPayload(action, body) : body;
+	    const payload = isApproval || action === "manual_send" || action === "trigger_flow" || action === "approve_execute" ? approvalActionPayload(action, body) : body;
         const res = await fetch(endpoint, authRequestOptions(token, {
           method: "POST",
           headers: {
@@ -22277,6 +22551,11 @@
 	      }
 	      const actionText = action === "learn" ? "发送，并标记同类以后少审核" : "发送给真实顾客";
 	      const preview = reply.slice(0, 180);
+	      const executionSummary = executionPlanSummary(item);
+	      const projectKey = String(item?.project_key || projectKeyEl.value || "").trim().toLowerCase();
+	      const toneReminder = projectKey === "beyoute"
+	        ? "Beyoute 回复要亲切，适合时加 ❤️/😊/🙏。"
+	        : "回复会遵循当前项目 Project Brain 的语气与成交规则。";
 	      return showSaasConfirm({
 	        eyebrow: action === "learn" ? "批准并学习" : "真实发送",
 	        title: `确认${actionText}？`,
@@ -22284,12 +22563,14 @@
 	        lead: `${preview}${reply.length > 180 ? "..." : ""}`,
 	        facts: [
 	          { label: "顾客消息", value: "立即发送" },
-	          { label: "ChatDaddy Flow", value: "不会触发" },
+	          { label: "批准素材", value: executionSummary.mediaCount ? `${executionSummary.mediaCount} 个` : "没有" },
+	          { label: "ChatDaddy Flow", value: executionSummary.flowValue },
+	          { label: "成交节奏", value: executionSummary.cadenceValue },
 	          { label: "AI 学习", value: action === "learn" ? "高优先候选" : "建立审核候选" },
 	        ],
 	        note: action === "learn"
-	          ? "Owner 通过后，同阶段/同意图/低风险问题才会少审核或自动。Beyoute 回复要亲切，适合时加 ❤️/😊/🙏。"
-	          : "发送成功后会记录学习候选；Owner 审核后，同类问题才会自动或少审核。Beyoute 回复要亲切，适合时加 ❤️/😊/🙏。",
+	          ? `Owner 通过后，同阶段/同意图/低风险问题才会少审核或自动。${toneReminder}`
+	          : `发送成功后会记录学习候选；Owner 审核后，同类问题才会自动或少审核。${toneReminder}`,
 	        cancelLabel: "返回修改",
 	        confirmLabel: "确认发送",
 	      });
@@ -22362,6 +22643,9 @@
 	    }
 
     function approvalActionEndpoint(api, caseId, action, project) {
+	  if (action === "approve_execute") {
+	    return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/approve-execute`;
+	  }
 	  if (action === "trigger_flow") {
 	    return `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/trigger-flow`;
 	  }
@@ -22391,6 +22675,20 @@
     }
 
     function approvalActionPayload(action, body) {
+	  if (action === "approve_execute") {
+	    return {
+	      text: body.reply_message || "",
+	      replyText: body.reply_message || "",
+	      reply_message: body.reply_message || "",
+	      execution_plan: body.execution_plan || {},
+	      media_asset_ids: body.execution_plan?.media_asset_ids || [],
+	      confirmExecute: true,
+	      confirmLiveSend: true,
+	      idempotency_key: body.idempotency_key || "",
+	      confirmedBy: state.session.displayName || roleName(state.role),
+	      source: "dashboard_approve_execute",
+	    };
+	  }
 	  if (action === "trigger_flow") {
 	    return {
 	      flow_key: body.flow_key || "",
@@ -22538,7 +22836,7 @@
       if (!record) return;
       const now = new Date().toISOString();
 
-      if (action === "approve") {
+      if (action === "approve" || action === "approve_execute") {
         record.status = "sent";
         record.latest_reply_sent = body.reply_message;
         record.messages.push({ direction: "outbound", text: body.reply_message, at: now });

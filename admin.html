@@ -531,7 +531,11 @@
 
     async function fetchJson(path, options = {}) {
       if (!state.api) throw new Error("请先填写系统网址");
-      const res = await fetch(`${state.api}${path}`, options);
+      const res = await fetch(`${state.api}${path}`, {
+        ...options,
+        credentials: "include",
+        headers: { ...(options.headers || {}) },
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.ok === false) throw new Error(data.error || data.next || `HTTP ${res.status}`);
       return data;
@@ -560,7 +564,7 @@
     function renderUsers() {
       const rows = state.users.map((user) => {
         const statusTone = user.status === "active" ? "good" : "bad";
-        const roleLabel = user.role === "admin" ? "管理员" : "客服";
+        const roleLabel = ["admin", "super_admin"].includes(user.role) ? "管理员" : "客服";
         const statusLabel = user.status === "active" ? "启用" : "停用";
         return `
           <div class="row">
@@ -637,7 +641,7 @@
         return false;
       }
       const data = await fetchJson("/api/auth/session");
-      if (!data.authenticated || data.user?.role !== "admin") {
+      if (!data.authenticated || !["admin", "super_admin"].includes(data.user?.role)) {
         setNotice("请先用管理员账号登录。", "bad");
         return false;
       }
@@ -744,7 +748,7 @@
 
     async function logout() {
       if (state.api) {
-        await fetch(`${state.api}/api/auth/logout`, { method: "POST" }).catch(() => null);
+        await fetch(`${state.api}/api/auth/logout`, { method: "POST", credentials: "include" }).catch(() => null);
       }
       localStorage.removeItem("agent_session");
       localStorage.removeItem("agent_admin_token");

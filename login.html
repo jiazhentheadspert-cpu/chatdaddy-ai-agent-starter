@@ -1,1013 +1,338 @@
 <!doctype html>
-<html lang="zh-Hans">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ReplyPilot AI 客服中控台</title>
+  <meta name="color-scheme" content="light" />
+  <title>CTG Supply Chain Portal</title>
   <style>
     :root {
-      --canvas: #eef3f4;
-      --panel: rgba(255,255,255,.94);
-      --panel-soft: #f6fafb;
-      --ink: #0b1718;
-      --muted: #63737c;
-      --line: rgba(92, 112, 121, .22);
-      --green: #10b99d;
-      --green-deep: #082f32;
-      --blue: #3578f6;
-      --cyan: #00b7d8;
-      --amber: #b7791f;
-      --soft-green: #e9fbf6;
-      --soft-blue: #edf5ff;
-      --soft-cyan: #e8fbff;
-      --soft-amber: #fff5e6;
-      --shadow: 0 34px 92px rgba(8, 23, 29, .16);
-      --shadow-soft: 0 16px 44px rgba(8, 23, 29, .08);
-      --glow: 0 0 0 1px rgba(0, 183, 216, .14), 0 18px 50px rgba(0, 183, 216, .10);
-      font-family: Inter, "Noto Sans SC", "PingFang SC", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --canvas: #f4f2ef;
+      --card: #ffffff;
+      --ink: #1d2736;
+      --muted: #4c586a;
+      --placeholder: #9da6b6;
+      --line: #e3dcd2;
+      --brand: #2a5b56;
+      --brand-hover: #224d49;
+      --danger: #b42318;
+      --success: #087568;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     * { box-sizing: border-box; }
 
-    html,
-    body {
-      overflow-x: hidden;
-    }
+    html, body { min-height: 100%; }
 
     body {
       margin: 0;
       min-height: 100vh;
-      color: var(--ink);
-      background:
-        linear-gradient(135deg, rgba(6, 18, 24, .08), rgba(255,255,255,.94) 42%, rgba(226, 246, 250, .72)),
-        linear-gradient(90deg, rgba(8, 23, 29, .045) 1px, transparent 1px),
-        linear-gradient(0deg, rgba(8, 23, 29, .035) 1px, transparent 1px),
-        var(--canvas);
-      background-size: auto, 42px 42px, 42px 42px, auto;
-    }
-
-    button, input, select { font: inherit; }
-
-    .shell {
-      width: min(1180px, calc(100% - 40px));
-      min-height: 100vh;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 410px;
-      gap: 48px;
-      align-items: center;
-      padding: 34px 0;
-    }
-
-    .product {
-      display: grid;
-      gap: 24px;
-      min-width: 0;
-    }
-
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      max-width: 700px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 950;
-      letter-spacing: 0;
-    }
-
-    .mark {
-      width: 40px;
-      height: 40px;
-      border-radius: 13px;
-      background: linear-gradient(135deg, var(--cyan), var(--green) 48%, var(--blue));
       display: grid;
       place-items: center;
-      color: #fff;
-      font-weight: 950;
-      box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 18px 46px rgba(0,183,216,.20);
+      padding: 44px 24px 98px;
+      color: var(--ink);
+      background: var(--canvas);
     }
 
-    .env {
-      display: inline-flex;
+    button, input { font: inherit; }
+
+    .login-card {
+      width: min(768px, 100%);
+      min-height: 922px;
+      padding: 64px 64px 58px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      border: 2px solid var(--line);
+      border-radius: 31px;
+      background: var(--card);
+      box-shadow: 0 18px 28px rgba(29, 39, 54, .13);
+    }
+
+    .brand-block {
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      border: 1px solid #cddbd7;
-      border-radius: 999px;
-      background: rgba(255,255,255,.78);
-      color: var(--muted);
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 850;
+      text-align: center;
     }
 
-    .env::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      margin-right: 8px;
-      border-radius: 50%;
-      background: var(--cyan);
-      box-shadow: 0 0 0 5px rgba(0,183,216,.10);
-    }
-
-    .hero {
-      max-width: 700px;
-      min-width: 0;
-    }
-
-    .eyebrow {
-      color: var(--cyan);
-      font-size: 13px;
-      font-weight: 950;
-      letter-spacing: .07em;
-      text-transform: uppercase;
+    .logo {
+      width: 98px;
+      height: 98px;
+      display: block;
+      border-radius: 25px;
     }
 
     h1 {
-      margin: 12px 0 16px;
-      font-size: clamp(44px, 5vw, 66px);
-      line-height: 1.02;
-      letter-spacing: 0;
-      max-width: 100%;
-      overflow-wrap: anywhere;
-    }
-
-    h1 span {
-      display: block;
-    }
-
-    .lead {
-      margin: 0;
-      max-width: 620px;
-      color: var(--muted);
-      font-size: 17px;
-      line-height: 1.5;
+      margin: 26px 0 8px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(39px, 4.6vw, 43px);
+      line-height: 1.12;
+      letter-spacing: -.02em;
       font-weight: 700;
-      overflow-wrap: anywhere;
-      word-break: break-word;
     }
 
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 24px;
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 29px;
+      line-height: 1.25;
+      font-weight: 450;
     }
 
-    .text-button {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: rgba(255,255,255,.76);
-      color: var(--ink);
-      padding: 10px 13px;
-      text-decoration: none;
-      font-weight: 900;
-      font-size: 14px;
-      box-shadow: 0 12px 30px rgba(17,35,33,.05);
-    }
-
-    .text-button.primary-link {
-      color: #fff;
-      background: var(--green-deep);
-      border-color: transparent;
-    }
-
-    .hero-stats {
-      max-width: 700px;
+    form {
+      margin-top: 60px;
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      gap: 34px;
     }
 
-    .hero-stat {
-      position: relative;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      background:
-        linear-gradient(90deg, rgba(0,183,216,.07) 1px, transparent 1px),
-        rgba(255,255,255,.88);
-      background-size: 28px 28px, auto;
-      padding: 16px;
-      box-shadow: var(--shadow-soft);
-    }
-
-    .hero-stat span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 900;
-      margin-bottom: 8px;
-    }
-
-    .hero-stat strong {
-      display: block;
-      font-size: 24px;
-      line-height: 1;
-    }
-
-    .hero-stat small {
-      display: block;
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 760;
-      line-height: 1.35;
-    }
-
-    .signal-row {
-      max-width: 700px;
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .signal {
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: rgba(255,255,255,.84);
-      padding: 15px;
-      box-shadow: var(--shadow-soft);
-    }
-
-    .signal b {
-      display: block;
-      font-size: 18px;
-      line-height: 1;
-      margin-bottom: 6px;
-    }
-
-    .signal span {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 900;
-    }
-
-    .ops-panel,
-    .preview-panel {
-      max-width: 700px;
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      background: rgba(255,255,255,.86);
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
-    }
-
-    .ops-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: center;
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--line);
-      background: #fff;
-    }
-
-    .ops-head b {
-      display: block;
-      font-size: 18px;
-    }
-
-    .ops-head span {
-      color: var(--muted);
-      font-weight: 760;
-      font-size: 14px;
-    }
-
-    .health {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--green);
-      font-weight: 900;
-      font-size: 14px;
-    }
-
-    .health::before {
-      content: "";
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 0 5px rgba(12,143,120,.12);
-    }
-
-    .role-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1px;
-      background: var(--line);
-    }
-
-    .role-card {
-      background: var(--panel-soft);
-      padding: 17px;
-      min-height: 126px;
-    }
-
-    .role-card strong {
-      display: block;
-      font-size: 18px;
-      margin-bottom: 8px;
-    }
-
-    .role-card p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.45;
-      font-weight: 720;
-    }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .preview-panel {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1px;
-      background: var(--line);
-    }
-
-    .preview-card {
-      background: rgba(255,255,255,.92);
-      padding: 18px;
-      min-height: 150px;
-    }
-
-    .preview-card.wide {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 14px;
-      align-items: center;
-    }
-
-    .preview-card span {
-      display: block;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 850;
-      margin-bottom: 8px;
-    }
-
-    .preview-card strong {
-      display: block;
-      font-size: 26px;
-      line-height: 1;
-    }
-
-    .preview-card p {
-      margin: 9px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-      font-weight: 760;
-    }
-
-    .case-mini {
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 12px;
-      background: linear-gradient(135deg, #fff, #f3faf8);
-      font-weight: 900;
-      min-width: 200px;
-    }
-
-    .case-mini small {
-      display: block;
-      margin-top: 6px;
-      color: var(--muted);
-      font-weight: 750;
-    }
-
-    .chip {
-      border: 1px solid #cddbd7;
-      background: #fff;
-      color: var(--muted);
-      border-radius: 999px;
-      padding: 6px 9px;
-      font-size: 12px;
-      font-weight: 880;
-    }
-
-    .login {
-      background: rgba(255,255,255,.92);
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      position: relative;
-      min-width: 0;
-      backdrop-filter: blur(18px);
-    }
-
-    .login-top {
-      padding: 26px 26px 20px;
-      border-bottom: 1px solid var(--line);
-      background:
-        linear-gradient(90deg, rgba(0,183,216,.08) 1px, transparent 1px),
-        linear-gradient(135deg, rgba(232,251,255,.78), transparent 58%),
-        #fff;
-      background-size: 30px 30px, auto, auto;
-    }
-
-    .login-topline {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      border: 1px solid #cddbd7;
-      border-radius: 999px;
-      background: var(--soft-cyan);
-      color: var(--green-deep);
-      padding: 7px 10px;
-      font-size: 12px;
-      font-weight: 950;
-    }
-
-    .status-pill::before {
-      content: "";
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--cyan);
-    }
-
-    .login h2 {
-      margin: 0 0 8px;
-      font-size: 28px;
-      letter-spacing: 0;
-    }
-
-    .login-copy {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.45;
-      font-weight: 760;
-      overflow-wrap: anywhere;
-      word-break: break-all;
-      line-break: anywhere;
-    }
-
-    .login-meta {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 18px;
-    }
-
-    .login-meta div {
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: rgba(255,255,255,.82);
-      padding: 12px;
-    }
-
-    .login-meta span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 900;
-      margin-bottom: 6px;
-    }
-
-    .login-meta b {
-      display: block;
-      line-height: 1.15;
-    }
-
-    .form {
-      padding: 22px 26px 26px;
-    }
+    .field { display: grid; gap: 10px; }
 
     label {
-      display: block;
-      margin: 0 0 8px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 900;
+      font-size: 29px;
+      line-height: 1.25;
+      font-weight: 500;
     }
 
-    input, select {
+    input {
       width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: #fff;
+      height: 76px;
+      padding: 0 25px;
+      border: 2px solid var(--line);
+      border-radius: 17px;
       color: var(--ink);
-      padding: 13px 14px;
+      background: #fff;
+      font-size: 28px;
+      line-height: 1;
       outline: none;
-      font-weight: 760;
+      transition: border-color .16s ease, box-shadow .16s ease;
     }
 
-    input:focus, select:focus {
-      border-color: rgba(0,183,216,.36);
-      box-shadow: 0 0 0 4px rgba(0,183,216,.10);
+    input::placeholder { color: var(--placeholder); opacity: 1; }
+
+    input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 4px rgba(42, 91, 86, .12);
     }
 
-    .field + .field { margin-top: 16px; }
-
-    .roles {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 9px;
-    }
-
-    .role {
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px 9px;
-      background: #fff;
-      color: var(--muted);
-      font-weight: 900;
-      cursor: pointer;
-      transition: .16s ease;
-    }
-
-    .role:hover { border-color: #b6c9c4; }
-
-    .role.active {
-      background: var(--soft-cyan);
-      color: var(--green-deep);
-      border-color: rgba(0,183,216,.36);
-      box-shadow: inset 0 0 0 1px rgba(0,183,216,.18), var(--glow);
-    }
-
-    .role-help {
-      margin-top: 10px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 11px 12px;
-      background: linear-gradient(135deg, var(--soft-green), var(--soft-blue));
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-      font-weight: 780;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-      line-break: anywhere;
-    }
-
-    .permission-preview {
-      display: grid;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .permission-row {
-      display: grid;
-      grid-template-columns: 22px minmax(0, 1fr);
-      gap: 10px;
-      align-items: start;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
-      font-weight: 760;
-    }
-
-    .permission-row::before {
-      content: "";
-      width: 10px;
-      height: 10px;
-      margin-top: 4px;
-      border-radius: 50%;
-      background: var(--cyan);
-      box-shadow: 0 0 0 5px rgba(0,183,216,.10);
-    }
-
-    .advanced {
-      margin-top: 16px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      overflow: hidden;
-      background: #fff;
-    }
-
-    .advanced summary {
-      cursor: pointer;
-      padding: 13px 14px;
-      color: var(--muted);
-      font-weight: 900;
-    }
-
-    .advanced-body {
-      padding: 0 14px 14px;
-      border-top: 1px solid var(--line);
-    }
-
-    .advanced-body .field:first-child { margin-top: 14px; }
-
-    .primary {
-      width: 100%;
-      margin-top: 22px;
+    .submit {
+      height: 80px;
+      margin-top: 0;
       border: 0;
-      border-radius: 16px;
-      padding: 14px 16px;
+      border-radius: 17px;
       color: #fff;
-      background: linear-gradient(135deg, var(--green), var(--cyan) 48%, var(--blue));
-      font-weight: 950;
+      background: var(--brand);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 30px;
+      font-weight: 700;
       cursor: pointer;
-      transition: .16s ease;
-      box-shadow: 0 18px 38px rgba(0, 183, 216, .20);
+      transition: background .16s ease, transform .16s ease, opacity .16s ease;
     }
 
-    .primary:hover { transform: translateY(-1px); filter: brightness(.98); }
+    .submit:hover { background: var(--brand-hover); }
+    .submit:active { transform: translateY(1px); }
+    .submit:disabled { cursor: wait; opacity: .72; }
 
-    .links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .links a {
-      color: var(--green-deep);
-      text-decoration: none;
-      font-weight: 900;
-      font-size: 14px;
-    }
-
-    .security-note {
-      margin-top: 18px;
-      border: 1px solid #ecd6ae;
-      background: #fff8eb;
-      color: #825411;
-      border-radius: 16px;
-      padding: 13px 14px;
-      font-size: 14px;
-      font-weight: 760;
-      line-height: 1.45;
-    }
-
-    .readiness-panel {
-      max-width: 700px;
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      background: rgba(255,255,255,.88);
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
-    }
-
-    .readiness-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--line);
-      background: #fff;
-    }
-
-    .readiness-head b {
-      display: block;
-      font-size: 18px;
-    }
-
-    .readiness-head span {
+    .message {
+      min-height: 24px;
+      margin: -18px 0 0;
+      text-align: center;
       color: var(--muted);
-      font-size: 13px;
-      font-weight: 800;
+      font-size: 17px;
+      line-height: 1.35;
+      font-weight: 600;
     }
 
-    .readiness-list {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1px;
-      background: var(--line);
-    }
+    .message.error { color: var(--danger); }
+    .message.success { color: var(--success); }
+    .message:empty { display: none; }
 
-    .readiness-item {
-      background: var(--panel-soft);
-      padding: 14px 16px;
-      display: grid;
-      grid-template-columns: 22px minmax(0, 1fr);
-      gap: 10px;
-      align-items: start;
+    .support-copy {
+      margin: auto 0 4px;
+      padding-top: 32px;
       color: var(--muted);
-      font-size: 13px;
-      line-height: 1.4;
-      font-weight: 760;
+      text-align: center;
+      font-size: 24px;
+      line-height: 1.35;
+      font-weight: 450;
     }
 
-    .readiness-item::before {
-      content: "";
-      width: 10px;
-      height: 10px;
-      margin-top: 4px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 0 5px rgba(16,185,157,.12);
-    }
+    @media (max-width: 700px) {
+      body { padding: 20px 14px 36px; }
 
-    .readiness-item strong {
-      display: block;
-      color: var(--ink);
-      margin-bottom: 3px;
-      font-size: 14px;
-    }
-
-    @media (max-width: 940px) {
-      .shell { grid-template-columns: 1fr; padding: 28px 0; }
-      .role-grid { grid-template-columns: 1fr; }
-      .signal-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .hero-stats { grid-template-columns: 1fr; }
-      .preview-panel { grid-template-columns: 1fr; }
-      .preview-card.wide { grid-template-columns: 1fr; }
-      .nav { max-width: none; }
-    }
-
-    @media (max-width: 560px) {
-      .shell {
-        width: calc(100vw - 24px) !important;
-        max-width: calc(100vw - 24px) !important;
-        padding-left: 12px;
-        padding-right: 12px;
-        overflow: hidden;
+      .login-card {
+        min-height: min(850px, calc(100vh - 40px));
+        padding: 42px 26px 38px;
+        border-radius: 25px;
       }
-      .product, .hero, .login, .login-top, .form {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0;
+
+      .logo { width: 82px; height: 82px; border-radius: 21px; }
+      h1 { margin-top: 23px; font-size: clamp(32px, 9vw, 42px); }
+      .subtitle { font-size: clamp(21px, 6vw, 27px); }
+      form { margin-top: 50px; gap: 27px; }
+      label { font-size: 23px; }
+      input { height: 68px; padding: 0 20px; border-radius: 15px; font-size: 22px; }
+      .submit { height: 70px; border-radius: 15px; font-size: 26px; }
+      .support-copy { font-size: 19px; }
+    }
+
+    @media (max-width: 700px) and (max-height: 900px) {
+      body { padding: 12px; }
+      .login-card {
+        min-height: calc(100vh - 24px);
+        padding: 28px 20px 24px;
       }
-      .signal-row, .roles { grid-template-columns: 1fr; }
-      h1 { font-size: clamp(34px, 11vw, 42px); line-height: 1.06; }
-      .lead { width: 100%; max-width: 100%; font-size: 17px; word-break: break-all; overflow-wrap: anywhere; }
-      .nav { align-items: flex-start; }
-      .nav .env { display: none; }
-      .signal-row, .ops-panel, .preview-panel, .readiness-panel { display: none; }
-      .hero-stats { grid-template-columns: 1fr; }
-      .hero-stat { padding: 14px; }
-      .login-meta { grid-template-columns: 1fr; }
-      .login-topline { justify-content: flex-start; }
-      .login-topline .env { display: none; }
-      .login-copy { word-break: break-all; overflow-wrap: anywhere; }
-      .ops-head { flex-direction: column; align-items: flex-start; }
-      .health { align-self: flex-start; }
-      .login-top, .form { padding-left: 20px; padding-right: 20px; }
+      .logo { width: 70px; height: 70px; border-radius: 18px; }
+      h1 { margin-top: 18px; font-size: 32px; }
+      .subtitle { font-size: 22px; }
+      form { margin-top: 36px; gap: 20px; }
+      .field { gap: 8px; }
+      label { font-size: 21px; }
+      input { height: 64px; font-size: 21px; }
+      .submit { height: 66px; font-size: 25px; }
+      .support-copy { padding-top: 22px; font-size: 17px; }
+    }
+
+    @media (max-height: 840px) and (min-width: 701px) {
+      body { padding-top: 24px; padding-bottom: 24px; }
+      .login-card { min-height: 760px; padding-top: 40px; padding-bottom: 34px; }
+      .logo { width: 82px; height: 82px; border-radius: 21px; }
+      h1 { margin-top: 20px; font-size: 40px; }
+      .subtitle { font-size: 25px; }
+      form { margin-top: 42px; gap: 24px; }
+      input { height: 66px; }
+      .submit { height: 70px; }
     }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="product">
-      <div class="nav">
-        <div class="brand"><span class="mark">R</span><span>ReplyPilot AI</span></div>
-        <span class="env">中文中控台</span>
+  <main class="login-card" aria-labelledby="portalTitle">
+    <header class="brand-block">
+      <img class="logo" src="assets/ctg-portal-logo.png" alt="CTG" width="98" height="98" />
+      <h1 id="portalTitle">Supply Chain Portal</h1>
+      <p class="subtitle">Sign in to your account</p>
+    </header>
+
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label for="identifier">Email / Username</label>
+        <input id="identifier" name="identifier" type="text" placeholder="you@example.com" autocomplete="username" autocapitalize="none" spellcheck="false" required />
       </div>
 
-      <div class="hero">
-        <div class="eyebrow">AI 客服成交工作台</div>
-        <h1>客服只处理<span>真正需要人的顾客。</span></h1>
-        <p class="lead">固定 Flow 交给 ChatDaddy 自动跑；顾客提问、订单、投诉和成交关键点才进入中控台。</p>
-        <div class="hero-actions">
-          <a class="text-button primary-link" href="#login">进入工作台</a>
-          <a class="text-button" href="docs/ONBOARDING_ZH.md">上线步骤</a>
-          <a class="text-button" href="docs/PRODUCTION_READINESS_ZH.md">成熟度清单</a>
-        </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
       </div>
 
-      <section class="hero-stats" aria-label="核心产品能力">
-        <div class="hero-stat">
-          <span>队列判断</span>
-          <strong>先急后缓</strong>
-          <small>高风险、订单、待批准自动排前面。</small>
-        </div>
-        <div class="hero-stat">
-          <span>客服操作</span>
-          <strong>少按按钮</strong>
-          <small>只看建议回复和下一步动作。</small>
-        </div>
-        <div class="hero-stat">
-          <span>AI 复盘</span>
-          <strong>可追踪</strong>
-          <small>每次批准、转人工和规则都会留记录。</small>
-        </div>
-      </section>
+      <button class="submit" id="loginBtn" type="submit">Sign In</button>
+      <p class="message" id="loginMessage" role="status" aria-live="polite"></p>
+    </form>
 
-      <section class="signal-row" aria-label="核心运营指标">
-        <div class="signal"><b>排序</b><span>先看急单</span></div>
-        <div class="signal"><b>判断</b><span>AI 给动作</span></div>
-        <div class="signal"><b>确认</b><span>人只按重点</span></div>
-        <div class="signal"><b>复盘</b><span>沉淀规则</span></div>
-      </section>
-
-      <section class="ops-panel">
-        <div class="ops-head">
-          <div>
-            <b>一个队列处理全部顾客</b>
-            <span>待批准、需人工、订单和自动跟进分开显示，客服不会乱点。</span>
-          </div>
-          <span class="health">工作台在线</span>
-        </div>
-        <div class="role-grid">
-          <article class="role-card">
-            <strong>管理者</strong>
-            <p>看全局、连接状态、团队权限和 AI 规则。</p>
-            <div class="chips"><span class="chip">全局</span><span class="chip">规则</span></div>
-          </article>
-          <article class="role-card">
-            <strong>运营主管</strong>
-            <p>审核回复、处理异常、复盘 AI 判断。</p>
-            <div class="chips"><span class="chip">审批</span><span class="chip">复盘</span></div>
-          </article>
-          <article class="role-card">
-            <strong>客服人员</strong>
-            <p>只看顾客待办，不接触技术设置。</p>
-            <div class="chips"><span class="chip">顾客</span><span class="chip">待办</span></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="preview-panel" aria-label="工作台预览">
-        <div class="preview-card">
-          <span>今日待办</span>
-          <strong>8</strong>
-          <p>待批准、需人工和订单集中显示。</p>
-        </div>
-        <div class="preview-card">
-          <span>Flow 自动</span>
-          <strong>24</strong>
-          <p>关键词进线和固定跟进交给 ChatDaddy 自动跑。</p>
-        </div>
-        <div class="preview-card wide">
-          <div>
-            <span>处理顺序</span>
-            <strong>先处理会影响成交的顾客</strong>
-            <p>投诉、订单、价格异议和低信心会自动排前面。</p>
-          </div>
-          <div class="case-mini">
-            Amira · 高风险
-            <small>AI 建议：转人工</small>
-          </div>
-        </div>
-      </section>
-
-      <section class="readiness-panel" aria-label="上线成熟度">
-        <div class="readiness-head">
-          <div>
-            <b>当前定位：Pilot ready，不是纯自助 SaaS</b>
-            <span>先给一个品牌真实试跑，确认闭环后再复制到下一个品牌。</span>
-          </div>
-          <span class="health">可试跑</span>
-        </div>
-        <div class="readiness-list">
-          <div class="readiness-item"><div><strong>已适合</strong>内部品牌、代运营客户、有人协助上线的项目。</div></div>
-          <div class="readiness-item"><div><strong>不承诺</strong>陌生客户零协助自助注册、付费、上线。</div></div>
-          <div class="readiness-item"><div><strong>上线前</strong>必须检查连接、AI 判断、记录和转人工。</div></div>
-          <div class="readiness-item"><div><strong>客服端</strong>只看顾客待办，不碰技术设置。</div></div>
-        </div>
-      </section>
-
-    </section>
-
-    <section class="login" id="login">
-      <div class="login-top">
-        <div class="login-topline">
-          <span class="status-pill">权限入口</span>
-          <span class="env">正式入口</span>
-        </div>
-        <h2>进入工作台</h2>
-        <p class="login-copy">团队用同一个入口进入。客服只看顾客待办，管理者才看系统连接。</p>
-        <div class="login-meta">
-          <div>
-            <span>当前入口</span>
-            <b>客服入口</b>
-          </div>
-          <div>
-            <span>安全模式</span>
-            <b>审批优先</b>
-          </div>
-        </div>
-      </div>
-
-      <div class="form">
-        <input id="apiUrl" type="hidden" autocomplete="off" />
-
-        <div class="field">
-          <label for="email">邮箱</label>
-          <input id="email" placeholder="staff@company.com" autocomplete="email" inputmode="email" />
-        </div>
-
-        <div class="field">
-          <label for="password">密码</label>
-          <input id="password" placeholder="输入账号密码" type="password" autocomplete="current-password" />
-        </div>
-
-        <div class="field">
-          <label for="workspace">默认项目</label>
-          <select id="workspace">
-            <option value="demo">演示项目</option>
-            <option value="beyoute">Beyoute</option>
-          </select>
-        </div>
-
-        <button class="primary" id="loginBtn">进入工作台</button>
-        <div class="security-note" id="loginMessage">请用团队分配的邮箱和密码登录。</div>
-
-        <div class="links">
-          <a href="docs/ONBOARDING_ZH.md">上线步骤</a>
-          <a href="docs/PRODUCTION_READINESS_ZH.md">成熟度清单</a>
-        </div>
-
-        <div class="security-note">客服账号只进入顾客操作台；系统连接和技术设置不会显示给客服。</div>
-      </div>
-    </section>
+    <p class="support-copy">Access is managed by your Supply Chain team.<br />Contact admin to request an account.</p>
   </main>
 
   <script>
+    const DEFAULT_API_URL = "https://ctg-chatdaddy-hermas-agents-runtime.jiazhen-theadspert.workers.dev";
+    const MASTER_ADMIN_LOGIN = "masteradmin";
+    const MASTER_ADMIN_EMAIL = "masteradmin@ctg.local";
     const params = new URLSearchParams(window.location.search);
+    const apiUrl = normalizeApiUrl(params.get("api") || localStorage.getItem("agent_api_url") || DEFAULT_API_URL);
+    const form = document.getElementById("loginForm");
+    const identifierInput = document.getElementById("identifier");
+    const passwordInput = document.getElementById("password");
+    const button = document.getElementById("loginBtn");
+    const message = document.getElementById("loginMessage");
 
-    document.getElementById("workspace").value = params.get("project_key") || localStorage.getItem("agent_project_key") || "demo";
-
-    document.getElementById("apiUrl").value = params.get("api") || localStorage.getItem("agent_api_url") || "";
-    document.getElementById("email").value = localStorage.getItem("agent_login_email") || "";
     localStorage.removeItem("agent_admin_token");
     localStorage.removeItem("agent_staff_token");
 
-    function setLoginMessage(message, tone = "") {
-      const node = document.getElementById("loginMessage");
-      node.textContent = message;
-      node.style.color = tone === "error" ? "#b42318" : tone === "ok" ? "#087568" : "";
-    }
-
     function normalizeApiUrl(value) {
-      return String(value || "").trim().replace(/\/$/, "");
+      return String(value || "").trim().replace(/\/+$/, "");
     }
 
-    document.getElementById("loginBtn").addEventListener("click", async () => {
-      const workspace = document.getElementById("workspace").value || "demo";
-      const apiUrl = normalizeApiUrl(document.getElementById("apiUrl").value);
-      const email = document.getElementById("email").value.trim().toLowerCase();
-      const password = document.getElementById("password").value;
+    function loginEmailFor(identifier) {
+      const normalized = String(identifier || "").trim().toLowerCase();
+      return normalized === MASTER_ADMIN_LOGIN ? MASTER_ADMIN_EMAIL : normalized;
+    }
 
-      if (!apiUrl) {
-        setLoginMessage("登录入口还没连接到系统，请用最新客服入口重新打开。", "error");
+    function dashboardRoleForAccountRole(role) {
+      return ["admin", "owner", "super_admin"].includes(String(role || "").toLowerCase()) ? "admin" : "staff";
+    }
+
+    function setMessage(text = "", tone = "") {
+      message.textContent = text;
+      message.className = `message ${tone}`.trim();
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const identifier = identifierInput.value.trim();
+      const email = loginEmailFor(identifier);
+      const password = passwordInput.value;
+
+      if (!identifier || !password) {
+        setMessage("Enter your email or username and password.", "error");
         return;
       }
-      if (!email || !password) {
-        setLoginMessage("请输入邮箱和密码。", "error");
-        return;
-      }
 
-      const button = document.getElementById("loginBtn");
       button.disabled = true;
-      setLoginMessage("正在登录...");
+      button.textContent = "Signing In…";
+      setMessage("");
+
       try {
-        const res = await fetch(`${apiUrl}/api/auth/login`, {
+        const response = await fetch(`${apiUrl}/api/auth/login`, {
           method: "POST",
           credentials: "include",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password })
         });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok || !data.authenticated) {
-          throw new Error(data.error || `HTTP ${res.status}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok || !data.authenticated) {
+          throw new Error(data.error || "invalid_credentials");
         }
+
         const projects = Array.isArray(data.projects) ? data.projects : [];
-        const firstProject = projects.find((item) => item.project_key === workspace) || projects[0] || { project_key: workspace };
-        const role = data.user?.role === "admin" ? "admin" : "staff";
+        const requestedProject = params.get("project_key") || "beyoute";
+        const selectedProject = projects.find((item) => item.project_key === requestedProject)
+          || projects[0]
+          || { project_key: requestedProject };
+        const role = dashboardRoleForAccountRole(data.user?.role);
         const session = {
           authMode: "account",
-          workspace: firstProject.project_key || workspace,
-          projectKey: firstProject.project_key || workspace,
+          workspace: selectedProject.project_key || requestedProject,
+          projectKey: selectedProject.project_key || requestedProject,
           role,
-          displayName: data.user?.name || "Team",
+          accountRole: data.user?.role || role,
+          displayName: data.user?.name || data.user?.full_name || (role === "admin" ? "Master Admin" : "Support Team"),
           email: data.user?.email || email,
           apiUrl,
-          signedInAt: new Date().toISOString(),
+          signedInAt: new Date().toISOString()
         };
+
         localStorage.setItem("agent_session", JSON.stringify(session));
         localStorage.setItem("agent_project_key", session.projectKey);
         localStorage.setItem("agent_api_url", apiUrl);
-        localStorage.setItem("agent_login_email", email);
         localStorage.removeItem("agent_admin_token");
         localStorage.removeItem("agent_staff_token");
-        setLoginMessage("登录成功，正在进入工作台。", "ok");
-        const nextParams = new URLSearchParams({ project_key: session.projectKey, role });
-        nextParams.set("api", apiUrl);
+        setMessage("Signed in. Opening your workspace…", "success");
+
+        const next = new URLSearchParams({
+          api: apiUrl,
+          project_key: session.projectKey,
+          role
+        });
         if (role === "staff") {
-          nextParams.set("view", "inbox");
-          window.location.href = `dashboard/index.html?${nextParams.toString()}`;
+          next.set("view", "inbox");
+          window.location.assign(`dashboard/?${next.toString()}`);
         } else {
-          window.location.href = `admin.html?${nextParams.toString()}`;
+          window.location.assign(`admin.html?${next.toString()}`);
         }
-      } catch (error) {
-        setLoginMessage(`登录失败：${error.message}`, "error");
+      } catch (_error) {
+        setMessage("The username or password is incorrect.", "error");
+        passwordInput.select();
+      } finally {
         button.disabled = false;
+        button.textContent = "Sign In";
       }
     });
   </script>
