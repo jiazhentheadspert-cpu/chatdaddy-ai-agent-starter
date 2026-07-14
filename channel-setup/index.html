@@ -464,7 +464,7 @@
 
       <div class="side-card">
         <h2>安全连接</h2>
-        <p>项目负责人只填写账号资料。API key 不会显示在页面，也不会写进项目知识库。</p>
+        <p>每个项目连接自己的 ChatDaddy。API Token 会加密保存，不会写进项目知识库，也不会再显示原文。</p>
       </div>
 
       <div class="side-card">
@@ -476,11 +476,11 @@
     <main class="main">
       <section class="hero">
         <div class="eyebrow">项目聊天工具</div>
-        <h1>连接客服渠道</h1>
-        <p>已有资料会自动带入并打勾。项目负责人只处理缺少的部分，客服账号只能查看状态。</p>
+        <h1>连接 ChatDaddy 并同步 Flow</h1>
+        <p>项目负责人只做一次：贴 API Token、填写 Channel / Account ID，然后系统会读取这个项目的 Message Flow。</p>
         <div class="chips">
-          <span class="chip">只保存基本资料</span>
-          <span class="chip">不显示密钥</span>
+          <span class="chip">一项目一账号</span>
+          <span class="chip">Token 加密保存</span>
           <span class="chip">客服批准后才发送</span>
           <span class="chip warn">不会发送顾客讯息</span>
         </div>
@@ -489,8 +489,8 @@
       <section class="panel">
         <div class="toolbar">
           <div>
-            <h2>连接资料</h2>
-            <p>以前填过的资料会自动带入；只补上还缺少的部分。</p>
+            <h2>第 1 步：授权 ChatDaddy</h2>
+            <p>以前连接过会自动打勾；没有连接才需要贴新的 Token。</p>
           </div>
           <div class="status" id="connectionStatus" aria-live="polite">连接中</div>
         </div>
@@ -521,8 +521,8 @@
             </select>
           </label>
           <label>
-            <b>平台账号名称</b>
-            <input id="externalAccountId" placeholder="例如：Beyoute WhatsApp">
+            <b>ChatDaddy Channel / Account ID</b>
+            <input id="externalAccountId" placeholder="从 Manage Channels 复制 ID">
           </label>
           <label>
             <b>聊天渠道</b>
@@ -532,6 +532,17 @@
             <b>WhatsApp 号码提示</b>
             <input id="phoneHint" placeholder="例如：+60***1234">
           </label>
+          <label class="field full" id="apiTokenField">
+            <b>ChatDaddy API Token</b>
+            <input id="apiToken" type="password" autocomplete="new-password" placeholder="只在第一次连接或更换 Token 时填写">
+            <span>在 ChatDaddy 打开 Developer → API Token → +Create。Token 至少要有发送讯息权限；系统保存前会先尝试读取 Message Flow。</span>
+          </label>
+        </div>
+
+        <div class="log-item" id="chatDaddyHelp">
+          <b>不知道去哪里拿？</b><br>
+          API Token：ChatDaddy → Developer → API Token。Channel / Account ID：ChatDaddy → Manage Channels → 复制该 WhatsApp Channel 的 ID。
+          <a href="https://help.chatdaddy.tech/article/how-to-create-an-api-token" target="_blank" rel="noreferrer">打开 ChatDaddy 官方教学</a>
         </div>
 
         <div class="checklist">
@@ -550,10 +561,24 @@
         </div>
 
         <div class="actions">
-          <button class="btn primary" type="button" id="saveButton">保存连接资料</button>
+          <button class="btn primary" type="button" id="saveButton">连接并同步 Flow</button>
           <button class="btn" type="button" id="loadButton">重新检查</button>
           <button class="btn" type="button" id="copyCommandsButton" hidden>复制技术资料</button>
         </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">第 2 步：接收顾客讯息</h2>
+        <p>把下面网址放进 ChatDaddy Webhook。完成后从 WhatsApp 发一条测试讯息，系统收到后会自动打勾。</p>
+        <div class="codebox" id="webhookBox">连接项目后会显示 Webhook URL</div>
+        <div class="actions">
+          <button class="btn" type="button" id="copyWebhookButton">复制 Webhook URL</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">第 3 步：回 Dashboard 选择 Flow</h2>
+        <p>连接成功后回到「回复与成交」，为 Step 1–4 选择刚同步到的真实 Flow，再运行 Mock Test 和发布检查。</p>
       </section>
 
       <section class="panel" id="technicalPanel" hidden>
@@ -588,6 +613,7 @@
     const externalAccountEl = document.getElementById("externalAccountId");
     const externalChannelEl = document.getElementById("externalChannelId");
     const phoneHintEl = document.getElementById("phoneHint");
+    const apiTokenEl = document.getElementById("apiToken");
     const secretStoredEl = document.getElementById("secretStored");
     const webhookConfiguredEl = document.getElementById("webhookConfigured");
     const approvalFirstEl = document.getElementById("approvalFirstConfirmed");
@@ -595,10 +621,12 @@
     const commandBoxEl = document.getElementById("commandBox");
     const connectionListEl = document.getElementById("connectionList");
     const resultLogEl = document.getElementById("resultLog");
+    const webhookBoxEl = document.getElementById("webhookBox");
 
     document.getElementById("saveButton").addEventListener("click", saveMetadata);
     document.getElementById("loadButton").addEventListener("click", loadConnections);
     document.getElementById("copyCommandsButton").addEventListener("click", copyCommands);
+    document.getElementById("copyWebhookButton").addEventListener("click", copyWebhook);
     providerEl.addEventListener("change", () => {
       renderCommands();
       loadConnections();
@@ -629,6 +657,7 @@
           external_account_id: externalAccountEl.value.trim(),
           external_channel_id: externalChannelEl.value.trim(),
           phone_hint: phoneHintEl.value.trim(),
+          api_token: apiTokenEl.value.trim(),
           data: {
             setup_surface: "owner_channel_setup",
             approval_first_confirmed: true
@@ -638,8 +667,10 @@
         if (data.boundary?.secrets_returned !== false) {
           throw new Error("API boundary did not confirm secrets_returned=false");
         }
-        addLog("连接资料已保存", data.next || payload.connection_label);
+        apiTokenEl.value = "";
+        addLog("ChatDaddy 已连接", data.next || payload.connection_label);
         renderConnections(data);
+        notifyDashboardConnectionChanged(projectKey, data.live_flow_count);
       } catch (error) {
         addLog("保存失败", error.message || String(error), true);
       }
@@ -686,25 +717,31 @@
       secretStoredEl.checked = latestSetup?.credential_configured === true;
       webhookConfiguredEl.checked = latestSetup?.webhook_configured === true;
       approvalFirstEl.checked = latestSetup?.approval_first === true;
-      [providerEl, connectionLabelEl, externalAccountEl, externalChannelEl, phoneHintEl].forEach((element) => {
+      [providerEl, connectionLabelEl, externalAccountEl, externalChannelEl, phoneHintEl, apiTokenEl].forEach((element) => {
         element.disabled = !canManageConnection;
       });
+      document.getElementById("apiTokenField").hidden = requestedProvider !== "chatdaddy";
+      document.getElementById("chatDaddyHelp").hidden = requestedProvider !== "chatdaddy";
       projectKeyEl.readOnly = true;
       statusEl.disabled = true;
       document.getElementById("saveButton").hidden = !canManageConnection;
+      document.getElementById("saveButton").textContent = latestSetup?.credential_configured
+        ? "保存并重新同步 Flow"
+        : "连接并同步 Flow";
+      webhookBoxEl.textContent = latestSetup?.webhook_url || "连接项目后会显示 Webhook URL";
       if (latestSetup?.ready) setStatus("已完成", "ok");
       else if (latestSetup?.active_connection) setStatus("已连接，仍有项目待确认", "ok");
       else setStatus("继续设置", "bad");
       renderCommands();
       if (!connections.length) {
-        connectionListEl.innerHTML = `<div class="log-item">这个项目还没有登记 channel metadata。</div>`;
+        connectionListEl.innerHTML = `<div class="log-item">这个项目还没有连接聊天工具。请完成上面的第 1 步。</div>`;
         return;
       }
       connectionListEl.innerHTML = connections.map((item) => `
         <div class="connection-card">
           <div>
             <b>${escapeHtml(item.display_name || item.provider || "聊天工具")}</b>
-            <span>${escapeHtml(item.provider || "-")} · ${escapeHtml(item.external_channel_id || "-")} · ${escapeHtml(item.phone_hint || "未填写号码")}</span>
+            <span>${escapeHtml(item.provider || "-")} · ${escapeHtml(item.external_channel_id || "-")} · ${escapeHtml(item.phone_hint || "未填写号码")} · ${item.credential_configured ? `Token ${escapeHtml(item.credential_hint || "已加密")}` : "未授权"}${Number.isFinite(Number(item.live_flow_count)) ? ` · ${Number(item.live_flow_count)} 条 Flow` : ""}</span>
           </div>
           <div class="status ${["active", "connected", "ready", "live", "enabled"].includes(String(item.status || "").toLowerCase()) ? "ok" : ""}">${escapeHtml(["active", "connected", "ready", "live", "enabled"].includes(String(item.status || "").toLowerCase()) ? "已连接" : "继续设置")}</div>
         </div>
@@ -734,6 +771,32 @@
     async function copyCommands() {
       await navigator.clipboard?.writeText(commandBoxEl.textContent);
       addLog("命令已复制", "只给技术人员执行，不要发给客服。");
+    }
+
+    async function copyWebhook() {
+      const value = String(latestSetup?.webhook_url || "").trim();
+      if (!value) {
+        addLog("还不能复制", "请先完成第 1 步并保存连接资料。", true);
+        return;
+      }
+      await navigator.clipboard?.writeText(value);
+      addLog("Webhook URL 已复制", "把它贴进 ChatDaddy Webhook 设置，然后发一条测试讯息。");
+    }
+
+    function notifyDashboardConnectionChanged(projectKey, flowCount) {
+      const message = {
+        type: "replypilot_chatdaddy_connected",
+        project_key: projectKey,
+        live_flow_count: Number(flowCount || 0)
+      };
+      try {
+        if (window.opener && !window.opener.closed) window.opener.postMessage(message, window.location.origin);
+      } catch {}
+      try {
+        const channel = new BroadcastChannel("replypilot-project-setup");
+        channel.postMessage(message);
+        channel.close();
+      } catch {}
     }
 
     function cleanProjectKey() {
