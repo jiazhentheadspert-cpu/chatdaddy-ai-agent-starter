@@ -13249,8 +13249,8 @@
         const error = String(state.flowCatalogError || "");
         const permissionError = /http_(401|403)|api_key_missing/i.test(error);
         return permissionError
-          ? { title: "ChatDaddy API 还没有读取 Flow 的权限", body: "当前只显示项目预设名称；未绑定真实 ID 的项目不能发送。", ready: false }
-          : { title: "暂时没有同步到 ChatDaddy Flow", body: "当前只显示已保存的项目 Flow；点击下面按钮可重新同步。", ready: false };
+          ? { title: "先连接这个项目的 ChatDaddy", body: "当前项目没有可用的 API Token，或 Token 权限不足。请先完成账号连接，再回来同步 Flow。", ready: false, needsConnection: true }
+          : { title: "暂时没有同步到 ChatDaddy Flow", body: "请先确认这个项目已经连接自己的 ChatDaddy；连接成功后系统会自动读取 Flow。", ready: false, needsConnection: true };
       }
 
       function salesFlowProviderId(flow = {}, select = null) {
@@ -13434,7 +13434,16 @@
             <section class="settings-box">
               <h3>${escapeHtml(flowCatalogStatus.title)}</h3>
               <p class="settings-section-copy">${escapeHtml(flowCatalogStatus.body)}</p>
-              ${canManageProjectSettings() ? `<div class="quick-actions"><button class="quick-action ${flowCatalogStatus.ready ? "" : "primary"}" data-dashboard-action="refresh-flow-catalog" type="button">重新同步 ChatDaddy Flow</button></div>` : ""}
+              <div class="compact-list">
+                ${compactRow("1. 连接账号", "贴这个项目的 ChatDaddy API Token 和 Channel / Account ID", flowCatalogStatus.ready ? "已完成" : "先处理")}
+                ${compactRow("2. 同步 Flow", "系统读取该 ChatDaddy 账号的 Message Flow", flowCatalogStatus.ready ? "已完成" : "待同步")}
+                ${compactRow("3. 选择销售 Flow", "为每一个销售 Step 选择真实 Flow", "本页完成")}
+                ${compactRow("4. 测试并发布", "运行 Mock Test；不会发送真实顾客讯息", "最后一步")}
+              </div>
+              ${canManageProjectSettings() ? `<div class="quick-actions">
+                ${flowCatalogStatus.needsConnection ? `<a class="quick-action primary" href="${escapeHtml(projectChannelSetupUrl("chatdaddy"))}" target="_blank" rel="noreferrer">连接 ChatDaddy</a>` : ""}
+                <button class="quick-action ${flowCatalogStatus.ready ? "" : flowCatalogStatus.needsConnection ? "" : "primary"}" data-dashboard-action="refresh-flow-catalog" type="button">重新同步 Flow</button>
+              </div>` : ""}
             </section>
             <fieldset class="project-settings-readonly" ${settingsReadOnly ? "disabled" : ""}>
             <details class="settings-section" open>
@@ -17765,10 +17774,10 @@
 	    return;
 	  }
 	  if (/http_(401|403)|api_key_missing/i.test(String(state.flowCatalogError || ""))) {
-	    showToast("ChatDaddy API 还没有读取 Flow 的权限；未绑定 ID 的 Flow 不会发送。");
+	    showToast("请先点击「连接 ChatDaddy」，保存这个项目自己的 API Token 和 Account ID。");
 	    return;
 	  }
-	  showToast("暂时没有同步到 ChatDaddy Flow，请检查账号连接后再试。");
+	  showToast("还没有同步到 Flow；请先完成这个项目的 ChatDaddy 账号连接。");
 	}
 
     async function loadProjectKnowledge(options = {}) {
@@ -24551,6 +24560,24 @@
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
     }
+
+    async function handleProjectSetupBroadcast(message = {}) {
+      if (message?.type !== "replypilot_chatdaddy_connected") return;
+      const currentProject = String(projectKeyEl.value || "beyoute").trim().toLowerCase();
+      if (String(message.project_key || "").trim().toLowerCase() !== currentProject) return;
+      showToast(`ChatDaddy 已连接，正在同步 ${Number(message.live_flow_count || 0)} 条 Flow...`);
+      await Promise.all([loadFlowCatalog(), loadProjectConnectionReadiness(), loadProjectKnowledge({ silent: true })]);
+      render();
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin) return;
+      handleProjectSetupBroadcast(event.data).catch(() => null);
+    });
+    try {
+      const setupChannel = new BroadcastChannel("replypilot-project-setup");
+      setupChannel.addEventListener("message", (event) => handleProjectSetupBroadcast(event.data).catch(() => null));
+    } catch {}
 
     (async function bootDashboard() {
 	  await bootstrapSaasSession();
