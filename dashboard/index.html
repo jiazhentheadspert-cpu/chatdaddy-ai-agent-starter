@@ -8965,10 +8965,14 @@
 
     function unifiedLoginUrl() {
       const url = new URL("../login.html", window.location.href);
+      const currentUrl = new URL(window.location.href);
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "beyoute";
       if (api) url.searchParams.set("api", api);
       if (project) url.searchParams.set("project_key", project);
+      url.searchParams.set("return_to", "dashboard");
+      if (currentUrl.searchParams.get("view")) url.searchParams.set("view", currentUrl.searchParams.get("view"));
+      if (currentUrl.searchParams.get("setup")) url.searchParams.set("setup", currentUrl.searchParams.get("setup"));
       return url.toString();
     }
 
