@@ -89,7 +89,7 @@
       align-content: start;
       gap: 20px;
       align-self: stretch;
-      overflow-y: visible;
+      overflow-y: auto;
       overscroll-behavior: contain;
     }
 
@@ -179,7 +179,7 @@
       display: grid;
       gap: 7px;
       align-content: start;
-      overflow-y: auto;
+      overflow-y: visible;
       padding-right: 2px;
     }
 
@@ -249,9 +249,13 @@
       content: "−";
     }
 
+    .side-settings-panel small {
+      min-width: 64px;
+    }
+
     .onboarding-summary {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
       margin: 14px 0;
     }
@@ -265,7 +269,8 @@
     }
 
     .onboarding-summary-item b,
-    .onboarding-summary-item span {
+    .onboarding-summary-item span,
+    .onboarding-summary-item small {
       display: block;
     }
 
@@ -280,6 +285,17 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.35;
+    }
+
+    .onboarding-summary-item small {
+      margin-top: 7px;
+      color: #087b73;
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .onboarding-summary-item.pending small {
+      color: #a45d0a;
     }
 
     .knowledge-section {
@@ -1825,6 +1841,237 @@
     .field-grid textarea:focus {
       border-color: rgba(0,183,216,.36);
       box-shadow: 0 0 0 4px rgba(0,183,216,.10);
+    }
+
+    .settings-section {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.92);
+      overflow: hidden;
+    }
+
+    .settings-section + .settings-section {
+      margin-top: 12px;
+    }
+
+    .settings-section > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 54px;
+      padding: 13px 15px;
+      cursor: pointer;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 950;
+      list-style: none;
+    }
+
+    .settings-section > summary::-webkit-details-marker,
+    .faq-item > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .settings-section > summary::after {
+      content: "展开";
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .settings-section[open] > summary::after {
+      content: "收起";
+    }
+
+    .settings-section[open] > summary {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .settings-section-body {
+      padding: 15px;
+    }
+
+    .settings-section-copy {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 760;
+      line-height: 1.45;
+    }
+
+    .settings-inline-advanced {
+      margin-top: 10px;
+      border-top: 1px dashed var(--line);
+      padding-top: 10px;
+    }
+
+    .settings-inline-advanced > summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .settings-inline-advanced .field-grid {
+      margin-top: 10px;
+    }
+
+    .settings-publish-bar {
+      position: sticky;
+      z-index: 8;
+      bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border: 1px solid rgba(0,183,216,.30);
+      border-radius: 18px;
+      background: rgba(255,255,255,.96);
+      padding: 12px 14px;
+      box-shadow: 0 16px 34px rgba(8,40,43,.16);
+      backdrop-filter: blur(14px);
+    }
+
+    .settings-publish-copy b,
+    .settings-publish-copy span {
+      display: block;
+    }
+
+    .settings-publish-copy b {
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .settings-publish-copy span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .settings-publish-bar .quick-actions {
+      flex: 0 0 auto;
+      margin-top: 0;
+    }
+
+    .faq-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .faq-toolbar input {
+      min-width: 220px;
+      flex: 1 1 320px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 12px;
+      outline: none;
+      font-weight: 760;
+    }
+
+    .faq-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .faq-filter {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 8px 11px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .faq-filter.active {
+      border-color: rgba(0,183,216,.38);
+      background: rgba(0,183,216,.10);
+      color: #086b72;
+    }
+
+    .faq-count-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .faq-item {
+      padding: 0;
+    }
+
+    .faq-item > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 14px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .faq-item > summary span {
+      margin: 0;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .faq-item > summary small {
+      flex: 0 0 auto;
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .faq-item[open] > summary {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .faq-answer {
+      padding: 13px 14px;
+      color: var(--ink);
+      font-weight: 760;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 760px) {
+      .onboarding-summary,
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .faq-toolbar,
+      .settings-publish-bar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .faq-toolbar input {
+        min-width: 0;
+        width: 100%;
+        flex-basis: auto;
+      }
+
+      .settings-publish-bar .quick-actions {
+        width: 100%;
+      }
+
+      .settings-publish-bar .quick-action {
+        flex: 1 1 auto;
+      }
     }
 
     .flow-table {
@@ -7113,19 +7360,19 @@
         <div class="side-note">最新讯息看全部对话；操作台只放需要处理的顾客。</div>
 
         <div class="side-settings" id="sideSettings" aria-label="设置">
-          <button class="side-settings-title" id="sideSettingsToggle" type="button" aria-expanded="false"><span class="side-label side-label-plain"><em>设置</em></span></button>
-          <div class="side-settings-panel">
-            <button data-short="1" data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
-              <span class="side-label"><b class="side-code">1</b><em>讯息连接</em></span>
-              <small id="navStep1Badge">待</small>
+          <button class="side-settings-title" id="sideSettingsToggle" type="button" aria-expanded="false" aria-controls="sideSettingsPanel"><span class="side-label side-label-plain"><em>设置</em></span></button>
+          <div class="side-settings-panel" id="sideSettingsPanel" aria-hidden="true">
+            <button aria-label="聊天工具链接" title="聊天工具链接" data-short="聊" data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
+              <span class="side-label"><em>聊天工具链接</em></span>
+              <small id="navStep1Badge">待连接</small>
             </button>
-            <button data-short="2" data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
-              <span class="side-label"><b class="side-code">2</b><em>回复 SOP</em></span>
-              <small id="navStep2Badge">待</small>
+            <button aria-label="回复与成交" title="回复与成交" data-short="成" data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
+              <span class="side-label"><em>回复与成交</em></span>
+              <small id="navStep2Badge">待完成</small>
             </button>
-            <button data-short="3" data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
-              <span class="side-label"><b class="side-code">3</b><em>FAQ 资料</em></span>
-              <small id="navStep3Badge">待</small>
+            <button aria-label="知识库" title="知识库" data-short="知" data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
+              <span class="side-label"><em>知识库</em></span>
+              <small id="navStep3Badge">待完成</small>
             </button>
           </div>
         </div>
@@ -7663,6 +7910,8 @@
       projectConnectionReadinessError: "",
       projectConnectionReadinessBusy: false,
       settingsExpanded: false,
+      projectFaqQuery: "",
+      projectFaqFilter: "all",
       projectDocumentFile: null,
       projectDocumentBusy: false,
       googleDocsFaqBusy: false,
@@ -8193,9 +8442,11 @@
     function syncSettingsDisclosure() {
       const shell = $("sideSettings");
       const toggle = $("sideSettingsToggle");
+      const panel = $("sideSettingsPanel");
       if (!shell || !toggle) return;
       shell.classList.toggle("open", state.settingsExpanded);
       toggle.setAttribute("aria-expanded", state.settingsExpanded ? "true" : "false");
+      if (panel) panel.setAttribute("aria-hidden", state.settingsExpanded ? "false" : "true");
     }
 
     document.addEventListener("change", (event) => {
@@ -8204,11 +8455,26 @@
       state.projectDocumentFile = input.files?.[0] || null;
       const note = $("projectDocumentStatus");
       if (note) note.textContent = state.projectDocumentFile
-        ? `已选择：${state.projectDocumentFile.name}，点击「分析并加入项目」。`
+        ? `已选择：${state.projectDocumentFile.name}，点击「整理并加入项目」。`
         : "请先选择 PPTX、PDF、TXT 或 Markdown 文件。";
     });
 
+    document.addEventListener("input", (event) => {
+      const input = event.target.closest("[data-project-faq-search]");
+      if (!input) return;
+      state.projectFaqQuery = input.value || "";
+      applyProjectFaqFilters();
+    });
+
     document.addEventListener("click", (event) => {
+      const faqFilter = event.target.closest("[data-project-faq-filter]");
+      if (faqFilter) {
+        event.preventDefault();
+        state.projectFaqFilter = faqFilter.dataset.projectFaqFilter || "all";
+        applyProjectFaqFilters();
+        return;
+      }
+
       const cardAction = event.target.closest("[data-card-action]");
       if (cardAction) {
         event.preventDefault();
@@ -9017,7 +9283,7 @@
         },
         operations: {
           title: state.activeSetupStep === "7" ? "Segment" : "设置",
-          subtitle: state.activeSetupStep === "7" ? "按分群看顾客。" : "连接、SOP、FAQ。",
+          subtitle: state.activeSetupStep === "7" ? "按分群看顾客。" : "聊天工具、回复成交和知识库。",
         },
         learning: {
           title: "复盘",
@@ -9144,6 +9410,10 @@
       }
       if (action === "save-project-sales-process") {
         saveProjectSalesProcessFromOnboarding();
+        return;
+      }
+      if (action === "save-and-publish-project-sales-process") {
+        saveAndPublishProjectSalesProcess();
         return;
       }
       if (action === "mock-publish-project-brain") {
@@ -11266,6 +11536,7 @@
       syncFilterControls();
       renderOpsLayer(all);
       renderWorkspaceViews(all, counts, learned);
+      applyProjectFaqFilters();
       renderInboxView();
       syncWorkspaceView();
       pruneSelection(all);
@@ -11766,9 +12037,9 @@
       const onboarding = state.projectKnowledge || {};
       const completion = onboarding.completion || {};
       const knowledgeCounts = onboarding.counts || {};
-      setBadge("navStep1Badge", completion.message_connection && completion.project_materials ? "✅" : "待");
-      setBadge("navStep2Badge", completion.reply_sop ? `${Number(knowledgeCounts.ops_sop || 0) + Number(knowledgeCounts.safety_sop || 0) + Number(knowledgeCounts.reply_rules || 0)}` : "待");
-      setBadge("navStep3Badge", completion.faq ? Number(knowledgeCounts.faq || 0) : "待");
+      setBadge("navStep1Badge", completion.message_connection ? "已连接" : "待连接");
+      setBadge("navStep2Badge", completion.reply_sop && completion.sales_process ? "已完成" : "待完成");
+      setBadge("navStep3Badge", completion.faq ? "已完成" : "待完成");
       setBadge("navStep4Badge", casesLabel);
       setBadge("navStep5Badge", learned || "中");
       setBadge("navStep6Badge", learned ? "看" : "中");
@@ -12344,7 +12615,7 @@
         <span class="alert-dot" aria-hidden="true"></span>
         <div>
           <b>同步提醒：先确认今天的新讯息有没有进来</b>
-          <span>${escapeHtml(`Dashboard 最新收到的顾客讯息停在 ${timeText}。如果 ChatDaddy 现在有新聊天，请先确认讯息连接；不要把这里当成今天真的没有顾客。`)}</span>
+          <span>${escapeHtml(`Dashboard 最新收到的顾客讯息停在 ${timeText}。如果 ChatDaddy 现在有新聊天，请先确认聊天工具链接；不要把这里当成今天真的没有顾客。`)}</span>
         </div>
       `;
     }
@@ -12492,7 +12763,7 @@
       const panels = {
         "1": {
           kicker: "设置",
-          title: "讯息连接",
+          title: "聊天工具链接",
           body: "确认顾客讯息能进操作台。设置好一次，客服日常不用碰。",
           rows: [
             ["连接", "新讯息可以进 Dashboard", "OK"],
@@ -12504,7 +12775,7 @@
         },
         "2": {
           kicker: "设置",
-          title: "回复 SOP",
+          title: "回复与成交",
           body: "AI 回复要像真人客服：先看顾客上一句在回答什么，再回答问题，价格前接下一步，价格后做成交。",
           rows: [
             ["Step 1", "精简自我介绍 + USP + 定位，问顾客想解决什么", "开场"],
@@ -12517,7 +12788,7 @@
         },
         "3": {
           kicker: "设置",
-          title: "FAQ 资料",
+          title: "知识库",
           body: "AI 只用项目方给过的资料回答。资料不够就问清楚或转人工回复，不要硬编。",
           rows: [
             ["产品", "用法、效果、成分、适合谁", "FAQ"],
@@ -12595,50 +12866,72 @@
         const readiness = state.projectConnectionReadiness;
         if (!readiness) {
           return `<section class="command-panel">
-            <div class="command-kicker">第二步：项目连接中心</div>
-            <strong class="command-title">${state.projectConnectionReadinessBusy ? "正在检测渠道能力..." : "还没有读取连接能力"}</strong>
-            <p class="command-copy">${escapeHtml(state.projectConnectionReadinessError || "检测只读取配置和历史成功记录，不会发送测试讯息。")}</p>
+            <div class="command-kicker">聊天工具</div>
+            <strong class="command-title">${state.projectConnectionReadinessBusy ? "正在检查连接..." : "聊天工具链接"}</strong>
+            <p class="command-copy">${escapeHtml(state.projectConnectionReadinessError || "连接 ChatDaddy 或 ManyChat，让顾客讯息进入 ReplyPilot。")}</p>
             <div class="quick-actions">
-              <button class="quick-action primary" data-dashboard-action="test-project-connection" type="button" ${state.projectConnectionReadinessBusy ? "disabled" : ""}>重新检测</button>
-              <a class="quick-action" href="../channel-setup/index.html" target="_blank" rel="noreferrer">管理渠道连接</a>
+              <button class="quick-action primary" data-dashboard-action="test-project-connection" type="button" ${state.projectConnectionReadinessBusy ? "disabled" : ""}>检查连接</button>
+              <a class="quick-action" href="../channel-setup/index.html" target="_blank" rel="noreferrer">打开链接设置</a>
             </div>
           </section>`;
         }
         const connection = readiness.connection || {};
         const providerLabel = readiness.provider === "manychat"
-          ? "ManyChat Lite"
+          ? "ManyChat"
           : readiness.provider === "chatdaddy"
-            ? "ChatDaddy Full"
+            ? "ChatDaddy"
             : readiness.provider || "未连接";
         const blockers = Array.isArray(readiness.blockers) ? readiness.blockers : [];
         const warnings = Array.isArray(readiness.warnings) ? readiness.warnings : [];
         const capabilities = Array.isArray(readiness.capabilities) ? readiness.capabilities : [];
         const stages = Array.isArray(readiness.stage_bindings) ? readiness.stage_bindings : [];
+        const connectedStageCount = stages.filter((stage) => stage.configured).length;
         return `<section class="command-panel ${readiness.ready_for_publish ? "accent" : ""}">
-          <div class="command-kicker">第二步：项目连接中心</div>
-          <strong class="command-title">${readiness.ready_for_publish ? "连接能力已达到 Level 1 发布条件" : `还有 ${blockers.length} 个发布卡点`}</strong>
-          <p class="command-copy">项目负责人不需要在这里填写 API Key。平台只显示能力状态；凭证留在安全连接层。</p>
+          <div class="command-kicker">聊天工具</div>
+          <strong class="command-title">聊天工具链接</strong>
+          <p class="command-copy">连接 ChatDaddy 或 ManyChat，让顾客讯息进入 ReplyPilot。</p>
           <div class="compact-list">
-            ${compactRow("当前渠道", `${providerLabel}${connection.display_name ? ` · ${connection.display_name}` : ""}`, readiness.active_connection ? "已启用" : "未启用")}
-            ${capabilities.map((capability) => compactRow(
-              capability.label,
-              capability.note || "",
-              capability.status === "verified" ? "已验证" : capability.status === "configured" ? "已配置" : capability.required ? "缺少" : "未提供"
-            )).join("")}
+            ${compactRow("聊天工具", `${providerLabel}${connection.display_name ? ` · ${connection.display_name}` : ""}`, readiness.active_connection ? "已连接" : "待连接")}
+            ${compactRow("顾客讯息", readiness.active_connection ? "可以进入 ReplyPilot" : "还没有确认讯息入口", readiness.active_connection ? "正常" : "待处理")}
+            ${compactRow("销售 Flow", stages.length ? `${connectedStageCount}/${stages.length} 已连接` : "还没有设置销售 Step", connectedStageCount === stages.length && stages.length ? "已完成" : "待处理")}
           </div>
-          <div class="settings-box">
-            <h3>Step → Flow 绑定</h3>
-            <div class="compact-list">${stages.map((stage) => compactRow(
-              stage.stage_key,
-              stage.configured ? `${stage.flow_key} · 已接真实 ID` : `${stage.flow_key || "待选择"} · 尚未接真实 ID`,
-              stage.configured ? "已绑定" : "阻挡"
-            )).join("") || compactRow("销售 Step", "请先设置 1–4 Step", "待设置")}</div>
-          </div>
-          ${blockers.length ? `<div class="settings-box"><h3>发布前必须处理</h3><div class="compact-list">${blockers.map((item) => compactRow(item.code || "blocker", item.message || "待处理", "阻挡")).join("")}</div></div>` : ""}
-          ${warnings.length ? `<p class="project-upload-note">${escapeHtml(`另有 ${warnings.length} 项只有配置、还没有历史成功证据；Level 1 仍会保持人工批准。`)}</p>` : ""}
+          ${blockers.length ? `<div class="settings-box"><h3>发布前要处理</h3><div class="compact-list">${blockers.map((item, index) => compactRow(`问题 ${index + 1}`, item.message || "待处理", "未完成")).join("")}</div></div>` : ""}
           <div class="quick-actions">
-            <button class="quick-action primary" data-dashboard-action="test-project-connection" type="button" ${state.projectConnectionReadinessBusy ? "disabled" : ""}>${state.projectConnectionReadinessBusy ? "检测中..." : "重新检测（不发送）"}</button>
-            <a class="quick-action" href="../channel-setup/index.html" target="_blank" rel="noreferrer">管理渠道连接</a>
+            <button class="quick-action primary" data-dashboard-action="test-project-connection" type="button" ${state.projectConnectionReadinessBusy ? "disabled" : ""}>${state.projectConnectionReadinessBusy ? "检查中..." : "检查连接"}</button>
+            <a class="quick-action" href="../channel-setup/index.html" target="_blank" rel="noreferrer">打开链接设置</a>
+          </div>
+          <details class="settings-section" style="margin-top:12px">
+            <summary>连接详情</summary>
+            <div class="settings-section-body">
+              <p class="settings-section-copy">API 密钥由管理员保管，这里只显示连接状态。</p>
+              <div class="compact-list">
+                ${capabilities.map((capability) => compactRow(
+                  capability.label,
+                  capability.note || "",
+                  capability.status === "verified" ? "已验证" : capability.status === "configured" ? "已配置" : capability.required ? "缺少" : "未提供"
+                )).join("") || compactRow("连接能力", "等待检查", "待处理")}
+                ${stages.map((stage) => compactRow(
+                  `销售 Step ${Number(String(stage.stage_key || "").match(/\d+/)?.[0] || 0) || ""}`.trim(),
+                  stage.configured ? "已连接真实 Flow" : "尚未连接真实 Flow",
+                  stage.configured ? "已完成" : "待处理"
+                )).join("")}
+              </div>
+              ${warnings.length ? `<p class="project-upload-note">另有 ${warnings.length} 项需要更多成功记录；目前仍保持人工批准。</p>` : ""}
+            </div>
+          </details>
+        </section>`;
+      }
+
+      function projectSettingsPublishBarHtml(options = {}) {
+        if (state.role === "staff") return "";
+        return `<section class="settings-publish-bar" aria-label="检查并发布项目设置">
+          <div class="settings-publish-copy">
+            <b>完成后检查并发布</b>
+            <span>检查不会发送顾客讯息；通过后才启用新版本。</span>
+          </div>
+          <div class="quick-actions">
+            ${options.showSave ? `<button class="quick-action" data-dashboard-action="save-project-sales-process" type="button">保存本页</button>` : ""}
+            <button class="quick-action primary" data-dashboard-action="${options.showSave ? "save-and-publish-project-sales-process" : "mock-publish-project-brain"}" type="button">检查并发布</button>
           </div>
         </section>`;
       }
@@ -12687,9 +12980,9 @@
         if (!knowledge) {
           return `
             <section class="command-panel accent">
-              <div class="command-kicker">项目 Onboarding</div>
-              <strong class="command-title">还没有读到真实项目资料</strong>
-              <p class="command-copy">${escapeHtml(state.projectKnowledgeError ? `读取失败：${state.projectKnowledgeError}` : "正在读取项目知识包。")}</p>
+              <div class="command-kicker">项目设置</div>
+              <strong class="command-title">还没有读到项目资料</strong>
+              <p class="command-copy">${escapeHtml(state.projectKnowledgeError ? `读取失败：${state.projectKnowledgeError}` : "正在读取，请稍候。")}</p>
               <div class="quick-actions"><button class="quick-action primary" data-dashboard-action="refresh-project-knowledge" type="button">重新读取</button></div>
             </section>
           `;
@@ -12703,32 +12996,15 @@
         const documents = Array.isArray(knowledge.source_documents) ? knowledge.source_documents : [];
         const analyses = Array.isArray(knowledge.document_analyses) ? knowledge.document_analyses : [];
         const header = `
-          <section class="command-panel accent">
-            <div class="command-kicker">${escapeHtml(knowledge.project_name || knowledge.project_key)} 项目 Onboarding</div>
-            <strong class="command-title">先读项目资料，再接讯息、Flow、SOP 与 FAQ</strong>
-            <p class="command-copy">这里显示的是后台真实项目包，不再用写死的 ✅。AI 生成回复时会检索这里已批准的 FAQ、SOP 与 Flow 判断。</p>
+          <section class="command-panel accent settings-overview">
+            <div class="command-kicker">当前项目</div>
+            <strong class="command-title">${escapeHtml(projectLabel)}</strong>
+            <p class="command-copy">完成下面三项后，就可以检查并发布。</p>
             ${projectOnboardingSummaryHtml(knowledge)}
           </section>
         `;
         if (step === "1") {
-          const documentRows = documents.length
-            ? documents.map((item) => knowledgeItemHtml(item.title || item.file_name || "项目资料", item.status || item.type || "已加入", item.analyzed_at || item.last_studied_at || "")).join("")
-            : knowledgeItemHtml("还没有项目资料", "先上传 PPTX 或 PDF", "没有资料时不会显示完成");
-          const latestAnalysis = analyses[0] || null;
-          return `${header}
-            <section class="command-panel">
-              <div class="command-kicker">第一步：项目资料</div>
-              <strong class="command-title">上传项目资料，让 AI 先理解项目</strong>
-              <p class="command-copy">支持 PPTX、PDF、TXT、Markdown。系统会提取文字、分析定位、目标顾客、产品、FAQ、SOP 与 Flow 用途，再写入这个项目包。</p>
-              <div class="project-upload">
-                <input type="file" data-project-document-input accept=".pptx,.pdf,.txt,.md,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.presentationml.presentation" aria-label="上传项目资料">
-                <button class="quick-action primary" data-dashboard-action="analyze-project-document" type="button" ${state.projectDocumentBusy ? "disabled" : ""}>${state.projectDocumentBusy ? "分析中..." : "分析并加入项目"}</button>
-                <div class="project-upload-note" id="projectDocumentStatus">先选择文件；读取与分析不会发送任何顾客讯息。</div>
-              </div>
-              <div class="knowledge-section">${documentRows}</div>
-              ${latestAnalysis ? `<div class="knowledge-section">${knowledgeItemHtml("最近一次分析", latestAnalysis.summary || latestAnalysis.positioning || "已完成", `${latestAnalysis.file_name || "项目资料"} · ${latestAnalysis.analysis_mode || latestAnalysis.status || "analyzed"}`)}</div>` : ""}
-            </section>
-            ${projectConnectionCenterHtml()}`;
+          return `${header}${projectConnectionCenterHtml()}${projectSettingsPublishBarHtml()}`;
         }
         if (step === "2") {
           const sopItems = [
@@ -12742,7 +13018,7 @@
             const stage = configuredStages[index] || {
               stage_key: `step_${index + 1}`,
               order: index + 1,
-              purpose: ["产品介绍，并了解顾客面对的问题", "USP、End Result 与产品成分", "Testimonial、线下店、认证与信心", "价格、真实优惠、Urgency 与成交"][index],
+              purpose: ["介绍产品，并了解顾客面对的问题", "核心卖点、顾客可获得的结果与产品成分", "顾客见证、线下店、认证与信任", "价格、有效优惠与成交邀请"][index],
               flow_key: `s${index + 1}`,
               provider_flow_id: "",
               provider_bot_id: "",
@@ -12751,11 +13027,14 @@
             return `<div class="settings-box" data-sales-stage-row="${index + 1}">
               <h3>Step ${index + 1}${stage.stage_key === salesProcess.price_stage_key ? " · 价格阶段" : ""}</h3>
               <div class="field-grid">
-                <label>这个 Step 的目的<input data-sales-purpose="${index + 1}" value="${escapeHtml(stage.purpose || "")}"></label>
-                <label>选择真实 Flow<select data-sales-flow-catalog="${index + 1}" data-current-provider-flow-id="${escapeHtml(stage.provider_flow_id || "")}" data-current-provider-bot-id="${escapeHtml(stage.provider_bot_id || "")}">${projectOnboardingFlowOptions(stage)}</select></label>
-                <label>内部 Flow Key<input data-sales-flow-key="${index + 1}" value="${escapeHtml(stage.flow_key || `s${index + 1}`)}" readonly></label>
+                <label>这一段要做到什么<input data-sales-purpose="${index + 1}" value="${escapeHtml(stage.purpose || "")}"></label>
+                <label>接哪一条 Flow<select data-sales-flow-catalog="${index + 1}" data-current-provider-flow-id="${escapeHtml(stage.provider_flow_id || "")}" data-current-provider-bot-id="${escapeHtml(stage.provider_bot_id || "")}">${projectOnboardingFlowOptions(stage)}</select></label>
                 <label><input type="checkbox" data-sales-contains-media="${index + 1}" ${stage.contains_media ? "checked" : ""}> 这个 Flow 已经包含图片 / 视频 / 语音</label>
               </div>
+              <details class="settings-inline-advanced">
+                <summary>高级设置</summary>
+                <div class="field-grid"><label>系统 Flow 编号<input data-sales-flow-key="${index + 1}" value="${escapeHtml(stage.flow_key || `s${index + 1}`)}" readonly></label></div>
+              </details>
             </div>`;
           }).join("");
           const priceOptions = Array.from({ length: 4 }, (_, index) => `<option value="step_${index + 1}" ${salesProcess.price_stage_key === `step_${index + 1}` ? "selected" : ""}>Step ${index + 1}</option>`).join("");
@@ -12768,134 +13047,215 @@
           const docsMediaRefs = projectDocsMediaReferences(knowledge);
           return `${header}
             <section class="command-panel accent">
-              <div class="command-kicker">成交流程与渠道</div>
-              <strong class="command-title">一个项目一个脑袋：设置 1–4 Step、价格阶段和成交节奏</strong>
-              <p class="command-copy">这里保存进当前项目的 Project Brain，不会影响其他项目。顾客连续追问时，系统默认只回答，不会每轮重复 Proof 和 CTA。</p>
-              <div class="field-grid">
-                <label>消息渠道<select id="salesChannelProviderInput"><option value="chatdaddy" ${salesProcess.channel_provider !== "manychat" ? "selected" : ""}>ChatDaddy Full</option><option value="manychat" ${salesProcess.channel_provider === "manychat" ? "selected" : ""}>ManyChat Lite（Adapter 完成后开放）</option></select></label>
-                <label>项目有几个销售 Step<select id="salesStepCountInput">${[1,2,3,4].map((count) => `<option value="${count}" ${Number(salesProcess.step_count || 4) === count ? "selected" : ""}>${count} Step</option>`).join("")}</select></label>
-                <label>哪个 Step 会显示价格<select id="salesPriceStageInput">${priceOptions}</select></label>
-                <label>顾客提前问价格<select id="salesEarlyPricePolicyInput"><option value="answer_now_and_enter_closer" ${salesProcess.early_price_policy !== "bridge_then_continue_flow" ? "selected" : ""}>直接回答并进入成交阶段</option><option value="bridge_then_continue_flow" ${salesProcess.early_price_policy === "bridge_then_continue_flow" ? "selected" : ""}>Bridge 后继续教育 Flow</option></select></label>
-                <label>批准过的价格后 Proof（每行一项）<textarea id="salesPostPriceProofInput">${escapeHtml(proofText)}</textarea></label>
-                <label>价格后 CTA<input id="salesPostPriceCtaInput" value="${escapeHtml(ctaText)}" placeholder="例如：你想先从哪个配套开始？"></label>
-                <label>真实 Urgency（每行一项，必须有活动依据）<textarea id="salesPostPriceUrgencyInput">${escapeHtml(urgencyText)}</textarea></label>
-                <label>当前 Offer 名称<input id="salesOfferTitleInput" value="${escapeHtml(offer.title || offer.name || "")}" placeholder="例如：7月买3送1"></label>
-                <label>Offer 有效截止时间<input id="salesOfferValidUntilInput" type="datetime-local" value="${escapeHtml(dateTimeLocalValue(offer.valid_until || offer.ends_at || ""))}"></label>
-                <label>Offer 来源 / 批准人<input id="salesOfferSourceInput" value="${escapeHtml(offer.source || offer.source_ref || "")}" placeholder="例如：Owner 14/07 批准或活动文件名"></label>
+              <div class="command-kicker">回复与成交</div>
+              <strong class="command-title">设置 AI 怎么回答和推进成交</strong>
+              <p class="command-copy">每个项目独立设置。顾客连续追问时，AI 只回答问题，不会每次重复信任素材和成交邀请。</p>
+            </section>
+            <details class="settings-section" open>
+              <summary>销售流程</summary>
+              <div class="settings-section-body">
+                <div class="field-grid">
+                  <label>项目有几个销售 Step<select id="salesStepCountInput">${[1,2,3,4].map((count) => `<option value="${count}" ${Number(salesProcess.step_count || 4) === count ? "selected" : ""}>${count} Step</option>`).join("")}</select></label>
+                  <label>哪个 Step 会显示价格<select id="salesPriceStageInput">${priceOptions}</select></label>
+                </div>
+                <div class="settings-grid">${stageRows}</div>
               </div>
-              <div class="settings-grid">${stageRows}</div>
-              <div class="quick-actions">
-                <button class="quick-action primary" data-dashboard-action="save-project-sales-process" type="button">保存为 Project Brain 草稿</button>
-                <button class="quick-action" data-dashboard-action="mock-publish-project-brain" type="button">运行 Mock Test 并发布</button>
+            </details>
+            <details class="settings-section">
+              <summary>价格与优惠</summary>
+              <div class="settings-section-body">
+                <p class="settings-section-copy">顾客看过价格后，先回答问题；只有合适的时候才补信任与成交邀请。</p>
+                <div class="field-grid">
+                  <label>顾客提前问价格<select id="salesEarlyPricePolicyInput"><option value="answer_now_and_enter_closer" ${salesProcess.early_price_policy !== "bridge_then_continue_flow" ? "selected" : ""}>直接回答，并进入成交阶段</option><option value="bridge_then_continue_flow" ${salesProcess.early_price_policy === "bridge_then_continue_flow" ? "selected" : ""}>回答后继续原本的介绍流程</option></select></label>
+                  <label>价格后的信任素材（每行一项）<textarea id="salesPostPriceProofInput">${escapeHtml(proofText)}</textarea></label>
+                  <label>价格后的成交邀请<input id="salesPostPriceCtaInput" value="${escapeHtml(ctaText)}" placeholder="例如：你想先从哪个配套开始？"></label>
+                  <label>优惠期限说明（每行一项）<textarea id="salesPostPriceUrgencyInput">${escapeHtml(urgencyText)}</textarea></label>
+                  <label>优惠名称<input id="salesOfferTitleInput" value="${escapeHtml(offer.title || offer.name || "")}" placeholder="例如：7月买3送1"></label>
+                  <label>优惠截止时间<input id="salesOfferValidUntilInput" type="datetime-local" value="${escapeHtml(dateTimeLocalValue(offer.valid_until || offer.ends_at || ""))}"></label>
+                  <label>资料来源 / 批准人<input id="salesOfferSourceInput" value="${escapeHtml(offer.source || offer.source_ref || "")}" placeholder="例如：负责人 14/07 批准或活动文件名"></label>
+                </div>
               </div>
-              <div class="settings-box">
-                <h3>加入项目批准素材</h3>
+            </details>
+            <details class="settings-section">
+              <summary>信任素材</summary>
+              <div class="settings-section-body">
+                <p class="settings-section-copy">只加入当前项目已经批准的图片、视频或预录语音。</p>
                 <div class="field-grid">
                   <label>素材名称<input id="projectMediaTitleInput" placeholder="例如：门店证明图"></label>
                   <label>素材类型<select id="projectMediaTypeInput"><option value="image">图片</option><option value="video">视频</option><option value="audio">预录语音</option></select></label>
-                  <label>Provider Media ID<input id="projectMediaProviderIdInput" placeholder="ChatDaddy 已上传素材的 ID"></label>
-                  <label>或媒体 URL<input id="projectMediaUrlInput" placeholder="https://..."></label>
-                  <label>适用 Step（逗号分隔）<input id="projectMediaStagesInput" placeholder="step_2, step_3"></label>
-                  <label>适用 Intent（逗号分隔）<input id="projectMediaIntentsInput" placeholder="trust_question, price_objection"></label>
-                  <label>对应 Docs 图片<select id="projectMediaSourceRefInput"><option value="">不是 Docs 图片 / 暂不关联</option>${docsMediaRefs.map((ref) => `<option value="${escapeHtml(ref.inline_object_id)}">${escapeHtml(ref.label)} · ${escapeHtml(ref.inline_object_id)}</option>`).join("")}</select></label>
-                  <label><input type="checkbox" id="projectMediaRequiredInput"> 这是必需素材；失败时不可接下一条 Flow</label>
+                  <label>素材链接<input id="projectMediaUrlInput" placeholder="https://..."></label>
+                  <label>适用销售 Step（逗号分隔）<input id="projectMediaStagesInput" placeholder="step_2, step_3"></label>
+                  <label>适用情况（逗号分隔）<input id="projectMediaIntentsInput" placeholder="例如：信任疑问、价格顾虑"></label>
                 </div>
+                <details class="settings-inline-advanced">
+                  <summary>高级素材设置</summary>
+                  <div class="field-grid">
+                    <label>ChatDaddy 素材编号<input id="projectMediaProviderIdInput" placeholder="已上传素材的 ID"></label>
+                    <label>对应 Google Doc 图片<select id="projectMediaSourceRefInput"><option value="">不是 Google Doc 图片 / 暂不关联</option>${docsMediaRefs.map((ref) => `<option value="${escapeHtml(ref.inline_object_id)}">${escapeHtml(ref.label)}</option>`).join("")}</select></label>
+                    <label><input type="checkbox" id="projectMediaRequiredInput"> 这是必需素材；发送失败时不要接下一条 Flow</label>
+                  </div>
+                </details>
                 <div class="quick-actions"><button class="quick-action" data-dashboard-action="save-project-media-asset" type="button">批准并加入当前项目</button></div>
               </div>
-            </section>
-            <section class="command-panel">
-              <div class="command-kicker">${escapeHtml(projectLabel)} 回复方式</div>
-              <strong class="command-title">${sopItems.length} 条真实 SOP / 安全规则 / 成交规则</strong>
-              <p class="command-copy">语气：${escapeHtml(brand.voice || "待补")}</p>
-              <div class="knowledge-section">${sopItems.map((item) => knowledgeItemHtml(item.title || item.question || item.group, item.rule || item.proposed_rule || item.guidance || item.answer || "", item.group)).join("") || knowledgeItemHtml("没有 SOP", "请先上传项目 PPT 或加入回复规则", "待补")}</div>
-            </section>
-            <section class="command-panel">
-              <div class="command-kicker">ChatDaddy Flow 地图</div>
-              <strong class="command-title">AI 要知道每个 Flow 为什么存在</strong>
-              <p class="command-copy">Flow 不是只存一个 Bot ID；每个 Flow 都必须有用途、使用条件和禁止条件，客服才不会接错。</p>
-              <div class="knowledge-section">${flows.map((flow) => flowKnowledgeItemHtml(flow)).join("") || knowledgeItemHtml("没有 Flow", "先在 ChatDaddy 接入项目 Flow，再补每个 Flow 的用途", "待接")}</div>
-            </section>`;
+            </details>
+            <details class="settings-section">
+              <summary>回复方式与安全边界</summary>
+              <div class="settings-section-body">
+                <p class="settings-section-copy">回复语气：${escapeHtml(brand.voice || "待补")}</p>
+                <div class="knowledge-section">${sopItems.map((item) => knowledgeItemHtml(item.title || item.question || item.group, item.rule || item.proposed_rule || item.guidance || item.answer || "", item.group)).join("") || knowledgeItemHtml("还没有回复规则", "请在知识库上传项目资料", "待补")}</div>
+              </div>
+            </details>
+            <details class="settings-section">
+              <summary>Flow 说明</summary>
+              <div class="settings-section-body">
+                <p class="settings-section-copy">为每条 Flow 写清楚用途，避免接错销售步骤。</p>
+                <div class="knowledge-section">${flows.map((flow) => flowKnowledgeItemHtml(flow)).join("") || knowledgeItemHtml("还没有 Flow", "先在聊天工具链接里完成连接", "待处理")}</div>
+              </div>
+            </details>
+            <details class="settings-section">
+              <summary>高级设置</summary>
+              <div class="settings-section-body field-grid">
+                <label>聊天工具<select id="salesChannelProviderInput"><option value="chatdaddy" ${salesProcess.channel_provider !== "manychat" ? "selected" : ""}>ChatDaddy</option><option value="manychat" ${salesProcess.channel_provider === "manychat" ? "selected" : ""}>ManyChat（基础连接）</option></select></label>
+              </div>
+            </details>
+            ${projectSettingsPublishBarHtml({ showSave: true })}`;
         }
         const faq = Array.isArray(assets.faq) ? assets.faq : [];
         const faqDocument = knowledge.faq_document || null;
         const googleDocsConnection = knowledge.google_docs_connection || {};
         const googleDocStatus = faqDocument
-          ? `${faqDocument.connection_status || "已连接"} · ${faqDocument.access_mode === "read_write" ? "可读写" : "只读"}`
+          ? faqDocument.access_mode === "read_write" ? "已连接，可以同步" : "已连接，只能读取"
           : "尚未连接";
-        const googleDocStudy = faqDocument?.last_studied_at
-          ? `${formatDate(faqDocument.last_studied_at)} · ${Number(faqDocument.faq_count || 0)} 条 FAQ · ${Number(faqDocument.image_count || 0)} 张图`
-          : "尚未 Study";
+        const googleDocUpdated = faqDocument?.last_studied_at
+          ? `${formatDate(faqDocument.last_studied_at)} · ${Number(faqDocument.faq_count || 0)} 条 FAQ`
+          : "尚未导入";
         const googleDocImages = Number(faqDocument?.image_count || 0) > 0
-          ? `${Number(faqDocument.image_count || 0)} 张已识别 · ${Number(faqDocument.faq_with_images_count || 0)} 条 FAQ 带图`
-          : faqDocument?.last_studied_at ? "这份 FAQ 页没有内嵌图片" : "待 Study";
+          ? `发现 ${Number(faqDocument.image_count || 0)} 张图片 · ${Number(faqDocument.faq_with_images_count || 0)} 条 FAQ 带图`
+          : faqDocument?.last_studied_at ? "没有发现内嵌图片" : "等待导入";
         const googleDocWriteback = !faqDocument
           ? "待连接"
           : faqDocument.writeback_enabled
             ? Number(faqDocument.pending_writebacks || 0) > 0
-              ? `${Number(faqDocument.pending_writebacks || 0)} 条等待回写`
+              ? `${Number(faqDocument.pending_writebacks || 0)} 条等待同步`
               : faqDocument.last_writeback_at
-                ? `最近成功 ${formatDate(faqDocument.last_writeback_at)}`
-                : "已开启，等待 Owner 批准新 FAQ"
+                ? `最近同步 ${formatDate(faqDocument.last_writeback_at)}`
+                : "已开启，等待负责人批准"
             : "未开启";
+        const documentRows = documents.length
+          ? documents.map((item) => knowledgeItemHtml(
+              item.title || item.file_name || "项目资料",
+              "已加入当前项目",
+              item.analyzed_at || item.last_studied_at ? formatDate(item.analyzed_at || item.last_studied_at) : "已保存"
+            )).join("")
+          : knowledgeItemHtml("还没有其他项目资料", "可以上传 PPTX、PDF、TXT 或 Markdown", "选填");
+        const latestAnalysis = analyses[0] || null;
         return `${header}
           <section class="command-panel accent">
-            <div class="command-kicker">Google Docs FAQ 双向知识库</div>
-            <strong class="command-title">贴链接 → Study → Owner 批准后自动回写</strong>
-            <p class="command-copy">Study 只建立 Project Brain 草稿；客服普通批准发送不会改 Google Docs。FAQ 管理员可以上传与 Study，只有 Owner 把候选正式批准进业务脑，而且类型是 FAQ，才会自动回写。</p>
-            ${state.role === "staff" && canManageProjectFaq() ? `<p class="project-upload-note">当前账号已获得这个项目的 FAQ 管理权限；不会因此获得用户管理、Flow 设置或自动发送权限。</p>` : ""}
+            <div class="command-kicker">知识库</div>
+            <strong class="command-title">连接 Google Doc</strong>
+            <p class="command-copy">贴上项目方的 FAQ 文件，系统会导入并整理；只有批准内容才会用于回复。</p>
+            ${state.role === "staff" && canManageProjectFaq() ? `<p class="project-upload-note">你可以管理这个项目的 FAQ，但不能修改其他项目设置。</p>` : ""}
             <div class="field-grid">
-              <label>项目 FAQ Google Docs 链接<input id="googleDocsFaqUrlInput" value="${escapeHtml(faqDocument?.document_url || "")}" placeholder="https://docs.google.com/document/d/.../edit"></label>
-              <label><input type="checkbox" id="googleDocsFaqWritebackInput" ${faqDocument?.writeback_enabled ? "checked" : ""}> Owner 批准新 FAQ 后，自动更新这份 Google Docs</label>
+              <label>Google Doc 链接<input id="googleDocsFaqUrlInput" value="${escapeHtml(faqDocument?.document_url || "")}" placeholder="https://docs.google.com/document/d/.../edit"></label>
+              <label><input type="checkbox" id="googleDocsFaqWritebackInput" ${faqDocument?.writeback_enabled ? "checked" : ""}> 批准的新 FAQ 同步回这份 Google Doc</label>
             </div>
             <div class="compact-list">
-              ${compactRow("Google 连接", googleDocsConnection.configured ? `已配置 · 分享给 ${googleDocsConnection.share_email || "服务账号"}` : "平台服务账号尚未配置", googleDocsConnection.configured ? "可连接" : "待管理员")}
-              ${compactRow("文件状态", googleDocStatus, faqDocument?.access_mode === "read_write" ? "可回写" : faqDocument ? "只读" : "待连接")}
-              ${compactRow("最近 Study", googleDocStudy, faqDocument?.last_studied_at ? "草稿" : "待 Study")}
-              ${compactRow("Docs 图片", googleDocImages, Number(faqDocument?.image_count || 0) > 0 ? "待素材批准" : "无图片")}
-              ${compactRow("批准后回写", googleDocWriteback, faqDocument?.last_error ? "需处理" : faqDocument?.writeback_enabled ? "已开启" : "关闭")}
+              ${compactRow("文件状态", googleDocStatus, faqDocument ? "已连接" : "待连接")}
+              ${compactRow("导入功能", googleDocsConnection.configured ? "可以使用" : "尚未开通，请联系管理员", googleDocsConnection.configured ? "已开通" : "未开通")}
+              ${compactRow("最近更新", googleDocUpdated, faqDocument?.last_studied_at ? "已导入" : "待导入")}
+              ${compactRow("文件图片", googleDocImages, Number(faqDocument?.image_count || 0) > 0 ? "待批准" : "无图片")}
+              ${compactRow("自动同步", googleDocWriteback, faqDocument?.last_error ? "需处理" : faqDocument?.writeback_enabled ? "已开启" : "关闭")}
             </div>
             ${faqDocument?.last_error ? `<p class="project-upload-note">同步提示：${escapeHtml(faqDocument.last_error)}</p>` : ""}
-            ${faqDocument?.truncated ? `<p class="project-upload-note">文件共有 ${Number(faqDocument.total_character_count || 0)} 字，本次只分析前 ${Number(faqDocument.extracted_character_count || 0)} 字；请拆分 FAQ 文件后重新 Study，避免漏资料。</p>` : ""}
-            ${Number(faqDocument?.image_count || 0) > 0 ? `<p class="project-upload-note">图片已和附近的 FAQ 一起保存关联。Google Docs 图片链接会过期，所以系统不会直接拿临时链接发给顾客；Owner 需要先把图片转成当前项目的批准素材。</p>` : ""}
+            ${faqDocument?.truncated ? `<p class="project-upload-note">这份文件太长，本次没有完整导入；请拆成较小文件后重新更新。</p>` : ""}
+            ${Number(faqDocument?.image_count || 0) > 0 ? `<p class="project-upload-note">系统目前只发现图片，还不会自动看懂图片内容；负责人批准为素材后才能发送给顾客。</p>` : ""}
             <div class="quick-actions">
-              <button class="quick-action primary" data-dashboard-action="connect-study-google-docs-faq" type="button" ${state.googleDocsFaqBusy || !googleDocsConnection.configured ? "disabled" : ""}>${state.googleDocsFaqBusy ? "正在 Study..." : faqDocument?.last_studied_at ? "重新 Study" : "连接并 Study"}</button>
-              ${faqDocument?.id && faqDocument.writeback_enabled && Number(faqDocument.pending_writebacks || 0) > 0 ? `<button class="quick-action" data-dashboard-action="retry-google-docs-faq-writebacks" type="button" ${state.googleDocsFaqRetryBusy ? "disabled" : ""}>${state.googleDocsFaqRetryBusy ? "重试中..." : "重试待回写 FAQ"}</button>` : ""}
+              <button class="quick-action primary" data-dashboard-action="connect-study-google-docs-faq" type="button" ${state.googleDocsFaqBusy || !googleDocsConnection.configured ? "disabled" : ""}>${state.googleDocsFaqBusy ? "正在整理..." : faqDocument?.last_studied_at ? "从 Google Doc 更新" : "导入并整理"}</button>
+              ${faqDocument?.id && faqDocument.writeback_enabled && Number(faqDocument.pending_writebacks || 0) > 0 ? `<button class="quick-action" data-dashboard-action="retry-google-docs-faq-writebacks" type="button" ${state.googleDocsFaqRetryBusy ? "disabled" : ""}>${state.googleDocsFaqRetryBusy ? "重试中..." : "重试待同步 FAQ"}</button>` : ""}
             </div>
-            <p class="project-upload-note">先把 Google Doc 以 Editor 权限分享给上面显示的服务账号。每个项目必须使用独立 Doc，避免跨项目知识混写。</p>
+            <p class="project-upload-note">AI 只使用已批准内容；健康、付款、退款和投诉等敏感问题转人工。</p>
+            <details class="settings-inline-advanced">
+              <summary>连接说明</summary>
+              <p class="project-upload-note">先把 Google Doc 以 Editor 权限分享给 ${escapeHtml(googleDocsConnection.share_email || "平台服务账号")}。每个项目使用独立文件。</p>
+            </details>
           </section>
           <section class="command-panel">
-            <div class="command-kicker">${escapeHtml(projectLabel)} FAQ</div>
-            <strong class="command-title">${faq.length} 条已进入项目知识包</strong>
-            <p class="command-copy">这些资料会参与回复生成；资料不足、健康敏感、付款或退款争议仍会转人工。</p>
-            <div class="knowledge-section">${faq.map((item) => {
-              const imageCount = Array.isArray(item.source_media_refs) ? item.source_media_refs.length : 0;
-              const status = item.status === "studied_draft" ? "待 Owner 发布批准" : item.customer_pattern ? `匹配：${item.customer_pattern}` : "项目 FAQ";
-              return knowledgeItemHtml(
-                item.question || item.title || "FAQ",
-                item.answer || item.better_reply || "",
-                `${status}${imageCount ? ` · 含 ${imageCount} 张 Docs 图片（待素材批准）` : ""}`
-              );
-            }).join("") || knowledgeItemHtml("没有 FAQ", "请先上传 PPT 或加入 FAQ", "待补")}</div>
-          </section>`;
+            <div class="command-kicker">FAQ</div>
+            <strong class="command-title">${faq.length} 条 FAQ</strong>
+            <p class="command-copy">默认只显示问题，点击后才展开答案。</p>
+            <div class="faq-toolbar">
+              <input id="projectFaqSearchInput" data-project-faq-search value="${escapeHtml(state.projectFaqQuery || "")}" placeholder="搜索问题或答案" aria-label="搜索 FAQ">
+              <div class="faq-filters" aria-label="筛选 FAQ">
+                <button class="faq-filter" data-project-faq-filter="all" type="button">全部</button>
+                <button class="faq-filter" data-project-faq-filter="pending" type="button">待批准</button>
+                <button class="faq-filter" data-project-faq-filter="images" type="button">含图片</button>
+              </div>
+            </div>
+            <div class="faq-count-note">现在显示 <span id="projectFaqVisibleCount">${faq.length}</span> 条</div>
+            <div class="knowledge-section">${faq.map(projectFaqItemHtml).join("") || knowledgeItemHtml("还没有 FAQ", "贴上 Google Doc 后导入并整理", "待补")}</div>
+          </section>
+          <details class="settings-section">
+            <summary>其他项目资料</summary>
+            <div class="settings-section-body">
+              <p class="settings-section-copy">需要补充产品、顾客、品牌或销售资料时，可上传文件。</p>
+              <div class="project-upload">
+                <input type="file" data-project-document-input accept=".pptx,.pdf,.txt,.md,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.presentationml.presentation" aria-label="上传项目资料">
+                <button class="quick-action primary" data-dashboard-action="analyze-project-document" type="button" ${state.projectDocumentBusy ? "disabled" : ""}>${state.projectDocumentBusy ? "整理中..." : "整理并加入项目"}</button>
+                <div class="project-upload-note" id="projectDocumentStatus">支持 PPTX、PDF、TXT、Markdown；不会发送顾客讯息。</div>
+              </div>
+              <div class="knowledge-section">${documentRows}</div>
+              ${latestAnalysis ? `<div class="knowledge-section">${knowledgeItemHtml("最近整理", latestAnalysis.summary || latestAnalysis.positioning || "已完成", latestAnalysis.file_name || "项目资料")}</div>` : ""}
+            </div>
+          </details>
+          ${projectSettingsPublishBarHtml()}`;
       }
 
       function projectOnboardingSummaryHtml(knowledge = {}) {
         const counts = knowledge.counts || {};
         const completion = knowledge.completion || {};
-        const process = knowledge.sales_process || {};
-        const faqDocument = knowledge.faq_document || null;
-        const projectFactsNote = faqDocument?.last_studied_at
-          ? `${Number(counts.source_documents || 0)} 份资料 · Docs 已 Study`
-          : `${Number(counts.source_documents || 0)} 份资料 · Docs 待连接`;
         const items = [
-          ["项目事实", projectFactsNote, completion.project_materials && (!faqDocument || Boolean(faqDocument.last_studied_at))],
-          ["顾客心理", `${(knowledge.brand_brain?.audience || []).length || 0} 类顾客`, Boolean(knowledge.brand_brain?.positioning)],
-          ["回复个性", `${Number(counts.ops_sop || 0) + Number(counts.reply_rules || 0)} 条规则`, completion.reply_sop],
-          ["Step Flow Map", `${Number(process.step_count || 0)} Step · 价格 ${process.price_stage_key || "待设"}`, completion.sales_process && completion.flow_map],
-          ["成交打法", `CTA 冷却 ${process.post_price_policy?.cadence?.soft_cta_min_customer_turns_since_last_cta || 3} 回合`, completion.sales_process],
-          ["安全与自动化", `Level ${Number(process.automation_level || 1)} · ${Number(counts.approved_media_assets || 0)} 素材`, completion.reply_sop]
+          ["聊天工具链接", completion.message_connection ? "顾客讯息已接入" : "等待连接聊天工具", completion.message_connection],
+          ["回复与成交", completion.reply_sop && completion.sales_process ? "回复方式和销售流程已设置" : "等待完成回复与销售流程", completion.reply_sop && completion.sales_process],
+          ["知识库", Number(counts.faq || 0) > 0 ? `${Number(counts.faq || 0)} 条 FAQ` : "等待导入项目资料", completion.faq]
         ];
-        return `<div class="onboarding-summary">${items.map(([title, note, ready]) => `<div class="onboarding-summary-item"><b>${ready ? "✅" : "待"} ${escapeHtml(title)}</b><span>${escapeHtml(note)}</span></div>`).join("")}</div>`;
+        return `<div class="onboarding-summary">${items.map(([title, note, ready]) => `<div class="onboarding-summary-item ${ready ? "ready" : "pending"}"><b>${escapeHtml(title)}</b><span>${escapeHtml(note)}</span><small>${ready ? "已完成" : "待完成"}</small></div>`).join("")}</div>`;
+      }
+
+      function projectFaqItemHtml(item = {}) {
+        const imageCount = Array.isArray(item.source_media_refs) ? item.source_media_refs.length : 0;
+        const pending = item.status === "studied_draft";
+        const question = item.question || item.title || "FAQ";
+        const answer = item.answer || item.better_reply || "待补答案";
+        const searchText = `${question} ${answer} ${item.customer_pattern || ""}`.toLowerCase();
+        const status = pending ? "待批准" : imageCount ? `已批准 · ${imageCount} 张图` : "已批准";
+        return `<details class="knowledge-item faq-item" data-project-faq-item data-faq-status="${pending ? "pending" : "approved"}" data-faq-has-images="${imageCount ? "1" : "0"}" data-faq-search="${escapeHtml(searchText)}">
+          <summary><span>${escapeHtml(question)}</span><small>${escapeHtml(status)}</small></summary>
+          <div class="faq-answer">${escapeHtml(answer)}</div>
+        </details>`;
+      }
+
+      function applyProjectFaqFilters() {
+        const input = $("projectFaqSearchInput");
+        const query = String(input?.value ?? state.projectFaqQuery ?? "").trim().toLowerCase();
+        const filter = ["all", "pending", "images"].includes(state.projectFaqFilter) ? state.projectFaqFilter : "all";
+        state.projectFaqQuery = query;
+        let visibleCount = 0;
+        document.querySelectorAll("[data-project-faq-item]").forEach((item) => {
+          const matchesQuery = !query || String(item.dataset.faqSearch || "").includes(query);
+          const matchesFilter = filter === "all"
+            || (filter === "pending" && item.dataset.faqStatus === "pending")
+            || (filter === "images" && item.dataset.faqHasImages === "1");
+          const visible = matchesQuery && matchesFilter;
+          item.classList.toggle("hidden", !visible);
+          if (visible) visibleCount += 1;
+        });
+        document.querySelectorAll("[data-project-faq-filter]").forEach((button) => {
+          const active = button.dataset.projectFaqFilter === filter;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+        const counter = $("projectFaqVisibleCount");
+        if (counter) counter.textContent = String(visibleCount);
       }
 
       function knowledgeItemHtml(title, body, meta = "") {
@@ -12903,7 +13263,7 @@
       }
 
       function flowKnowledgeItemHtml(flow = {}) {
-        const status = flow.configured ? "已接 Bot / Flow ID" : "只有用途资料，尚未接真实 ID";
+        const status = flow.configured ? "已连接" : "尚未连接聊天工具里的 Flow";
         const conditions = [
           flow.when_to_use ? `什么时候用：${flow.when_to_use}` : "",
           flow.do_not_use_when ? `不要在这些情况用：${flow.do_not_use_when}` : ""
@@ -17073,7 +17433,7 @@
         if (!connectResponse.ok || !connected.ok || !connected.source?.id) {
           throw new Error(connected.message || connected.error || `HTTP ${connectResponse.status}`);
         }
-        showToast("Google Doc 已验证，正在 Study FAQ...");
+        showToast("Google Doc 已验证，正在导入并整理 FAQ...");
         const studyResponse = await fetch(
           `${api}/api/hermas/projects/${encodeURIComponent(project)}/knowledge-sources/${encodeURIComponent(connected.source.id)}/study`,
           authRequestOptions(token, {
@@ -17087,10 +17447,10 @@
           throw new Error(studied.message || studied.error || `HTTP ${studyResponse.status}`);
         }
         showToast(studied.unchanged
-          ? "Google Doc 没有新版本；Project Brain 不重复导入。"
-          : `已 Study ${Number(studied.faq_count || 0)} 条 FAQ，等待复核与发布。`);
+          ? "Google Doc 没有新版本，不需要重复导入。"
+          : `已导入并整理 ${Number(studied.faq_count || 0)} 条 FAQ，等待复核与发布。`);
       } catch (error) {
-        showToast(`Google Docs FAQ 处理失败：${error.message || error}`);
+        showToast(`Google Doc 处理失败：${error.message || error}`);
       } finally {
         state.googleDocsFaqBusy = false;
         await Promise.all([loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
@@ -17168,9 +17528,9 @@
         if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
         state.projectKnowledge = data;
         state.projectDocumentFile = null;
-        showToast(data.uses_openai ? "项目资料已由 AI 分析并加入项目。" : "项目资料文字已保存；AI 分析连接仍需确认。");
+        showToast(data.uses_openai ? "项目资料已由 AI 整理并加入项目。" : "项目资料文字已保存；AI 整理功能仍需确认。");
       } catch (error) {
-        showToast(`项目资料分析失败：${error.message || error}`);
+        showToast(`项目资料整理失败：${error.message || error}`);
       } finally {
         state.projectDocumentBusy = false;
         render();
@@ -17183,14 +17543,14 @@
       const token = adminTokenEl.value.trim();
       if (!api || (!token && !hasAccountSession())) {
         showToast("请先登录真实项目账号。");
-        return;
+        return false;
       }
       const stepCount = Math.max(1, Math.min(4, Number($("salesStepCountInput")?.value || 4)));
       const priceStageKey = String($("salesPriceStageInput")?.value || `step_${stepCount}`);
       const channelProvider = String($("salesChannelProviderInput")?.value || "chatdaddy").trim().toLowerCase();
       if (Number(priceStageKey.replace(/\D+/g, "")) > stepCount) {
         showToast("价格阶段不能超过项目的 Step 数量。");
-        return;
+        return false;
       }
       const stages = Array.from({ length: stepCount }, (_, index) => {
         const order = index + 1;
@@ -17267,11 +17627,19 @@
         }));
         const saved = await savedRes.json().catch(() => ({}));
         if (!savedRes.ok || !saved.ok) throw new Error(saved.message || saved.error || `HTTP ${savedRes.status}`);
-        showToast(`已保存 ${stepCount} Step Project Brain 草稿；通过 Mock Test 后再发布。`);
+        showToast(`已保存 ${stepCount} 个销售 Step；检查通过后再发布。`);
         await Promise.all([loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
+        return true;
       } catch (error) {
         showToast(`成交流程保存失败：${error.message || error}`);
+        return false;
       }
+    }
+
+    async function saveAndPublishProjectSalesProcess() {
+      const saved = await saveProjectSalesProcessFromOnboarding();
+      if (!saved) return;
+      await mockTestAndPublishProjectBrain();
     }
 
     async function mockTestAndPublishProjectBrain() {
@@ -17293,12 +17661,12 @@
         .filter((item) => item?.status === "studied_draft").length;
       if (studiedDraftCount > 0) {
         const approved = window.confirm(
-          `这次会一起批准 ${studiedDraftCount} 条 Study 草稿。\n\n请先在 FAQ 页面逐条查看问题和答案；如果内容不对，先修改 Google Doc 并重新 Study。\n\n确认这些内容可以进入正式 Project Brain？`
+          `这次会一起批准 ${studiedDraftCount} 条 FAQ 草稿。\n\n请先在知识库逐条查看问题和答案；如果内容不对，先修改 Google Doc 并重新导入。\n\n确认这些内容可以用于正式回复？`
         );
         if (!approved) return;
       }
       try {
-        showToast("正在运行 Step、价格后节奏与安全 Mock Test...");
+        showToast("正在检查销售 Step、价格后节奏与安全规则...");
         const testEndpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/test-cases/run`;
         const testRes = await fetch(testEndpoint, authRequestOptions(token, {
           method: "POST",
@@ -17309,7 +17677,7 @@
         if (!testRes.ok || !test.ok || Number(test.failed_count || 0) > 0) {
           const failed = (test.tests || []).filter((item) => item.passed === false).map((item) => item.name).join(", ");
           const blocker = test.blockers?.[0]?.message;
-          throw new Error(blocker || (failed ? `Mock Test 未通过：${failed}` : test.message || test.error || `HTTP ${testRes.status}`));
+          throw new Error(blocker || (failed ? `检查未通过：${failed}` : test.message || test.error || `HTTP ${testRes.status}`));
         }
         const publishEndpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/package/publish`;
         const publishRes = await fetch(publishEndpoint, authRequestOptions(token, {
@@ -17323,10 +17691,10 @@
         }));
         const published = await publishRes.json().catch(() => ({}));
         if (!publishRes.ok || !published.ok) throw new Error(published.message || published.error || `HTTP ${publishRes.status}`);
-        showToast(`Project Brain v${published.version_no} 已发布；新 Case 会锁定这个版本。`);
+        showToast(`项目设置 v${published.version_no} 已发布；新顾客会使用这个版本。`);
         await Promise.all([loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
       } catch (error) {
-        showToast(`Mock / 发布失败：${error.message || error}`);
+        showToast(`检查或发布失败：${error.message || error}`);
       }
     }
 
@@ -17340,7 +17708,7 @@
       const sourceInlineObjectId = String($("projectMediaSourceRefInput")?.value || "").trim();
       const sourceRef = projectDocsMediaReferences().find((item) => item.inline_object_id === sourceInlineObjectId) || null;
       if (!title || (!providerMediaId && !mediaUrl)) {
-        showToast("请填写素材名称，以及 Provider Media ID 或媒体 URL。");
+        showToast("请填写素材名称，以及素材链接或 ChatDaddy 素材编号。");
         return;
       }
       try {
