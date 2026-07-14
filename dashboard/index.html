@@ -12725,8 +12725,11 @@
           ? `${faqDocument.connection_status || "已连接"} · ${faqDocument.access_mode === "read_write" ? "可读写" : "只读"}`
           : "尚未连接";
         const googleDocStudy = faqDocument?.last_studied_at
-          ? `${formatDate(faqDocument.last_studied_at)} · ${Number(faqDocument.faq_count || 0)} 条 FAQ`
+          ? `${formatDate(faqDocument.last_studied_at)} · ${Number(faqDocument.faq_count || 0)} 条 FAQ · ${Number(faqDocument.image_count || 0)} 张图`
           : "尚未 Study";
+        const googleDocImages = Number(faqDocument?.image_count || 0) > 0
+          ? `${Number(faqDocument.image_count || 0)} 张已识别 · ${Number(faqDocument.faq_with_images_count || 0)} 条 FAQ 带图`
+          : faqDocument?.last_studied_at ? "这份 FAQ 页没有内嵌图片" : "待 Study";
         const googleDocWriteback = !faqDocument
           ? "待连接"
           : faqDocument.writeback_enabled
@@ -12750,10 +12753,12 @@
               ${compactRow("Google 连接", googleDocsConnection.configured ? `已配置 · 分享给 ${googleDocsConnection.share_email || "服务账号"}` : "平台服务账号尚未配置", googleDocsConnection.configured ? "可连接" : "待管理员")}
               ${compactRow("文件状态", googleDocStatus, faqDocument?.access_mode === "read_write" ? "可回写" : faqDocument ? "只读" : "待连接")}
               ${compactRow("最近 Study", googleDocStudy, faqDocument?.last_studied_at ? "草稿" : "待 Study")}
+              ${compactRow("Docs 图片", googleDocImages, Number(faqDocument?.image_count || 0) > 0 ? "待素材批准" : "无图片")}
               ${compactRow("批准后回写", googleDocWriteback, faqDocument?.last_error ? "需处理" : faqDocument?.writeback_enabled ? "已开启" : "关闭")}
             </div>
             ${faqDocument?.last_error ? `<p class="project-upload-note">同步提示：${escapeHtml(faqDocument.last_error)}</p>` : ""}
             ${faqDocument?.truncated ? `<p class="project-upload-note">文件共有 ${Number(faqDocument.total_character_count || 0)} 字，本次只分析前 ${Number(faqDocument.extracted_character_count || 0)} 字；请拆分 FAQ 文件后重新 Study，避免漏资料。</p>` : ""}
+            ${Number(faqDocument?.image_count || 0) > 0 ? `<p class="project-upload-note">图片已和附近的 FAQ 一起保存关联。Google Docs 图片链接会过期，所以系统不会直接拿临时链接发给顾客；Owner 需要先把图片转成当前项目的批准素材。</p>` : ""}
             <div class="quick-actions">
               <button class="quick-action primary" data-dashboard-action="connect-study-google-docs-faq" type="button" ${state.googleDocsFaqBusy || !googleDocsConnection.configured ? "disabled" : ""}>${state.googleDocsFaqBusy ? "正在 Study..." : "连接并 Study"}</button>
               ${faqDocument?.id && faqDocument.writeback_enabled && Number(faqDocument.pending_writebacks || 0) > 0 ? `<button class="quick-action" data-dashboard-action="retry-google-docs-faq-writebacks" type="button" ${state.googleDocsFaqRetryBusy ? "disabled" : ""}>${state.googleDocsFaqRetryBusy ? "重试中..." : "重试待回写 FAQ"}</button>` : ""}
@@ -12764,7 +12769,15 @@
             <div class="command-kicker">${escapeHtml(projectLabel)} FAQ</div>
             <strong class="command-title">${faq.length} 条已进入项目知识包</strong>
             <p class="command-copy">这些资料会参与回复生成；资料不足、健康敏感、付款或退款争议仍会转人工。</p>
-            <div class="knowledge-section">${faq.map((item) => knowledgeItemHtml(item.question || item.title || "FAQ", item.answer || item.better_reply || "", item.status === "studied_draft" ? "待 Owner 发布批准" : item.customer_pattern ? `匹配：${item.customer_pattern}` : "项目 FAQ")).join("") || knowledgeItemHtml("没有 FAQ", "请先上传 PPT 或加入 FAQ", "待补")}</div>
+            <div class="knowledge-section">${faq.map((item) => {
+              const imageCount = Array.isArray(item.source_media_refs) ? item.source_media_refs.length : 0;
+              const status = item.status === "studied_draft" ? "待 Owner 发布批准" : item.customer_pattern ? `匹配：${item.customer_pattern}` : "项目 FAQ";
+              return knowledgeItemHtml(
+                item.question || item.title || "FAQ",
+                item.answer || item.better_reply || "",
+                `${status}${imageCount ? ` · 含 ${imageCount} 张 Docs 图片（待素材批准）` : ""}`
+              );
+            }).join("") || knowledgeItemHtml("没有 FAQ", "请先上传 PPT 或加入 FAQ", "待补")}</div>
           </section>`;
       }
 
