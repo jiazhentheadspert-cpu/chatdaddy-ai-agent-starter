@@ -681,7 +681,7 @@
           <label class="field full" id="apiTokenField">
             <b>ChatDaddy API Token</b>
             <input id="apiToken" type="password" autocomplete="new-password" placeholder="只在第一次连接或更换 Token 时填写">
-            <span>在 ChatDaddy 打开 Developer → API Token → +Create。Token 至少要有发送讯息权限；系统保存前会先尝试读取 Message Flow。</span>
+            <span>在 ChatDaddy 打开 Developer → API Token → +Create。请同时勾选 TEMPLATES_READ（同步 Flow）和 MESSAGES_SEND_TO_ALL（发送讯息）。</span>
           </label>
         </div>
 
@@ -1004,15 +1004,28 @@
     }
 
     async function apiFetch(path, options) {
-      const response = await fetch(`${apiBase}${path}`, {
-        ...options,
-        credentials: "include",
-        headers: {
-          "accept": "application/json",
-          ...(adminToken ? { "x-admin-token": adminToken } : {}),
-          ...(options.headers || {})
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 30000);
+      let response;
+      try {
+        response = await fetch(`${apiBase}${path}`, {
+          ...options,
+          credentials: "include",
+          signal: controller.signal,
+          headers: {
+            "accept": "application/json",
+            ...(adminToken ? { "x-admin-token": adminToken } : {}),
+            ...(options.headers || {})
+          }
+        });
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          throw new Error("连接检查超过 30 秒。请确认 Token 已勾选 TEMPLATES_READ 和 MESSAGES_SEND_TO_ALL 后再试。");
         }
-      });
+        throw error;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
       const text = await response.text();
       let data = null;
       try {
