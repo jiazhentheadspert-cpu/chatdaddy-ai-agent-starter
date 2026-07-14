@@ -466,8 +466,10 @@
           project_key: session.projectKey,
           role
         });
-        if (role === "staff") {
-          next.set("view", "inbox");
+        const returnToDashboard = params.get("return_to") === "dashboard";
+        if (role === "staff" || returnToDashboard) {
+          next.set("view", role === "staff" ? "inbox" : (params.get("view") || "operations"));
+          if (params.get("setup")) next.set("setup", params.get("setup"));
           window.location.assign(`dashboard/?${next.toString()}`);
         } else {
           window.location.assign(`admin.html?${next.toString()}`);
