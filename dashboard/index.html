@@ -5332,14 +5332,14 @@
 
 	    .reply-command-bar {
 	      display: grid;
-	      grid-template-columns: auto auto minmax(360px, 1fr) auto;
+	      grid-template-columns: 74px 122px minmax(420px, 1fr) 112px;
 	      grid-template-areas: "more channel reply pay";
 	      align-items: center;
 	      justify-content: stretch;
-	      gap: 6px;
+	      gap: 5px;
 	      margin-top: 10px;
-	      padding: 6px;
-	      border-radius: 14px;
+	      padding: 5px;
+	      border-radius: 10px;
     }
 
     .panel.open .panel-body {
@@ -5387,12 +5387,12 @@
 	    }
 
 	    .reply-action-group {
-	      border: 1px solid rgba(92,112,121,.22);
-	      border-radius: 12px;
+	      border: 1px solid rgba(92,112,121,.18);
+	      border-radius: 8px;
 	      background: #fff;
-	      padding: 4px;
+	      padding: 3px;
       min-width: 0;
-      box-shadow: 0 2px 8px rgba(8,23,29,.04);
+      box-shadow: 0 1px 5px rgba(8,23,29,.035);
     }
 
 	    .reply-action-group {
@@ -5420,12 +5420,12 @@
 	      min-width: 0;
 	      display: grid;
 	      grid-template-columns: minmax(0, 1fr) auto;
-	      align-items: end;
-	      gap: 8px;
-	      border: 1px solid rgba(92,112,121,.18);
-	      border-radius: 12px;
+	      align-items: center;
+	      gap: 7px;
+	      border: 1px solid rgba(92,112,121,.16);
+	      border-radius: 7px;
 	      background: #fff;
-	      padding: 2px 4px 2px 9px;
+	      padding: 2px 6px 2px 9px;
 	      transition: border-color .16s ease, box-shadow .16s ease;
 	    }
 
@@ -5439,9 +5439,12 @@
 	    }
 
 	    #replyBox {
+	      width: 100%;
+	      min-width: 0;
 	      min-height: 40px;
 	      max-height: 104px;
 	      height: 40px;
+	      box-sizing: border-box;
 	      resize: none;
 	      overflow-y: auto;
 	      border: 0;
@@ -5454,13 +5457,84 @@
 	      box-shadow: none;
 	    }
 
+	    .reply-composer-status {
+	      min-width: 0;
+	      display: inline-flex;
+	      align-items: center;
+	      justify-content: flex-end;
+	      gap: 6px;
+	    }
+
+	    .ai-brain-badge {
+	      min-height: 26px;
+	      display: inline-flex;
+	      align-items: center;
+	      gap: 5px;
+	      border: 1px solid rgba(92,112,121,.18);
+	      border-radius: 999px;
+	      background: #f5f7f7;
+	      color: #64737a;
+	      padding: 2px 7px 2px 3px;
+	      font-size: 10.5px;
+	      font-weight: 900;
+	      line-height: 1;
+	      white-space: nowrap;
+	      cursor: help;
+	    }
+
+	    .ai-brain-mark {
+	      width: 20px;
+	      height: 20px;
+	      display: inline-grid;
+	      place-items: center;
+	      border-radius: 999px;
+	      background: #dfe6e7;
+	      color: #34444b;
+	      font-size: 8.5px;
+	      font-weight: 950;
+	      letter-spacing: 0;
+	    }
+
+	    .ai-brain-badge.gpt {
+	      border-color: rgba(0,168,132,.24);
+	      background: #eefaf7;
+	      color: #087c69;
+	    }
+
+	    .ai-brain-badge.gpt .ai-brain-mark {
+	      background: #00a884;
+	      color: #fff;
+	    }
+
+	    .ai-brain-badge.upgraded {
+	      border-color: rgba(37,99,235,.24);
+	      background: #eff6ff;
+	      color: #2457b8;
+	    }
+
+	    .ai-brain-badge.upgraded .ai-brain-mark {
+	      background: #2563eb;
+	      color: #fff;
+	    }
+
+	    .ai-brain-badge.failed {
+	      border-color: rgba(213,75,84,.24);
+	      background: #fff4f4;
+	      color: #bd414b;
+	    }
+
+	    .ai-brain-badge.failed .ai-brain-mark {
+	      background: #d54b54;
+	      color: #fff;
+	    }
+
 	    #replyBox:focus {
 	      outline: none;
 	    }
 
 	    .reply-mode-badge {
 	      align-self: center;
-	      max-width: 116px;
+	      max-width: 92px;
 	      overflow: hidden;
 	      color: var(--muted);
 	      font-size: 10.5px;
@@ -5507,11 +5581,11 @@
 
     .composer-send-button {
       width: auto !important;
-	      min-width: 112px;
+	      min-width: 118px;
 	      min-height: 42px;
-	      padding: 0 15px !important;
+	      padding: 0 13px !important;
 	      margin-top: 0 !important;
-	      border-radius: 10px !important;
+	      border-radius: 8px !important;
       background: #00a884 !important;
       border-color: #00a884 !important;
       box-shadow: 0 8px 18px rgba(0,168,132,.20) !important;
@@ -5519,12 +5593,12 @@
 
 	    .composer-learn-button {
 	      width: auto !important;
-	      min-width: 178px;
+	      min-width: 154px;
 	      min-height: 42px;
 	      padding: 0 12px !important;
 	      margin: 0 !important;
 	      border: 1px solid rgba(0, 168, 132, .34) !important;
-	      border-radius: 10px !important;
+	      border-radius: 8px !important;
 	      background: #eafaf6 !important;
 	      color: #087c69 !important;
 	      box-shadow: none !important;
@@ -5552,10 +5626,10 @@
       align-content: center;
       gap: 2px;
       border: 1px solid rgba(92,112,121,.22);
-	      border-radius: 11px;
+	      border-radius: 8px;
       background: #fff;
       color: var(--green-deep);
-	      padding: 5px 11px;
+	      padding: 5px 9px;
       font-weight: 950;
       cursor: pointer;
       user-select: none;
@@ -5624,10 +5698,10 @@
       justify-content: center;
       gap: 6px;
       border: 1px solid rgba(92,112,121,.22);
-	      border-radius: 11px;
+	      border-radius: 8px;
       background: #fff;
       color: var(--green-deep);
-	      padding: 0 10px;
+	      padding: 0 8px;
       font-weight: 950;
       cursor: pointer;
       user-select: none;
@@ -5673,10 +5747,10 @@
       justify-content: center;
       gap: 7px;
       border: 1px solid rgba(92,112,121,.22);
-	      border-radius: 11px;
+	      border-radius: 8px;
       background: #fff;
       color: var(--green-deep);
-	      padding: 0 10px;
+	      padding: 0 8px;
       font-size: 12px;
       font-weight: 950;
       cursor: pointer;
@@ -6623,7 +6697,7 @@
       .reply-card { margin-top: 0; }
 	      .reply-command-bar {
 	        align-items: stretch;
-	        grid-template-columns: auto minmax(0, 1fr) auto;
+	        grid-template-columns: minmax(64px, .72fr) minmax(108px, 1.25fr) minmax(82px, .82fr);
 	        grid-template-areas:
 	          "more channel pay"
 	          "reply reply reply";
@@ -6634,6 +6708,10 @@
 	        padding: 6px;
 	        border-radius: 14px;
       }
+	      .reply-command-bar > * {
+	        min-width: 0;
+	        max-width: 100%;
+	      }
       .reply-action-group {
 	        grid-template-columns: minmax(0, 1fr);
 	        grid-template-areas:
@@ -6642,23 +6720,32 @@
 	          "send-actions";
 	        gap: 5px;
         padding: 5px;
+	        width: 100%;
+	        overflow: hidden;
       }
 	      .reply-send-actions {
 	        min-width: 0;
 	        display: flex;
 	        justify-content: flex-end;
+	        flex-wrap: wrap;
 	        gap: 5px;
 	      }
 	      .reply-composer-main {
-	        grid-template-columns: minmax(0, 1fr);
-	        padding-right: 9px;
+	        grid-template-columns: minmax(0, 1fr) auto;
+	        padding-right: 6px;
 	      }
 	      #replyBox {
 	        min-height: 40px;
 	        max-height: 96px;
 	        height: 40px;
 	      }
-	      .reply-mode-badge {
+	      .reply-composer-status .reply-mode-badge {
+	        display: none;
+	      }
+	      .ai-brain-badge {
+	        padding-right: 5px;
+	      }
+	      .ai-brain-badge-label {
 	        display: none;
 	      }
 	      .reply-action-group .reply-tools {
@@ -6672,24 +6759,42 @@
       }
 	      .composer-send-button {
 	        width: auto !important;
-	        min-width: 96px;
+	        min-width: 0;
+	        flex: 1 1 104px;
 	      }
 		      .composer-learn-button {
 		        width: auto !important;
-		        min-width: 164px;
+		        min-width: 0;
+		        flex: 1 1 146px;
 		      }
       .function-menu summary,
 	  .channel-action-picker > summary,
       .payment-quick > summary {
 	        min-height: 44px;
-	        border-radius: 11px;
+	        border-radius: 8px;
       }
-      .function-menu summary {
-        padding: 0 12px;
+	      .function-menu summary {
+	        width: 100%;
+	        min-width: 0;
+	        padding: 0 7px;
       }
+	      .channel-action-picker,
+	      .channel-action-picker > summary,
+	      .payment-quick,
 	      .payment-quick > summary {
-	        min-width: 92px;
-	        padding: 5px 9px;
+	        width: 100%;
+	        min-width: 0;
+	        box-sizing: border-box;
+	        overflow: hidden;
+	      }
+	      .channel-action-picker > summary {
+	        overflow: hidden;
+	        padding: 0 6px;
+	        text-overflow: ellipsis;
+	      }
+	      .payment-quick > summary {
+	        min-width: 0;
+	        padding: 5px 7px;
 	      }
       .function-menu-panel,
 	  .channel-action-panel,
@@ -7834,9 +7939,9 @@
 	      </div>
 	    </details>
 	    <details class="channel-action-picker" id="channelActionPicker" aria-label="选择 Quick Reply 或 ChatDaddy Flow">
-	      <summary>
+	      <summary title="选择 Quick Reply 或接 ChatDaddy Flow">
 	        <span>＋</span>
-	        <strong id="channelActionLabel">快捷回复 / Flow</strong>
+	        <strong id="channelActionLabel">话术 / Flow</strong>
 	      </summary>
 	      <div class="channel-action-panel">
 	        <section>
@@ -7868,7 +7973,13 @@
 	      <div class="reply-composer-content reply-card" id="replyCard">
 	        <div class="reply-composer-main">
 	          <textarea id="replyBox" rows="1" aria-label="回复顾客" placeholder="输入回复给顾客..."></textarea>
-	          <span class="reply-mode-badge" id="replyModeLabel">可修改</span>
+	          <div class="reply-composer-status">
+	            <span class="ai-brain-badge" id="aiBrainBadge" role="status" aria-live="polite" title="正在读取回复来源">
+	              <span class="ai-brain-mark" aria-hidden="true">AI</span>
+	              <span class="ai-brain-badge-label" id="aiBrainBadgeLabel">读取中</span>
+	            </span>
+	            <span class="reply-mode-badge" id="replyModeLabel">可修改</span>
+	          </div>
 	        </div>
 	        <div class="reply-tools" id="replyTools" aria-label="回复快捷调整">
 	          <button class="reply-chip" data-reply-template="warm" type="button">温柔</button>
@@ -7885,8 +7996,8 @@
 	    </div>
 	    <details class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
 	      <summary>
-	        <span>收款 / COD</span>
-	        <small>确认后接 Flow</small>
+	        <span>收款</span>
+	        <small>COD / Flow</small>
 	      </summary>
 	      <div class="payment-menu-panel">
 	        <div class="operation-copy">
@@ -11087,6 +11198,8 @@
 	          previous_agent_text: previousAgentText,
 	          original_ai_reply: originalAiReply,
 	          source: reply.model || "live_agent",
+	          ai_brain: item.ai_brain || item.decision?.ai_brain || null,
+	          source_refs: item.source_refs || item.decision?.source_refs || [],
 	          execution_plan: executionPlan,
 	        },
         execution_plan: executionPlan,
@@ -17242,6 +17355,60 @@
       `;
     }
 
+	function aiBrainPresentation(item = {}) {
+	  const decision = item.latest_decision || {};
+	  const brain = decision.ai_brain || item.ai_brain || item.raw_approval?.ai_brain || item.raw_approval?.decision?.ai_brain || {};
+	  const refs = [
+	    ...(Array.isArray(decision.source_refs) ? decision.source_refs : []),
+	    ...(Array.isArray(item.raw_approval?.source_refs) ? item.raw_approval.source_refs : []),
+	    ...(Array.isArray(item.raw_approval?.decision?.source_refs) ? item.raw_approval.decision.source_refs : []),
+	  ].map((value) => String(value || "").toLowerCase());
+	  const source = String(decision.source || item.raw_approval?.reply?.model || "").toLowerCase();
+	  const used = brain.used === true || source === "openai" || refs.includes("model:openai_in_agent");
+	  const attempted = brain.attempted === true;
+	  const tierRef = refs.find((value) => value.startsWith("model_tier:")) || "";
+	  const tier = String(brain.tier || tierRef.split(":")[1] || "").toLowerCase();
+	  const model = String(brain.model || (used ? "OpenAI" : "") || "").trim();
+	  const error = String(brain.error || "").trim();
+
+	  if (used) {
+	    const upgraded = tier === "terra" || tier === "sol" || /(?:^|[-_.])(?:gpt-5\.4|gpt-5\.6)(?!-mini)/i.test(model);
+	    const deep = tier === "sol";
+	    const label = deep ? "GPT 深度" : upgraded ? "GPT 加强" : "GPT 参与";
+	    const tierText = tier ? `，层级 ${tier}` : "";
+	    return {
+	      tone: upgraded ? "upgraded" : "gpt",
+	      label,
+	      title: `${label}：这份草稿有使用 ${model || "OpenAI 模型"}${tierText}。这表示 GPT 有参与，不代表回复已自动通过质量检查；仍需结合质量评分与顾客上下文判断。`,
+	    };
+	  }
+
+	  if (attempted) {
+	    return {
+	      tone: "failed",
+	      label: "GPT 未完成",
+	      title: `GPT 曾尝试处理，但没有成功采用模型结果${error ? `：${error}` : ""}。目前显示的是安全回退草稿，请重点检查回复质量。`,
+	    };
+	  }
+
+	  return {
+	    tone: "rule",
+	    label: "规则回复",
+	    title: "这份草稿由规则 Router / 已批准知识生成，没有使用 GPT 大脑。适合明确、固定的问题；复杂销售异议请更仔细检查。",
+	  };
+	}
+
+	function renderAiBrainBadge(item = {}) {
+	  const badge = $("aiBrainBadge");
+	  const label = $("aiBrainBadgeLabel");
+	  if (!badge || !label) return;
+	  const presentation = aiBrainPresentation(item);
+	  badge.className = `ai-brain-badge ${presentation.tone}`;
+	  badge.title = presentation.title;
+	  badge.setAttribute("aria-label", presentation.title);
+	  label.textContent = presentation.label;
+	}
+
 	    function cardHtml(item) {
 	      const decision = item.latest_decision || {};
 	      const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
@@ -17339,6 +17506,7 @@
 	  const proposedReply = hideReplyCardForMode || isManualFollowUp || manualConversationMode ? "" : originalProposedReply;
 	  const misleadingPaymentDraft = paymentConfirmationCase && /(先帮你核对|先幫你核對|确认好后再回复|確認好後再回覆|稍后再回复|稍後再回覆|不会重复向你收款|不會重複向你收款)/i.test(originalProposedReply);
       $("replyBox").value = misleadingPaymentDraft ? "" : proposedReply;
+	  renderAiBrainBadge(item);
       $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : manualConversationMode ? "输入下一条讯息，发送后还可以继续回复..." : "输入回复给顾客...";
       $("replyBox").readOnly = readOnly && !canManualResolve && !canManualSend;
 	  requestAnimationFrame(resizeReplyComposer);
