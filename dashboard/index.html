@@ -7659,6 +7659,9 @@
 	  flowCatalogLiveCount: 0,
       projectKnowledge: null,
       projectKnowledgeError: "",
+      projectConnectionReadiness: null,
+      projectConnectionReadinessError: "",
+      projectConnectionReadinessBusy: false,
       settingsExpanded: false,
       projectDocumentFile: null,
       projectDocumentBusy: false,
@@ -9120,7 +9123,11 @@
         return;
       }
       if (action === "refresh-project-knowledge") {
-        loadProjectKnowledge();
+        Promise.all([loadProjectKnowledge(), loadProjectConnectionReadiness()]);
+        return;
+      }
+      if (action === "test-project-connection") {
+        loadProjectConnectionReadiness({ notify: true });
         return;
       }
       if (action === "analyze-project-document") {
@@ -12581,8 +12588,99 @@
             ${stepHtml("优化", "出错的 Case 在复盘里改规则。")}
           </div>
         </section>
-	      `;
+      `;
 	    }
+
+      function projectConnectionCenterHtml() {
+        const readiness = state.projectConnectionReadiness;
+        if (!readiness) {
+          return `<section class="command-panel">
+            <div class="command-kicker">第二步：项目连接中心</div>
+            <strong class="command-title">${state.projectConnectionReadinessBusy ? "正在检测渠道能力..." : "还没有读取连接能力"}</strong>
+            <p class="command-copy">${escapeHtml(state.projectConnectionReadinessError || "检测只读取配置和历史成功记录，不会发送测试讯息。")}</p>
+            <div class="quick-actions">
+              <button class="quick-action primary" data-dashboard-action="test-project-connection" type="button" ${state.projectConnectionReadinessBusy ? "disabled" : ""}>重新检测</button>
+              <a class="quick-action" href="../channel-setup/index.html" target="_blank" rel="noreferrer">管理渠道连接</a>
+            </div>
+          </section>`;
+        }
+        const connection = readiness.connection || {};
+        const providerLabel = readiness.provider === "manychat"
+          ? "ManyChat Lite"
+          : readiness.provider === "chatdaddy"
+            ? "ChatDaddy Full"
+            : readiness.provider || "未连接";
+        const blockers = Array.isArray(readiness.blockers) ? readiness.blockers : [];
+        const warnings = Array.isArray(readiness.warnings) ? readiness.warnings : [];
+        const capabilities = Array.isArray(readiness.capabilities) ? readiness.capabilities : [];
+        const stages = Array.isArray(readiness.stage_bindings) ? readiness.stage_bindings : [];
+        return `<section class="command-panel ${readiness.ready_for_publish ? "accent" : ""}">
+          <div class="command-kicker">第二步：项目连接中心</div>
+          <strong class="command-title">${readiness.ready_for_publish ? "连接能力已达到 Level 1 发布条件" : `还有 ${blockers.length} 个发布卡点`}</strong>
+          <p class="command-copy">项目负责人不需要在这里填写 API Key。平台只显示能力状态；凭证留在安全连接层。</p>
+          <div class="compact-list">
+            ${compactRow("当前渠道", `${providerLabel}${connection.display_name ? ` · ${connection.display_name}` : ""}`, readiness.active_connection ? "已启用" : "未启用")}
+            ${capabilities.map((capability) => compactRow(
+              capability.label,
+              capability.note || "",
+              capability.status === "verified" ? "已验证" : capability.status === "configured" ? "已配置" : capability.required ? "缺少" : "未提供"
+            )).join("")}
+          </div>
+          <div class="settings-box">
+            <h3>Step → Flow 绑定</h3>
+            <div class="compact-list">${stages.map((stage) => compactRow(
+              stage.stage_key,
+              stage.configured ? `${stage.flow_key} · 已接真实 ID` : `${stage.flow_key || "待选择"} · 尚未接真实 ID`,
+              stage.configured ? "已绑定" : "阻挡"
+            )).join("") || compactRow("销售 Step", "请先设置 1–4 Step", "待设置")}</div>
+          </div>
+          ${blockers.length ? `<div class="settings-box"><h3>发布前必须处理</h3><div class="compact-list">${blockers.map((item) => compactRow(item.code || "blocker", item.message || "待处理", "阻挡")).join("")}</div></div>` : ""}
+          ${warnings.length ? `<p class="project-upload-note">${escapeHtml(`另有 ${warnings.length} 项只有配置、还没有历史成功证据；Level 1 仍会保持人工批准。`)}</p>` : ""}
+          <div class="quick-actions">
+            <button class="quick-action primary" data-dashboard-action="test-project-connection" type="button" ${state.projectConnectionReadinessBusy ? "disabled" : ""}>${state.projectConnectionReadinessBusy ? "检测中..." : "重新检测（不发送）"}</button>
+            <a class="quick-action" href="../channel-setup/index.html" target="_blank" rel="noreferrer">管理渠道连接</a>
+          </div>
+        </section>`;
+      }
+
+      function projectOnboardingFlowOptions(stage = {}) {
+        const catalog = (state.flowCatalog || []).filter((flow) => flow.is_active !== false);
+        const selectedFlow = catalog.find((flow) =>
+          String(flow.flow_key || "") === String(stage.flow_key || "")
+          || (stage.provider_bot_id && String(flow.provider_bot_id || "") === String(stage.provider_bot_id))
+          || (stage.provider_flow_id && String(flow.provider_flow_id || "") === String(stage.provider_flow_id))
+        );
+        const selectedKey = selectedFlow?.flow_key || stage.flow_key || "";
+        const hasCurrent = catalog.some((flow) => String(flow.flow_key || "") === String(selectedKey));
+        const currentOption = selectedKey && !hasCurrent
+          ? `<option value="${escapeHtml(selectedKey)}" selected>${escapeHtml(`${stage.purpose || selectedKey}（当前绑定，目录未同步）`)}</option>`
+          : "";
+        return `<option value="">请选择真实 Flow</option>${currentOption}${catalog.map((flow) => `<option value="${escapeHtml(flow.flow_key || "")}" ${String(flow.flow_key || "") === String(selectedKey) ? "selected" : ""}>${escapeHtml(flowOptionLabel(flow))}</option>`).join("")}`;
+      }
+
+      function projectDocsMediaReferences(knowledge = state.projectKnowledge || {}) {
+        const faq = Array.isArray(knowledge.learning_assets?.faq) ? knowledge.learning_assets.faq : [];
+        const refs = [];
+        for (const item of faq) {
+          for (const ref of Array.isArray(item.source_media_refs) ? item.source_media_refs : []) {
+            if (!ref?.inline_object_id) continue;
+            refs.push({
+              inline_object_id: String(ref.inline_object_id),
+              source_document_id: String(ref.source_document_id || item.source_document_id || ""),
+              faq_id: String(item.id || ""),
+              label: String(ref.title || ref.description || item.question || item.title || ref.inline_object_id)
+            });
+          }
+        }
+        return [...new Map(refs.map((ref) => [ref.inline_object_id, ref])).values()];
+      }
+
+      function dateTimeLocalValue(value = "") {
+        const date = new Date(value);
+        if (!value || Number.isNaN(date.getTime())) return "";
+        const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 16);
+      }
 
       function projectOnboardingStepHtml(step) {
         const knowledge = state.projectKnowledge;
@@ -12630,15 +12728,7 @@
               <div class="knowledge-section">${documentRows}</div>
               ${latestAnalysis ? `<div class="knowledge-section">${knowledgeItemHtml("最近一次分析", latestAnalysis.summary || latestAnalysis.positioning || "已完成", `${latestAnalysis.file_name || "项目资料"} · ${latestAnalysis.analysis_mode || latestAnalysis.status || "analyzed"}`)}</div>` : ""}
             </section>
-            <section class="command-panel">
-              <div class="command-kicker">第二步：讯息连接</div>
-              <strong class="command-title">${counts.channels > 0 ? `已连接 ${counts.channels} 个讯息渠道` : "讯息渠道还没有真实记录"}</strong>
-              <div class="compact-list">
-                ${compactRow("项目定位", brand.positioning || "待从 PPT / 项目资料确认", brand.positioning ? "已读" : "待补")}
-                ${compactRow("讯息渠道", `${Number(counts.channels || 0)} 个`, Number(counts.channels || 0) > 0 ? "已连接" : "待连接")}
-                ${compactRow("Chat Flow", `${Number(counts.configured_flows || 0)} / ${Number(counts.flows || 0)} 个已配置`, Number(counts.configured_flows || 0) > 0 ? "已读取" : "待接")}
-              </div>
-            </section>`;
+            ${projectConnectionCenterHtml()}`;
         }
         if (step === "2") {
           const sopItems = [
@@ -12662,9 +12752,8 @@
               <h3>Step ${index + 1}${stage.stage_key === salesProcess.price_stage_key ? " · 价格阶段" : ""}</h3>
               <div class="field-grid">
                 <label>这个 Step 的目的<input data-sales-purpose="${index + 1}" value="${escapeHtml(stage.purpose || "")}"></label>
-                <label>Flow Key<input data-sales-flow-key="${index + 1}" value="${escapeHtml(stage.flow_key || `s${index + 1}`)}"></label>
-                <label>ChatDaddy Flow ID<input data-sales-provider-flow-id="${index + 1}" value="${escapeHtml(stage.provider_flow_id || "")}" placeholder="可填 Flow ID"></label>
-                <label>ChatDaddy Bot ID<input data-sales-provider-bot-id="${index + 1}" value="${escapeHtml(stage.provider_bot_id || "")}" placeholder="可填 Bot ID"></label>
+                <label>选择真实 Flow<select data-sales-flow-catalog="${index + 1}" data-current-provider-flow-id="${escapeHtml(stage.provider_flow_id || "")}" data-current-provider-bot-id="${escapeHtml(stage.provider_bot_id || "")}">${projectOnboardingFlowOptions(stage)}</select></label>
+                <label>内部 Flow Key<input data-sales-flow-key="${index + 1}" value="${escapeHtml(stage.flow_key || `s${index + 1}`)}" readonly></label>
                 <label><input type="checkbox" data-sales-contains-media="${index + 1}" ${stage.contains_media ? "checked" : ""}> 这个 Flow 已经包含图片 / 视频 / 语音</label>
               </div>
             </div>`;
@@ -12673,18 +12762,26 @@
           const proofText = Array.isArray(salesProcess.post_price_policy?.proof) ? salesProcess.post_price_policy.proof.join("\n") : "";
           const ctaText = String(salesProcess.post_price_policy?.cta || "");
           const urgencyText = Array.isArray(salesProcess.post_price_policy?.urgency) ? salesProcess.post_price_policy.urgency.join("\n") : "";
+          const offer = Array.isArray(salesProcess.post_price_policy?.offers)
+            ? salesProcess.post_price_policy.offers.find((item) => item && typeof item === "object") || {}
+            : {};
+          const docsMediaRefs = projectDocsMediaReferences(knowledge);
           return `${header}
             <section class="command-panel accent">
               <div class="command-kicker">成交流程与渠道</div>
               <strong class="command-title">一个项目一个脑袋：设置 1–4 Step、价格阶段和成交节奏</strong>
               <p class="command-copy">这里保存进当前项目的 Project Brain，不会影响其他项目。顾客连续追问时，系统默认只回答，不会每轮重复 Proof 和 CTA。</p>
               <div class="field-grid">
+                <label>消息渠道<select id="salesChannelProviderInput"><option value="chatdaddy" ${salesProcess.channel_provider !== "manychat" ? "selected" : ""}>ChatDaddy Full</option><option value="manychat" ${salesProcess.channel_provider === "manychat" ? "selected" : ""}>ManyChat Lite（Adapter 完成后开放）</option></select></label>
                 <label>项目有几个销售 Step<select id="salesStepCountInput">${[1,2,3,4].map((count) => `<option value="${count}" ${Number(salesProcess.step_count || 4) === count ? "selected" : ""}>${count} Step</option>`).join("")}</select></label>
                 <label>哪个 Step 会显示价格<select id="salesPriceStageInput">${priceOptions}</select></label>
                 <label>顾客提前问价格<select id="salesEarlyPricePolicyInput"><option value="answer_now_and_enter_closer" ${salesProcess.early_price_policy !== "bridge_then_continue_flow" ? "selected" : ""}>直接回答并进入成交阶段</option><option value="bridge_then_continue_flow" ${salesProcess.early_price_policy === "bridge_then_continue_flow" ? "selected" : ""}>Bridge 后继续教育 Flow</option></select></label>
                 <label>批准过的价格后 Proof（每行一项）<textarea id="salesPostPriceProofInput">${escapeHtml(proofText)}</textarea></label>
                 <label>价格后 CTA<input id="salesPostPriceCtaInput" value="${escapeHtml(ctaText)}" placeholder="例如：你想先从哪个配套开始？"></label>
                 <label>真实 Urgency（每行一项，必须有活动依据）<textarea id="salesPostPriceUrgencyInput">${escapeHtml(urgencyText)}</textarea></label>
+                <label>当前 Offer 名称<input id="salesOfferTitleInput" value="${escapeHtml(offer.title || offer.name || "")}" placeholder="例如：7月买3送1"></label>
+                <label>Offer 有效截止时间<input id="salesOfferValidUntilInput" type="datetime-local" value="${escapeHtml(dateTimeLocalValue(offer.valid_until || offer.ends_at || ""))}"></label>
+                <label>Offer 来源 / 批准人<input id="salesOfferSourceInput" value="${escapeHtml(offer.source || offer.source_ref || "")}" placeholder="例如：Owner 14/07 批准或活动文件名"></label>
               </div>
               <div class="settings-grid">${stageRows}</div>
               <div class="quick-actions">
@@ -12700,6 +12797,7 @@
                   <label>或媒体 URL<input id="projectMediaUrlInput" placeholder="https://..."></label>
                   <label>适用 Step（逗号分隔）<input id="projectMediaStagesInput" placeholder="step_2, step_3"></label>
                   <label>适用 Intent（逗号分隔）<input id="projectMediaIntentsInput" placeholder="trust_question, price_objection"></label>
+                  <label>对应 Docs 图片<select id="projectMediaSourceRefInput"><option value="">不是 Docs 图片 / 暂不关联</option>${docsMediaRefs.map((ref) => `<option value="${escapeHtml(ref.inline_object_id)}">${escapeHtml(ref.label)} · ${escapeHtml(ref.inline_object_id)}</option>`).join("")}</select></label>
                   <label><input type="checkbox" id="projectMediaRequiredInput"> 这是必需素材；失败时不可接下一条 Flow</label>
                 </div>
                 <div class="quick-actions"><button class="quick-action" data-dashboard-action="save-project-media-asset" type="button">批准并加入当前项目</button></div>
@@ -16903,6 +17001,40 @@
       }
     }
 
+    async function loadProjectConnectionReadiness(options = {}) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      state.projectConnectionReadinessError = "";
+      if (!api || state.demoMode || (!token && !hasAccountSession())) {
+        state.projectConnectionReadiness = null;
+        return null;
+      }
+      state.projectConnectionReadinessBusy = true;
+      if (options.notify) render();
+      try {
+        const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/connection-readiness`;
+        const res = await fetch(endpoint, authRequestOptions(token));
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+        state.projectConnectionReadiness = data;
+        if (options.notify) {
+          showToast(data.ready_for_publish
+            ? "连接与发布检查已通过；检测过程没有发送顾客讯息。"
+            : `还有 ${Number(data.blockers?.length || 0)} 个发布卡点，请先处理。`);
+        }
+        return data;
+      } catch (error) {
+        state.projectConnectionReadiness = null;
+        state.projectConnectionReadinessError = error?.message || String(error);
+        if (options.notify) showToast(`连接检测失败：${state.projectConnectionReadinessError}`);
+        return null;
+      } finally {
+        state.projectConnectionReadinessBusy = false;
+        render();
+      }
+    }
+
     async function connectAndStudyGoogleDocsFaq() {
       if (state.googleDocsFaqBusy) return;
       if (!canManageProjectFaq()) {
@@ -16961,7 +17093,7 @@
         showToast(`Google Docs FAQ 处理失败：${error.message || error}`);
       } finally {
         state.googleDocsFaqBusy = false;
-        await loadProjectKnowledge({ silent: true });
+        await Promise.all([loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
       }
     }
 
@@ -17055,19 +17187,23 @@
       }
       const stepCount = Math.max(1, Math.min(4, Number($("salesStepCountInput")?.value || 4)));
       const priceStageKey = String($("salesPriceStageInput")?.value || `step_${stepCount}`);
+      const channelProvider = String($("salesChannelProviderInput")?.value || "chatdaddy").trim().toLowerCase();
       if (Number(priceStageKey.replace(/\D+/g, "")) > stepCount) {
         showToast("价格阶段不能超过项目的 Step 数量。");
         return;
       }
       const stages = Array.from({ length: stepCount }, (_, index) => {
         const order = index + 1;
+        const flowSelect = document.querySelector(`[data-sales-flow-catalog="${order}"]`);
+        const selectedFlow = flowCatalogEntry(flowSelect?.value || "");
         return {
           stage_key: `step_${order}`,
           order,
           purpose: document.querySelector(`[data-sales-purpose="${order}"]`)?.value?.trim() || `Sales Step ${order}`,
           flow_key: document.querySelector(`[data-sales-flow-key="${order}"]`)?.value?.trim() || `s${order}`,
-          provider_flow_id: document.querySelector(`[data-sales-provider-flow-id="${order}"]`)?.value?.trim() || null,
-          provider_bot_id: document.querySelector(`[data-sales-provider-bot-id="${order}"]`)?.value?.trim() || null,
+          provider: channelProvider,
+          provider_flow_id: String(selectedFlow?.provider_flow_id || flowSelect?.dataset.currentProviderFlowId || "").trim() || null,
+          provider_bot_id: String(selectedFlow?.provider_bot_id || flowSelect?.dataset.currentProviderBotId || "").trim() || null,
           next_stage_key: order < stepCount ? `step_${order + 1}` : null,
           language: "zh-MY",
           contains_media: document.querySelector(`[data-sales-contains-media="${order}"]`)?.checked === true,
@@ -17081,8 +17217,20 @@
         if (!currentRes.ok || !current.ok) throw new Error(current.message || current.error || `HTTP ${currentRes.status}`);
         const projectPackage = current.project_package || {};
         const existingPolicy = projectPackage.sales_process?.post_price_policy || {};
+        const offerTitle = String($("salesOfferTitleInput")?.value || "").trim();
+        const offerValidUntil = String($("salesOfferValidUntilInput")?.value || "").trim();
+        const offerSource = String($("salesOfferSourceInput")?.value || "").trim();
+        const offers = offerTitle || offerValidUntil || offerSource
+          ? [{
+              title: offerTitle,
+              valid_until: offerValidUntil ? new Date(offerValidUntil).toISOString() : null,
+              source: offerSource,
+              approved_at: new Date().toISOString(),
+            }]
+          : [];
         projectPackage.sales_process = {
           ...(projectPackage.sales_process || {}),
+          channel_provider: channelProvider,
           step_count: stepCount,
           entry_stage_key: "step_1",
           price_stage_key: priceStageKey,
@@ -17093,6 +17241,7 @@
             proof_enabled: true,
             proof: String($("salesPostPriceProofInput")?.value || "").split(/\n+/).map((value) => value.trim()).filter(Boolean),
             cta: String($("salesPostPriceCtaInput")?.value || "").trim(),
+            offers,
             urgency: String($("salesPostPriceUrgencyInput")?.value || "").split(/\n+/).map((value) => value.trim()).filter(Boolean),
             cadence: {
               first_question: "answer_with_one_relevant_proof_and_soft_cta",
@@ -17119,7 +17268,7 @@
         const saved = await savedRes.json().catch(() => ({}));
         if (!savedRes.ok || !saved.ok) throw new Error(saved.message || saved.error || `HTTP ${savedRes.status}`);
         showToast(`已保存 ${stepCount} Step Project Brain 草稿；通过 Mock Test 后再发布。`);
-        await loadProjectKnowledge({ silent: true });
+        await Promise.all([loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
       } catch (error) {
         showToast(`成交流程保存失败：${error.message || error}`);
       }
@@ -17131,6 +17280,12 @@
       const token = adminTokenEl.value.trim();
       if (!api || (!token && !hasAccountSession())) {
         showToast("请先登录真实项目账号。");
+        return;
+      }
+      const readiness = await loadProjectConnectionReadiness();
+      if (!readiness?.ready_for_publish) {
+        const firstBlocker = readiness?.blockers?.[0]?.message || "项目连接与发布检查尚未通过。";
+        showToast(`暂时不能发布：${firstBlocker}`);
         return;
       }
       const studiedDraftCount = Object.values(state.projectKnowledge?.learning_assets || {})
@@ -17153,7 +17308,8 @@
         const test = await testRes.json().catch(() => ({}));
         if (!testRes.ok || !test.ok || Number(test.failed_count || 0) > 0) {
           const failed = (test.tests || []).filter((item) => item.passed === false).map((item) => item.name).join(", ");
-          throw new Error(failed ? `Mock Test 未通过：${failed}` : test.message || test.error || `HTTP ${testRes.status}`);
+          const blocker = test.blockers?.[0]?.message;
+          throw new Error(blocker || (failed ? `Mock Test 未通过：${failed}` : test.message || test.error || `HTTP ${testRes.status}`));
         }
         const publishEndpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/package/publish`;
         const publishRes = await fetch(publishEndpoint, authRequestOptions(token, {
@@ -17168,7 +17324,7 @@
         const published = await publishRes.json().catch(() => ({}));
         if (!publishRes.ok || !published.ok) throw new Error(published.message || published.error || `HTTP ${publishRes.status}`);
         showToast(`Project Brain v${published.version_no} 已发布；新 Case 会锁定这个版本。`);
-        await loadProjectKnowledge({ silent: true });
+        await Promise.all([loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
       } catch (error) {
         showToast(`Mock / 发布失败：${error.message || error}`);
       }
@@ -17181,6 +17337,8 @@
       const title = String($("projectMediaTitleInput")?.value || "").trim();
       const providerMediaId = String($("projectMediaProviderIdInput")?.value || "").trim();
       const mediaUrl = String($("projectMediaUrlInput")?.value || "").trim();
+      const sourceInlineObjectId = String($("projectMediaSourceRefInput")?.value || "").trim();
+      const sourceRef = projectDocsMediaReferences().find((item) => item.inline_object_id === sourceInlineObjectId) || null;
       if (!title || (!providerMediaId && !mediaUrl)) {
         showToast("请填写素材名称，以及 Provider Media ID 或媒体 URL。");
         return;
@@ -17199,17 +17357,23 @@
             intent_keys: String($("projectMediaIntentsInput")?.value || "").split(/[,，\n]+/).map((value) => value.trim()).filter(Boolean),
             required: $("projectMediaRequiredInput")?.checked === true,
             approval_status: "approved",
-            provider: "chatdaddy",
+            provider: String($("salesChannelProviderInput")?.value || state.projectConnectionReadiness?.provider || "chatdaddy").trim().toLowerCase(),
+            metadata: sourceRef ? {
+              source_inline_object_id: sourceRef.inline_object_id,
+              source_document_id: sourceRef.source_document_id || undefined,
+              source_faq_id: sourceRef.faq_id || undefined,
+              source: "google_docs_onboarding",
+            } : {},
           }),
         }));
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
         showToast("素材已批准并只加入当前项目。AI 不会选择其他项目的素材。");
-        for (const id of ["projectMediaTitleInput", "projectMediaProviderIdInput", "projectMediaUrlInput", "projectMediaStagesInput", "projectMediaIntentsInput"]) {
+        for (const id of ["projectMediaTitleInput", "projectMediaProviderIdInput", "projectMediaUrlInput", "projectMediaStagesInput", "projectMediaIntentsInput", "projectMediaSourceRefInput"]) {
           if ($(id)) $(id).value = "";
         }
         if ($("projectMediaRequiredInput")) $("projectMediaRequiredInput").checked = false;
-        await loadProjectKnowledge({ silent: true });
+        await Promise.all([loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
       } catch (error) {
         showToast(`素材保存失败：${error.message || error}`);
       }
@@ -23574,7 +23738,7 @@
 
     (async function bootDashboard() {
       await bootstrapSaasSession();
-	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog(), loadProjectKnowledge({ silent: true })]);
+	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog(), loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
 	  startQueueAutoRefresh();
     })();
   </script>
