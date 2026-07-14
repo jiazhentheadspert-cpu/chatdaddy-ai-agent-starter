@@ -8150,6 +8150,11 @@
       loadingCaseDetailId: "",
       loading: false,
       refreshing: false,
+      queueRefreshInFlight: false,
+      inboxRefreshInFlight: false,
+      queueAutoRefreshTimer: null,
+      inboxAutoRefreshTimer: null,
+      replyDraftDirty: false,
       actionBusy: false,
       bulkBusy: false,
       sidebarCollapsed: false,
@@ -8709,9 +8714,15 @@
     $("bulkHandoff").addEventListener("click", () => bulkCaseAction("handoff"));
     $("bulkClear").addEventListener("click", clearSelection);
     $("replyBox").addEventListener("input", () => {
+      state.replyDraftDirty = true;
       resizeReplyComposer();
       if (state.active) updateQualityEvaluationPanel(state.active);
       if (state.active) setPanelBusy(false);
+    });
+
+    window.addEventListener("focus", refreshRealtimeNow);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) refreshRealtimeNow();
     });
 
     document.querySelectorAll("[data-filter]").forEach((button) => {
@@ -10585,6 +10596,26 @@
       return name || fallbackCustomerNameFromDigits(digits);
     }
 
+    function realtimeCaseFingerprint(item = {}) {
+      const messages = Array.isArray(item.messages) ? item.messages : [];
+      const latestMessage = messages.at(-1) || {};
+      return [
+        item.id,
+        item.status,
+        item.updated_at,
+        item.last_message_at,
+        messages.length,
+        latestMessage.id,
+        latestMessage.at || latestMessage.message_at,
+        latestMessage.direction || latestMessage.role,
+        firstContextText(latestMessage.text, latestMessage.body, latestMessage.caption, latestMessage.content),
+      ].map((value) => String(value || "")).join("|");
+    }
+
+    function realtimeQueueFingerprint(items = []) {
+      return items.map(realtimeCaseFingerprint).join("\n");
+    }
+
     async function loadCases(options = {}) {
       errorEl.textContent = "";
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
@@ -10635,41 +10666,54 @@
         state.refreshing = false;
         state.queueSyncStatus = data.sync_status || null;
 	        const previousActiveId = String(state.active?.id || "");
+	        const previousActiveFingerprint = realtimeCaseFingerprint(state.active || {});
+	        const previousQueueFingerprint = realtimeQueueFingerprint(state.cases);
 	        if (!options.preserveSelection) state.selected.clear();
 	        $("modeTag").textContent = activeModeLabel();
 	        const liveItems = Array.isArray(data.items)
 	          ? data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
 	          : [];
 	        const compactLiveItems = compactApprovalsByConversation(liveItems);
-        state.contactNames = {};
-        state.cases = compactLiveItems.map((item) => approvalToCase(item, {}));
-        render();
+	        const knownContactNames = options.silent ? (state.contactNames || {}) : {};
+	        if (!options.silent) state.contactNames = {};
+	        state.cases = compactLiveItems.map((item) => approvalToCase(item, knownContactNames));
+	        if (options.preserveSelection) {
+	          const liveCaseIds = new Set(state.cases.map((record) => String(record.id || "")));
+	          state.selected = new Set([...state.selected].filter((caseId) => liveCaseIds.has(String(caseId))));
+	        }
+	        const queueChanged = realtimeQueueFingerprint(state.cases) !== previousQueueFingerprint;
+	        if (!options.silent || queueChanged) render();
 	        if (options.refreshActive && previousActiveId) {
 	          const refreshedActive = state.cases.find((record) => String(record.id || "") === previousActiveId) || null;
 	          if (refreshedActive) {
 	            state.active = refreshedActive;
-	            if ($("panel").classList.contains("open")) openCase(previousActiveId);
+	            const activeChanged = realtimeCaseFingerprint(refreshedActive) !== previousActiveFingerprint;
+	            if (activeChanged && $("panel").classList.contains("open")) openCase(previousActiveId, { preserveReplyDraft: true });
 	          } else if ($("panel").classList.contains("open")) {
-	            closePanel();
-	            showToast("这个 Case 已由渠道回复接走，已移到处理记录。");
+	            if (state.replyDraftDirty) {
+	              showToast("Case 状态已更新；你正在写的草稿已保留，请确认后再处理。");
+	            } else {
+	              closePanel();
+	              showToast("这个 Case 已由渠道回复接走，已移到处理记录。");
+	            }
 	          }
 	        }
 
-        loadContactNameMap(compactLiveItems, token).then((contactNames) => {
+	        if (!options.silent) loadContactNameMap(compactLiveItems, token).then((contactNames) => {
           if (!contactNames || !Object.keys(contactNames).length) return;
           state.contactNames = contactNames;
           state.cases = compactLiveItems.map((item) => approvalToCase(item, contactNames));
           render();
         }).catch(() => {});
 
-        if (state.role !== "staff") {
+        if (!options.silent && state.role !== "staff") {
           await loadRuntimeSettings({ silent: true });
           await loadMetaCapiStatus();
           await loadAdsConnection(token);
           await loadUsageSummary(token);
           await loadOwnerAdminSummaries(token);
           render();
-        } else {
+        } else if (!options.silent) {
           state.projectVersions = null;
           state.qualityReview = null;
           state.handoffLearningReview = null;
@@ -10790,16 +10834,45 @@
       }
     }
 
+	const REALTIME_QUEUE_POLL_MS = 5000;
+	const REALTIME_INBOX_POLL_MS = 10000;
+
+	function realtimeRefreshReady() {
+	  if (document.hidden || state.demoMode || state.actionBusy || state.bulkBusy) return false;
+	  if (state.role !== "staff" || !apiUrlEl.value.trim()) return false;
+	  return Boolean(adminTokenEl.value.trim() || hasAccountSession());
+	}
+
+	async function refreshQueueRealtime() {
+	  if (!realtimeRefreshReady() || state.queueRefreshInFlight) return;
+	  state.queueRefreshInFlight = true;
+	  try {
+	    await loadCases({ silent: true, refreshActive: true, preserveSelection: true });
+	  } finally {
+	    state.queueRefreshInFlight = false;
+	  }
+	}
+
+	async function refreshInboxRealtime() {
+	  if (!realtimeRefreshReady() || state.inboxRefreshInFlight || state.inboxLoading || state.inboxLoadingMore) return;
+	  state.inboxRefreshInFlight = true;
+	  try {
+	    await loadInboxConversations({ silent: true, preserveLoaded: true });
+	  } finally {
+	    state.inboxRefreshInFlight = false;
+	  }
+	}
+
+	function refreshRealtimeNow() {
+	  refreshQueueRealtime().catch(() => null);
+	  refreshInboxRealtime().catch(() => null);
+	}
+
 	function startQueueAutoRefresh() {
 	  if (state.queueAutoRefreshTimer) clearInterval(state.queueAutoRefreshTimer);
-	  state.queueAutoRefreshTimer = setInterval(() => {
-	    if (document.hidden || state.demoMode || state.actionBusy || state.bulkBusy || state.selected.size > 0) return;
-	    if (state.role !== "staff" || !apiUrlEl.value.trim() || (!adminTokenEl.value.trim() && !hasAccountSession())) return;
-	    Promise.all([
-	      loadCases({ silent: true, refreshActive: true, preserveSelection: true }),
-	      loadInboxConversations({ silent: true, preserveLoaded: true }),
-	    ]).catch(() => null);
-	  }, 20000);
+	  if (state.inboxAutoRefreshTimer) clearInterval(state.inboxAutoRefreshTimer);
+	  state.queueAutoRefreshTimer = setInterval(() => refreshQueueRealtime().catch(() => null), REALTIME_QUEUE_POLL_MS);
+	  state.inboxAutoRefreshTimer = setInterval(() => refreshInboxRealtime().catch(() => null), REALTIME_INBOX_POLL_MS);
 	}
 
     function dashboardQueueStatusForFilter(rawFilter = state.filter, role = state.role) {
@@ -12412,6 +12485,7 @@
     function closePanel() {
       $("panel").classList.remove("open");
       state.active = null;
+      state.replyDraftDirty = false;
     }
 
     function projectChannelProviderLabel(provider = "") {
@@ -12795,8 +12869,9 @@
       const staffGuide = state.role === "staff"
         ? ` · 待批准 ${counts.approval || 0}，人工回复 ${Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0)}，自动 Flow ${counts.auto || 0}`
         : "";
+      const realtimeText = state.role === "staff" ? " · 实时同步 ≤5秒" : "";
       const refreshText = state.refreshing ? " · 正在同步" : "";
-      $("queueSummary").textContent = `${queueDateScopeLabel()} · ${visibleCount}/${filteredCount} 位${queryText}${focusText} · ${sortText}${qaText}${staffGuide}${refreshText}`;
+      $("queueSummary").textContent = `${queueDateScopeLabel()} · ${visibleCount}/${filteredCount} 位${queryText}${focusText} · ${sortText}${qaText}${staffGuide}${realtimeText}${refreshText}`;
     }
 
     function renderStaffPriorityQueue(counts = {}) {
@@ -17578,8 +17653,14 @@
 	      `;
 	    }
 
-    function openCase(caseId) {
+    function openCase(caseId, options = {}) {
       const id = String(caseId || "").trim();
+      const previousActiveId = String(state.active?.id || "");
+      const preserveReplyDraft = options.preserveReplyDraft === true
+        && previousActiveId === id
+        && state.replyDraftDirty
+        && $("panel").classList.contains("open");
+      const preservedReplyDraft = preserveReplyDraft ? $("replyBox").value : "";
       const item = (state.visibleCases || []).find((record) => String(record.id || "") === id)
         || state.cases.find((record) => String(record.id || "") === id);
       if (!item) {
@@ -17625,7 +17706,8 @@
 	  const originalProposedReply = externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
 	  const proposedReply = hideReplyCardForMode || isManualFollowUp || manualConversationMode ? "" : originalProposedReply;
 	  const misleadingPaymentDraft = paymentConfirmationCase && /(先帮你核对|先幫你核對|确认好后再回复|確認好後再回覆|稍后再回复|稍後再回覆|不会重复向你收款|不會重複向你收款)/i.test(originalProposedReply);
-      $("replyBox").value = misleadingPaymentDraft ? "" : proposedReply;
+	  $("replyBox").value = preserveReplyDraft ? preservedReplyDraft : (misleadingPaymentDraft ? "" : proposedReply);
+	  state.replyDraftDirty = preserveReplyDraft;
 	  renderAiBrainBadge(item);
       $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : manualConversationMode ? "输入下一条讯息，发送后还可以继续回复..." : "输入回复给顾客...";
       $("replyBox").readOnly = readOnly && !canManualResolve && !canManualSend;
@@ -20686,6 +20768,7 @@
       if (!state.active) return "";
       const draft = shortVersionDraftForCase(state.active, extraShort);
       $("replyBox").value = draft;
+	  state.replyDraftDirty = true;
 	  resizeReplyComposer();
       $("replyModeLabel").textContent = extraShort ? "已继续缩短" : "短版可批准";
       updateQualityEvaluationPanel(state.active);
@@ -23932,6 +24015,7 @@
           if (options.reopen !== false && returnedCase) openCase(returnedCase.id);
 	      if (action === "manual_send" && returnedCase) {
 	        $("replyBox").value = "";
+	        state.replyDraftDirty = false;
 	        $("replyBox").placeholder = "输入下一条讯息，发送后还可以继续回复...";
 	        $("replyModeLabel").textContent = "人工连续对话";
 	        resizeReplyComposer();
