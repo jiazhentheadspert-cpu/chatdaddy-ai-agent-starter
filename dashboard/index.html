@@ -10333,7 +10333,8 @@
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3500);
       try {
-        const endpoint = `${api}/api/channels/chatdaddy/contacts?contacts=${encodeURIComponent(contacts.join(","))}`;
+        const project = projectKeyEl.value.trim() || "beyoute";
+        const endpoint = `${api}/api/channels/chatdaddy/contacts?project_key=${encodeURIComponent(project)}&contacts=${encodeURIComponent(contacts.join(","))}`;
         const res = await fetch(endpoint, authRequestOptions(token, { signal: controller.signal }));
         const data = await res.json();
         if (!res.ok || !data.ok) return {};
