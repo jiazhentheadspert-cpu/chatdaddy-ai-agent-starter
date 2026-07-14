@@ -1921,6 +1921,22 @@
       box-shadow: none;
     }
 
+    .flow-binding-note {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 820;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .flow-binding-note.connected {
+      color: var(--green);
+    }
+
+    .flow-binding-note.blocked {
+      color: var(--red);
+    }
+
     .field-grid input:focus,
     .field-grid select:focus,
     .field-grid textarea:focus {
@@ -8566,6 +8582,11 @@
         syncProjectSalesStepUi();
         return;
       }
+      const salesFlowSelect = event.target.closest("[data-sales-flow-catalog]");
+      if (salesFlowSelect) {
+        syncSalesFlowBindingDisplay(salesFlowSelect);
+        return;
+      }
       const input = event.target.closest("[data-project-document-input]");
       if (!input) return;
       state.projectDocumentFile = input.files?.[0] || null;
@@ -9524,6 +9545,10 @@
       }
       if (action === "refresh-project-knowledge") {
         Promise.all([loadProjectKnowledge(), loadProjectConnectionReadiness()]);
+        return;
+      }
+      if (action === "refresh-flow-catalog") {
+        refreshFlowCatalogFromDashboard();
         return;
       }
       if (action === "test-project-connection") {
@@ -13177,7 +13202,14 @@
       }
 
       function projectOnboardingFlowOptions(stage = {}) {
-        const catalog = (state.flowCatalog || []).filter((flow) => flow.is_active !== false);
+        const catalog = (state.flowCatalog || [])
+          .filter((flow) => flow.is_active !== false)
+          .slice()
+          .sort((left, right) => {
+            const configuredOrder = Number(right.configured === true) - Number(left.configured === true);
+            if (configuredOrder) return configuredOrder;
+            return flowOptionLabel(left).localeCompare(flowOptionLabel(right), "zh-Hans-CN", { numeric: true });
+          });
         const selectedFlow = catalog.find((flow) =>
           String(flow.flow_key || "") === String(stage.flow_key || "")
           || (stage.provider_bot_id && String(flow.provider_bot_id || "") === String(stage.provider_bot_id))
@@ -13188,7 +13220,65 @@
         const currentOption = selectedKey && !hasCurrent
           ? `<option value="${escapeHtml(selectedKey)}" selected>${escapeHtml(`${stage.purpose || selectedKey}（当前绑定，目录未同步）`)}</option>`
           : "";
-        return `<option value="">请选择真实 Flow</option>${currentOption}${catalog.map((flow) => `<option value="${escapeHtml(flow.flow_key || "")}" ${String(flow.flow_key || "") === String(selectedKey) ? "selected" : ""}>${escapeHtml(flowOptionLabel(flow))}</option>`).join("")}`;
+        return `<option value="">请选择真实 Flow</option>${currentOption}${catalog.map((flow) => {
+          const selected = String(flow.flow_key || "") === String(selectedKey) ? " selected" : "";
+          const disabled = flow.configured === true ? "" : " disabled";
+          return `<option value="${escapeHtml(flow.flow_key || "")}"${selected}${disabled}>${escapeHtml(projectOnboardingFlowLabel(flow))}</option>`;
+        }).join("")}`;
+      }
+
+      function projectOnboardingFlowLabel(flow = {}) {
+        const providerId = firstContextText(flow.provider_bot_id, flow.provider_flow_id);
+        return providerId ? `${flowOptionLabel(flow)} · ID ${providerId}` : flowOptionLabel(flow);
+      }
+
+      function projectFlowCatalogStatus() {
+        if (state.flowCatalogLoaded !== true) {
+          return { title: "正在读取 ChatDaddy Flow", body: "读取只会同步目录，不会发送讯息或触发 Flow。", ready: false };
+        }
+        if (state.flowCatalogLiveConnected === true && state.flowCatalogLiveCount > 0) {
+          return {
+            title: `已从 ChatDaddy 读取 ${state.flowCatalogLiveCount} 条真实 Flow`,
+            body: "选择 Flow 后会同时保存它的真实 Bot / Flow ID。",
+            ready: true
+          };
+        }
+        if (state.flowCatalogLiveConnected === true) {
+          return { title: "ChatDaddy API 已连接，但没有读到 Flow", body: "请确认连接的是正确账号，而且该账号已有 Message Flow。", ready: false };
+        }
+        const error = String(state.flowCatalogError || "");
+        const permissionError = /http_(401|403)|api_key_missing/i.test(error);
+        return permissionError
+          ? { title: "ChatDaddy API 还没有读取 Flow 的权限", body: "当前只显示项目预设名称；未绑定真实 ID 的项目不能发送。", ready: false }
+          : { title: "暂时没有同步到 ChatDaddy Flow", body: "当前只显示已保存的项目 Flow；点击下面按钮可重新同步。", ready: false };
+      }
+
+      function salesFlowProviderId(flow = {}, select = null) {
+        return firstContextText(
+          flow?.provider_bot_id,
+          flow?.provider_flow_id,
+          select?.dataset?.currentProviderBotId,
+          select?.dataset?.currentProviderFlowId
+        );
+      }
+
+      function syncSalesFlowBindingDisplay(select) {
+        if (!select) return;
+        const order = String(select.dataset.salesFlowCatalog || "");
+        const flow = flowCatalogEntry(select.value || "");
+        select.dataset.currentProviderBotId = String(flow?.provider_bot_id || "");
+        select.dataset.currentProviderFlowId = String(flow?.provider_flow_id || "");
+        const providerId = salesFlowProviderId(flow, select);
+        const idInput = document.querySelector(`[data-sales-provider-id="${order}"]`);
+        if (idInput) idInput.value = providerId || "未绑定";
+        const note = document.querySelector(`[data-sales-flow-binding-note="${order}"]`);
+        if (note) {
+          note.classList.toggle("connected", Boolean(providerId));
+          note.classList.toggle("blocked", !providerId);
+          note.textContent = providerId
+            ? `已绑定真实 ChatDaddy ID：${providerId}`
+            : "没有真实 Bot / Flow ID，系统会阻止发送。";
+        }
       }
 
       function projectDocsMediaReferences(knowledge = state.projectKnowledge || {}) {
@@ -13292,6 +13382,7 @@
           ];
           const configuredStages = Array.isArray(salesProcess.stages) ? salesProcess.stages : [];
           const salesStepUiState = normalizedSalesStepUiState(salesProcess.step_count, salesProcess.price_stage_key);
+          const flowCatalogStatus = projectFlowCatalogStatus();
           const stageRows = Array.from({ length: 4 }, (_, index) => {
             const stage = configuredStages[index] || {
               stage_key: `step_${index + 1}`,
@@ -13307,12 +13398,15 @@
               <h3 data-sales-stage-title>Step ${stageOrder}${stageOrder === salesStepUiState.priceStageOrder ? " · 价格阶段" : ""}</h3>
               <div class="field-grid">
                 <label>这一段要做到什么<input data-sales-purpose="${index + 1}" value="${escapeHtml(stage.purpose || "")}"></label>
-                <label>接哪一条 Flow<select data-sales-flow-catalog="${index + 1}" data-current-provider-flow-id="${escapeHtml(stage.provider_flow_id || "")}" data-current-provider-bot-id="${escapeHtml(stage.provider_bot_id || "")}">${projectOnboardingFlowOptions(stage)}</select></label>
+                <label>接哪一条 Flow<select data-sales-flow-catalog="${index + 1}" data-current-provider-flow-id="${escapeHtml(stage.provider_flow_id || "")}" data-current-provider-bot-id="${escapeHtml(stage.provider_bot_id || "")}">${projectOnboardingFlowOptions(stage)}</select><span class="flow-binding-note ${stage.provider_bot_id || stage.provider_flow_id ? "connected" : "blocked"}" data-sales-flow-binding-note="${index + 1}">${stage.provider_bot_id || stage.provider_flow_id ? `已绑定真实 ChatDaddy ID：${escapeHtml(stage.provider_bot_id || stage.provider_flow_id)}` : "没有真实 Bot / Flow ID，系统会阻止发送。"}</span></label>
                 <label class="settings-checkbox"><input type="checkbox" data-sales-contains-media="${index + 1}" ${stage.contains_media ? "checked" : ""}> <span>这个 Flow 已经包含图片 / 视频 / 语音</span></label>
               </div>
               <details class="settings-inline-advanced">
                 <summary>高级设置</summary>
-                <div class="field-grid"><label>系统 Flow 编号<input data-sales-flow-key="${index + 1}" value="${escapeHtml(stage.flow_key || `s${index + 1}`)}" readonly></label></div>
+                <div class="field-grid">
+                  <label>系统 Flow 编号<input data-sales-flow-key="${index + 1}" value="${escapeHtml(stage.flow_key || `s${index + 1}`)}" readonly></label>
+                  <label>ChatDaddy Bot / Flow ID<input data-sales-provider-id="${index + 1}" value="${escapeHtml(stage.provider_bot_id || stage.provider_flow_id || "未绑定")}" readonly></label>
+                </div>
               </details>
             </div>`;
           }).join("");
@@ -13337,6 +13431,11 @@
               : state.role === "staff"
                 ? `<p class="project-upload-note">你可以填写并保存 Beyoute 的回复与成交草稿；项目负责人检查后再发布。</p>`
                 : ""}
+            <section class="settings-box">
+              <h3>${escapeHtml(flowCatalogStatus.title)}</h3>
+              <p class="settings-section-copy">${escapeHtml(flowCatalogStatus.body)}</p>
+              ${canManageProjectSettings() ? `<div class="quick-actions"><button class="quick-action ${flowCatalogStatus.ready ? "" : "primary"}" data-dashboard-action="refresh-flow-catalog" type="button">重新同步 ChatDaddy Flow</button></div>` : ""}
+            </section>
             <fieldset class="project-settings-readonly" ${settingsReadOnly ? "disabled" : ""}>
             <details class="settings-section" open>
               <summary>销售流程</summary>
@@ -17656,6 +17755,20 @@
 	    state.flowCatalogLoaded = true;
 	    if (state.active) renderChannelActions(state.active);
 	  }
+	}
+
+	async function refreshFlowCatalogFromDashboard() {
+	  await Promise.all([loadFlowCatalog(), loadProjectConnectionReadiness()]);
+	  render();
+	  if (state.flowCatalogLiveConnected && state.flowCatalogLiveCount > 0) {
+	    showToast(`已从 ChatDaddy 同步 ${state.flowCatalogLiveCount} 条真实 Flow。`);
+	    return;
+	  }
+	  if (/http_(401|403)|api_key_missing/i.test(String(state.flowCatalogError || ""))) {
+	    showToast("ChatDaddy API 还没有读取 Flow 的权限；未绑定 ID 的 Flow 不会发送。");
+	    return;
+	  }
+	  showToast("暂时没有同步到 ChatDaddy Flow，请检查账号连接后再试。");
 	}
 
     async function loadProjectKnowledge(options = {}) {
@@ -22032,6 +22145,15 @@
       return { plan, mediaCount, flowValue, cadenceValue };
     }
 
+    function approveExecuteBusyLabel(item = {}) {
+      const { plan, mediaCount } = executionPlanSummary(item);
+      const hasFlow = plan.action === "reply_then_flow" && Boolean(plan.flow_key);
+      if (mediaCount && hasFlow) return "正在发送回复、素材并接 Flow...";
+      if (hasFlow) return "正在发送回复并接 Flow...";
+      if (mediaCount) return "正在发送回复与素材...";
+      return "正在发送回复...";
+    }
+
     async function learnActive() {
       if (!state.active) return;
       if (isCaseReadOnly(state.active)) return;
@@ -23470,7 +23592,7 @@
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
-          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "trigger_flow" ? "正在接 Flow..." : action === "approve_execute" ? "正在执行回复、素材与 Flow..." : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" || action === "record_no_reply" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
+	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "trigger_flow" ? "正在接 Flow..." : action === "approve_execute" ? approveExecuteBusyLabel(active) : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" || action === "record_no_reply" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
 	        }
         const isApproval = active?.source === "approval";
 	    const endpoint = action === "approve_execute"
