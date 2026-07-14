@@ -1,23 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hans">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="light" />
-  <title>CTG Supply Chain Portal</title>
+  <meta name="color-scheme" content="dark" />
+  <title>登录 ReplyPilot AI</title>
   <style>
     :root {
-      --canvas: #f4f2ef;
-      --card: #ffffff;
-      --ink: #1d2736;
-      --muted: #4c586a;
-      --placeholder: #9da6b6;
-      --line: #e3dcd2;
-      --brand: #2a5b56;
-      --brand-hover: #224d49;
-      --danger: #b42318;
-      --success: #087568;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --night: #010819;
+      --night-soft: #0a1727;
+      --field: #101c2c;
+      --field-hover: #132235;
+      --line: #2c3b4e;
+      --line-strong: #3c526a;
+      --ink: #f7fbff;
+      --muted: #8796aa;
+      --muted-strong: #b2bfd0;
+      --teal: #14d7c2;
+      --blue: #2d74ff;
+      --danger: #ff8d91;
+      --success: #56e6cf;
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     * { box-sizing: border-box; }
@@ -27,208 +30,341 @@
     body {
       margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 44px 24px 98px;
       color: var(--ink);
-      background: var(--canvas);
+      background: var(--night);
     }
 
     button, input { font: inherit; }
 
-    .login-card {
-      width: min(768px, 100%);
-      min-height: 922px;
-      padding: 64px 64px 58px;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      border: 2px solid var(--line);
-      border-radius: 31px;
-      background: var(--card);
-      box-shadow: 0 18px 28px rgba(29, 39, 54, .13);
+    .page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 96px minmax(570px, .88fr) minmax(620px, 1.25fr);
+      background: var(--night);
     }
 
-    .brand-block {
+    .rail {
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      text-align: center;
+      padding: 20px 7px;
+      border-right: 1px solid #26384d;
+      background: var(--night);
     }
 
-    .logo {
-      width: 98px;
-      height: 98px;
+    .brand-mark {
+      width: 72px;
+      height: 72px;
       display: block;
-      border-radius: 25px;
+      object-fit: cover;
+      border-radius: 16px;
+      mix-blend-mode: normal;
+    }
+
+    .rail-icons {
+      width: 78px;
+      height: auto;
+      display: block;
+      margin-top: 74px;
+      object-fit: contain;
+      mix-blend-mode: normal;
+    }
+
+    .login-zone {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 72px 10px 72px 60px;
+    }
+
+    .login-wrap {
+      width: min(510px, 100%);
+      margin: 0 auto;
+      transform: translateY(8px);
+    }
+
+    .eyebrow {
+      margin: 0 0 22px;
+      color: var(--teal);
+      font-size: 17px;
+      line-height: 1;
+      font-weight: 750;
+      letter-spacing: .01em;
     }
 
     h1 {
-      margin: 26px 0 8px;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(39px, 4.6vw, 43px);
+      margin: 0;
+      font-size: clamp(39px, 3.5vw, 51px);
       line-height: 1.12;
-      letter-spacing: -.02em;
-      font-weight: 700;
+      letter-spacing: -.035em;
+      font-weight: 800;
     }
 
     .subtitle {
-      margin: 8px 0 0;
+      margin: 16px 0 0;
       color: var(--muted);
-      font-size: 29px;
-      line-height: 1.25;
-      font-weight: 450;
+      font-size: 18px;
+      line-height: 1.5;
+      font-weight: 500;
     }
 
     form {
-      margin-top: 60px;
+      margin-top: 44px;
       display: grid;
-      gap: 34px;
+      gap: 25px;
     }
 
     .field { display: grid; gap: 10px; }
 
     label {
-      font-size: 29px;
+      color: #f0f5fb;
+      font-size: 16px;
       line-height: 1.25;
-      font-weight: 500;
+      font-weight: 700;
     }
+
+    .input-wrap { position: relative; }
 
     input {
       width: 100%;
-      height: 76px;
-      padding: 0 25px;
-      border: 2px solid var(--line);
-      border-radius: 17px;
+      height: 64px;
+      padding: 0 18px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
       color: var(--ink);
-      background: #fff;
-      font-size: 28px;
+      background: var(--field);
+      font-size: 16px;
       line-height: 1;
       outline: none;
-      transition: border-color .16s ease, box-shadow .16s ease;
+      transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
     }
 
-    input::placeholder { color: var(--placeholder); opacity: 1; }
+    input:hover { background: var(--field-hover); }
 
     input:focus {
-      border-color: var(--brand);
-      box-shadow: 0 0 0 4px rgba(42, 91, 86, .12);
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(20, 215, 194, .13);
+    }
+
+    input::placeholder { color: #64748a; opacity: 1; }
+
+    #password { padding-right: 72px; }
+
+    .password-toggle {
+      position: absolute;
+      top: 50%;
+      right: 14px;
+      min-width: 45px;
+      height: 38px;
+      transform: translateY(-50%);
+      border: 0;
+      border-radius: 8px;
+      color: var(--muted-strong);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .password-toggle:hover,
+    .password-toggle:focus-visible {
+      color: var(--ink);
+      background: #1a2a3d;
+      outline: none;
     }
 
     .submit {
-      height: 80px;
-      margin-top: 0;
+      height: 68px;
+      margin-top: 6px;
       border: 0;
-      border-radius: 17px;
+      border-radius: 10px;
       color: #fff;
-      background: var(--brand);
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 30px;
-      font-weight: 700;
+      background: linear-gradient(100deg, #14cdb8 0%, #20addd 53%, #2d74ff 100%);
+      box-shadow: 0 10px 30px rgba(30, 145, 231, .18);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: .02em;
       cursor: pointer;
-      transition: background .16s ease, transform .16s ease, opacity .16s ease;
+      transition: filter .16s ease, transform .16s ease, opacity .16s ease;
     }
 
-    .submit:hover { background: var(--brand-hover); }
+    .submit:hover { filter: brightness(1.08); }
     .submit:active { transform: translateY(1px); }
-    .submit:disabled { cursor: wait; opacity: .72; }
+    .submit:focus-visible { outline: 3px solid rgba(83, 226, 209, .55); outline-offset: 3px; }
+    .submit:disabled { cursor: wait; opacity: .68; }
+
+    .account-note {
+      margin: -6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
 
     .message {
-      min-height: 24px;
-      margin: -18px 0 0;
-      text-align: center;
-      color: var(--muted);
-      font-size: 17px;
-      line-height: 1.35;
-      font-weight: 600;
+      min-height: 21px;
+      margin: -8px 0 0;
+      color: var(--muted-strong);
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 650;
     }
 
     .message.error { color: var(--danger); }
     .message.success { color: var(--success); }
     .message:empty { display: none; }
 
-    .support-copy {
-      margin: auto 0 4px;
-      padding-top: 32px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 24px;
-      line-height: 1.35;
-      font-weight: 450;
+    .system-status {
+      margin: 110px 0 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted-strong);
+      font-size: 15px;
+      font-weight: 650;
     }
 
-    @media (max-width: 700px) {
-      body { padding: 20px 14px 36px; }
+    .system-status::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      flex: 0 0 10px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 5px rgba(20, 215, 194, .09);
+    }
 
-      .login-card {
-        min-height: min(850px, calc(100vh - 40px));
-        padding: 42px 26px 38px;
-        border-radius: 25px;
+    .system-status strong { color: var(--teal); font-weight: 800; }
+
+    .visual-zone {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 30px 40px 0;
+      overflow: hidden;
+      background: var(--night);
+    }
+
+    .routing-visual {
+      width: min(700px, 100%);
+      height: auto;
+      display: block;
+      object-fit: contain;
+      mix-blend-mode: normal;
+    }
+
+    .visual-caption {
+      width: min(700px, 100%);
+      margin: 0 0 2px;
+      display: flex;
+      justify-content: space-between;
+      color: #b6c3d2;
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 650;
+    }
+
+    @media (max-width: 1120px) {
+      .page { grid-template-columns: 82px minmax(490px, .9fr) minmax(500px, 1.1fr); }
+      .rail { padding-inline: 4px; }
+      .brand-mark { width: 64px; height: 64px; }
+      .rail-icons { width: 68px; }
+      .login-zone { padding-inline: 38px 20px; }
+      .visual-zone { padding-right: 16px; }
+    }
+
+    @media (max-width: 880px) {
+      .page { grid-template-columns: 74px 1fr; }
+      .rail { position: sticky; top: 0; height: 100vh; }
+      .brand-mark { width: 58px; height: 58px; }
+      .rail-icons { width: 60px; margin-top: 58px; }
+      .login-zone { min-height: 100vh; padding: 54px 38px; }
+      .visual-zone { display: none; }
+      .login-wrap { width: min(540px, 100%); }
+    }
+
+    @media (max-width: 560px) {
+      .page { display: block; min-height: 100dvh; }
+      .rail {
+        position: static;
+        width: 100%;
+        min-height: 0;
+        height: 74px;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 7px 16px;
+        border-right: 0;
+        border-bottom: 1px solid #26384d;
       }
-
-      .logo { width: 82px; height: 82px; border-radius: 21px; }
-      h1 { margin-top: 23px; font-size: clamp(32px, 9vw, 42px); }
-      .subtitle { font-size: clamp(21px, 6vw, 27px); }
-      form { margin-top: 50px; gap: 27px; }
-      label { font-size: 23px; }
-      input { height: 68px; padding: 0 20px; border-radius: 15px; font-size: 22px; }
-      .submit { height: 70px; border-radius: 15px; font-size: 26px; }
-      .support-copy { font-size: 19px; }
-    }
-
-    @media (max-width: 700px) and (max-height: 900px) {
-      body { padding: 12px; }
-      .login-card {
-        min-height: calc(100vh - 24px);
-        padding: 28px 20px 24px;
+      .brand-mark { width: 58px; height: 58px; }
+      .rail-icons { display: none; }
+      .rail::after {
+        content: "ReplyPilot AI";
+        color: var(--muted-strong);
+        font-size: 14px;
+        font-weight: 750;
       }
-      .logo { width: 70px; height: 70px; border-radius: 18px; }
-      h1 { margin-top: 18px; font-size: 32px; }
-      .subtitle { font-size: 22px; }
-      form { margin-top: 36px; gap: 20px; }
-      .field { gap: 8px; }
-      label { font-size: 21px; }
-      input { height: 64px; font-size: 21px; }
-      .submit { height: 66px; font-size: 25px; }
-      .support-copy { padding-top: 22px; font-size: 17px; }
+      .login-zone { min-height: calc(100dvh - 74px); padding: 42px 22px 48px; }
+      .login-wrap { margin: 0; }
+      .login-wrap { transform: none; }
+      .eyebrow { margin-bottom: 18px; font-size: 16px; }
+      h1 { font-size: clamp(35px, 10vw, 44px); }
+      .subtitle { font-size: 16px; }
+      form { margin-top: 38px; gap: 22px; }
+      input { height: 61px; }
+      .submit { height: 64px; }
+      .system-status { margin-top: 48px; }
     }
 
-    @media (max-height: 840px) and (min-width: 701px) {
-      body { padding-top: 24px; padding-bottom: 24px; }
-      .login-card { min-height: 760px; padding-top: 40px; padding-bottom: 34px; }
-      .logo { width: 82px; height: 82px; border-radius: 21px; }
-      h1 { margin-top: 20px; font-size: 40px; }
-      .subtitle { font-size: 25px; }
-      form { margin-top: 42px; gap: 24px; }
-      input { height: 66px; }
-      .submit { height: 70px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
     }
   </style>
 </head>
 <body>
-  <main class="login-card" aria-labelledby="portalTitle">
-    <header class="brand-block">
-      <img class="logo" src="assets/ctg-portal-logo.png" alt="CTG" width="98" height="98" />
-      <h1 id="portalTitle">Supply Chain Portal</h1>
-      <p class="subtitle">Sign in to your account</p>
-    </header>
+  <main class="page">
+    <aside class="rail" aria-label="ReplyPilot AI">
+      <img class="brand-mark" src="assets/replypilot-rp-mark.png" alt="ReplyPilot AI" width="72" height="72" />
+      <img class="rail-icons" src="assets/replypilot-nav-icons.png" alt="" aria-hidden="true" />
+    </aside>
 
-    <form id="loginForm" novalidate>
-      <div class="field">
-        <label for="identifier">Email / Username</label>
-        <input id="identifier" name="identifier" type="text" placeholder="you@example.com" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+    <section class="login-zone" aria-labelledby="portalTitle">
+      <div class="login-wrap">
+        <p class="eyebrow">ReplyPilot AI</p>
+        <h1 id="portalTitle">欢迎回到客服运营台</h1>
+        <p class="subtitle">统一入口 · 按账号权限进入工作台</p>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="identifier">邮箱或用户名</label>
+            <div class="input-wrap">
+              <input id="identifier" name="identifier" type="text" placeholder="请输入邮箱或用户名" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="password">密码</label>
+            <div class="input-wrap">
+              <input id="password" name="password" type="password" placeholder="请输入密码" autocomplete="current-password" required />
+              <button class="password-toggle" id="passwordToggle" type="button" aria-controls="password" aria-label="显示密码">显示</button>
+            </div>
+          </div>
+
+          <button class="submit" id="loginBtn" type="submit">安全登录</button>
+          <p class="account-note">账号由管理员统一配置</p>
+          <p class="message" id="loginMessage" role="status" aria-live="polite"></p>
+        </form>
+
+        <p class="system-status"><strong>系统在线</strong><span>· 审批优先</span></p>
       </div>
+    </section>
 
-      <div class="field">
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
-      </div>
-
-      <button class="submit" id="loginBtn" type="submit">Sign In</button>
-      <p class="message" id="loginMessage" role="status" aria-live="polite"></p>
-    </form>
-
-    <p class="support-copy">Access is managed by your Supply Chain team.<br />Contact admin to request an account.</p>
+    <section class="visual-zone" aria-label="ReplyPilot AI 多渠道处理流程">
+      <p class="visual-caption" aria-hidden="true"><span>多渠道消息接入</span><span>处理与记录</span></p>
+      <img class="routing-visual" src="assets/replypilot-routing-illustration.png" alt="多渠道顾客讯息进入 ReplyPilot AI，经人工审批后转交客服、AI、知识库或工单系统" />
+    </section>
   </main>
 
   <script>
@@ -240,6 +376,7 @@
     const form = document.getElementById("loginForm");
     const identifierInput = document.getElementById("identifier");
     const passwordInput = document.getElementById("password");
+    const passwordToggle = document.getElementById("passwordToggle");
     const button = document.getElementById("loginBtn");
     const message = document.getElementById("loginMessage");
 
@@ -264,6 +401,14 @@
       message.className = `message ${tone}`.trim();
     }
 
+    passwordToggle.addEventListener("click", () => {
+      const reveal = passwordInput.type === "password";
+      passwordInput.type = reveal ? "text" : "password";
+      passwordToggle.textContent = reveal ? "隐藏" : "显示";
+      passwordToggle.setAttribute("aria-label", reveal ? "隐藏密码" : "显示密码");
+      passwordInput.focus();
+    });
+
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const identifier = identifierInput.value.trim();
@@ -271,12 +416,12 @@
       const password = passwordInput.value;
 
       if (!identifier || !password) {
-        setMessage("Enter your email or username and password.", "error");
+        setMessage("请输入邮箱或用户名和密码。", "error");
         return;
       }
 
       button.disabled = true;
-      button.textContent = "Signing In…";
+      button.textContent = "正在安全登录…";
       setMessage("");
 
       try {
@@ -314,7 +459,7 @@
         localStorage.setItem("agent_api_url", apiUrl);
         localStorage.removeItem("agent_admin_token");
         localStorage.removeItem("agent_staff_token");
-        setMessage("Signed in. Opening your workspace…", "success");
+        setMessage("登录成功，正在进入工作台…", "success");
 
         const next = new URLSearchParams({
           api: apiUrl,
@@ -328,11 +473,11 @@
           window.location.assign(`admin.html?${next.toString()}`);
         }
       } catch (_error) {
-        setMessage("The username or password is incorrect.", "error");
+        setMessage("邮箱、用户名或密码不正确。", "error");
         passwordInput.select();
       } finally {
         button.disabled = false;
-        button.textContent = "Sign In";
+        button.textContent = "安全登录";
       }
     });
   </script>
