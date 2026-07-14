@@ -7662,6 +7662,8 @@
       settingsExpanded: false,
       projectDocumentFile: null,
       projectDocumentBusy: false,
+      googleDocsFaqBusy: false,
+      googleDocsFaqRetryBusy: false,
     };
 
     const DEFAULT_SETTINGS = {
@@ -8200,7 +8202,7 @@
       const note = $("projectDocumentStatus");
       if (note) note.textContent = state.projectDocumentFile
         ? `已选择：${state.projectDocumentFile.name}，点击「分析并加入项目」。`
-        : "请先选择 PPTX、TXT 或 Markdown 文件。";
+        : "请先选择 PPTX、PDF、TXT 或 Markdown 文件。";
     });
 
     document.addEventListener("click", (event) => {
@@ -8387,13 +8389,18 @@
         const projects = Array.isArray(data.projects) ? data.projects : [];
         const currentProject = projectKeyEl.value.trim();
         const selectedProject = projects.find((item) => item.project_key === currentProject) || projects[0] || { project_key: currentProject || "beyoute" };
+        const effectiveRole = data.user.role === "admin"
+          ? "admin"
+          : ["owner", "admin"].includes(String(selectedProject.role || "").toLowerCase())
+            ? String(selectedProject.role).toLowerCase()
+            : "staff";
         state.session = {
           ...state.session,
           authMode: "account",
           user: data.user,
           email: data.user.email,
           displayName: data.user.name,
-          role: data.user.role === "admin" ? "admin" : "staff",
+          role: effectiveRole,
           projectKey: selectedProject.project_key,
           workspace: selectedProject.project_key,
           apiUrl: api,
@@ -9100,6 +9107,14 @@
       }
       if (action === "analyze-project-document") {
         analyzeSelectedProjectDocument();
+        return;
+      }
+      if (action === "connect-study-google-docs-faq") {
+        connectAndStudyGoogleDocsFaq();
+        return;
+      }
+      if (action === "retry-google-docs-faq-writebacks") {
+        retryGoogleDocsFaqWritebacks();
         return;
       }
       if (action === "save-project-sales-process") {
@@ -12582,20 +12597,20 @@
         if (step === "1") {
           const documentRows = documents.length
             ? documents.map((item) => knowledgeItemHtml(item.title || item.file_name || "项目资料", item.status || item.type || "已加入", item.analyzed_at || item.last_studied_at || "")).join("")
-            : knowledgeItemHtml("还没有项目资料", "先上传 PPTX", "没有资料时不会显示完成");
+            : knowledgeItemHtml("还没有项目资料", "先上传 PPTX 或 PDF", "没有资料时不会显示完成");
           const latestAnalysis = analyses[0] || null;
           return `${header}
             <section class="command-panel">
               <div class="command-kicker">第一步：项目资料</div>
-              <strong class="command-title">上传 PPT，让 AI 先理解项目</strong>
-              <p class="command-copy">支持 PPTX、TXT、Markdown。系统会提取文字、分析定位、目标顾客、产品、FAQ、SOP 与 Flow 用途，再写入这个项目包。</p>
+              <strong class="command-title">上传项目资料，让 AI 先理解项目</strong>
+              <p class="command-copy">支持 PPTX、PDF、TXT、Markdown。系统会提取文字、分析定位、目标顾客、产品、FAQ、SOP 与 Flow 用途，再写入这个项目包。</p>
               <div class="project-upload">
-                <input type="file" data-project-document-input accept=".pptx,.txt,.md,text/plain,application/vnd.openxmlformats-officedocument.presentationml.presentation" aria-label="上传项目 PPT">
+                <input type="file" data-project-document-input accept=".pptx,.pdf,.txt,.md,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.presentationml.presentation" aria-label="上传项目资料">
                 <button class="quick-action primary" data-dashboard-action="analyze-project-document" type="button" ${state.projectDocumentBusy ? "disabled" : ""}>${state.projectDocumentBusy ? "分析中..." : "分析并加入项目"}</button>
                 <div class="project-upload-note" id="projectDocumentStatus">先选择文件；读取与分析不会发送任何顾客讯息。</div>
               </div>
               <div class="knowledge-section">${documentRows}</div>
-              ${latestAnalysis ? `<div class="knowledge-section">${knowledgeItemHtml("最近一次分析", latestAnalysis.summary || latestAnalysis.positioning || "已完成", `${latestAnalysis.file_name || "PPT"} · ${latestAnalysis.analysis_mode || latestAnalysis.status || "analyzed"}`)}</div>` : ""}
+              ${latestAnalysis ? `<div class="knowledge-section">${knowledgeItemHtml("最近一次分析", latestAnalysis.summary || latestAnalysis.positioning || "已完成", `${latestAnalysis.file_name || "项目资料"} · ${latestAnalysis.analysis_mode || latestAnalysis.status || "analyzed"}`)}</div>` : ""}
             </section>
             <section class="command-panel">
               <div class="command-kicker">第二步：讯息连接</div>
@@ -12686,12 +12701,51 @@
             </section>`;
         }
         const faq = Array.isArray(assets.faq) ? assets.faq : [];
+        const faqDocument = knowledge.faq_document || null;
+        const googleDocsConnection = knowledge.google_docs_connection || {};
+        const googleDocStatus = faqDocument
+          ? `${faqDocument.connection_status || "已连接"} · ${faqDocument.access_mode === "read_write" ? "可读写" : "只读"}`
+          : "尚未连接";
+        const googleDocStudy = faqDocument?.last_studied_at
+          ? `${formatDate(faqDocument.last_studied_at)} · ${Number(faqDocument.faq_count || 0)} 条 FAQ`
+          : "尚未 Study";
+        const googleDocWriteback = !faqDocument
+          ? "待连接"
+          : faqDocument.writeback_enabled
+            ? Number(faqDocument.pending_writebacks || 0) > 0
+              ? `${Number(faqDocument.pending_writebacks || 0)} 条等待回写`
+              : faqDocument.last_writeback_at
+                ? `最近成功 ${formatDate(faqDocument.last_writeback_at)}`
+                : "已开启，等待 Owner 批准新 FAQ"
+            : "未开启";
         return `${header}
+          <section class="command-panel accent">
+            <div class="command-kicker">Google Docs FAQ 双向知识库</div>
+            <strong class="command-title">贴链接 → Study → Owner 批准后自动回写</strong>
+            <p class="command-copy">Study 只建立 Project Brain 草稿；客服普通批准发送不会改 Google Docs。只有 Owner 把候选正式批准进业务脑，而且类型是 FAQ，才会自动回写。</p>
+            <div class="field-grid">
+              <label>项目 FAQ Google Docs 链接<input id="googleDocsFaqUrlInput" value="${escapeHtml(faqDocument?.document_url || "")}" placeholder="https://docs.google.com/document/d/.../edit"></label>
+              <label><input type="checkbox" id="googleDocsFaqWritebackInput" ${faqDocument?.writeback_enabled ? "checked" : ""}> Owner 批准新 FAQ 后，自动更新这份 Google Docs</label>
+            </div>
+            <div class="compact-list">
+              ${compactRow("Google 连接", googleDocsConnection.configured ? `已配置 · 分享给 ${googleDocsConnection.share_email || "服务账号"}` : "平台服务账号尚未配置", googleDocsConnection.configured ? "可连接" : "待管理员")}
+              ${compactRow("文件状态", googleDocStatus, faqDocument?.access_mode === "read_write" ? "可回写" : faqDocument ? "只读" : "待连接")}
+              ${compactRow("最近 Study", googleDocStudy, faqDocument?.last_studied_at ? "草稿" : "待 Study")}
+              ${compactRow("批准后回写", googleDocWriteback, faqDocument?.last_error ? "需处理" : faqDocument?.writeback_enabled ? "已开启" : "关闭")}
+            </div>
+            ${faqDocument?.last_error ? `<p class="project-upload-note">同步提示：${escapeHtml(faqDocument.last_error)}</p>` : ""}
+            ${faqDocument?.truncated ? `<p class="project-upload-note">文件共有 ${Number(faqDocument.total_character_count || 0)} 字，本次只分析前 ${Number(faqDocument.extracted_character_count || 0)} 字；请拆分 FAQ 文件后重新 Study，避免漏资料。</p>` : ""}
+            <div class="quick-actions">
+              <button class="quick-action primary" data-dashboard-action="connect-study-google-docs-faq" type="button" ${state.googleDocsFaqBusy || !googleDocsConnection.configured ? "disabled" : ""}>${state.googleDocsFaqBusy ? "正在 Study..." : "连接并 Study"}</button>
+              ${faqDocument?.id && faqDocument.writeback_enabled && Number(faqDocument.pending_writebacks || 0) > 0 ? `<button class="quick-action" data-dashboard-action="retry-google-docs-faq-writebacks" type="button" ${state.googleDocsFaqRetryBusy ? "disabled" : ""}>${state.googleDocsFaqRetryBusy ? "重试中..." : "重试待回写 FAQ"}</button>` : ""}
+            </div>
+            <p class="project-upload-note">先把 Google Doc 以 Editor 权限分享给上面显示的服务账号。每个项目必须使用独立 Doc，避免跨项目知识混写。</p>
+          </section>
           <section class="command-panel">
             <div class="command-kicker">${escapeHtml(projectLabel)} FAQ</div>
             <strong class="command-title">${faq.length} 条已进入项目知识包</strong>
             <p class="command-copy">这些资料会参与回复生成；资料不足、健康敏感、付款或退款争议仍会转人工。</p>
-            <div class="knowledge-section">${faq.map((item) => knowledgeItemHtml(item.question || item.title || "FAQ", item.answer || item.better_reply || "", item.customer_pattern ? `匹配：${item.customer_pattern}` : "项目 FAQ")).join("") || knowledgeItemHtml("没有 FAQ", "请先上传 PPT 或加入 FAQ", "待补")}</div>
+            <div class="knowledge-section">${faq.map((item) => knowledgeItemHtml(item.question || item.title || "FAQ", item.answer || item.better_reply || "", item.status === "studied_draft" ? "待 Owner 发布批准" : item.customer_pattern ? `匹配：${item.customer_pattern}` : "项目 FAQ")).join("") || knowledgeItemHtml("没有 FAQ", "请先上传 PPT 或加入 FAQ", "待补")}</div>
           </section>`;
       }
 
@@ -12699,8 +12753,12 @@
         const counts = knowledge.counts || {};
         const completion = knowledge.completion || {};
         const process = knowledge.sales_process || {};
+        const faqDocument = knowledge.faq_document || null;
+        const projectFactsNote = faqDocument?.last_studied_at
+          ? `${Number(counts.source_documents || 0)} 份资料 · Docs 已 Study`
+          : `${Number(counts.source_documents || 0)} 份资料 · Docs 待连接`;
         const items = [
-          ["项目事实", `${Number(counts.source_documents || 0)} 份资料`, completion.project_materials],
+          ["项目事实", projectFactsNote, completion.project_materials && (!faqDocument || Boolean(faqDocument.last_studied_at))],
           ["顾客心理", `${(knowledge.brand_brain?.audience || []).length || 0} 类顾客`, Boolean(knowledge.brand_brain?.positioning)],
           ["回复个性", `${Number(counts.ops_sop || 0) + Number(counts.reply_rules || 0)} 条规则`, completion.reply_sop],
           ["Step Flow Map", `${Number(process.step_count || 0)} Step · 价格 ${process.price_stage_key || "待设"}`, completion.sales_process && completion.flow_map],
@@ -16813,10 +16871,110 @@
       }
     }
 
+    async function connectAndStudyGoogleDocsFaq() {
+      if (state.googleDocsFaqBusy) return;
+      if (state.role === "staff") {
+        showToast("只有 Owner / Admin 可以连接和 Study 项目 FAQ。");
+        return;
+      }
+      const documentUrl = String($("googleDocsFaqUrlInput")?.value || "").trim();
+      if (!/^https:\/\/docs\.google\.com\/document\//i.test(documentUrl)) {
+        showToast("请贴 Google Docs 文件链接，不是 Google Sheet 或普通网页链接。");
+        return;
+      }
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      if (!api || (!token && !hasAccountSession())) {
+        showToast("请先登录真实项目 Owner / Admin 账号。");
+        return;
+      }
+      state.googleDocsFaqBusy = true;
+      render();
+      try {
+        const connectResponse = await fetch(
+          `${api}/api/hermas/projects/${encodeURIComponent(project)}/knowledge-sources/google-docs`,
+          authRequestOptions(token, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              document_url: documentUrl,
+              writeback_enabled: $("googleDocsFaqWritebackInput")?.checked === true,
+              study_enabled: true,
+              updated_by: state.session?.user?.email || state.session?.email || "dashboard_owner"
+            })
+          })
+        );
+        const connected = await connectResponse.json().catch(() => ({}));
+        if (!connectResponse.ok || !connected.ok || !connected.source?.id) {
+          throw new Error(connected.message || connected.error || `HTTP ${connectResponse.status}`);
+        }
+        showToast("Google Doc 已验证，正在 Study FAQ...");
+        const studyResponse = await fetch(
+          `${api}/api/hermas/projects/${encodeURIComponent(project)}/knowledge-sources/${encodeURIComponent(connected.source.id)}/study`,
+          authRequestOptions(token, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ force: false })
+          })
+        );
+        const studied = await studyResponse.json().catch(() => ({}));
+        if (!studyResponse.ok || !studied.ok) {
+          throw new Error(studied.message || studied.error || `HTTP ${studyResponse.status}`);
+        }
+        showToast(studied.unchanged
+          ? "Google Doc 没有新版本；Project Brain 不重复导入。"
+          : `已 Study ${Number(studied.faq_count || 0)} 条 FAQ，等待复核与发布。`);
+      } catch (error) {
+        showToast(`Google Docs FAQ 处理失败：${error.message || error}`);
+      } finally {
+        state.googleDocsFaqBusy = false;
+        await loadProjectKnowledge({ silent: true });
+      }
+    }
+
+    async function retryGoogleDocsFaqWritebacks() {
+      if (state.googleDocsFaqRetryBusy) return;
+      if (state.role === "staff") {
+        showToast("只有 Owner / Admin 可以重试知识库回写。");
+        return;
+      }
+      const source = state.projectKnowledge?.faq_document || null;
+      if (!source?.id) {
+        showToast("这个项目还没有连接 FAQ Google Doc。");
+        return;
+      }
+      if (!source.writeback_enabled) {
+        showToast("这个项目已经关闭自动回写；先重新连接并开启回写。 ");
+        return;
+      }
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      state.googleDocsFaqRetryBusy = true;
+      render();
+      try {
+        const response = await fetch(
+          `${api}/api/hermas/projects/${encodeURIComponent(project)}/knowledge-sources/${encodeURIComponent(source.id)}/retry-writebacks`,
+          authRequestOptions(token, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })
+        );
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok && response.status !== 207) throw new Error(result.message || result.error || `HTTP ${response.status}`);
+        showToast(Number(result.failed || 0) > 0
+          ? `已重试；${Number(result.failed || 0)} 条仍需处理。`
+          : `Google Docs 回写完成 ${Number(result.completed || 0)} 条。`);
+      } catch (error) {
+        showToast(`Google Docs 回写重试失败：${error.message || error}`);
+      } finally {
+        state.googleDocsFaqRetryBusy = false;
+        await loadProjectKnowledge({ silent: true });
+      }
+    }
+
     async function analyzeSelectedProjectDocument() {
       const file = state.projectDocumentFile;
       if (!file) {
-        showToast("请先选择项目 PPTX、TXT 或 Markdown 文件。");
+        showToast("请先选择项目 PPTX、PDF、TXT 或 Markdown 文件。");
         return;
       }
       if (state.projectDocumentBusy) return;
@@ -16846,7 +17004,7 @@
         if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
         state.projectKnowledge = data;
         state.projectDocumentFile = null;
-        showToast(data.uses_openai ? "PPT 已由 AI 分析并加入项目。" : "PPT 文字已保存；AI 分析连接仍需确认。");
+        showToast(data.uses_openai ? "项目资料已由 AI 分析并加入项目。" : "项目资料文字已保存；AI 分析连接仍需确认。");
       } catch (error) {
         showToast(`项目资料分析失败：${error.message || error}`);
       } finally {
@@ -16943,6 +17101,15 @@
         showToast("请先登录真实项目账号。");
         return;
       }
+      const studiedDraftCount = Object.values(state.projectKnowledge?.learning_assets || {})
+        .flatMap((items) => Array.isArray(items) ? items : [])
+        .filter((item) => item?.status === "studied_draft").length;
+      if (studiedDraftCount > 0) {
+        const approved = window.confirm(
+          `这次会一起批准 ${studiedDraftCount} 条 Study 草稿。\n\n请先在 FAQ 页面逐条查看问题和答案；如果内容不对，先修改 Google Doc 并重新 Study。\n\n确认这些内容可以进入正式 Project Brain？`
+        );
+        if (!approved) return;
+      }
       try {
         showToast("正在运行 Step、价格后节奏与安全 Mock Test...");
         const testEndpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/test-cases/run`;
@@ -16963,6 +17130,7 @@
           body: JSON.stringify({
             mock_test_passed: true,
             mock_test_reference: `dashboard:${new Date().toISOString()}`,
+            approve_studied_faqs: studiedDraftCount > 0,
           }),
         }));
         const published = await publishRes.json().catch(() => ({}));
@@ -17018,7 +17186,10 @@
     async function extractProjectDocumentText(file) {
       const name = String(file?.name || "").toLowerCase();
       if (name.endsWith(".txt") || name.endsWith(".md")) return file.text();
-      if (!name.endsWith(".pptx")) throw new Error("目前请上传 PPTX、TXT 或 Markdown；旧 .ppt 请先另存为 .pptx。");
+      if (name.endsWith(".pdf") || String(file?.type || "").toLowerCase() === "application/pdf") {
+        return extractPdfDocumentText(file);
+      }
+      if (!name.endsWith(".pptx")) throw new Error("目前请上传 PPTX、PDF、TXT 或 Markdown；旧 .ppt 请先另存为 .pptx。");
       const JSZip = await ensureJsZip();
       const zip = await JSZip.loadAsync(await file.arrayBuffer());
       const slideNames = Object.keys(zip.files)
@@ -17035,6 +17206,64 @@
       const result = slides.join("\n\n");
       if (result.length < 80) throw new Error("这个 PPTX 没有读到足够文字，可能主要是图片；请先补可复制文字或上传 TXT 摘要。");
       return result;
+    }
+
+	    async function extractPdfDocumentText(file) {
+      const maxBytes = 25 * 1024 * 1024;
+      if (Number(file?.size || 0) > maxBytes) {
+        throw new Error("PDF 超过 25MB，请压缩后再上传，或拆成较小的 PDF。");
+      }
+      const pdfjsLib = await ensurePdfJs();
+	      let loadingTask = null;
+	      let pdf = null;
+	      try {
+	        loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
+	        pdf = await loadingTask.promise;
+        const maxPages = Math.min(Number(pdf.numPages || 0), 120);
+        const pages = [];
+        let characterCount = 0;
+        for (let pageNumber = 1; pageNumber <= maxPages && characterCount < 120000; pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber);
+          const content = await page.getTextContent();
+          const text = (content.items || [])
+            .map((item) => String(item?.str || "").trim())
+            .filter(Boolean)
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim();
+          if (!text) continue;
+          const pageText = `Page ${pageNumber}\n${text}`;
+          pages.push(pageText);
+          characterCount += pageText.length;
+        }
+        const result = pages.join("\n\n").slice(0, 120000);
+        if (result.length < 80) {
+          throw new Error("这个 PDF 没有读到足够文字，可能是扫描件或纯图片。请先做 OCR，或上传含可复制文字的 PDF / TXT 摘要。");
+        }
+        return result;
+	      } finally {
+	        if (typeof loadingTask?.destroy === "function") {
+	          await loadingTask.destroy().catch(() => {});
+	        } else if (typeof pdf?.destroy === "function") {
+	          await pdf.destroy().catch(() => {});
+	        }
+	      }
+	    }
+
+    function ensurePdfJs() {
+      if (window.__replyPilotPdfJs) return Promise.resolve(window.__replyPilotPdfJs);
+      if (window.__replyPilotPdfJsPromise) return window.__replyPilotPdfJsPromise;
+      window.__replyPilotPdfJsPromise = import("https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.min.mjs")
+        .then((pdfjsLib) => {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.worker.min.mjs";
+          window.__replyPilotPdfJs = pdfjsLib;
+          return pdfjsLib;
+        })
+        .catch((error) => {
+          window.__replyPilotPdfJsPromise = null;
+          throw new Error(`PDF 读取组件载入失败，请检查网络后重试。${error?.message ? ` ${error.message}` : ""}`);
+        });
+      return window.__replyPilotPdfJsPromise;
     }
 
     function ensureJsZip() {
@@ -22241,8 +22470,9 @@
         return;
       }
       const candidate = caseOptimizerLearningCandidate(state.active, rawFeedback);
+      const faqWritebackEnabled = candidate.artifact_type === "faq" && state.projectKnowledge?.faq_document?.writeback_enabled === true;
       const confirmed = state.demoMode || window.confirm(
-        `确认批准这个候选进业务脑？\n\n类型：${candidate.artifact_label || candidate.artifact_type}\n\n这会保存新的业务脑版本，但不会发送 WhatsApp，也不会开启自动回复。`
+        `确认批准这个候选进业务脑？\n\n类型：${candidate.artifact_label || candidate.artifact_type}\n\n这会保存新的业务脑版本，但不会发送 WhatsApp，也不会开启自动回复。${faqWritebackEnabled ? "\n\n批准成功后，系统会把这条 FAQ 自动回写项目 Google Docs。" : ""}`
       );
       if (!confirmed) return;
 
@@ -22287,15 +22517,24 @@
           throw new Error(result.error || result.message || result.next || `HTTP ${response.status}`);
         }
         const versionText = result.package_version_no ? `v${result.package_version_no}` : "新版本";
+        const docsStatus = result.google_docs_writeback?.status || "";
+        const docsText = docsStatus === "completed"
+          ? "；Google Docs 已验证同步"
+          : docsStatus === "needs_attention"
+            ? "；Project Brain 已成功，Google Docs 等待重试"
+            : "";
         state.active.history.push({
           type: "case_learning_note",
           at: new Date().toISOString(),
-          note: `${candidate.artifact_label || "学习"}候选已批准进业务脑 ${versionText}。`,
+          note: `${candidate.artifact_label || "学习"}候选已批准进业务脑 ${versionText}${docsText}。`,
         });
         addAuditEvent("case_learning_note", `${customerDisplayLabel(state.active) || "顾客"}：已批准进业务脑 ${versionText}`);
-        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：已批准进业务脑 ${versionText}；approval-first 不变。`;
-        await loadOwnerAdminSummaries(adminTokenEl.value.trim());
-        showToast(`已批准进业务脑 ${versionText}。`);
+        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：已批准进业务脑 ${versionText}${docsText}；approval-first 不变。`;
+        await Promise.all([
+          loadOwnerAdminSummaries(adminTokenEl.value.trim()),
+          loadProjectKnowledge({ silent: true })
+        ]);
+        showToast(`已批准进业务脑 ${versionText}${docsText}。`);
         render();
         return result;
       } catch (error) {
