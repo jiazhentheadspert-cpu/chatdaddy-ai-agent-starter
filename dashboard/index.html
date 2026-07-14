@@ -1902,6 +1902,25 @@
       line-height: 1.45;
     }
 
+    .field-grid label.settings-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      line-height: 1.35;
+    }
+
+    .field-grid label.settings-checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      margin: 0;
+      padding: 0;
+      border-radius: 5px;
+      accent-color: var(--cyan);
+      box-shadow: none;
+    }
+
     .field-grid input:focus,
     .field-grid select:focus,
     .field-grid textarea:focus {
@@ -13289,7 +13308,7 @@
               <div class="field-grid">
                 <label>这一段要做到什么<input data-sales-purpose="${index + 1}" value="${escapeHtml(stage.purpose || "")}"></label>
                 <label>接哪一条 Flow<select data-sales-flow-catalog="${index + 1}" data-current-provider-flow-id="${escapeHtml(stage.provider_flow_id || "")}" data-current-provider-bot-id="${escapeHtml(stage.provider_bot_id || "")}">${projectOnboardingFlowOptions(stage)}</select></label>
-                <label><input type="checkbox" data-sales-contains-media="${index + 1}" ${stage.contains_media ? "checked" : ""}> 这个 Flow 已经包含图片 / 视频 / 语音</label>
+                <label class="settings-checkbox"><input type="checkbox" data-sales-contains-media="${index + 1}" ${stage.contains_media ? "checked" : ""}> <span>这个 Flow 已经包含图片 / 视频 / 语音</span></label>
               </div>
               <details class="settings-inline-advanced">
                 <summary>高级设置</summary>
@@ -13362,7 +13381,7 @@
                   <div class="field-grid">
                     <label>ChatDaddy 素材编号<input id="projectMediaProviderIdInput" placeholder="已上传素材的 ID"></label>
                     <label>对应 Google Doc 图片<select id="projectMediaSourceRefInput"><option value="">不是 Google Doc 图片 / 暂不关联</option>${docsMediaRefs.map((ref) => `<option value="${escapeHtml(ref.inline_object_id)}">${escapeHtml(ref.label)}</option>`).join("")}</select></label>
-                    <label><input type="checkbox" id="projectMediaRequiredInput"> 这是必需素材；发送失败时不要接下一条 Flow</label>
+                    <label class="settings-checkbox"><input type="checkbox" id="projectMediaRequiredInput"> <span>这是必需素材；发送失败时不要接下一条 Flow</span></label>
                   </div>
                 </details>
                 </fieldset>
@@ -13429,7 +13448,7 @@
             ${state.role === "staff" && canManageProjectFaq() ? `<p class="project-upload-note">你可以管理这个项目的 FAQ，但不能修改其他项目设置。</p>` : ""}
             <div class="field-grid">
               <label>Google Doc 链接<input id="googleDocsFaqUrlInput" value="${escapeHtml(faqDocument?.document_url || "")}" placeholder="https://docs.google.com/document/d/.../edit"></label>
-              <label><input type="checkbox" id="googleDocsFaqWritebackInput" ${faqDocument?.writeback_enabled ? "checked" : ""}> 批准的新 FAQ 同步回这份 Google Doc</label>
+              <label class="settings-checkbox"><input type="checkbox" id="googleDocsFaqWritebackInput" ${faqDocument?.writeback_enabled ? "checked" : ""}> <span>批准的新 FAQ 同步回这份 Google Doc</span></label>
             </div>
             <div class="compact-list">
               ${compactRow("文件状态", googleDocStatus, faqDocument ? "已连接" : "待连接")}
