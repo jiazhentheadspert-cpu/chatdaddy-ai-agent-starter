@@ -361,6 +361,25 @@
       flex: 0 0 auto;
     }
 
+    .main-nav-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      background: rgba(255,255,255,.07);
+      color: rgba(255,255,255,.78);
+    }
+
+    .main-nav-icon img {
+      width: 19px;
+      height: 19px;
+      display: block;
+      filter: brightness(0) invert(1);
+      opacity: .78;
+    }
+
     .side-label em {
       min-width: 0;
       overflow: visible;
@@ -420,6 +439,15 @@
     .side-nav button.active small {
       background: rgba(255,255,255,.18);
       color: #fff;
+    }
+
+    .side-nav button.active .main-nav-icon {
+      background: rgba(0,183,216,.20);
+      color: #fff;
+    }
+
+    .side-nav button.active .main-nav-icon img {
+      opacity: 1;
     }
 
     .side-nav button[data-step-nav] {
@@ -6524,6 +6552,31 @@
       color: #fff;
     }
 
+    body.sidebar-collapsed .side-nav button[data-icon-nav]::before {
+      display: none;
+    }
+
+    body.sidebar-collapsed .side-nav button[data-icon-nav] > .side-label {
+      display: grid !important;
+      place-items: center;
+    }
+
+    body.sidebar-collapsed .side-nav button[data-icon-nav] .side-label > * {
+      display: none !important;
+    }
+
+    body.sidebar-collapsed .side-nav button[data-icon-nav] .side-label > .main-nav-icon {
+      width: 34px;
+      height: 34px;
+      display: grid !important;
+      border-radius: 12px;
+    }
+
+    body.sidebar-collapsed .side-nav button[data-icon-nav] .main-nav-icon img {
+      width: 22px;
+      height: 22px;
+    }
+
     body.sidebar-collapsed .sidebar-toggle {
       width: 48px;
       height: 42px;
@@ -7041,20 +7094,20 @@
 
       <nav class="side-nav" aria-label="主导航">
         <div class="side-section">客服</div>
-        <button aria-label="最新讯息" data-short="讯" data-side-key="inbox" data-side-filter="needs_attention" data-workspace-target="inbox">
-          <span class="side-label side-label-plain"><em>最新讯息</em></span>
+        <button aria-label="最新讯息" title="最新讯息" data-short="讯" data-icon-nav data-side-key="inbox" data-side-filter="needs_attention" data-workspace-target="inbox">
+          <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-inbox.svg" alt=""></span><em>最新讯息</em></span>
           <small id="navInboxBadge">0</small>
         </button>
-        <button class="active" aria-label="操作台" data-short="台" data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
-          <span class="side-label side-label-plain"><em>操作台</em></span>
+        <button class="active" aria-label="操作台" title="操作台" data-short="台" data-icon-nav data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
+          <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-workbench.svg" alt=""></span><em>操作台</em></span>
           <small id="navCasesBadge">0</small>
         </button>
-        <button aria-label="复盘" data-short="复" data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
-          <span class="side-label side-label-plain"><em>复盘</em></span>
+        <button aria-label="复盘" title="复盘" data-short="复" data-icon-nav data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
+          <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-review.svg" alt=""></span><em>复盘</em></span>
           <small id="navLearningBadge">0</small>
         </button>
-        <button aria-label="Segment" data-short="S" data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
-          <span class="side-label side-label-plain"><em>Segment</em></span>
+        <button aria-label="Segment" title="Segment" data-short="S" data-icon-nav data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
+          <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-segment.svg" alt=""></span><em>Segment</em></span>
           <small id="navStep7Badge">待</small>
         </button>
         <div class="side-note">最新讯息看全部对话；操作台只放需要处理的顾客。</div>
@@ -8661,10 +8714,7 @@
     function applySidebarRoleLabels() {
       const mainButton = document.querySelector('[data-side-key="ai_reply"]');
       const label = mainButton?.querySelector(".side-label em");
-      const code = mainButton?.querySelector(".side-code");
-      if (!label || !code) return;
-      code.textContent = "台";
-      code.style.display = "";
+      if (!label) return;
       label.textContent = "操作台";
     }
 
