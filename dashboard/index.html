@@ -268,6 +268,60 @@
       background: #fff;
     }
 
+    .onboarding-summary-item.ready {
+      border-color: rgba(16,185,157,.30);
+      background: linear-gradient(135deg, rgba(233,251,246,.88), #fff 72%);
+    }
+
+    .onboarding-summary-item.pending {
+      border-color: rgba(183,121,31,.24);
+      background: linear-gradient(135deg, rgba(255,245,230,.72), #fff 72%);
+    }
+
+    .onboarding-summary-main,
+    .onboarding-summary-footer {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .onboarding-summary-main > div {
+      min-width: 0;
+    }
+
+    .onboarding-summary-check {
+      flex: 0 0 auto;
+      width: 20px;
+      height: 20px;
+      margin: 1px 0 0;
+      accent-color: var(--green);
+      opacity: 1;
+    }
+
+    .onboarding-summary-footer {
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .onboarding-summary-footer small {
+      margin-top: 0;
+    }
+
+    .onboarding-summary-action {
+      border: 0;
+      padding: 0;
+      color: #087b73;
+      background: transparent;
+      font-size: 11px;
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .onboarding-summary-action:hover {
+      text-decoration: underline;
+    }
+
     .onboarding-summary-item b,
     .onboarding-summary-item span,
     .onboarding-summary-item small {
@@ -1916,6 +1970,22 @@
 
     .settings-inline-advanced .field-grid {
       margin-top: 10px;
+    }
+
+    .project-settings-readonly {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .project-settings-readonly[disabled] :is(input, select, textarea, button) {
+      cursor: default;
+    }
+
+    .project-settings-readonly[disabled] :is(input, select, textarea) {
+      background: #f4f8f9;
+      color: var(--muted);
     }
 
     .settings-publish-bar {
@@ -8258,9 +8328,20 @@
       localStorage.removeItem("agent_admin_token");
       state.settings = readProjectSettings(projectKeyEl.value.trim() || "demo");
       state.auditEvents = readAuditEvents(projectKeyEl.value.trim() || "demo");
+      state.projectKnowledge = null;
+      state.projectConnectionReadiness = null;
+      state.projectConnectionReadinessError = "";
+      state.metaCapiStatus = null;
+      state.flowCatalog = [];
+      state.flowCatalogLoaded = false;
       loadCases();
       loadInboxConversations();
-      loadProjectKnowledge();
+      Promise.all([
+        loadProjectKnowledge(),
+        loadProjectConnectionReadiness(),
+        loadMetaCapiStatus(),
+        loadFlowCatalog()
+      ]).catch(() => null);
     });
 
     $("pauseAgentBtn").addEventListener("click", () => {
@@ -8485,7 +8566,7 @@
 
       const target = event.target.closest("[data-dashboard-action]");
       if (target) {
-        handleDashboardAction(target.dataset.dashboardAction);
+        handleDashboardAction(target.dataset.dashboardAction, target);
         return;
       }
 
@@ -9358,7 +9439,7 @@
       `;
     }
 
-    function handleDashboardAction(action) {
+    function handleDashboardAction(action, target = null) {
       if (action === "approval") {
         state.filter = "approval_required";
         state.sidebarKey = "ai_reply";
@@ -9388,12 +9469,27 @@
         setWorkspaceView("operations");
         return;
       }
+      if (action === "open-project-setup-step") {
+        const step = String(target?.dataset?.setupStep || "1");
+        if (!["1", "2", "3"].includes(step)) return;
+        state.sidebarKey = `step_${step}`;
+        state.activeSetupStep = step;
+        state.settingsExpanded = true;
+        syncSettingsDisclosure();
+        setWorkspaceView("operations");
+        return;
+      }
       if (action === "refresh-project-knowledge") {
         Promise.all([loadProjectKnowledge(), loadProjectConnectionReadiness()]);
         return;
       }
       if (action === "test-project-connection") {
-        loadProjectConnectionReadiness({ notify: true });
+        Promise.all([
+          loadProjectKnowledge({ silent: true }),
+          loadMetaCapiStatus(),
+          loadFlowCatalog(),
+          loadProjectConnectionReadiness({ notify: true })
+        ]).then(() => render()).catch(() => null);
         return;
       }
       if (action === "analyze-project-document") {
@@ -12017,6 +12113,82 @@
       state.active = null;
     }
 
+    function projectChannelProviderLabel(provider = "") {
+      const value = String(provider || "").trim().toLowerCase();
+      if (value === "chatdaddy") return "ChatDaddy";
+      if (value === "manychat") return "ManyChat";
+      if (value === "whatsapp_cloud") return "WhatsApp Cloud";
+      return value || "聊天工具";
+    }
+
+    function projectSettingsCompletion(knowledge = state.projectKnowledge || {}, readiness = state.projectConnectionReadiness || null) {
+      const completion = knowledge.completion || {};
+      const assets = knowledge.learning_assets || {};
+      const faq = Array.isArray(assets.faq) ? assets.faq : [];
+      const pendingFaqStatuses = new Set(["studied_draft", "draft", "pending", "pending_review", "proposed"]);
+      const rejectedFaqStatuses = new Set(["rejected", "retired"]);
+      const pendingFaqCount = faq.filter((item) => pendingFaqStatuses.has(String(item?.status || "").toLowerCase())).length;
+      const approvedFaqCount = faq.filter((item) => {
+        const status = String(item?.status || "").toLowerCase();
+        return !pendingFaqStatuses.has(status) && !rejectedFaqStatuses.has(status);
+      }).length;
+      const salesProcess = knowledge.sales_process || {};
+      const stages = Array.isArray(salesProcess.stages) ? salesProcess.stages.slice(0, Number(salesProcess.step_count || 4)) : [];
+      const savedFlows = Array.isArray(knowledge.flows) ? knowledge.flows : [];
+      const readinessStages = Array.isArray(readiness?.stage_bindings) ? readiness.stage_bindings : [];
+      const stageBindings = readinessStages.length
+        ? readinessStages
+        : stages.map((stage) => {
+          const flow = savedFlows.find((item) => String(item.flow_key || "") === String(stage.flow_key || "")) || {};
+          return {
+            ...stage,
+            configured: Boolean(stage.provider_bot_id || stage.provider_flow_id || flow.provider_bot_id || flow.provider_flow_id)
+          };
+        });
+      const requiredStageCount = Math.max(0, Number(salesProcess.step_count || stages.length || readinessStages.length || 0));
+      const liveCatalog = state.flowCatalogLiveConnected === true && Array.isArray(state.flowCatalog) ? state.flowCatalog : [];
+      const stageHasLiveFlow = (stage = {}) => {
+        if (stage?.configured !== true || !liveCatalog.length) return false;
+        return liveCatalog.some((flow) => {
+          if (!/live_catalog/i.test(String(flow?.catalog_source || ""))) return false;
+          const sameBot = stage.provider_bot_id && String(flow.provider_bot_id || "") === String(stage.provider_bot_id);
+          const sameFlow = stage.provider_flow_id && String(flow.provider_flow_id || "") === String(stage.provider_flow_id);
+          return Boolean(sameBot || sameFlow);
+        });
+      };
+      const verifiedStageBindings = stageBindings.filter(stageHasLiveFlow);
+      const connectedStageCount = verifiedStageBindings.length;
+      const flowReady = requiredStageCount > 0 && connectedStageCount >= requiredStageCount;
+      const replyContentReady = completion.reply_sop === true && completion.sales_process === true;
+      const pendingMediaCount = Array.isArray(readiness?.pending_google_docs_media)
+        ? readiness.pending_google_docs_media.length
+        : faq.reduce((total, item) => total + (item?.requires_media_approval === true ? (Array.isArray(item.source_media_refs) ? item.source_media_refs.length : 1) : 0), 0);
+      const provider = String(readiness?.provider || salesProcess.channel_provider || "chatdaddy").toLowerCase();
+      const receiveCapability = Array.isArray(readiness?.capabilities)
+        ? readiness.capabilities.find((item) => item?.key === "receive_webhook")
+        : null;
+      const messageReady = Boolean(readiness?.active_connection === true && receiveCapability?.verified === true);
+      const knowledgeReady = approvedFaqCount > 0 && pendingFaqCount === 0 && pendingMediaCount === 0;
+      return {
+        provider,
+        providerLabel: projectChannelProviderLabel(provider),
+        messageReady,
+        replyContentReady,
+        flowReady,
+        replyReady: replyContentReady && flowReady,
+        knowledgeReady,
+        faqCount: faq.length,
+        approvedFaqCount,
+        pendingFaqCount,
+        pendingMediaCount,
+        requiredStageCount,
+        connectedStageCount,
+        verifiedStageKeys: verifiedStageBindings.map((stage) => String(stage.stage_key || "")).filter(Boolean),
+        projectBrainPublished: knowledge.project_brain_published === true,
+        metaReady: state.metaCapiStatus?.configured === true
+      };
+    }
+
     function renderNavigationBadges(counts, learned) {
       const opsLabel = state.demoMode ? "演示" : "已连";
       const casesLabel = counts.needs > 0 ? counts.needs : "稳";
@@ -12034,12 +12206,10 @@
       setBadge("navOrderBadge", counts.orders || 0);
       setBadge("navLogBadge", learned || "记录");
       setBadge("navConfigureBadge", "✅");
-      const onboarding = state.projectKnowledge || {};
-      const completion = onboarding.completion || {};
-      const knowledgeCounts = onboarding.counts || {};
-      setBadge("navStep1Badge", completion.message_connection ? "已连接" : "待连接");
-      setBadge("navStep2Badge", completion.reply_sop && completion.sales_process ? "已完成" : "待完成");
-      setBadge("navStep3Badge", completion.faq ? "已完成" : "待完成");
+      const setupCompletion = projectSettingsCompletion();
+      setBadge("navStep1Badge", setupCompletion.messageReady ? "已连接" : "待连接");
+      setBadge("navStep2Badge", setupCompletion.replyReady ? "已完成" : setupCompletion.replyContentReady ? "待接 Flow" : "待完成");
+      setBadge("navStep3Badge", setupCompletion.knowledgeReady ? "已完成" : setupCompletion.pendingFaqCount ? `${setupCompletion.pendingFaqCount} 待批` : "待完成");
       setBadge("navStep4Badge", casesLabel);
       setBadge("navStep5Badge", learned || "中");
       setBadge("navStep6Badge", learned ? "看" : "中");
@@ -12862,61 +13032,76 @@
       `;
 	    }
 
+      function projectChannelSetupUrl(provider = "") {
+        const url = new URL("../channel-setup/index.html", window.location.href);
+        const api = apiUrlEl.value.trim().replace(/\/$/, "");
+        const project = projectKeyEl.value.trim() || "beyoute";
+        if (api) url.searchParams.set("api", api);
+        url.searchParams.set("project_key", project);
+        url.searchParams.set("provider", provider || projectSettingsCompletion().provider || "chatdaddy");
+        return url.toString();
+      }
+
       function projectConnectionCenterHtml() {
         const readiness = state.projectConnectionReadiness;
-        if (!readiness) {
-          return `<section class="command-panel">
-            <div class="command-kicker">聊天工具</div>
-            <strong class="command-title">${state.projectConnectionReadinessBusy ? "正在检查连接..." : "聊天工具链接"}</strong>
-            <p class="command-copy">${escapeHtml(state.projectConnectionReadinessError || "连接 ChatDaddy 或 ManyChat，让顾客讯息进入 ReplyPilot。")}</p>
-            <div class="quick-actions">
-              <button class="quick-action primary" data-dashboard-action="test-project-connection" type="button" ${state.projectConnectionReadinessBusy ? "disabled" : ""}>检查连接</button>
-              <a class="quick-action" href="../channel-setup/index.html" target="_blank" rel="noreferrer">打开链接设置</a>
-            </div>
-          </section>`;
-        }
-        const connection = readiness.connection || {};
-        const providerLabel = readiness.provider === "manychat"
-          ? "ManyChat"
-          : readiness.provider === "chatdaddy"
-            ? "ChatDaddy"
-            : readiness.provider || "未连接";
-        const blockers = Array.isArray(readiness.blockers) ? readiness.blockers : [];
-        const warnings = Array.isArray(readiness.warnings) ? readiness.warnings : [];
-        const capabilities = Array.isArray(readiness.capabilities) ? readiness.capabilities : [];
-        const stages = Array.isArray(readiness.stage_bindings) ? readiness.stage_bindings : [];
-        const connectedStageCount = stages.filter((stage) => stage.configured).length;
-        return `<section class="command-panel ${readiness.ready_for_publish ? "accent" : ""}">
+        const knowledge = state.projectKnowledge || {};
+        const setup = projectSettingsCompletion(knowledge, readiness);
+        const connection = readiness?.connection || {};
+        const capabilities = Array.isArray(readiness?.capabilities) ? readiness.capabilities : [];
+        const blockers = Array.isArray(readiness?.blockers) ? readiness.blockers : [];
+        const warnings = Array.isArray(readiness?.warnings) ? readiness.warnings : [];
+        const salesProcess = knowledge.sales_process || {};
+        const savedStages = Array.isArray(salesProcess.stages) ? salesProcess.stages.slice(0, setup.requiredStageCount || undefined) : [];
+        const readinessStages = Array.isArray(readiness?.stage_bindings) ? readiness.stage_bindings : [];
+        const receiveCapability = capabilities.find((item) => item.key === "receive_webhook") || {};
+        const sendTextCapability = capabilities.find((item) => item.key === "send_text") || {};
+        const connectionName = connection.display_name || `${String(knowledge.project_name || knowledge.project_key || "当前项目")} ${setup.providerLabel}`;
+        const meta = state.metaCapiStatus || {};
+        const metaNote = setup.metaReady
+          ? (meta.purchase_auto_track_enabled || meta.auto_track_enabled ? "已配置 · 自动回传已开启" : "已配置 · 成交仍由客服确认")
+          : "选填；投放 Meta 广告时再连接";
+        const stageRows = (readinessStages.length ? readinessStages : savedStages).map((stage, index) => {
+          const saved = savedStages.find((item) => String(item.stage_key || "") === String(stage.stage_key || "")) || savedStages[index] || {};
+          const configured = setup.verifiedStageKeys.includes(String(stage.stage_key || saved.stage_key || ""));
+          const purpose = saved.purpose || stage.purpose || "还没有填写用途";
+          return compactRow(`Step ${index + 1}`, `${purpose}${configured ? " · 已连接真实 Flow" : " · 保留原本设置，待选择真实 Flow"}`, configured ? "已完成" : "待连接");
+        }).join("");
+        const safeNotice = state.projectConnectionReadinessError
+          ? "技术检查暂时无法读取；下面先显示这个项目已经保存的资料。"
+          : state.projectConnectionReadinessBusy
+            ? "正在重新检查，不会发送顾客讯息。"
+            : setup.messageReady
+              ? `${setup.providerLabel} 已接入；已保存的资料不用重新填写。`
+              : `先连接 ${setup.providerLabel}，再选择这个项目的销售 Flow。`;
+        const relevantBlockers = blockers.filter((item) => /flow|media|channel|adapter/i.test(String(item.code || ""))).slice(0, 8);
+        return `<section class="command-panel ${setup.messageReady ? "accent" : ""}">
           <div class="command-kicker">聊天工具</div>
-          <strong class="command-title">聊天工具链接</strong>
-          <p class="command-copy">连接 ChatDaddy 或 ManyChat，让顾客讯息进入 ReplyPilot。</p>
+          <strong class="command-title">${escapeHtml(setup.providerLabel)}${setup.messageReady ? " 已连接" : " 待连接"}</strong>
+          <p class="command-copy">${escapeHtml(safeNotice)}</p>
           <div class="compact-list">
-            ${compactRow("聊天工具", `${providerLabel}${connection.display_name ? ` · ${connection.display_name}` : ""}`, readiness.active_connection ? "已连接" : "待连接")}
-            ${compactRow("顾客讯息", readiness.active_connection ? "可以进入 ReplyPilot" : "还没有确认讯息入口", readiness.active_connection ? "正常" : "待处理")}
-            ${compactRow("销售 Flow", stages.length ? `${connectedStageCount}/${stages.length} 已连接` : "还没有设置销售 Step", connectedStageCount === stages.length && stages.length ? "已完成" : "待处理")}
+            ${compactRow("聊天工具", connectionName, setup.messageReady ? "已连接" : "待连接")}
+            ${compactRow("顾客讯息", receiveCapability.verified ? "真实顾客讯息已有接收记录" : setup.messageReady ? "入口已配置，等待更多成功记录" : "还没有确认讯息入口", receiveCapability.verified ? "已验证" : setup.messageReady ? "已配置" : "待处理")}
+            ${compactRow("文字回复", sendTextCapability.verified ? "已有成功发送记录" : setup.messageReady ? "功能已配置，继续保持人工批准" : "连接聊天工具后检查", sendTextCapability.verified ? "已验证" : setup.messageReady ? "已配置" : "待处理")}
+            ${compactRow("销售 Flow", setup.requiredStageCount ? `${setup.connectedStageCount}/${setup.requiredStageCount} 条真实 Flow 已连接` : "还没有设置销售 Step", setup.flowReady ? "已完成" : "继续设置")}
+            ${compactRow("Meta 广告回传", metaNote, setup.metaReady ? "已连接" : "选填")}
           </div>
-          ${blockers.length ? `<div class="settings-box"><h3>发布前要处理</h3><div class="compact-list">${blockers.map((item, index) => compactRow(`问题 ${index + 1}`, item.message || "待处理", "未完成")).join("")}</div></div>` : ""}
           <div class="quick-actions">
-            <button class="quick-action primary" data-dashboard-action="test-project-connection" type="button" ${state.projectConnectionReadinessBusy ? "disabled" : ""}>${state.projectConnectionReadinessBusy ? "检查中..." : "检查连接"}</button>
-            <a class="quick-action" href="../channel-setup/index.html" target="_blank" rel="noreferrer">打开链接设置</a>
+            <button class="quick-action primary" data-dashboard-action="test-project-connection" type="button" ${state.projectConnectionReadinessBusy ? "disabled" : ""}>${state.projectConnectionReadinessBusy ? "检查中..." : "重新检查"}</button>
+            <button class="quick-action" data-dashboard-action="open-project-setup-step" data-setup-step="2" type="button">${setup.flowReady ? "查看销售 Flow" : "继续连接销售 Flow"}</button>
+            <a class="quick-action" href="${escapeHtml(projectChannelSetupUrl(setup.provider))}" target="_blank" rel="noreferrer">${state.role === "staff" ? "查看连接资料" : "管理聊天工具"}</a>
           </div>
-          <details class="settings-section" style="margin-top:12px">
-            <summary>连接详情</summary>
+          ${state.role === "staff" ? `<p class="project-upload-note">连接资料由项目负责人管理；你可以查看状态，不会看到 API 密钥。</p>` : ""}
+          <details class="settings-section" style="margin-top:12px" ${!setup.flowReady ? "open" : ""}>
+            <summary>已保存内容与待完成项目</summary>
             <div class="settings-section-body">
-              <p class="settings-section-copy">API 密钥由管理员保管，这里只显示连接状态。</p>
+              <p class="settings-section-copy">下面直接使用这个项目以前保存的资料。完成的项目会锁定显示，缺少的项目才需要继续设置。</p>
               <div class="compact-list">
-                ${capabilities.map((capability) => compactRow(
-                  capability.label,
-                  capability.note || "",
-                  capability.status === "verified" ? "已验证" : capability.status === "configured" ? "已配置" : capability.required ? "缺少" : "未提供"
-                )).join("") || compactRow("连接能力", "等待检查", "待处理")}
-                ${stages.map((stage) => compactRow(
-                  `销售 Step ${Number(String(stage.stage_key || "").match(/\d+/)?.[0] || 0) || ""}`.trim(),
-                  stage.configured ? "已连接真实 Flow" : "尚未连接真实 Flow",
-                  stage.configured ? "已完成" : "待处理"
-                )).join("")}
+                ${stageRows || compactRow("销售 Step", "还没有保存销售步骤", "待设置")}
+                ${setup.pendingFaqCount ? compactRow("FAQ 审核", `${setup.pendingFaqCount} 条 Google Docs FAQ 等待负责人批准`, "待批准") : ""}
+                ${setup.pendingMediaCount ? compactRow("图片素材", `${setup.pendingMediaCount} 张 Google Docs 图片等待批准为项目素材`, "待批准") : ""}
               </div>
-              ${warnings.length ? `<p class="project-upload-note">另有 ${warnings.length} 项需要更多成功记录；目前仍保持人工批准。</p>` : ""}
+              ${relevantBlockers.length ? `<p class="project-upload-note">完成上面未勾选的项目后，再运行发布检查。</p>` : ""}
+              ${warnings.length ? `<p class="project-upload-note">另有 ${warnings.length} 项已经配置但还没有足够成功记录；目前继续保持人工批准。</p>` : ""}
             </div>
           </details>
         </section>`;
@@ -13045,12 +13230,15 @@
             ? salesProcess.post_price_policy.offers.find((item) => item && typeof item === "object") || {}
             : {};
           const docsMediaRefs = projectDocsMediaReferences(knowledge);
+          const staffReadOnly = state.role === "staff";
           return `${header}
             <section class="command-panel accent">
               <div class="command-kicker">回复与成交</div>
               <strong class="command-title">设置 AI 怎么回答和推进成交</strong>
               <p class="command-copy">每个项目独立设置。顾客连续追问时，AI 只回答问题，不会每次重复信任素材和成交邀请。</p>
             </section>
+            ${staffReadOnly ? `<p class="project-upload-note">这里显示项目负责人已经保存的设置；客服账号只能查看，不能修改。</p>` : ""}
+            <fieldset class="project-settings-readonly" ${staffReadOnly ? "disabled" : ""}>
             <details class="settings-section" open>
               <summary>销售流程</summary>
               <div class="settings-section-body">
@@ -13095,7 +13283,7 @@
                     <label><input type="checkbox" id="projectMediaRequiredInput"> 这是必需素材；发送失败时不要接下一条 Flow</label>
                   </div>
                 </details>
-                <div class="quick-actions"><button class="quick-action" data-dashboard-action="save-project-media-asset" type="button">批准并加入当前项目</button></div>
+                ${staffReadOnly ? "" : `<div class="quick-actions"><button class="quick-action" data-dashboard-action="save-project-media-asset" type="button">批准并加入当前项目</button></div>`}
               </div>
             </details>
             <details class="settings-section">
@@ -13118,6 +13306,7 @@
                 <label>聊天工具<select id="salesChannelProviderInput"><option value="chatdaddy" ${salesProcess.channel_provider !== "manychat" ? "selected" : ""}>ChatDaddy</option><option value="manychat" ${salesProcess.channel_provider === "manychat" ? "selected" : ""}>ManyChat（基础连接）</option></select></label>
               </div>
             </details>
+            </fieldset>
             ${projectSettingsPublishBarHtml({ showSave: true })}`;
         }
         const faq = Array.isArray(assets.faq) ? assets.faq : [];
@@ -13211,24 +13400,56 @@
       }
 
       function projectOnboardingSummaryHtml(knowledge = {}) {
-        const counts = knowledge.counts || {};
-        const completion = knowledge.completion || {};
+        const setup = projectSettingsCompletion(knowledge);
         const items = [
-          ["聊天工具链接", completion.message_connection ? "顾客讯息已接入" : "等待连接聊天工具", completion.message_connection],
-          ["回复与成交", completion.reply_sop && completion.sales_process ? "回复方式和销售流程已设置" : "等待完成回复与销售流程", completion.reply_sop && completion.sales_process],
-          ["知识库", Number(counts.faq || 0) > 0 ? `${Number(counts.faq || 0)} 条 FAQ` : "等待导入项目资料", completion.faq]
+          {
+            step: "1",
+            title: "聊天工具链接",
+            note: setup.messageReady ? `${setup.providerLabel} 已接入顾客讯息` : `等待连接 ${setup.providerLabel}`,
+            ready: setup.messageReady
+          },
+          {
+            step: "2",
+            title: "回复与成交",
+            note: setup.replyReady
+              ? `${setup.connectedStageCount}/${setup.requiredStageCount} 条销售 Flow 已连接`
+              : setup.replyContentReady
+                ? `成交设置已保留 · ${setup.connectedStageCount}/${setup.requiredStageCount || 0} 条 Flow 已连接`
+                : "等待完成回复方式和销售流程",
+            ready: setup.replyReady
+          },
+          {
+            step: "3",
+            title: "知识库",
+            note: setup.faqCount
+              ? `${setup.faqCount} 条 FAQ${setup.pendingFaqCount ? ` · ${setup.pendingFaqCount} 条待批准` : ""}${setup.pendingMediaCount ? ` · ${setup.pendingMediaCount} 张图待批准` : ""}`
+              : "等待导入项目资料",
+            ready: setup.knowledgeReady
+          }
         ];
-        return `<div class="onboarding-summary">${items.map(([title, note, ready]) => `<div class="onboarding-summary-item ${ready ? "ready" : "pending"}"><b>${escapeHtml(title)}</b><span>${escapeHtml(note)}</span><small>${ready ? "已完成" : "待完成"}</small></div>`).join("")}</div>`;
+        return `<div class="onboarding-summary">${items.map((item) => `
+          <div class="onboarding-summary-item ${item.ready ? "ready" : "pending"}">
+            <div class="onboarding-summary-main">
+              <div><b>${escapeHtml(item.title)}</b><span>${escapeHtml(item.note)}</span></div>
+              <input class="onboarding-summary-check" type="checkbox" ${item.ready ? "checked" : ""} disabled aria-label="${escapeHtml(`${item.title}${item.ready ? "已完成" : "未完成"}`)}">
+            </div>
+            <div class="onboarding-summary-footer">
+              <small>${item.ready ? "已完成" : "继续设置"}</small>
+              <button class="onboarding-summary-action" data-dashboard-action="open-project-setup-step" data-setup-step="${item.step}" type="button">${item.ready ? "查看" : "去完成"}</button>
+            </div>
+          </div>`).join("")}</div>`;
       }
 
       function projectFaqItemHtml(item = {}) {
         const imageCount = Array.isArray(item.source_media_refs) ? item.source_media_refs.length : 0;
-        const pending = item.status === "studied_draft";
+        const rawStatus = String(item.status || "").toLowerCase();
+        const pending = ["studied_draft", "draft", "pending", "pending_review", "proposed"].includes(rawStatus);
+        const inactive = ["rejected", "retired"].includes(rawStatus);
         const question = item.question || item.title || "FAQ";
         const answer = item.answer || item.better_reply || "待补答案";
         const searchText = `${question} ${answer} ${item.customer_pattern || ""}`.toLowerCase();
-        const status = pending ? "待批准" : imageCount ? `已批准 · ${imageCount} 张图` : "已批准";
-        return `<details class="knowledge-item faq-item" data-project-faq-item data-faq-status="${pending ? "pending" : "approved"}" data-faq-has-images="${imageCount ? "1" : "0"}" data-faq-search="${escapeHtml(searchText)}">
+        const status = inactive ? (rawStatus === "retired" ? "已停用" : "已拒绝") : pending ? "待批准" : imageCount ? `已批准 · ${imageCount} 张图` : "已批准";
+        return `<details class="knowledge-item faq-item" data-project-faq-item data-faq-status="${inactive ? "inactive" : pending ? "pending" : "approved"}" data-faq-has-images="${imageCount ? "1" : "0"}" data-faq-search="${escapeHtml(searchText)}">
           <summary><span>${escapeHtml(question)}</span><small>${escapeHtml(status)}</small></summary>
           <div class="faq-answer">${escapeHtml(answer)}</div>
         </details>`;
@@ -17348,7 +17569,7 @@
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/knowledge`;
         const res = await fetch(endpoint, authRequestOptions(token));
         const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+        if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
         state.projectKnowledge = data;
         if (!options.silent && state.workspaceView === "operations") showToast("已读取真实项目资料。 ");
         render();
@@ -17376,7 +17597,7 @@
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/connection-readiness`;
         const res = await fetch(endpoint, authRequestOptions(token));
         const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+        if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
         state.projectConnectionReadiness = data;
         if (options.notify) {
           showToast(data.ready_for_publish
@@ -17386,7 +17607,10 @@
         return data;
       } catch (error) {
         state.projectConnectionReadiness = null;
-        state.projectConnectionReadinessError = error?.message || String(error);
+        const rawMessage = String(error?.message || error || "");
+        state.projectConnectionReadinessError = /admin_only|只给管理员|管理员使用/i.test(rawMessage)
+          ? "连接资料由项目负责人管理；当前账号仍可查看已保存状态。"
+          : "连接检查暂时无法读取，请稍后再试。";
         if (options.notify) showToast(`连接检测失败：${state.projectConnectionReadinessError}`);
         return null;
       } finally {
@@ -24105,8 +24329,8 @@
     }
 
     (async function bootDashboard() {
-      await bootstrapSaasSession();
-	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog(), loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
+	  await bootstrapSaasSession();
+	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog(), loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness(), loadMetaCapiStatus()]);
 	  startQueueAutoRefresh();
     })();
   </script>
