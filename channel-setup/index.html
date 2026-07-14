@@ -599,7 +599,7 @@
               <div class="owner-step-number">1</div>
               <div>
                 <h3>建立 API Token</h3>
-                <p>打开 ChatDaddy → <b>Developer</b> → <b>API Token</b> → <b>+Create</b>。名称填写 <code>ReplyPilot-项目名</code>，发送权限选择 <code>MESSAGES_SEND_TO_ALL</code>，保存后复制 Token。</p>
+                <p>打开 ChatDaddy → <b>Developer</b> → <b>API Token</b> → <b>+Create</b>。名称填写 <code>ReplyPilot-项目名</code>，只勾选 <code>TEMPLATES_READ</code> 和 <code>MESSAGES_SEND_TO_ALL</code>，保存后复制 Token。</p>
               </div>
             </article>
             <article class="owner-step">
@@ -626,6 +626,7 @@
           </div>
           <div class="tutorial-warning">Token 等同账号钥匙：只允许项目负责人在本页亲自贴上，不要发进 WhatsApp 群、Google Docs 或 FAQ。保存成功后 Token 空格会自动清空，这是正常的。</div>
           <div class="actions">
+            <a class="btn primary" href="../docs/ReplyPilot_ChatDaddy_Brand_Onboarding_Guide_ZH.pdf" download>下载图文教程 PDF</a>
             <a class="btn" href="https://help.chatdaddy.tech/article/how-to-create-an-api-token" target="_blank" rel="noreferrer">打开 ChatDaddy 官方 Token 教学</a>
             <button class="btn" type="button" id="copyOwnerTutorialButton">复制教程给项目负责人</button>
           </div>
@@ -688,6 +689,7 @@
         <div class="log-item" id="chatDaddyHelp">
           <b>不知道去哪里拿？</b><br>
           API Token：ChatDaddy → Developer → API Token。Channel / Account ID：ChatDaddy → Manage Channels → 复制该 WhatsApp Channel 的 ID。
+          <a href="../docs/ReplyPilot_ChatDaddy_Brand_Onboarding_Guide_ZH.pdf" download>下载图文教程 PDF</a>
           <a href="https://help.chatdaddy.tech/article/how-to-create-an-api-token" target="_blank" rel="noreferrer">打开 ChatDaddy 官方教学</a>
         </div>
 
@@ -948,12 +950,13 @@
         `ReplyPilot｜${projectKey} ChatDaddy 连接教程`,
         "",
         "1. ChatDaddy → Developer → API Token → +Create。",
-        `2. Token 名称填 ReplyPilot-${projectKey}，发送权限选择 MESSAGES_SEND_TO_ALL，保存后复制 Token。`,
+        `2. Token 名称填 ReplyPilot-${projectKey}，只勾选 TEMPLATES_READ 和 MESSAGES_SEND_TO_ALL，保存后复制 Token。`,
         "3. ChatDaddy 右上角账号菜单 → Manage Channels → 找到本项目 WhatsApp Channel → 复制 Account ID。",
         "4. 回 ReplyPilot 的「连接 ChatDaddy」页面，把 Account ID 和 API Token 分别贴进对应空格。",
         "5. 点击「连接并同步 Flow」。成功后回 Dashboard，为每个销售 Step 选择真实 Flow。",
         "",
         "安全提醒：不要把 API Token 发进 WhatsApp 群、Google Docs 或 FAQ；请由项目负责人亲自在 ReplyPilot 页面填写。",
+        "图文 PDF 教程：从 ReplyPilot 连接页面点击「下载图文教程 PDF」。",
         "ChatDaddy 官方 Token 教学：https://help.chatdaddy.tech/article/how-to-create-an-api-token"
       ].join("\n");
       await navigator.clipboard?.writeText(tutorial);
