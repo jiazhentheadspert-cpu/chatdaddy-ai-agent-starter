@@ -201,6 +201,109 @@
       padding: 24px;
     }
 
+    .owner-tutorial {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .owner-tutorial summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 24px;
+      cursor: pointer;
+      list-style: none;
+      font-size: 22px;
+      font-weight: 950;
+    }
+
+    .owner-tutorial summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .owner-tutorial summary::after {
+      content: "展开教程";
+      color: var(--blue);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .owner-tutorial[open] summary::after {
+      content: "收起教程";
+    }
+
+    .owner-tutorial-body {
+      padding: 0 24px 24px;
+      border-top: 1px solid var(--line);
+    }
+
+    .owner-tutorial-intro {
+      margin: 18px 0;
+      color: var(--muted);
+      font-weight: 850;
+      line-height: 1.55;
+    }
+
+    .owner-steps {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .owner-step {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr);
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .owner-step-number {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border-radius: 8px;
+      color: white;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      font-weight: 950;
+    }
+
+    .owner-step h3 {
+      margin: 0 0 7px;
+      font-size: 17px;
+    }
+
+    .owner-step p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .owner-step code {
+      color: #075666;
+      background: #ecfbff;
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-weight: 900;
+    }
+
+    .tutorial-warning {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid rgba(165, 105, 24, 0.22);
+      border-radius: 8px;
+      color: #7c5014;
+      background: #fff8ec;
+      font-weight: 850;
+      line-height: 1.5;
+    }
+
     .toolbar {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -445,6 +548,7 @@
 
       .toolbar,
       .grid,
+      .owner-steps,
       .connection-card {
         grid-template-columns: 1fr;
       }
@@ -485,6 +589,48 @@
           <span class="chip warn">不会发送顾客讯息</span>
         </div>
       </section>
+
+      <details class="panel owner-tutorial" id="ownerTutorial" open>
+        <summary>项目负责人教程：先准备两样资料</summary>
+        <div class="owner-tutorial-body">
+          <p class="owner-tutorial-intro"><span data-owner-project-name>当前项目</span> 的负责人照着下面做即可，不需要改代码，也不要把 ChatDaddy 登录密码贴进来。</p>
+          <div class="owner-steps">
+            <article class="owner-step">
+              <div class="owner-step-number">1</div>
+              <div>
+                <h3>建立 API Token</h3>
+                <p>打开 ChatDaddy → <b>Developer</b> → <b>API Token</b> → <b>+Create</b>。名称填写 <code>ReplyPilot-项目名</code>，发送权限选择 <code>MESSAGES_SEND_TO_ALL</code>，保存后复制 Token。</p>
+              </div>
+            </article>
+            <article class="owner-step">
+              <div class="owner-step-number">2</div>
+              <div>
+                <h3>复制 Channel / Account ID</h3>
+                <p>打开 ChatDaddy 右上角账号菜单 → <b>Manage Channels</b>，找到这个项目使用的 WhatsApp Channel，然后复制它的 Account ID。</p>
+              </div>
+            </article>
+            <article class="owner-step">
+              <div class="owner-step-number">3</div>
+              <div>
+                <h3>贴进下面两个空格</h3>
+                <p>先把 Account ID 贴进 <b>ChatDaddy Channel / Account ID</b>，再把 Token 贴进 <b>ChatDaddy API Token</b>。Mac 按 ⌘V，Windows 按 Ctrl+V。</p>
+              </div>
+            </article>
+            <article class="owner-step">
+              <div class="owner-step-number">4</div>
+              <div>
+                <h3>连接并同步</h3>
+                <p>点击 <b>连接并同步 Flow</b>。看到“ChatDaddy 已连接”后回 Dashboard，每个销售 Step 就能选择真实 Flow。</p>
+              </div>
+            </article>
+          </div>
+          <div class="tutorial-warning">Token 等同账号钥匙：只允许项目负责人在本页亲自贴上，不要发进 WhatsApp 群、Google Docs 或 FAQ。保存成功后 Token 空格会自动清空，这是正常的。</div>
+          <div class="actions">
+            <a class="btn" href="https://help.chatdaddy.tech/article/how-to-create-an-api-token" target="_blank" rel="noreferrer">打开 ChatDaddy 官方 Token 教学</a>
+            <button class="btn" type="button" id="copyOwnerTutorialButton">复制教程给项目负责人</button>
+          </div>
+        </div>
+      </details>
 
       <section class="panel">
         <div class="toolbar">
@@ -627,6 +773,7 @@
     document.getElementById("loadButton").addEventListener("click", loadConnections);
     document.getElementById("copyCommandsButton").addEventListener("click", copyCommands);
     document.getElementById("copyWebhookButton").addEventListener("click", copyWebhook);
+    document.getElementById("copyOwnerTutorialButton").addEventListener("click", copyOwnerTutorial);
     providerEl.addEventListener("change", () => {
       renderCommands();
       loadConnections();
@@ -638,6 +785,9 @@
       localStorage.setItem("hermas_channel_api", apiBase);
       projectKeyEl.value = params.get("project_key") || localStorage.getItem("hermas_channel_project_key") || "beyoute";
       projectKeyEl.readOnly = true;
+      document.querySelectorAll("[data-owner-project-name]").forEach((element) => {
+        element.textContent = projectKeyEl.value;
+      });
       providerEl.value = params.get("provider") || "chatdaddy";
       connectionLabelEl.value = `${projectKeyEl.value} ChatDaddy`;
       externalChannelEl.value = "whatsapp";
@@ -648,8 +798,12 @@
     }
 
     async function saveMetadata() {
+      const saveButton = document.getElementById("saveButton");
+      const previousLabel = saveButton.textContent;
       try {
         if (!canManageConnection) throw new Error("只有项目负责人可以修改连接资料。");
+        saveButton.disabled = true;
+        saveButton.textContent = "正在验证并同步...";
         const projectKey = cleanProjectKey();
         const payload = {
           provider: providerEl.value,
@@ -673,6 +827,9 @@
         notifyDashboardConnectionChanged(projectKey, data.live_flow_count);
       } catch (error) {
         addLog("保存失败", error.message || String(error), true);
+      } finally {
+        saveButton.disabled = false;
+        if (saveButton.textContent === "正在验证并同步...") saveButton.textContent = previousLabel;
       }
     }
 
@@ -722,6 +879,8 @@
       });
       document.getElementById("apiTokenField").hidden = requestedProvider !== "chatdaddy";
       document.getElementById("chatDaddyHelp").hidden = requestedProvider !== "chatdaddy";
+      document.getElementById("ownerTutorial").hidden = requestedProvider !== "chatdaddy";
+      document.getElementById("ownerTutorial").open = latestSetup?.credential_configured !== true;
       projectKeyEl.readOnly = true;
       statusEl.disabled = true;
       document.getElementById("saveButton").hidden = !canManageConnection;
@@ -781,6 +940,24 @@
       }
       await navigator.clipboard?.writeText(value);
       addLog("Webhook URL 已复制", "把它贴进 ChatDaddy Webhook 设置，然后发一条测试讯息。");
+    }
+
+    async function copyOwnerTutorial() {
+      const projectKey = projectKeyEl.value.trim() || "当前项目";
+      const tutorial = [
+        `ReplyPilot｜${projectKey} ChatDaddy 连接教程`,
+        "",
+        "1. ChatDaddy → Developer → API Token → +Create。",
+        `2. Token 名称填 ReplyPilot-${projectKey}，发送权限选择 MESSAGES_SEND_TO_ALL，保存后复制 Token。`,
+        "3. ChatDaddy 右上角账号菜单 → Manage Channels → 找到本项目 WhatsApp Channel → 复制 Account ID。",
+        "4. 回 ReplyPilot 的「连接 ChatDaddy」页面，把 Account ID 和 API Token 分别贴进对应空格。",
+        "5. 点击「连接并同步 Flow」。成功后回 Dashboard，为每个销售 Step 选择真实 Flow。",
+        "",
+        "安全提醒：不要把 API Token 发进 WhatsApp 群、Google Docs 或 FAQ；请由项目负责人亲自在 ReplyPilot 页面填写。",
+        "ChatDaddy 官方 Token 教学：https://help.chatdaddy.tech/article/how-to-create-an-api-token"
+      ].join("\n");
+      await navigator.clipboard?.writeText(tutorial);
+      addLog("项目负责人教程已复制", "可以直接发给负责人；教程不会包含任何 API Token。 ");
     }
 
     function notifyDashboardConnectionChanged(projectKey, flowCount) {
