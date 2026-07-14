@@ -857,6 +857,33 @@
       justify-content: flex-end;
     }
 
+    .project-switcher {
+      display: grid;
+      gap: 4px;
+      min-width: min(260px, 36vw);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .project-switcher select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,.94);
+      color: var(--ink);
+      padding: 8px 36px 8px 12px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .project-switcher select:focus {
+      outline: 3px solid rgba(0,183,216,.16);
+      border-color: rgba(0,183,216,.55);
+    }
+
 	    .btn {
 	      border: 1px solid var(--line);
 	      background: rgba(255,255,255,.88);
@@ -6880,6 +6907,10 @@
         display: grid;
         grid-template-columns: 1fr;
       }
+      .project-switcher {
+        width: 100%;
+        min-width: 0;
+      }
       .ops-command-main { min-height: 0; padding: 18px; }
       .ops-command-grid { grid-template-columns: 1fr; }
       .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
@@ -7631,10 +7662,14 @@
 
       <div class="session-bar" id="sessionBar">
         <div>
-          <div class="session-title" id="sessionTitle">Beyoute 工作台</div>
+          <div class="session-title" id="sessionTitle">当前项目 · 客服工作台</div>
           <div class="session-subtitle" id="sessionSubtitle">客服只看待处理顾客。</div>
         </div>
         <div class="session-actions">
+          <label class="project-switcher" id="projectSwitcherShell">
+            <span>切换项目</span>
+            <select id="projectSwitcher" aria-label="切换项目"></select>
+          </label>
           <button class="btn danger" id="pauseAgentBtn" type="button">暂停接管</button>
           <button class="btn ghost" id="logoutBtn" type="button">退出</button>
         </div>
@@ -8043,7 +8078,10 @@
 
   <script>
     (function loadBeyouteCustomerNameOverrides() {
-      var snapshotVersion = new URLSearchParams(window.location.search).get("_v") || String(Date.now());
+      var query = new URLSearchParams(window.location.search);
+      var activeProject = String(query.get("project_key") || localStorage.getItem("agent_project_key") || "beyoute").trim().toLowerCase();
+      if (activeProject !== "beyoute") return;
+      var snapshotVersion = query.get("_v") || String(Date.now());
       document.write('<script src="./beyoute_customer_name_overrides.js?v=' + encodeURIComponent(snapshotVersion) + '"><\/script>');
     })();
   </script>
@@ -8147,15 +8185,15 @@
     };
 
     const DEFAULT_SETTINGS = {
-      brandVoice: "马来西亚华人客服语气：自然、直接、有温度。广告关键词由 ChatDaddy 自动进入 Step 1；顾客后续只要提问或有顾虑，先进入待批准。",
-      brandKb: "产品卖点、价格、常见问题、信心证明、禁忌、订单资料和付款规则。",
+      brandVoice: "请填写这个项目希望 AI 使用的语气、语言和称呼方式。",
+      brandKb: "请加入这个项目的产品、价格、FAQ、信任证明、订单与安全边界。",
       flowMap: {
-        s1: "bot_b420c7c1986ebbce",
-        s2: "bot_5ce201ce96116e07",
-        s3: "bot_29650314b584a2ee",
-        s4: "bot_29650314b584a2ee",
+        s1: "",
+        s2: "",
+        s3: "",
+        s4: "",
         order: "",
-        payment: "bot_75cf1a1139688a88",
+        payment: "",
 		payment_meta_3_rm378: "",
 		payment_meta_4_rm508: "",
 		payment_meta_5_rm658: "",
@@ -8178,9 +8216,30 @@
       },
     };
 
+    const BEYOUTE_DEFAULT_SETTINGS = {
+      ...clone(DEFAULT_SETTINGS),
+      brandVoice: "马来西亚华人客服语气：自然、直接、有温度。广告关键词由 ChatDaddy 自动进入 Step 1；顾客后续只要提问或有顾虑，先进入待批准。",
+      brandKb: "产品卖点、价格、常见问题、信心证明、禁忌、订单资料和付款规则。",
+      flowMap: {
+        ...DEFAULT_SETTINGS.flowMap,
+        s1: "bot_b420c7c1986ebbce",
+        s2: "bot_5ce201ce96116e07",
+        s3: "bot_29650314b584a2ee",
+        s4: "bot_29650314b584a2ee",
+        payment: "bot_75cf1a1139688a88",
+      },
+    };
+
+    function defaultSettingsForProject(project = "") {
+      return String(project || "").trim().toLowerCase() === "beyoute"
+        ? clone(BEYOUTE_DEFAULT_SETTINGS)
+        : clone(DEFAULT_SETTINGS);
+    }
+
     const $ = (id) => document.getElementById(id);
     const apiUrlEl = $("apiUrl");
     const projectKeyEl = $("projectKey");
+    const projectSwitcherEl = $("projectSwitcher");
     const adminTokenEl = { value: "", placeholder: "" };
     const casesEl = $("cases");
     const errorEl = $("error");
@@ -8500,6 +8559,10 @@
         loadMetaCapiStatus(),
         loadFlowCatalog()
       ]).catch(() => null);
+    });
+
+    projectSwitcherEl.addEventListener("change", () => {
+      navigateToProject(projectSwitcherEl.value);
     });
 
     $("pauseAgentBtn").addEventListener("click", () => {
@@ -8920,6 +8983,55 @@
       return true;
     }
 
+    function sessionProject(projectKey = projectKeyEl.value) {
+      const normalized = String(projectKey || "").trim().toLowerCase();
+      return (Array.isArray(state.session?.projects) ? state.session.projects : [])
+        .find((item) => String(item?.project_key || "").trim().toLowerCase() === normalized) || null;
+    }
+
+    function projectDisplayName(projectKey = projectKeyEl.value) {
+      const project = sessionProject(projectKey);
+      const savedName = String(project?.project_name || project?.name || "").trim();
+      if (savedName) return savedName;
+      const raw = String(projectKey || "").trim();
+      if (!raw) return "当前项目";
+      return raw.split(/[-_]+/).filter(Boolean).map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`).join(" ");
+    }
+
+    function renderProjectSwitcher() {
+      if (!projectSwitcherEl) return;
+      const current = String(projectKeyEl.value || "beyoute").trim();
+      const projects = Array.isArray(state.session?.projects) ? state.session.projects : [];
+      const options = projects.length
+        ? projects
+        : [{ project_key: current, project_name: projectDisplayName(current), status: "active" }];
+      projectSwitcherEl.innerHTML = options.map((item) => {
+        const key = String(item?.project_key || "").trim();
+        const label = String(item?.project_name || item?.name || key).trim() || key;
+        const draft = String(item?.status || "").toLowerCase() === "draft" ? " · 设置中" : "";
+        return `<option value="${escapeHtml(key)}" ${key === current ? "selected" : ""}>${escapeHtml(`${label}${draft}`)}</option>`;
+      }).join("");
+      projectSwitcherEl.value = current;
+      $("projectSwitcherShell").classList.toggle("hidden", options.length <= 1 && !hasAccountSession());
+    }
+
+    function navigateToProject(projectKey = "") {
+      const targetKey = String(projectKey || "").trim();
+      if (!targetKey || targetKey === String(projectKeyEl.value || "").trim()) return;
+      const target = sessionProject(targetKey);
+      const url = new URL(window.location.href);
+      url.searchParams.set("project_key", targetKey);
+      url.searchParams.delete("case_id");
+      url.searchParams.delete("q");
+      url.searchParams.delete("query");
+      if (String(target?.status || "").toLowerCase() === "draft") {
+        url.searchParams.set("view", "operations");
+        url.searchParams.set("setup", "1");
+      }
+      localStorage.setItem("agent_project_key", targetKey);
+      window.location.assign(url.toString());
+    }
+
     async function bootstrapSaasSession() {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       if (!api) return false;
@@ -8963,6 +9075,7 @@
           projectKey: projectKeyEl.value,
           workspace: projectKeyEl.value,
           apiUrl: api,
+          projects: state.session.projects,
           signedInAt: state.session.signedInAt || new Date().toISOString(),
         }));
         localStorage.setItem("agent_project_key", projectKeyEl.value);
@@ -8985,16 +9098,17 @@
     }
 
     function readProjectSettings(project) {
+      const defaults = defaultSettingsForProject(project);
       try {
         const saved = JSON.parse(localStorage.getItem(settingsKey(project)) || "{}") || {};
         return {
-          ...clone(DEFAULT_SETTINGS),
+          ...defaults,
           ...saved,
-          flowMap: { ...DEFAULT_SETTINGS.flowMap, ...(saved.flowMap || {}) },
-          rules: { ...DEFAULT_SETTINGS.rules, ...(saved.rules || {}) },
+          flowMap: { ...defaults.flowMap, ...(saved.flowMap || {}) },
+          rules: { ...defaults.rules, ...(saved.rules || {}) },
         };
       } catch {
-        return clone(DEFAULT_SETTINGS);
+        return defaults;
       }
     }
 
@@ -9223,7 +9337,7 @@
         state.filter = "needs_attention";
       }
 
-      const titleParts = ["Beyoute", "客服工作台"];
+      const titleParts = [projectDisplayName(), "客服工作台"];
 
       $("sessionTitle").textContent = titleParts.join(" · ");
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
@@ -9237,6 +9351,7 @@
       $("dashboardSubtitle").textContent = state.workspaceView === "inbox" ? "全部新对话。" : "只看需要处理的顾客。";
 
       $("setupPanel").classList.toggle("hidden", true);
+      renderProjectSwitcher();
       $("autoFilterBtn").classList.toggle("hidden", false);
 	      $("learnBtn").classList.toggle("hidden", false);
       applySidebarRoleLabels();
@@ -13542,7 +13657,7 @@
             ${settingsReadOnly
               ? `<p class="project-upload-note">这里显示项目负责人已经保存的设置；这个账号只能查看，不能修改。</p>`
               : state.role === "staff"
-                ? `<p class="project-upload-note">你可以填写并保存 Beyoute 的回复与成交草稿；项目负责人检查后再发布。</p>`
+                ? `<p class="project-upload-note">你可以填写并保存当前项目的回复与成交草稿；项目负责人检查后再发布。</p>`
                 : ""}
             <section class="settings-box">
               <h3>${escapeHtml(flowCatalogStatus.title)}</h3>
@@ -17889,7 +18004,7 @@
 	    { flow_key: "payment_meta_5_rm658", title: "Payment Flow Meta 5盒送3盒 RM658", flow_kind: "payment", stage_key: "after_payment", package_code: "5_box_rm658", amount_rm: 658, configured: false },
 	    { flow_key: "after_payment_group", title: "WA AFTER PAYMENT 进群", flow_kind: "payment", stage_key: "after_payment", package_code: "after_payment_group", configured: false },
 	    { flow_key: "after_payment_refund_policy", title: "WA AFTER PAYMENT 无效退款", flow_kind: "payment", stage_key: "after_payment_policy", package_code: "after_payment_refund_policy", configured: false },
-	    { flow_key: "payment", title: "Payment / Order / Receipt（旧通用流程）", flow_kind: "payment", stage_key: "payment", package_code: "generic_payment", configured: Boolean(DEFAULT_SETTINGS.flowMap.payment), provider_bot_id: DEFAULT_SETTINGS.flowMap.payment }
+	    { flow_key: "payment", title: "Payment / Order / Receipt（旧通用流程）", flow_kind: "payment", stage_key: "payment", package_code: "generic_payment", configured: Boolean(BEYOUTE_DEFAULT_SETTINGS.flowMap.payment), provider_bot_id: BEYOUTE_DEFAULT_SETTINGS.flowMap.payment }
 	  ];
 	}
 
