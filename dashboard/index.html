@@ -8359,6 +8359,22 @@
       return state.session?.authMode === "account" || Boolean(state.session?.email || state.session?.user?.email);
     }
 
+    function currentProjectCapabilities() {
+      const projectKey = String(projectKeyEl?.value || state.session?.projectKey || "").trim();
+      const selectedProject = Array.isArray(state.session?.projects)
+        ? state.session.projects.find((item) => String(item?.project_key || "").trim() === projectKey)
+        : null;
+      const capabilities = [
+        ...(Array.isArray(state.session?.capabilities) ? state.session.capabilities : []),
+        ...(Array.isArray(selectedProject?.capabilities) ? selectedProject.capabilities : [])
+      ];
+      return [...new Set(capabilities.map((item) => String(item || "").trim()).filter(Boolean))];
+    }
+
+    function canManageProjectFaq() {
+      return state.role !== "staff" || currentProjectCapabilities().includes("manage_faq");
+    }
+
     function unifiedLoginUrl() {
       const url = new URL("../login.html", window.location.href);
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
@@ -8401,6 +8417,7 @@
           email: data.user.email,
           displayName: data.user.name,
           role: effectiveRole,
+          capabilities: Array.isArray(selectedProject.capabilities) ? selectedProject.capabilities : [],
           projectKey: selectedProject.project_key,
           workspace: selectedProject.project_key,
           apiUrl: api,
@@ -8417,6 +8434,7 @@
           email: state.session.email,
           displayName: state.session.displayName,
           role: state.role,
+          capabilities: state.session.capabilities,
           projectKey: projectKeyEl.value,
           workspace: projectKeyEl.value,
           apiUrl: api,
@@ -12722,7 +12740,8 @@
           <section class="command-panel accent">
             <div class="command-kicker">Google Docs FAQ 双向知识库</div>
             <strong class="command-title">贴链接 → Study → Owner 批准后自动回写</strong>
-            <p class="command-copy">Study 只建立 Project Brain 草稿；客服普通批准发送不会改 Google Docs。只有 Owner 把候选正式批准进业务脑，而且类型是 FAQ，才会自动回写。</p>
+            <p class="command-copy">Study 只建立 Project Brain 草稿；客服普通批准发送不会改 Google Docs。FAQ 管理员可以上传与 Study，只有 Owner 把候选正式批准进业务脑，而且类型是 FAQ，才会自动回写。</p>
+            ${state.role === "staff" && canManageProjectFaq() ? `<p class="project-upload-note">当前账号已获得这个项目的 FAQ 管理权限；不会因此获得用户管理、Flow 设置或自动发送权限。</p>` : ""}
             <div class="field-grid">
               <label>项目 FAQ Google Docs 链接<input id="googleDocsFaqUrlInput" value="${escapeHtml(faqDocument?.document_url || "")}" placeholder="https://docs.google.com/document/d/.../edit"></label>
               <label><input type="checkbox" id="googleDocsFaqWritebackInput" ${faqDocument?.writeback_enabled ? "checked" : ""}> Owner 批准新 FAQ 后，自动更新这份 Google Docs</label>
@@ -16873,8 +16892,8 @@
 
     async function connectAndStudyGoogleDocsFaq() {
       if (state.googleDocsFaqBusy) return;
-      if (state.role === "staff") {
-        showToast("只有 Owner / Admin 可以连接和 Study 项目 FAQ。");
+      if (!canManageProjectFaq()) {
+        showToast("当前账号没有这个项目的 FAQ 管理权限。");
         return;
       }
       const documentUrl = String($("googleDocsFaqUrlInput")?.value || "").trim();
@@ -16886,7 +16905,7 @@
       const project = projectKeyEl.value.trim() || "beyoute";
       const token = adminTokenEl.value.trim();
       if (!api || (!token && !hasAccountSession())) {
-        showToast("请先登录真实项目 Owner / Admin 账号。");
+        showToast("请先登录有当前项目 FAQ 管理权限的账号。");
         return;
       }
       state.googleDocsFaqBusy = true;
@@ -16935,8 +16954,8 @@
 
     async function retryGoogleDocsFaqWritebacks() {
       if (state.googleDocsFaqRetryBusy) return;
-      if (state.role === "staff") {
-        showToast("只有 Owner / Admin 可以重试知识库回写。");
+      if (!canManageProjectFaq()) {
+        showToast("当前账号没有这个项目的 FAQ 管理权限。");
         return;
       }
       const source = state.projectKnowledge?.faq_document || null;
