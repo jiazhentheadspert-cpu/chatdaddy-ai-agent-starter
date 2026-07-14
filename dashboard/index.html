@@ -1858,6 +1858,18 @@
       font-size: 16px;
     }
 
+    .settings-box[hidden] {
+      display: none !important;
+    }
+
+    .settings-grid[data-sales-step-count="1"] {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .settings-grid[data-sales-step-count="3"] .settings-box[data-sales-stage-row="3"] {
+      grid-column: 1 / -1;
+    }
+
     .field-grid {
       display: grid;
       gap: 10px;
@@ -8531,6 +8543,10 @@
     }
 
     document.addEventListener("change", (event) => {
+      if (event.target.closest("#salesStepCountInput") || event.target.closest("#salesPriceStageInput")) {
+        syncProjectSalesStepUi();
+        return;
+      }
       const input = event.target.closest("[data-project-document-input]");
       if (!input) return;
       state.projectDocumentFile = input.files?.[0] || null;
@@ -8723,6 +8739,14 @@
 
     function canManageProjectFaq() {
       return state.role !== "staff" || currentProjectCapabilities().includes("manage_faq");
+    }
+
+    function canManageProjectSettings() {
+      return state.role !== "staff" || currentProjectCapabilities().includes("manage_project_settings");
+    }
+
+    function canPublishProjectSettings() {
+      return state.role !== "staff";
     }
 
     function unifiedLoginUrl() {
@@ -13108,7 +13132,19 @@
       }
 
       function projectSettingsPublishBarHtml(options = {}) {
-        if (state.role === "staff") return "";
+        if (!canManageProjectSettings()) return "";
+        if (!canPublishProjectSettings()) {
+          if (!options.showSave) return "";
+          return `<section class="settings-publish-bar" aria-label="保存项目设置草稿">
+            <div class="settings-publish-copy">
+              <b>保存为草稿</b>
+              <span>你可以填写和保存；项目负责人检查后再发布。</span>
+            </div>
+            <div class="quick-actions">
+              ${options.showSave ? `<button class="quick-action primary" data-dashboard-action="save-project-sales-process" type="button">保存草稿</button>` : ""}
+            </div>
+          </section>`;
+        }
         return `<section class="settings-publish-bar" aria-label="检查并发布项目设置">
           <div class="settings-publish-copy">
             <b>完成后检查并发布</b>
@@ -13160,6 +13196,43 @@
         return local.toISOString().slice(0, 16);
       }
 
+      function normalizedSalesStepUiState(stepCountValue, priceStageKey = "") {
+        const stepCount = Math.max(1, Math.min(4, Number(stepCountValue) || 4));
+        const requestedPriceOrder = Number(String(priceStageKey || "").replace(/\D+/g, "")) || stepCount;
+        const priceStageOrder = Math.max(1, Math.min(stepCount, requestedPriceOrder));
+        return {
+          stepCount,
+          priceStageOrder,
+          priceStageKey: `step_${priceStageOrder}`
+        };
+      }
+
+      function salesPriceStageOptionsHtml(stepCount, selectedOrder) {
+        return Array.from({ length: stepCount }, (_, index) => {
+          const order = index + 1;
+          return `<option value="step_${order}" ${order === selectedOrder ? "selected" : ""}>Step ${order}</option>`;
+        }).join("");
+      }
+
+      function syncProjectSalesStepUi() {
+        const stepCountInput = $("salesStepCountInput");
+        const priceStageInput = $("salesPriceStageInput");
+        if (!stepCountInput || !priceStageInput) return;
+        const uiState = normalizedSalesStepUiState(stepCountInput.value, priceStageInput.value);
+        priceStageInput.innerHTML = salesPriceStageOptionsHtml(uiState.stepCount, uiState.priceStageOrder);
+        priceStageInput.value = uiState.priceStageKey;
+        const grid = document.querySelector("[data-sales-steps-grid]");
+        if (grid) grid.dataset.salesStepCount = String(uiState.stepCount);
+        document.querySelectorAll("[data-sales-stage-row]").forEach((row) => {
+          const order = Number(row.dataset.salesStageRow || 0);
+          const visible = order >= 1 && order <= uiState.stepCount;
+          row.hidden = !visible;
+          row.setAttribute("aria-hidden", visible ? "false" : "true");
+          const title = row.querySelector("[data-sales-stage-title]");
+          if (title) title.textContent = `Step ${order}${order === uiState.priceStageOrder ? " · 价格阶段" : ""}`;
+        });
+      }
+
       function projectOnboardingStepHtml(step) {
         const knowledge = state.projectKnowledge;
         if (!knowledge) {
@@ -13199,6 +13272,7 @@
             ...(assets.closer_scripts || []).map((item) => ({ ...item, group: "成交话术" }))
           ];
           const configuredStages = Array.isArray(salesProcess.stages) ? salesProcess.stages : [];
+          const salesStepUiState = normalizedSalesStepUiState(salesProcess.step_count, salesProcess.price_stage_key);
           const stageRows = Array.from({ length: 4 }, (_, index) => {
             const stage = configuredStages[index] || {
               stage_key: `step_${index + 1}`,
@@ -13209,8 +13283,9 @@
               provider_bot_id: "",
               contains_media: false,
             };
-            return `<div class="settings-box" data-sales-stage-row="${index + 1}">
-              <h3>Step ${index + 1}${stage.stage_key === salesProcess.price_stage_key ? " · 价格阶段" : ""}</h3>
+            const stageOrder = index + 1;
+            return `<div class="settings-box" data-sales-stage-row="${stageOrder}" ${stageOrder > salesStepUiState.stepCount ? "hidden" : ""} aria-hidden="${stageOrder > salesStepUiState.stepCount ? "true" : "false"}">
+              <h3 data-sales-stage-title>Step ${stageOrder}${stageOrder === salesStepUiState.priceStageOrder ? " · 价格阶段" : ""}</h3>
               <div class="field-grid">
                 <label>这一段要做到什么<input data-sales-purpose="${index + 1}" value="${escapeHtml(stage.purpose || "")}"></label>
                 <label>接哪一条 Flow<select data-sales-flow-catalog="${index + 1}" data-current-provider-flow-id="${escapeHtml(stage.provider_flow_id || "")}" data-current-provider-bot-id="${escapeHtml(stage.provider_bot_id || "")}">${projectOnboardingFlowOptions(stage)}</select></label>
@@ -13222,7 +13297,7 @@
               </details>
             </div>`;
           }).join("");
-          const priceOptions = Array.from({ length: 4 }, (_, index) => `<option value="step_${index + 1}" ${salesProcess.price_stage_key === `step_${index + 1}` ? "selected" : ""}>Step ${index + 1}</option>`).join("");
+          const priceOptions = salesPriceStageOptionsHtml(salesStepUiState.stepCount, salesStepUiState.priceStageOrder);
           const proofText = Array.isArray(salesProcess.post_price_policy?.proof) ? salesProcess.post_price_policy.proof.join("\n") : "";
           const ctaText = String(salesProcess.post_price_policy?.cta || "");
           const urgencyText = Array.isArray(salesProcess.post_price_policy?.urgency) ? salesProcess.post_price_policy.urgency.join("\n") : "";
@@ -13230,23 +13305,28 @@
             ? salesProcess.post_price_policy.offers.find((item) => item && typeof item === "object") || {}
             : {};
           const docsMediaRefs = projectDocsMediaReferences(knowledge);
-          const staffReadOnly = state.role === "staff";
+          const settingsReadOnly = !canManageProjectSettings();
+          const canApproveProjectMedia = state.role !== "staff";
           return `${header}
             <section class="command-panel accent">
               <div class="command-kicker">回复与成交</div>
               <strong class="command-title">设置 AI 怎么回答和推进成交</strong>
               <p class="command-copy">每个项目独立设置。顾客连续追问时，AI 只回答问题，不会每次重复信任素材和成交邀请。</p>
             </section>
-            ${staffReadOnly ? `<p class="project-upload-note">这里显示项目负责人已经保存的设置；客服账号只能查看，不能修改。</p>` : ""}
-            <fieldset class="project-settings-readonly" ${staffReadOnly ? "disabled" : ""}>
+            ${settingsReadOnly
+              ? `<p class="project-upload-note">这里显示项目负责人已经保存的设置；这个账号只能查看，不能修改。</p>`
+              : state.role === "staff"
+                ? `<p class="project-upload-note">你可以填写并保存 Beyoute 的回复与成交草稿；项目负责人检查后再发布。</p>`
+                : ""}
+            <fieldset class="project-settings-readonly" ${settingsReadOnly ? "disabled" : ""}>
             <details class="settings-section" open>
               <summary>销售流程</summary>
               <div class="settings-section-body">
                 <div class="field-grid">
-                  <label>项目有几个销售 Step<select id="salesStepCountInput">${[1,2,3,4].map((count) => `<option value="${count}" ${Number(salesProcess.step_count || 4) === count ? "selected" : ""}>${count} Step</option>`).join("")}</select></label>
+                  <label>项目有几个销售 Step<select id="salesStepCountInput">${[1,2,3,4].map((count) => `<option value="${count}" ${salesStepUiState.stepCount === count ? "selected" : ""}>${count} Step</option>`).join("")}</select></label>
                   <label>哪个 Step 会显示价格<select id="salesPriceStageInput">${priceOptions}</select></label>
                 </div>
-                <div class="settings-grid">${stageRows}</div>
+                <div class="settings-grid" data-sales-steps-grid data-sales-step-count="${salesStepUiState.stepCount}">${stageRows}</div>
               </div>
             </details>
             <details class="settings-section">
@@ -13268,6 +13348,8 @@
               <summary>信任素材</summary>
               <div class="settings-section-body">
                 <p class="settings-section-copy">只加入当前项目已经批准的图片、视频或预录语音。</p>
+                ${!canApproveProjectMedia ? `<p class="project-upload-note">素材批准仍由项目负责人处理。</p>` : ""}
+                <fieldset class="project-settings-readonly" ${canApproveProjectMedia ? "" : "disabled"}>
                 <div class="field-grid">
                   <label>素材名称<input id="projectMediaTitleInput" placeholder="例如：门店证明图"></label>
                   <label>素材类型<select id="projectMediaTypeInput"><option value="image">图片</option><option value="video">视频</option><option value="audio">预录语音</option></select></label>
@@ -13283,7 +13365,8 @@
                     <label><input type="checkbox" id="projectMediaRequiredInput"> 这是必需素材；发送失败时不要接下一条 Flow</label>
                   </div>
                 </details>
-                ${staffReadOnly ? "" : `<div class="quick-actions"><button class="quick-action" data-dashboard-action="save-project-media-asset" type="button">批准并加入当前项目</button></div>`}
+                </fieldset>
+                ${canApproveProjectMedia ? `<div class="quick-actions"><button class="quick-action" data-dashboard-action="save-project-media-asset" type="button">批准并加入当前项目</button></div>` : ""}
               </div>
             </details>
             <details class="settings-section">
