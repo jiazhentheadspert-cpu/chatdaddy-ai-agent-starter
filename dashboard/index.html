@@ -77,6 +77,7 @@
     .sidebar {
       position: sticky;
       top: 0;
+      z-index: 80;
       height: 100vh;
       min-height: 100vh;
       padding: 22px 20px;
@@ -112,11 +113,8 @@
       width: 42px;
       height: 42px;
       border-radius: 13px;
-      background: linear-gradient(135deg, var(--cyan), var(--green) 48%, var(--blue));
-      display: grid;
-      place-items: center;
-      color: #fff;
-      font-weight: 950;
+      display: block;
+      object-fit: cover;
       box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 18px 46px rgba(0,183,216,.22);
       flex: 0 0 auto;
     }
@@ -552,47 +550,6 @@
       color: rgba(255,255,255,.55);
       font-size: 11px;
       font-weight: 760;
-    }
-
-    .side-meter {
-      display: grid;
-      gap: 8px;
-      margin-top: 6px;
-    }
-
-    .side-meter-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      color: rgba(255,255,255,.62);
-      font-size: 12px;
-      font-weight: 820;
-    }
-
-    .side-meter-row strong {
-      color: #fff;
-      font-size: 12px;
-      font-weight: 900;
-    }
-
-    .side-meter-divider {
-      height: 1px;
-      margin: 2px 0;
-      background: rgba(255,255,255,.08);
-    }
-
-    .side-meter-row.cost strong {
-      color: #b8fff3;
-    }
-
-    .frontend-only-card {
-      display: grid;
-      margin-top: auto;
-    }
-
-    .frontend-only-card .side-meter {
-      display: grid;
     }
 
     .workspace {
@@ -1147,6 +1104,58 @@
     .project-switcher-new:hover {
       border-color: rgba(0,183,216,.46);
       background: var(--soft-cyan);
+    }
+
+    .sidebar .project-switcher {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .sidebar .project-switcher-trigger {
+      min-height: 58px;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      padding: 7px 10px 7px 7px;
+      border-color: rgba(255,255,255,.11);
+      background: rgba(255,255,255,.055);
+      color: #fff;
+      box-shadow: 0 14px 34px rgba(0,0,0,.14);
+    }
+
+    .sidebar .project-switcher-trigger:hover,
+    .sidebar .project-switcher-trigger[aria-expanded="true"] {
+      border-color: rgba(0,183,216,.48);
+      background: rgba(0,183,216,.11);
+      box-shadow: 0 0 0 4px rgba(0,183,216,.08), 0 18px 42px rgba(0,0,0,.18);
+    }
+
+    .sidebar .project-switcher-trigger .project-switcher-avatar {
+      width: 42px;
+      height: 42px;
+      background: #fff;
+      border-color: rgba(255,255,255,.18);
+    }
+
+    .sidebar .project-switcher-trigger-copy small {
+      color: rgba(255,255,255,.48);
+    }
+
+    .sidebar .project-switcher-trigger-copy strong {
+      color: #fff;
+    }
+
+    .sidebar .project-switcher-trigger .bi-chevron-down {
+      color: rgba(255,255,255,.62);
+    }
+
+    .sidebar .project-switcher-popover {
+      position: fixed;
+      top: 84px;
+      right: auto;
+      left: 312px;
+    }
+
+    body.staff-mode .sidebar .project-switcher-popover {
+      left: calc(var(--staff-sidebar-width, 300px) + 12px);
     }
 
 	    .btn {
@@ -7176,12 +7185,13 @@
         width: 100%;
         min-width: 0;
       }
-      .project-switcher-popover {
-        position: absolute;
-        top: calc(100% + 8px);
-        right: 0;
-        left: 0;
-        width: 100%;
+      .sidebar .project-switcher-popover,
+      body.staff-mode .sidebar .project-switcher-popover {
+        position: fixed;
+        top: 78px;
+        right: 16px;
+        left: 16px;
+        width: auto;
         max-height: min(560px, calc(100vh - 96px));
       }
       .ops-command-main { min-height: 0; padding: 18px; }
@@ -7276,11 +7286,40 @@
       margin-top: 48px;
     }
 
+    body.sidebar-collapsed .project-switcher {
+      width: 48px;
+      min-width: 48px;
+      justify-self: center;
+    }
+
+    body.sidebar-collapsed .project-switcher-trigger {
+      width: 48px;
+      min-height: 48px;
+      grid-template-columns: 1fr;
+      place-items: center;
+      padding: 4px;
+      border-radius: 14px;
+    }
+
+    body.sidebar-collapsed .project-switcher-trigger .project-switcher-avatar {
+      width: 38px;
+      height: 38px;
+    }
+
+    body.sidebar-collapsed .project-switcher-trigger-copy,
+    body.sidebar-collapsed .project-switcher-trigger .bi-chevron-down {
+      display: none;
+    }
+
+    body.sidebar-collapsed .sidebar .project-switcher-popover {
+      top: 84px;
+      left: 88px;
+    }
+
     body.sidebar-collapsed .brand-copy,
     body.sidebar-collapsed .side-section,
     body.sidebar-collapsed .side-note,
-    body.sidebar-collapsed .side-settings-title,
-    body.sidebar-collapsed .frontend-only-card {
+    body.sidebar-collapsed .side-settings-title {
       display: none !important;
     }
 
@@ -7853,10 +7892,33 @@
   <main class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark">RP</div>
+        <img class="brand-mark" src="../assets/replypilot-rp-mark.png" alt="ReplyPilot AI" />
         <div class="brand-copy">
           <b>ReplyPilot AI</b>
           <span>客服运营台</span>
+        </div>
+      </div>
+
+      <div class="project-switcher" id="projectSwitcherShell">
+        <select class="project-switcher-native" id="projectSwitcher" aria-label="切换项目" tabindex="-1"></select>
+        <button class="project-switcher-trigger" id="projectSwitcherButton" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="projectSwitcherPopover">
+          <img class="project-switcher-avatar" id="projectSwitcherAvatar" alt="" />
+          <span class="project-switcher-trigger-copy">
+            <small>当前项目</small>
+            <strong id="projectSwitcherCurrentName">当前项目</strong>
+          </span>
+          <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div class="project-switcher-popover hidden" id="projectSwitcherPopover" role="dialog" aria-label="切换项目">
+          <label class="project-switcher-search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input id="projectSwitcherSearch" type="search" placeholder="搜索项目" autocomplete="off" />
+          </label>
+          <div class="project-switcher-list" id="projectSwitcherList" role="list"></div>
+          <a class="project-switcher-new" id="projectSwitcherNewProject" href="../setup/index.html">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+            <span>新项目</span>
+          </a>
         </div>
       </div>
 
@@ -7904,19 +7966,6 @@
         </div>
       </nav>
 
-      <div class="side-card frontend-only-card">
-        <strong id="sideRole">客服工作台</strong>
-        <span id="sideHint">最新讯息看全部；操作台处理动作；已自动继续的记录进自动记录。</span>
-        <div class="side-meter">
-          <div class="side-meter-row"><span>入口</span><strong id="sideWorkspace">DEMO</strong></div>
-          <div class="side-meter-row"><span>模式</span><strong id="sideConnection">审核优先</strong></div>
-          <div class="side-meter-divider" aria-hidden="true"></div>
-          <div class="side-meter-row cost owner-meter-row"><span>今日记录</span><strong id="sideCostToday">US$0.00</strong></div>
-          <div class="side-meter-row cost owner-meter-row"><span>本月记录</span><strong id="sideCostMonth">US$0.00</strong></div>
-          <div class="side-meter-row owner-meter-row"><span>今日增强</span><strong id="sideEnhancedToday">0 次</strong></div>
-          <div class="side-meter-row owner-meter-row"><span>模式</span><strong id="sideSpendMode">省钱模式</strong></div>
-        </div>
-      </div>
     </aside>
 
     <section class="workspace">
@@ -7939,28 +7988,6 @@
           <div class="session-subtitle" id="sessionSubtitle">客服只看待处理顾客。</div>
         </div>
         <div class="session-actions">
-          <div class="project-switcher" id="projectSwitcherShell">
-            <select class="project-switcher-native" id="projectSwitcher" aria-label="切换项目" tabindex="-1"></select>
-            <button class="project-switcher-trigger" id="projectSwitcherButton" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="projectSwitcherPopover">
-              <img class="project-switcher-avatar" id="projectSwitcherAvatar" alt="" />
-              <span class="project-switcher-trigger-copy">
-                <small>当前项目</small>
-                <strong id="projectSwitcherCurrentName">当前项目</strong>
-              </span>
-              <i class="bi bi-chevron-down" aria-hidden="true"></i>
-            </button>
-            <div class="project-switcher-popover hidden" id="projectSwitcherPopover" role="dialog" aria-label="切换项目">
-              <label class="project-switcher-search">
-                <i class="bi bi-search" aria-hidden="true"></i>
-                <input id="projectSwitcherSearch" type="search" placeholder="搜索项目" autocomplete="off" />
-              </label>
-              <div class="project-switcher-list" id="projectSwitcherList" role="list"></div>
-              <a class="project-switcher-new" id="projectSwitcherNewProject" href="../setup/index.html">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i>
-                <span>新项目</span>
-              </a>
-            </div>
-          </div>
           <button class="btn danger" id="pauseAgentBtn" type="button">暂停接管</button>
           <button class="btn ghost" id="logoutBtn" type="button">退出</button>
         </div>
@@ -9864,12 +9891,7 @@
 
       $("sessionTitle").textContent = titleParts.join(" · ");
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
-      $("sideRole").textContent = "客服工作台";
-      $("sideWorkspace").textContent = "安全模式";
-      $("sideConnection").textContent = "审核优先";
       $("modeTag").textContent = state.workspaceView === "inbox" ? "最新讯息" : state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
-      $("sideHint").textContent = "最新讯息看全部；操作台处理动作；已自动继续的记录进自动记录。";
-      renderSideUsage();
 
       $("dashboardSubtitle").textContent = state.workspaceView === "inbox" ? "全部新对话。" : "只看需要处理的顾客。";
 
@@ -10140,8 +10162,6 @@
         item.classList.toggle("active", item.dataset.workspaceView === view);
       });
 
-      $("sideConnection").textContent = "审核优先";
-      renderSideUsage();
       $("modeTag").textContent = isInbox ? "最新讯息" : view === "learning" ? "复盘" : view === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
       $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
@@ -11400,7 +11420,6 @@
       const project = projectKeyEl.value.trim() || "demo";
       if (!api || (!token && !hasAccountSession())) {
         state.usageSummary = null;
-        renderSideUsage();
         return null;
       }
       try {
@@ -11409,11 +11428,9 @@
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.usageSummary = data;
-        renderSideUsage();
         return data;
       } catch (_error) {
         state.usageSummary = null;
-        renderSideUsage();
         return null;
       }
     }
@@ -25424,17 +25441,6 @@
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return value;
       return date.toLocaleString("zh-MY", { dateStyle: "short", timeStyle: "short" });
-    }
-
-    function renderSideUsage() {
-      const summary = state.usageSummary || {};
-      const today = summary.today || {};
-      const month = summary.month || {};
-      const mode = summary.mode_label || (state.demoMode ? "演示" : "省钱模式");
-      $("sideCostToday").textContent = formatUsd(today.estimated_cost_usd);
-      $("sideCostMonth").textContent = formatUsd(month.estimated_cost_usd);
-      $("sideEnhancedToday").textContent = `${Number(today.enhanced_replies || 0)} 次`;
-      $("sideSpendMode").textContent = mode;
     }
 
     function formatUsd(value) {
