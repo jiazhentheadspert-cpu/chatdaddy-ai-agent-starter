@@ -8123,7 +8123,7 @@
                   <b>质量评分</b>
                   <span class="quality-eval-compact-score" id="qualityEvalCompactScore">-- 分</span>
                 </div>
-                <span>先评分，再决定批准、修改或转人工回复</span>
+                <span>判断这条回复能不能发、能不能让 AI 学习</span>
               </div>
               <div class="quality-eval-head-actions">
                 <span class="quality-result-pill" id="qualityEvalResult">待评分</span>
@@ -8997,7 +8997,7 @@
       const card = $("qualityEvalCard");
       setQualityEvaluationExpanded(card?.classList.contains("is-collapsed") === true);
     });
-    setQualityEvaluationExpanded(localStorage.getItem("replypilot_quality_eval_expanded") === "1", false);
+    setQualityEvaluationExpanded(false);
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       if (!$("panel").classList.contains("open")) return;
@@ -18168,6 +18168,7 @@
     function openCase(caseId, options = {}) {
       const id = String(caseId || "").trim();
       const previousActiveId = String(state.active?.id || "");
+      const openingNewCase = previousActiveId !== id || !$("panel").classList.contains("open");
       const preserveReplyDraft = options.preserveReplyDraft === true
         && previousActiveId === id
         && state.replyDraftDirty
@@ -18180,6 +18181,7 @@
         return;
       }
       state.active = item;
+	      if (openingNewCase) setQualityEvaluationExpanded(false);
 	      $("functionMenu").open = false;
 	      $("channelActionPicker").open = false;
 	      $("purchasePanel").open = false;
@@ -20133,7 +20135,7 @@
 	      `;
 	    }
 
-    function setQualityEvaluationExpanded(expanded, persist = true) {
+    function setQualityEvaluationExpanded(expanded) {
       const card = document.getElementById("qualityEvalCard");
       const toggle = document.getElementById("qualityEvalToggle");
       const isExpanded = Boolean(expanded);
@@ -20143,7 +20145,6 @@
         toggle.setAttribute("aria-label", isExpanded ? "收起质量评分细节" : "展开质量评分细节");
         toggle.setAttribute("title", isExpanded ? "收起质量评分细节" : "展开质量评分细节");
       }
-      if (persist) localStorage.setItem("replypilot_quality_eval_expanded", isExpanded ? "1" : "0");
     }
 
     function updateQualityEvaluationPanel(item = state.active) {
