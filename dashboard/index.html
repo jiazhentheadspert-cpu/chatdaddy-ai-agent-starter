@@ -11702,7 +11702,7 @@
       if (!api) return null;
       try {
         const endpoint = `${api}/api/agent-runtime/config?project_key=${encodeURIComponent(project)}`;
-        const res = await fetch(endpoint);
+        const res = await fetch(endpoint, authRequestOptions(adminTokenEl.value.trim()));
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.settings = settingsFromRuntimeConfig(data.runtime_config, state.settings || readProjectSettings(project));
