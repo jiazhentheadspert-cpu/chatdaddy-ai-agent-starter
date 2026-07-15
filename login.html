@@ -372,7 +372,12 @@
     const MASTER_ADMIN_LOGIN = "masteradmin";
     const MASTER_ADMIN_EMAIL = "masteradmin@ctg.local";
     const params = new URLSearchParams(window.location.search);
-    const apiUrl = normalizeApiUrl(params.get("api") || localStorage.getItem("agent_api_url") || DEFAULT_API_URL);
+    const isLocalPreview = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    const apiUrl = normalizeApiUrl(
+      isLocalPreview
+        ? (params.get("api") || localStorage.getItem("agent_api_url") || DEFAULT_API_URL)
+        : DEFAULT_API_URL
+    );
     const form = document.getElementById("loginForm");
     const identifierInput = document.getElementById("identifier");
     const passwordInput = document.getElementById("password");
@@ -382,6 +387,7 @@
 
     localStorage.removeItem("agent_admin_token");
     localStorage.removeItem("agent_staff_token");
+    localStorage.setItem("agent_api_url", apiUrl);
 
     function normalizeApiUrl(value) {
       return String(value || "").trim().replace(/\/+$/, "");
@@ -433,7 +439,9 @@
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok || !data.authenticated) {
-          throw new Error(data.error || "invalid_credentials");
+          const loginError = new Error(data.error || "invalid_credentials");
+          loginError.status = response.status;
+          throw loginError;
         }
 
         const projects = Array.isArray(data.projects) ? data.projects : [];
@@ -474,9 +482,17 @@
         } else {
           window.location.assign(`admin.html?${next.toString()}`);
         }
-      } catch (_error) {
-        setMessage("邮箱、用户名或密码不正确。", "error");
-        passwordInput.select();
+      } catch (error) {
+        const code = String(error?.message || "");
+        const status = Number(error?.status || 0);
+        if (code === "supabase_not_configured" || code === "session_create_failed" || status >= 500) {
+          setMessage("账号系统暂时无法连接，请联系管理员。你的账号或密码不一定有问题。", "error");
+        } else if (error instanceof TypeError) {
+          setMessage("暂时无法连接系统，请检查网络后重试。", "error");
+        } else {
+          setMessage("邮箱、用户名或密码不正确。", "error");
+          passwordInput.select();
+        }
       } finally {
         button.disabled = false;
         button.textContent = "安全登录";
