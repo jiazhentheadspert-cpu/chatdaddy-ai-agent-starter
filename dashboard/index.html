@@ -7929,11 +7929,11 @@
 
       <nav class="side-nav" aria-label="主导航">
         <div class="side-section">客服</div>
-        <button aria-label="最新讯息" title="最新讯息" data-short="讯" data-icon-nav data-side-key="inbox" data-side-filter="needs_attention" data-workspace-target="inbox">
+        <button aria-label="最新讯息" title="最新讯息" data-short="讯" data-icon-nav data-side-key="inbox" data-side-filter="approval_required" data-workspace-target="inbox">
           <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-inbox.svg" alt=""></span><em>最新讯息</em></span>
           <small id="navInboxBadge">0</small>
         </button>
-        <button class="active" aria-label="操作台" title="操作台" data-short="台" data-icon-nav data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
+        <button class="active" aria-label="操作台" title="操作台" data-short="台" data-icon-nav data-side-key="ai_reply" data-side-filter="approval_required" data-workspace-target="cases" data-step-nav data-step-view="4">
           <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-workbench.svg" alt=""></span><em>操作台</em></span>
           <small id="navCasesBadge">0</small>
         </button>
@@ -9142,7 +9142,8 @@
             syncSettingsDisclosure();
           }
         }
-        state.filter = button.dataset.sideFilter || (state.activeSetupStep === "4" ? "needs_attention" : "all");
+        const requestedFilter = button.dataset.sideFilter || (state.activeSetupStep === "4" ? "approval_required" : "all");
+        state.filter = normalizeStaffQueueFilter(requestedFilter);
         setWorkspaceView(button.dataset.workspaceTarget || workspaceViewForSidebarKey(state.sidebarKey));
       });
     });
@@ -9985,8 +9986,16 @@
       label.textContent = "操作台";
     }
 
+    function normalizeStaffQueueFilter(filter = "") {
+      const requested = String(filter || "").trim() || "approval_required";
+      if (state.role !== "staff") return requested;
+      return ["approval_required", "human_first", "auto", "records"].includes(requested)
+        ? requested
+        : "approval_required";
+    }
+
     function setFilter(filter) {
-      state.filter = filter || "all";
+      state.filter = normalizeStaffQueueFilter(filter);
       // Queue category and date scope are independent controls. Once staff
       // chooses today (or a specific date), switching categories must keep that
       // date instead of silently reopening the full historical backlog.
@@ -10140,7 +10149,7 @@
     }
 
     function staffFilterSupportsOpenBacklog(filter = state.filter) {
-      return ["all", "needs_attention", "human_first", "approval_required", "return_ai", "human_required", "pending_manual_reply", "order", "auto", "records"].includes(filter || "needs_attention");
+      return ["approval_required", "human_first", "auto", "records"].includes(normalizeStaffQueueFilter(filter));
     }
 
     function useOpenBacklogDateScope(filter = state.filter) {
@@ -10338,14 +10347,14 @@
         return;
       }
       if (action === "orders") {
-        state.filter = "order";
+        state.filter = "human_first";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
         setWorkspaceView("cases");
         return;
       }
       if (action === "human") {
-        state.filter = "human_required";
+        state.filter = "human_first";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
         setWorkspaceView("cases");
@@ -11845,14 +11854,20 @@
           body: JSON.stringify({
             project_key: project,
             auto_send_enabled: !targetPaused,
-            auto_trigger_flows_enabled: !targetPaused,
+            auto_trigger_flows_enabled: false,
+            allowed_auto_reply_tier: targetPaused ? "approval_first" : "approved_rules_only",
+            approved_allowlist_ids: [],
+            auto_send_intents: [],
             updated_by: targetPaused ? "dashboard_pause_agent" : "dashboard_resume_agent",
           }),
         }));
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) throw new Error(data.error || data.next || `HTTP ${res.status}`);
         updatePauseAgentUi(targetPaused);
-        showToast(targetPaused ? "AI 自动回复和 Flow 已暂停。" : "AI 自动回复和 Flow 已恢复。");
+        showToast(targetPaused
+          ? "已暂停 AI 自动回复；ChatDaddy 既有 Flow 不受影响。"
+          : "已开启已批准同类自动回复；系统不会自动触发 Flow。"
+        );
       } catch (error) {
         alert(`暂停接管失败：${error.message || error}`);
       } finally {
@@ -11862,7 +11877,7 @@
 
     function isDashboardVisibleApproval(item = {}) {
       const status = String(item.status || "").toLowerCase();
-      return ["pending", "needs_approval", "handoff", "auto_record", "sent", "send_failed", "sending", "rejected", "manual_resolved", "external_flow_continued", "purchase_confirmed"].includes(status);
+      return ["pending", "needs_approval", "handoff", "auto_record", "auto_sent", "sent", "send_failed", "sending", "rejected", "manual_resolved", "external_flow_continued", "purchase_confirmed"].includes(status);
     }
 
     function approvalToCase(item, contactNames = {}) {
@@ -12938,7 +12953,7 @@
     }
 
     function shouldUseStaffCaseSections() {
-      return state.role === "staff" && ["all", "needs_attention", "approval_required", "human_first", "auto", "records"].includes(state.filter);
+      return state.role === "staff" && ["approval_required", "human_first", "auto", "records"].includes(state.filter);
     }
 
     function caseActivityTimestamp(item = {}) {
@@ -13050,13 +13065,6 @@
           body: "检查 AI 草稿后发送；未学过、需重写或不够确定的回复都会留在这里。",
           items: visible,
           emptyText: "当前没有等待批准的回复。",
-        });
-      }
-      if (filter === "needs_attention") {
-        return staffCaseSectionHtml({
-          title: "全部要处理",
-          body: "这里只放待批准或需要客服亲自回复的顾客；自动 Flow 不会混进来。",
-          items: visible,
         });
       }
       if (filter === "human_first") {
@@ -13273,14 +13281,8 @@
     function renderFilterCounts(counts = {}) {
       const humanWork = Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0);
       const labels = {
-        all: ["全部", counts.total],
-        needs_attention: ["全部要处理", counts.needs],
         approval_required: ["待批准", counts.approval],
         human_first: ["人工回复", humanWork],
-        return_ai: ["让 AI 重写", counts.returnAi],
-        human_required: ["人工回复", counts.human],
-        pending_manual_reply: ["待补回复", counts.pendingManualReplies],
-        order: ["订单/付款", counts.orders],
         auto: ["自动 Flow", counts.auto],
         records: ["AI 处理记录", counts.records],
       };
@@ -18532,8 +18534,8 @@
         const existingIndex = state.cases.findIndex((record) => String(record.id || "") === String(loaded.id || ""));
         if (existingIndex >= 0) state.cases[existingIndex] = loaded;
         else state.cases.unshift(loaded);
-        state.filter = state.role === "staff" && isCaseReadOnly(loaded)
-          ? (["auto", "auto_sent", "external_flow_continued"].includes(loaded.status) ? "auto" : "records")
+        state.filter = state.role === "staff"
+          ? normalizeStaffQueueFilter(staffBusinessCategory(loaded))
           : "all";
         render();
         requestAnimationFrame(() => openCase(loaded.id));
@@ -25438,7 +25440,9 @@
       const id = String(caseId || "").trim();
       if (!id) return;
       const existing = state.cases.find((item) => String(item.id || "") === id);
-      state.filter = "all";
+      state.filter = state.role === "staff" && existing
+        ? normalizeStaffQueueFilter(staffBusinessCategory(existing))
+        : normalizeStaffQueueFilter("approval_required");
       setWorkspaceView("cases");
       if (existing) {
         render();
@@ -25465,9 +25469,9 @@
         : state.demoMode
           ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。"
           : state.filter === "auto"
-            ? `${queueDateScopeLabel()}没有自动记录；AI 已回复或外部流程已继续的 Case 会放在这里，只读复盘。`
+            ? `${queueDateScopeLabel()}没有自动 Flow 记录；这里只显示顾客点过按钮或 Flow 已执行，而且没有主动提问的 Case。`
             : state.filter === "records"
-              ? `${queueDateScopeLabel()}没有处理记录；已发送、已转人工回复、已成交或失败的 Case 会放在这里，只读追踪。`
+              ? `${queueDateScopeLabel()}没有 AI 处理记录；只有 AI 自动回复成功的 Case 会出现在这里。`
             : state.role === "staff"
               ? `${queueDateScopeLabel()}没有待处理顾客；有新讯息或需要人工的 Case 会显示在这里。`
               : "确认顾客讯息入口已经连接，然后用真实 WhatsApp 发一条测试消息。";
