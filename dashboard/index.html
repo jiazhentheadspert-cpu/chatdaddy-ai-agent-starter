@@ -4501,6 +4501,13 @@
       box-shadow: 0 22px 62px rgba(8, 23, 29, .12);
     }
 
+    .case-card:focus-visible {
+      outline: 3px solid rgba(0,183,216,.34);
+      outline-offset: 3px;
+      border-color: rgba(0,183,216,.52);
+      box-shadow: 0 22px 62px rgba(8, 23, 29, .14);
+    }
+
     .case-card.selected {
       border-color: var(--blue);
       box-shadow: 0 22px 62px rgba(53, 120, 246, .15);
@@ -9039,10 +9046,10 @@
       caseTodayDateEl.addEventListener("click", () => {
         const selected = normalizeIsoDate(state.selectedDate) || todayISO;
         if (state.role === "staff" && state.queueDateScope === "date" && selected === todayISO) {
-          setOpenBacklogDateScope();
+          setOpenBacklogDateScope({ announce: true });
           return;
         }
-        setSelectedDate(todayISO);
+        setSelectedDate(todayISO, { announce: true });
       });
     }
     if (inboxSearchEl) {
@@ -9144,7 +9151,7 @@
 
     document.querySelectorAll("[data-filter]").forEach((button) => {
       button.addEventListener("click", () => {
-        setFilter(button.dataset.filter);
+        setFilter(button.dataset.filter, { announce: true });
       });
     });
 
@@ -10018,8 +10025,18 @@
         : "approval_required";
     }
 
-    function setFilter(filter) {
-      state.filter = normalizeStaffQueueFilter(filter);
+    function staffQueueFilterLabel(filter = "") {
+      const normalized = normalizeStaffQueueFilter(filter);
+      if (normalized === "human_first") return "人工回复";
+      if (normalized === "auto") return "自动 Flow";
+      if (normalized === "records") return "AI 处理记录";
+      return "待批准";
+    }
+
+    function setFilter(filter, options = {}) {
+      const nextFilter = normalizeStaffQueueFilter(filter);
+      const unchanged = state.filter === nextFilter;
+      state.filter = nextFilter;
       // Queue category and date scope are independent controls. Once staff
       // chooses today (or a specific date), switching categories must keep that
       // date instead of silently reopening the full historical backlog.
@@ -10028,6 +10045,10 @@
       syncDateControls();
       syncFilterControls();
       render();
+      if (options.announce) {
+        const label = staffQueueFilterLabel(nextFilter);
+        showToast(unchanged ? `当前已经在「${label}」队列。` : `已切换到「${label}」队列。`);
+      }
     }
 
     function setWorkspaceView(view) {
@@ -10103,31 +10124,54 @@
         caseNextDateEl.title = atToday ? "已经是今天" : "后一天";
       }
       if (caseTodayDateEl) {
-        caseTodayDateEl.textContent = useOpenBacklogDateScope()
-          ? "看今天"
+        const openBacklog = useOpenBacklogDateScope();
+        caseTodayDateEl.textContent = openBacklog
+          ? "只看今天"
           : selected === todayISO
-            ? "全部待处理"
-            : "回今天";
-        caseTodayDateEl.classList.toggle("active", useOpenBacklogDateScope() || selected === todayISO);
+            ? "查看全部未完成"
+            : "回到今天";
+        caseTodayDateEl.title = openBacklog
+          ? "当前显示全部未完成 Case；点击后只看今天。"
+          : selected === todayISO
+            ? "当前只看今天；点击后显示所有日期的未完成 Case。"
+            : "返回今天的 Case。";
+        caseTodayDateEl.setAttribute("aria-label", caseTodayDateEl.title);
+        caseTodayDateEl.dataset.scope = openBacklog ? "open_backlog" : "date";
+        caseTodayDateEl.classList.toggle("active", openBacklog || selected === todayISO);
       }
     }
 
-    function setOpenBacklogDateScope() {
-      if (state.role !== "staff") return setSelectedDate(todayISO);
+    function setOpenBacklogDateScope(options = {}) {
+      if (state.role !== "staff") return setSelectedDate(todayISO, options);
+      const previousCount = Array.isArray(state.visibleCases) ? state.visibleCases.length : null;
       state.queueDateScope = "open_backlog";
       state.selectedDate = normalizeIsoDate(state.selectedDate) || todayISO;
       state.selected.clear();
       syncDateControls();
       render();
+      if (options.announce) {
+        const nextCount = Array.isArray(state.visibleCases) ? state.visibleCases.length : 0;
+        showToast(previousCount === nextCount
+          ? `已切换为全部未完成；当前仍是 ${nextCount} 条，所以数量看起来相同。`
+          : `已显示全部日期的未完成 Case，共 ${nextCount} 条。`);
+      }
     }
 
-    function setSelectedDate(nextDate) {
+    function setSelectedDate(nextDate, options = {}) {
+      const previousCount = Array.isArray(state.visibleCases) ? state.visibleCases.length : null;
       const normalized = normalizeIsoDate(nextDate) || todayISO;
       state.queueDateScope = "date";
       state.selectedDate = normalized > todayISO ? todayISO : normalized;
       state.selected.clear();
       syncDateControls();
       render();
+      if (options.announce) {
+        const nextCount = Array.isArray(state.visibleCases) ? state.visibleCases.length : 0;
+        const label = state.selectedDate === todayISO ? "今天" : state.selectedDate;
+        showToast(previousCount === nextCount
+          ? `已切换为只看${label}；当前仍是 ${nextCount} 条，所以数量看起来相同。`
+          : `已切换为只看${label}，共 ${nextCount} 条。`);
+      }
     }
 
     function shiftSelectedDate(days) {
@@ -12820,6 +12864,12 @@
         card.addEventListener("click", (event) => {
           if (event.target.closest("[data-select-case-id]")) return;
           if (event.target.closest("[data-card-action]")) return;
+          openCase(card.dataset.caseId);
+        });
+        card.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          if (event.target.closest("[data-select-case-id]")) return;
+          event.preventDefault();
           openCase(card.dataset.caseId);
         });
       });
@@ -18449,7 +18499,7 @@
 	      const footPillTone = learningFollowup ? learningFollowup.tone : sla.tone;
 
 	      return `
-	        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}">
+	        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}" role="button" tabindex="0" title="打开顾客 Case" aria-label="打开 ${escapeHtml(displayName)} 的 ${escapeHtml(statusText)} Case">
           <div class="case-head">
             <div class="case-name">
               <label class="case-select" title="选择这个顾客">
