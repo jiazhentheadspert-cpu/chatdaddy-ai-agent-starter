@@ -9053,7 +9053,15 @@
       try {
         const res = await fetch(`${api}/api/auth/session`, { headers: {}, credentials: "include" });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok || !data.authenticated || !data.user) return false;
+        if (!res.ok || !data.ok || !data.authenticated || !data.user) {
+          if (res.status === 401 || ["not_logged_in", "session_invalid", "session_expired"].includes(String(data.error || ""))) {
+            redirectToUnifiedLogin({ clearSession: true });
+            return false;
+          }
+          state.projectKnowledgeError = data.message || "登录状态检查失败，请重新登录。";
+          render();
+          return false;
+        }
         const projects = Array.isArray(data.projects) ? data.projects : [];
         const currentProject = projectKeyEl.value.trim();
         const selectedProject = projects.find((item) => item.project_key === currentProject) || projects[0] || { project_key: currentProject || "beyoute" };
@@ -9100,6 +9108,8 @@
         applySessionShell();
         return true;
       } catch (_error) {
+        state.projectKnowledgeError = "暂时无法检查登录状态，请检查网络后重试。";
+        render();
         return false;
       }
     }
@@ -13653,12 +13663,16 @@
       function projectOnboardingStepHtml(step) {
         const knowledge = state.projectKnowledge;
         if (!knowledge) {
+          const failed = Boolean(state.projectKnowledgeError);
           return `
             <section class="command-panel accent">
               <div class="command-kicker">项目设置</div>
-              <strong class="command-title">还没有读到项目资料</strong>
-              <p class="command-copy">${escapeHtml(state.projectKnowledgeError ? `读取失败：${state.projectKnowledgeError}` : "正在读取，请稍候。")}</p>
-              <div class="quick-actions"><button class="quick-action primary" data-dashboard-action="refresh-project-knowledge" type="button">重新读取</button></div>
+              <strong class="command-title">${failed ? "项目资料读取失败" : "正在读取项目资料"}</strong>
+              <p class="command-copy">${escapeHtml(failed ? state.projectKnowledgeError : "请稍候，读取完成后会自动显示 Onboarding。")}</p>
+              <div class="quick-actions">
+                ${failed ? `<a class="quick-action primary" href="${escapeHtml(unifiedLoginUrl())}">重新登录</a>` : ""}
+                <button class="quick-action ${failed ? "" : "primary"}" data-dashboard-action="refresh-project-knowledge" type="button">重新读取</button>
+              </div>
             </section>
           `;
         }
@@ -18163,6 +18177,10 @@
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/knowledge`;
         const res = await fetch(endpoint, authRequestOptions(token));
         const data = await res.json().catch(() => ({}));
+        if (res.status === 401 && hasAccountSession()) {
+          redirectToUnifiedLogin({ clearSession: true });
+          return null;
+        }
         if (!res.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
         state.projectKnowledge = data;
         if (!options.silent && state.workspaceView === "operations") showToast("已读取真实项目资料。 ");
@@ -18170,7 +18188,10 @@
         return data;
       } catch (error) {
         state.projectKnowledge = null;
-        state.projectKnowledgeError = error?.message || String(error);
+        const message = error?.message || String(error);
+        state.projectKnowledgeError = /project_access_denied|不能查看该项目|HTTP 403/i.test(message)
+          ? "这个账号没有当前项目的查看权限，请重新登录正确的项目账号。"
+          : `无法读取项目资料：${message}`;
         render();
         return null;
       }
@@ -24952,7 +24973,8 @@
     } catch {}
 
     (async function bootDashboard() {
-	  await bootstrapSaasSession();
+	  const sessionReady = await bootstrapSaasSession();
+	  if (!sessionReady && apiUrlEl.value.trim()) return;
 	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog(), loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness(), loadMetaCapiStatus()]);
 	  startQueueAutoRefresh();
     })();
