@@ -9639,6 +9639,36 @@
       }
     }
 
+    async function syncCurrentProjectAvatarFromChannel(options = {}) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const projectKey = String(projectKeyEl.value || "").trim();
+      if (!api || !projectKey || !hasAccountSession() || state.role === "staff") return null;
+      try {
+        const res = await fetch(
+          `${api}/api/hermas/projects/${encodeURIComponent(projectKey)}/channels/chatdaddy/avatar-sync`,
+          authRequestOptions("", { method: "POST" })
+        );
+        const data = await res.json().catch(() => ({}));
+        const avatarUrl = String(data.avatar_url || "").trim();
+        if (!res.ok || !data.ok || !avatarUrl) return data;
+        state.session.projects = (Array.isArray(state.session.projects) ? state.session.projects : []).map((project) => (
+          String(project?.project_key || "").trim().toLowerCase() === projectKey.toLowerCase()
+            ? { ...project, avatar_url: avatarUrl }
+            : project
+        ));
+        const storedSession = readSession();
+        localStorage.setItem("agent_session", JSON.stringify({
+          ...storedSession,
+          projects: state.session.projects
+        }));
+        renderProjectSwitcher();
+        if (!options.silent && data.synced) showToast("项目头像已跟 ChatDaddy 同步。");
+        return data;
+      } catch (_error) {
+        return null;
+      }
+    }
+
     function settingsKey(project) {
       return `agent_project_settings_${project || "demo"}`;
     }
@@ -25464,7 +25494,7 @@
       const currentProject = String(projectKeyEl.value || "beyoute").trim().toLowerCase();
       if (String(message.project_key || "").trim().toLowerCase() !== currentProject) return;
       showToast(`ChatDaddy 已连接，正在同步 ${Number(message.live_flow_count || 0)} 条 Flow...`);
-      await Promise.all([loadFlowCatalog(), loadProjectConnectionReadiness(), loadProjectKnowledge({ silent: true })]);
+      await Promise.all([loadFlowCatalog(), loadProjectConnectionReadiness(), loadProjectKnowledge({ silent: true }), syncCurrentProjectAvatarFromChannel({ silent: true })]);
       render();
     }
 
@@ -25477,12 +25507,12 @@
       setupChannel.addEventListener("message", (event) => handleProjectSetupBroadcast(event.data).catch(() => null));
     } catch {}
 
-    (async function bootDashboard() {
+	(async function bootDashboard() {
 	  const sessionReady = await bootstrapSaasSession();
 	  if (!sessionReady && apiUrlEl.value.trim()) return;
-	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog(), loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness(), loadMetaCapiStatus()]);
+	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog(), loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness(), loadMetaCapiStatus(), syncCurrentProjectAvatarFromChannel({ silent: true })]);
 	  startQueueAutoRefresh();
-    })();
+	})();
   </script>
 </body>
 </html>
