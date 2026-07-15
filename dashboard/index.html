@@ -9054,7 +9054,8 @@
         const res = await fetch(`${api}/api/auth/session`, { headers: {}, credentials: "include" });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok || !data.authenticated || !data.user) {
-          if (res.status === 401 || ["not_logged_in", "session_invalid", "session_expired"].includes(String(data.error || ""))) {
+          const authReason = String(data.error || data.reason || "");
+          if (!data.authenticated || res.status === 401 || ["not_logged_in", "session_invalid", "session_expired"].includes(authReason)) {
             redirectToUnifiedLogin({ clearSession: true });
             return false;
           }
