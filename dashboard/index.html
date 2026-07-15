@@ -11224,7 +11224,7 @@
 
     const DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS = 12000;
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
-    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 2;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 3;
 
     function dashboardQueueSnapshotKey(project = "") {
       return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
@@ -14081,6 +14081,8 @@
 	      return String(
 	        signals.previous_agent_text ||
 	        signals.previousAgentText ||
+	        item.previous_agent_text ||
+	        item.previousAgentText ||
 	        item.decision?.previous_agent_text ||
 	        item.decision?.previousAgentText ||
 	        item.latest_decision?.previous_agent_text ||
