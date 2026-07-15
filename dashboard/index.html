@@ -7937,11 +7937,11 @@
           <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-workbench.svg" alt=""></span><em>操作台</em></span>
           <small id="navCasesBadge">0</small>
         </button>
-        <button aria-label="复盘" title="复盘" data-short="复" data-icon-nav data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
+        <button class="hidden" aria-label="复盘" title="复盘" data-short="复" data-icon-nav data-optional-ui-module="review" data-side-key="step_5" data-side-filter="all" data-workspace-target="learning" data-step-nav data-step-view="5">
           <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-review.svg" alt=""></span><em>复盘</em></span>
           <small id="navLearningBadge">0</small>
         </button>
-        <button aria-label="Segment" title="Segment" data-short="S" data-icon-nav data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
+        <button class="hidden" aria-label="Segment" title="Segment" data-short="S" data-icon-nav data-optional-ui-module="segment" data-side-key="step_7" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="7">
           <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-segment.svg" alt=""></span><em>Segment</em></span>
           <small id="navStep7Badge">待</small>
         </button>
@@ -8083,11 +8083,10 @@
         </details>
         <div class="toolbar">
           <div class="filters">
-            <button class="pill active" data-filter="needs_attention">全部要处理</button>
-            <button class="pill" data-filter="approval_required">待批准</button>
+            <button class="pill active" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_first">人工回复</button>
-            <button class="pill" data-filter="auto" id="autoFilterBtn">自动 Flow（不用处理）</button>
-            <button class="pill" data-filter="records" id="recordsFilterBtn">已处理记录</button>
+            <button class="pill" data-filter="auto" id="autoFilterBtn">自动 Flow</button>
+            <button class="pill" data-filter="records" id="recordsFilterBtn">AI 处理记录</button>
           </div>
           <div class="selection-tools" aria-label="快速选择">
             <button class="btn" id="selectVisibleBtn" type="button">选择当前</button>
@@ -8422,6 +8421,28 @@
       });
     };
 
+    // These modules already have backend/view foundations, but they are kept
+    // out of the operator UI while ReplyPilot focuses on automatic replies.
+    // Re-enable them per project only after the rollout gates in
+    // REPLYPILOT_REVIEW_SEGMENT_PLUGIN_PLAN.md have passed.
+    const OPTIONAL_UI_MODULES = Object.freeze({
+      review: false,
+      segment: false,
+    });
+
+    function optionalUiModuleEnabled(moduleKey) {
+      return OPTIONAL_UI_MODULES[String(moduleKey || "")] === true;
+    }
+
+    function syncOptionalUiModules() {
+      document.querySelectorAll("[data-optional-ui-module]").forEach((element) => {
+        const enabled = optionalUiModuleEnabled(element.dataset.optionalUiModule);
+        element.classList.toggle("hidden", !enabled);
+        element.setAttribute("aria-hidden", enabled ? "false" : "true");
+        if ("disabled" in element) element.disabled = !enabled;
+      });
+    }
+
     const state = {
       cases: [],
       inboxConversations: [],
@@ -8438,7 +8459,7 @@
       inboxError: "",
       inboxUpdatedAt: "",
       inboxSort: "customer_first",
-      filter: "needs_attention",
+      filter: "approval_required",
       active: null,
       demoMode: false,
       scenario: "ecommerce",
@@ -8832,10 +8853,13 @@
     // Old staff bookmarks pointed at the filtered Case queue. That made the
     // full Inbox look empty even while ChatDaddy had new conversations.
     const staffLegacyCaseLanding = state.role === "staff" && requestedView === "cases" && !state.pendingCaseId;
+    const requestedWorkspaceView = requestedView === "learning" && !optionalUiModuleEnabled("review")
+      ? "cases"
+      : requestedView;
     state.workspaceView = staffLegacyCaseLanding
       ? "inbox"
-      : ["inbox", "cases", "learning", "operations"].includes(requestedView)
-        ? requestedView
+      : ["inbox", "cases", "learning", "operations"].includes(requestedWorkspaceView)
+        ? requestedWorkspaceView
         : state.role === "staff" ? "inbox" : state.workspaceView;
     const requestedSetupStep = String(params.get("setup") || "");
     if (["1", "2", "3"].includes(requestedSetupStep)) {
@@ -9108,6 +9132,8 @@
 
     document.querySelectorAll("[data-side-key]").forEach((button) => {
       button.addEventListener("click", () => {
+        const optionalModule = button.dataset.optionalUiModule;
+        if (optionalModule && !optionalUiModuleEnabled(optionalModule)) return;
         state.sidebarKey = button.dataset.sideKey || "ai_reply";
         if (button.dataset.stepView) {
           state.activeSetupStep = button.dataset.stepView;
@@ -9914,7 +9940,7 @@
         state.workspaceView = ["inbox", "cases"].includes(state.workspaceView) ? state.workspaceView : "inbox";
         state.sidebarKey = state.workspaceView === "inbox" ? "inbox" : "ai_reply";
         state.activeSetupStep = "4";
-        state.filter = "needs_attention";
+        state.filter = "approval_required";
       }
 
       const titleParts = [projectDisplayName(), "客服工作台"];
@@ -9928,7 +9954,8 @@
       $("setupPanel").classList.toggle("hidden", true);
       renderProjectSwitcher();
       $("autoFilterBtn").classList.toggle("hidden", false);
-	      $("learnBtn").classList.toggle("hidden", false);
+      $("learnBtn").classList.toggle("hidden", false);
+      syncOptionalUiModules();
       applySidebarRoleLabels();
       applySidebarCollapsedState();
 
@@ -10141,14 +10168,14 @@
 
     function sidebarKeyForFilter(filter) {
       const map = {
-        auto: "step_5",
+        auto: "ai_reply",
         order: "ai_reply",
-        records: "step_5",
+        records: "ai_reply",
         human_required: "ai_reply",
         return_ai: "ai_reply",
         pending_manual_reply: "ai_reply",
         handoff_done: "ai_reply",
-        returned_to_ai: "step_5",
+        returned_to_ai: "ai_reply",
         approval_required: "ai_reply",
         needs_attention: "ai_reply",
       };
@@ -10394,7 +10421,7 @@
         return;
       }
       if (action === "cases") {
-        state.filter = "needs_attention";
+        state.filter = "approval_required";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
         setWorkspaceView("cases");
@@ -10458,7 +10485,7 @@
 
     function roleSubtitle(role) {
       if (role === "staff") return "只看待处理顾客。";
-      return "只看操作台、复盘和 Segment。";
+      return "先处理自动回复和待处理顾客。";
     }
 
 	    function connectionStatusLabel() {
