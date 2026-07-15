@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ReplyPilot AI 客服中控台</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <style>
     :root {
       --bg: #eef3f4;
@@ -741,6 +742,8 @@
     }
 
     .session-bar {
+      position: relative;
+      z-index: 60;
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 12px;
@@ -858,30 +861,292 @@
     }
 
     .project-switcher {
-      display: grid;
-      gap: 4px;
-      min-width: min(260px, 36vw);
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 900;
+      position: relative;
+      min-width: min(272px, 38vw);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 850;
     }
 
-    .project-switcher select {
+    .project-switcher-native {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .project-switcher-trigger {
       width: 100%;
-      min-height: 42px;
+      min-height: 48px;
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 6px 10px 6px 7px;
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: 14px;
       background: rgba(255,255,255,.94);
       color: var(--ink);
-      padding: 8px 36px 8px 12px;
-      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(8,23,29,.05);
+      transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+
+    .project-switcher-trigger:hover,
+    .project-switcher-trigger[aria-expanded="true"] {
+      border-color: rgba(0,183,216,.52);
+      box-shadow: 0 0 0 4px rgba(0,183,216,.10), 0 14px 32px rgba(8,23,29,.09);
+    }
+
+    .project-switcher-trigger:focus-visible,
+    .project-switcher-search input:focus-visible,
+    .project-switcher-row:focus-visible,
+    .project-switcher-pin:focus-visible,
+    .project-switcher-new:focus-visible {
+      outline: 3px solid rgba(0,183,216,.2);
+      outline-offset: 2px;
+    }
+
+    .project-switcher-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(9,23,27,.10);
+      background: var(--panel-soft);
+      box-shadow: 0 5px 14px rgba(8,23,29,.10);
+    }
+
+    .project-switcher-trigger-copy {
+      min-width: 0;
+      display: grid;
+      gap: 1px;
+    }
+
+    .project-switcher-trigger-copy small {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 850;
+      line-height: 1.2;
+    }
+
+    .project-switcher-trigger-copy strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .project-switcher-trigger .bi-chevron-down {
+      color: var(--muted);
+      font-size: 14px;
+      transition: transform .16s ease;
+    }
+
+    .project-switcher-trigger[aria-expanded="true"] .bi-chevron-down {
+      transform: rotate(180deg);
+    }
+
+    .project-switcher-popover {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      z-index: 120;
+      width: min(430px, calc(100vw - 32px));
+      max-height: min(640px, calc(100vh - 120px));
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+      border: 1px solid rgba(92,112,121,.26);
+      border-radius: 18px;
+      background: rgba(255,255,255,.985);
+      box-shadow: 0 28px 80px rgba(8,23,29,.22), 0 0 0 1px rgba(255,255,255,.86) inset;
+      backdrop-filter: blur(24px);
+    }
+
+    .project-switcher-search {
+      position: relative;
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .project-switcher-search .bi-search {
+      position: absolute;
+      left: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 17px;
+      pointer-events: none;
+    }
+
+    .project-switcher-search input {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px 10px 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 720;
+    }
+
+    .project-switcher-search input::placeholder {
+      color: #8a989f;
+    }
+
+    .project-switcher-list {
+      overflow-y: auto;
+      padding: 8px;
+      overscroll-behavior: contain;
+    }
+
+    .project-switcher-section + .project-switcher-section {
+      margin-top: 6px;
+    }
+
+    .project-switcher-section-title {
+      display: block;
+      padding: 6px 10px 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .01em;
+    }
+
+    .project-switcher-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 38px;
+      align-items: center;
+      border-radius: 12px;
+    }
+
+    .project-switcher-item:hover {
+      background: var(--panel-soft);
+    }
+
+    .project-switcher-item.current {
+      background: var(--soft-blue);
+      box-shadow: 0 0 0 1px rgba(53,120,246,.08) inset;
+    }
+
+    .project-switcher-row {
+      min-width: 0;
+      width: 100%;
+      min-height: 58px;
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      gap: 11px;
+      align-items: center;
+      padding: 8px 3px 8px 9px;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      text-align: left;
       cursor: pointer;
     }
 
-    .project-switcher select:focus {
-      outline: 3px solid rgba(0,183,216,.16);
-      border-color: rgba(0,183,216,.55);
+    .project-switcher-row .project-switcher-avatar {
+      width: 42px;
+      height: 42px;
+    }
+
+    .project-switcher-project-copy {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .project-switcher-project-copy strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    .project-switcher-project-copy small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .project-switcher-status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--soft-green);
+      color: #087667;
+      font-size: 10px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .project-switcher-status.draft {
+      background: var(--soft-amber);
+      color: #966217;
+    }
+
+    .project-switcher-pin {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .project-switcher-pin:hover,
+    .project-switcher-pin.pinned {
+      background: rgba(53,120,246,.09);
+      color: var(--blue);
+    }
+
+    .project-switcher-empty {
+      margin: 14px 8px;
+      padding: 24px 16px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .project-switcher-new {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin: 10px 12px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 850;
+      text-decoration: none;
+    }
+
+    .project-switcher-new:hover {
+      border-color: rgba(0,183,216,.46);
+      background: var(--soft-cyan);
     }
 
 	    .btn {
@@ -6911,6 +7176,14 @@
         width: 100%;
         min-width: 0;
       }
+      .project-switcher-popover {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        left: 0;
+        width: 100%;
+        max-height: min(560px, calc(100vh - 96px));
+      }
       .ops-command-main { min-height: 0; padding: 18px; }
       .ops-command-grid { grid-template-columns: 1fr; }
       .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
@@ -7666,10 +7939,28 @@
           <div class="session-subtitle" id="sessionSubtitle">客服只看待处理顾客。</div>
         </div>
         <div class="session-actions">
-          <label class="project-switcher" id="projectSwitcherShell">
-            <span>切换项目</span>
-            <select id="projectSwitcher" aria-label="切换项目"></select>
-          </label>
+          <div class="project-switcher" id="projectSwitcherShell">
+            <select class="project-switcher-native" id="projectSwitcher" aria-label="切换项目" tabindex="-1"></select>
+            <button class="project-switcher-trigger" id="projectSwitcherButton" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="projectSwitcherPopover">
+              <img class="project-switcher-avatar" id="projectSwitcherAvatar" alt="" />
+              <span class="project-switcher-trigger-copy">
+                <small>当前项目</small>
+                <strong id="projectSwitcherCurrentName">当前项目</strong>
+              </span>
+              <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </button>
+            <div class="project-switcher-popover hidden" id="projectSwitcherPopover" role="dialog" aria-label="切换项目">
+              <label class="project-switcher-search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input id="projectSwitcherSearch" type="search" placeholder="搜索项目" autocomplete="off" />
+              </label>
+              <div class="project-switcher-list" id="projectSwitcherList" role="list"></div>
+              <a class="project-switcher-new" id="projectSwitcherNewProject" href="../setup/index.html">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                <span>新项目</span>
+              </a>
+            </div>
+          </div>
           <button class="btn danger" id="pauseAgentBtn" type="button">暂停接管</button>
           <button class="btn ghost" id="logoutBtn" type="button">退出</button>
         </div>
@@ -8245,6 +8536,13 @@
     const apiUrlEl = $("apiUrl");
     const projectKeyEl = $("projectKey");
     const projectSwitcherEl = $("projectSwitcher");
+    const projectSwitcherButtonEl = $("projectSwitcherButton");
+    const projectSwitcherPopoverEl = $("projectSwitcherPopover");
+    const projectSwitcherSearchEl = $("projectSwitcherSearch");
+    const projectSwitcherListEl = $("projectSwitcherList");
+    const projectSwitcherAvatarEl = $("projectSwitcherAvatar");
+    const projectSwitcherCurrentNameEl = $("projectSwitcherCurrentName");
+    const projectSwitcherNewProjectEl = $("projectSwitcherNewProject");
     const adminTokenEl = { value: "", placeholder: "" };
     const casesEl = $("cases");
     const errorEl = $("error");
@@ -8568,6 +8866,50 @@
 
     projectSwitcherEl.addEventListener("change", () => {
       navigateToProject(projectSwitcherEl.value);
+    });
+
+    projectSwitcherButtonEl?.addEventListener("click", () => {
+      const open = projectSwitcherButtonEl.getAttribute("aria-expanded") !== "true";
+      setProjectSwitcherOpen(open, { focusSearch: open });
+    });
+
+    projectSwitcherSearchEl?.addEventListener("input", () => {
+      renderProjectSwitcherMenu(projectSwitcherSearchEl.value);
+    });
+
+    projectSwitcherListEl?.addEventListener("click", (event) => {
+      const pinButton = event.target.closest("[data-project-pin-key]");
+      if (pinButton) {
+        const key = String(pinButton.dataset.projectPinKey || "").trim();
+        const current = String(projectKeyEl.value || "").trim();
+        const pinned = readPinnedProjectKeys(current);
+        const next = pinned.includes(key) ? pinned.filter((item) => item !== key) : [...pinned, key];
+        writePinnedProjectKeys(next);
+        renderProjectSwitcherMenu(projectSwitcherSearchEl?.value || "");
+        return;
+      }
+      const projectButton = event.target.closest("[data-project-switch-key]");
+      if (!projectButton) return;
+      const key = String(projectButton.dataset.projectSwitchKey || "").trim();
+      if (key === String(projectKeyEl.value || "").trim()) {
+        setProjectSwitcherOpen(false);
+        projectSwitcherButtonEl?.focus();
+        return;
+      }
+      navigateToProject(key);
+    });
+
+    document.addEventListener("click", (event) => {
+      const shell = $("projectSwitcherShell");
+      const eventPath = typeof event.composedPath === "function" ? event.composedPath() : [];
+      if (!shell || shell.contains(event.target) || eventPath.includes(shell)) return;
+      setProjectSwitcherOpen(false);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || projectSwitcherButtonEl?.getAttribute("aria-expanded") !== "true") return;
+      setProjectSwitcherOpen(false);
+      projectSwitcherButtonEl?.focus();
     });
 
     $("pauseAgentBtn").addEventListener("click", () => {
@@ -9013,13 +9355,158 @@
       return raw.split(/[-_]+/).filter(Boolean).map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`).join(" ");
     }
 
+    function projectAvatarUrl(projectKey = "", project = null) {
+      const supplied = String(project?.avatar_url || project?.logo_url || "").trim();
+      if (supplied) return supplied;
+      const key = String(projectKey || project?.project_key || "").trim().toLowerCase();
+      if (key === "master-nerv") return "../assets/project-avatars/master-nerv.png";
+      if (key === "beyoute") return "../assets/ctg-portal-logo.png";
+      return "../assets/ctg-portal-logo.png";
+    }
+
+    function projectAvatarFallback() {
+      return "../assets/ctg-portal-logo.png";
+    }
+
+    function attachProjectAvatarFallbacks(scope = document) {
+      scope.querySelectorAll?.("img[data-project-avatar]").forEach((image) => {
+        image.addEventListener("error", () => {
+          if (image.dataset.fallbackApplied === "1") return;
+          image.dataset.fallbackApplied = "1";
+          image.src = projectAvatarFallback();
+        }, { once: true });
+      });
+      if (projectSwitcherAvatarEl) {
+        projectSwitcherAvatarEl.onerror = () => {
+          if (projectSwitcherAvatarEl.dataset.fallbackApplied === "1") return;
+          projectSwitcherAvatarEl.dataset.fallbackApplied = "1";
+          projectSwitcherAvatarEl.src = projectAvatarFallback();
+        };
+      }
+    }
+
+    function projectStatusMeta(project = {}) {
+      const status = String(project?.status || "active").trim().toLowerCase();
+      if (status === "draft") return { label: "设置中", className: "draft" };
+      if (["active", "published", "live"].includes(status)) return { label: "已上线", className: "active" };
+      return { label: status ? status.toUpperCase() : "已加入", className: "active" };
+    }
+
+    function projectRoleLabel(project = {}) {
+      const role = String(project?.role || "").trim().toLowerCase();
+      if (role === "owner") return "项目负责人";
+      if (role === "admin") return "管理员";
+      if (role === "staff") return "客服成员";
+      return "项目工作台";
+    }
+
+    function projectSwitcherPinnedStorageKey() {
+      const identity = String(state.session?.email || state.session?.user?.email || "account").trim().toLowerCase();
+      return `replypilot_pinned_projects_${identity || "account"}`;
+    }
+
+    function readPinnedProjectKeys(current = "") {
+      try {
+        const saved = JSON.parse(localStorage.getItem(projectSwitcherPinnedStorageKey()) || "[]");
+        const normalized = Array.isArray(saved)
+          ? saved.map((item) => String(item || "").trim()).filter(Boolean)
+          : [];
+        if (normalized.length) return [...new Set(normalized)];
+      } catch (_error) {
+        // Ignore malformed local preferences and create a clean default below.
+      }
+      return current ? [current] : [];
+    }
+
+    function writePinnedProjectKeys(keys = []) {
+      const normalized = [...new Set(keys.map((item) => String(item || "").trim()).filter(Boolean))];
+      localStorage.setItem(projectSwitcherPinnedStorageKey(), JSON.stringify(normalized));
+      return normalized;
+    }
+
+    function projectCreationUrl() {
+      const url = new URL("../setup/index.html", window.location.href);
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      if (api) url.searchParams.set("api", api);
+      return url.toString();
+    }
+
+    function projectSwitcherOptions() {
+      const current = String(projectKeyEl.value || "beyoute").trim();
+      const projects = Array.isArray(state.session?.projects) ? state.session.projects : [];
+      return projects.length
+        ? projects
+        : [{ project_key: current, project_name: projectDisplayName(current), status: "active" }];
+    }
+
+    function projectSwitcherRow(project, current, pinnedKeys) {
+      const key = String(project?.project_key || "").trim();
+      const label = String(project?.project_name || project?.name || key).trim() || key;
+      const pinned = pinnedKeys.includes(key);
+      const status = projectStatusMeta(project);
+      const currentClass = key === current ? " current" : "";
+      return `
+        <div class="project-switcher-item${currentClass}" role="listitem">
+          <button class="project-switcher-row" type="button" data-project-switch-key="${escapeHtml(key)}" ${key === current ? 'aria-current="true"' : ""}>
+            <img class="project-switcher-avatar" data-project-avatar src="${escapeHtml(projectAvatarUrl(key, project))}" alt="" />
+            <span class="project-switcher-project-copy">
+              <strong>${escapeHtml(label)}</strong>
+              <small>${escapeHtml(projectRoleLabel(project))}</small>
+            </span>
+            <span class="project-switcher-status ${escapeHtml(status.className)}">${escapeHtml(status.label)}</span>
+          </button>
+          <button class="project-switcher-pin${pinned ? " pinned" : ""}" type="button" data-project-pin-key="${escapeHtml(key)}" aria-label="${escapeHtml(pinned ? `取消置顶 ${label}` : `置顶 ${label}`)}" aria-pressed="${pinned ? "true" : "false"}">
+            <i class="bi ${pinned ? "bi-pin-angle-fill" : "bi-pin-angle"}" aria-hidden="true"></i>
+          </button>
+        </div>`;
+    }
+
+    function renderProjectSwitcherMenu(query = projectSwitcherSearchEl?.value || "") {
+      if (!projectSwitcherListEl) return;
+      const current = String(projectKeyEl.value || "beyoute").trim();
+      const normalizedQuery = String(query || "").trim().toLowerCase();
+      const projects = projectSwitcherOptions().filter((project) => {
+        if (!normalizedQuery) return true;
+        const haystack = [project?.project_key, project?.project_name, project?.name, projectRoleLabel(project)]
+          .map((item) => String(item || "").toLowerCase())
+          .join(" ");
+        return haystack.includes(normalizedQuery);
+      });
+      const availableKeys = new Set(projectSwitcherOptions().map((project) => String(project?.project_key || "").trim()));
+      const pinnedKeys = readPinnedProjectKeys(current).filter((key) => availableKeys.has(key));
+      const pinned = projects.filter((project) => pinnedKeys.includes(String(project?.project_key || "").trim()));
+      const other = projects.filter((project) => !pinnedKeys.includes(String(project?.project_key || "").trim()));
+      const sections = [
+        ["已置顶", pinned],
+        ["其他项目", other]
+      ].filter(([, items]) => items.length);
+      projectSwitcherListEl.innerHTML = sections.length
+        ? sections.map(([title, items]) => `
+          <section class="project-switcher-section">
+            <span class="project-switcher-section-title">${escapeHtml(title)}</span>
+            ${items.map((project) => projectSwitcherRow(project, current, pinnedKeys)).join("")}
+          </section>`).join("")
+        : `<div class="project-switcher-empty">找不到这个项目</div>`;
+      attachProjectAvatarFallbacks(projectSwitcherListEl);
+    }
+
+    function setProjectSwitcherOpen(open, { focusSearch = false } = {}) {
+      if (!projectSwitcherButtonEl || !projectSwitcherPopoverEl) return;
+      const shouldOpen = Boolean(open);
+      projectSwitcherButtonEl.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+      projectSwitcherPopoverEl.classList.toggle("hidden", !shouldOpen);
+      if (shouldOpen) {
+        if (projectSwitcherSearchEl) projectSwitcherSearchEl.value = "";
+        renderProjectSwitcherMenu("");
+        if (projectSwitcherNewProjectEl) projectSwitcherNewProjectEl.href = projectCreationUrl();
+        if (focusSearch) window.setTimeout(() => projectSwitcherSearchEl?.focus(), 0);
+      }
+    }
+
     function renderProjectSwitcher() {
       if (!projectSwitcherEl) return;
       const current = String(projectKeyEl.value || "beyoute").trim();
-      const projects = Array.isArray(state.session?.projects) ? state.session.projects : [];
-      const options = projects.length
-        ? projects
-        : [{ project_key: current, project_name: projectDisplayName(current), status: "active" }];
+      const options = projectSwitcherOptions();
       projectSwitcherEl.innerHTML = options.map((item) => {
         const key = String(item?.project_key || "").trim();
         const label = String(item?.project_name || item?.name || key).trim() || key;
@@ -9027,12 +9514,22 @@
         return `<option value="${escapeHtml(key)}" ${key === current ? "selected" : ""}>${escapeHtml(`${label}${draft}`)}</option>`;
       }).join("");
       projectSwitcherEl.value = current;
+      const selected = options.find((item) => String(item?.project_key || "").trim() === current) || options[0] || {};
+      if (projectSwitcherCurrentNameEl) projectSwitcherCurrentNameEl.textContent = projectDisplayName(current);
+      if (projectSwitcherAvatarEl) {
+        projectSwitcherAvatarEl.dataset.fallbackApplied = "0";
+        projectSwitcherAvatarEl.src = projectAvatarUrl(current, selected);
+      }
+      attachProjectAvatarFallbacks();
+      renderProjectSwitcherMenu();
+      if (projectSwitcherNewProjectEl) projectSwitcherNewProjectEl.href = projectCreationUrl();
       $("projectSwitcherShell").classList.toggle("hidden", options.length <= 1 && !hasAccountSession());
     }
 
     function navigateToProject(projectKey = "") {
       const targetKey = String(projectKey || "").trim();
       if (!targetKey || targetKey === String(projectKeyEl.value || "").trim()) return;
+      setProjectSwitcherOpen(false);
       const target = sessionProject(targetKey);
       const url = new URL(window.location.href);
       url.searchParams.set("project_key", targetKey);
