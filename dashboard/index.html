@@ -8473,6 +8473,14 @@
       selected: new Set(),
       visibleCases: [],
       settings: null,
+      runtimeDelivery: {
+        loaded: false,
+        autoSendRequested: false,
+        autoFlowRequested: false,
+        sendsMessages: false,
+        triggersFlows: false,
+        tier: "approval_first",
+      },
       auditEvents: [],
 	      projectVersions: null,
 	      qualityReview: null,
@@ -11410,6 +11418,7 @@
           state.qualityLiftRepairQueue = null;
           state.learningNotes = null;
           state.adsConnection = null;
+          loadRuntimeSettings({ silent: true }).then(() => render()).catch(() => null);
           loadMetaCapiStatus().catch(() => null);
           loadUsageSummary(token).catch(() => null);
         }
@@ -11697,7 +11706,15 @@
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.settings = settingsFromRuntimeConfig(data.runtime_config, state.settings || readProjectSettings(project));
-        syncPauseAgentStateFromRuntime(data.runtime_config);
+        state.runtimeDelivery = {
+          loaded: true,
+          autoSendRequested: data.runtime_config?.auto_send_enabled === true,
+          autoFlowRequested: data.runtime_config?.auto_trigger_flows_enabled === true,
+          sendsMessages: data.sends_messages === true,
+          triggersFlows: data.triggers_flows === true,
+          tier: String(data.runtime_config?.allowed_auto_reply_tier || "approval_first"),
+        };
+        syncPauseAgentStateFromRuntime(data.runtime_config, data);
         localStorage.setItem(settingsKey(project), JSON.stringify(state.settings));
         if (!options.silent) showToast("已读取真实项目设置。");
         return data.runtime_config;
@@ -11915,10 +11932,14 @@
       };
     }
 
-    function syncPauseAgentStateFromRuntime(runtimeConfig = {}) {
+    function syncPauseAgentStateFromRuntime(runtimeConfig = {}, effectiveRuntime = {}) {
       const safety = runtimeConfig.safety_mode || runtimeConfig.safety || {};
-      const autoSend = Boolean(safety.auto_send_enabled);
-      const autoFlow = Boolean(safety.auto_trigger_flows_enabled);
+      const requestedAutoSend = runtimeConfig.auto_send_enabled === true || safety.auto_send_enabled === true;
+      const requestedAutoFlow = runtimeConfig.auto_trigger_flows_enabled === true || safety.auto_trigger_flows_enabled === true;
+      const hasEffectiveFlags = Object.prototype.hasOwnProperty.call(effectiveRuntime, "sends_messages")
+        || Object.prototype.hasOwnProperty.call(effectiveRuntime, "triggers_flows");
+      const autoSend = hasEffectiveFlags ? effectiveRuntime.sends_messages === true : requestedAutoSend;
+      const autoFlow = hasEffectiveFlags ? effectiveRuntime.triggers_flows === true : requestedAutoFlow;
       updatePauseAgentUi(!(autoSend || autoFlow));
     }
 
@@ -13684,14 +13705,16 @@
         {
           action: "auto_records",
           title: "自动 Flow",
-          body: "顾客点按钮且没提问，只读",
+          body: "只显示渠道回传的执行证据",
           count: Number(counts.auto || 0),
           tone: "good",
         },
         {
           action: "ai_records",
           title: "AI 处理记录",
-          body: "AI 已自动回复，只读复盘",
+          body: state.runtimeDelivery?.loaded && !state.runtimeDelivery?.sendsMessages
+            ? "安全发送未开启，暂不会新增"
+            : "AI 已自动回复，只读复盘",
           count: Number(counts.records || 0),
           tone: "good",
         },
@@ -25568,12 +25591,12 @@
       const title = state.query ? `找不到「${state.query}」` : empty.title;
       const body = state.query
         ? "试试看搜索顾客名字、电话号码、关键词，或先清空搜索。"
-        : state.demoMode
-          ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。"
-          : state.filter === "auto"
-            ? `${queueDateScopeLabel()}没有自动 Flow 记录；这里只显示顾客点过按钮或 Flow 已执行，而且没有主动提问的 Case。`
+          : state.demoMode
+            ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。"
+            : state.filter === "auto"
+            ? autoFlowEmptyMessage()
             : state.filter === "records"
-              ? `${queueDateScopeLabel()}没有 AI 处理记录；只有 AI 自动回复成功的 Case 会出现在这里。`
+              ? aiRecordEmptyMessage()
             : state.role === "staff"
               ? `${queueDateScopeLabel()}没有待处理顾客；有新讯息或需要人工的 Case 会显示在这里。`
               : "确认顾客讯息入口已经连接，然后用真实 WhatsApp 发一条测试消息。";
@@ -25583,6 +25606,25 @@
           <p class="subtitle">${escapeHtml(body)}</p>
         </div>
       `;
+    }
+
+    function autoFlowEmptyMessage() {
+      const runtime = state.runtimeDelivery || {};
+      const workerNote = runtime.loaded && !runtime.triggersFlows
+        ? "ReplyPilot 目前不会主动触发 Flow；"
+        : "";
+      return `${queueDateScopeLabel()}没有可验证的自动 Flow 记录；${workerNote}这里只统计 ChatDaddy 已回传明确按钮或 Flow 执行证据、而且顾客没有另外主动提问的 Case。没有回传证据的旧 Flow 不会补算。`;
+    }
+
+    function aiRecordEmptyMessage() {
+      const runtime = state.runtimeDelivery || {};
+      if (runtime.loaded && !runtime.sendsMessages) {
+        const requestedNote = runtime.autoSendRequested
+          ? "项目虽已选择已批准规则自动回复，但线上安全发送开关仍关闭。"
+          : "线上 AI 自动发送目前没有开启。";
+        return `${queueDateScopeLabel()}没有 AI 处理记录；${requestedNote}人工批准或客服发送不算 AI 自动处理。`;
+      }
+      return `${queueDateScopeLabel()}没有 AI 处理记录；这里只统计 AI 已经自动回复成功的 Case，人工批准或客服发送不会算进来。`;
     }
 
     function demoCase(config) {
