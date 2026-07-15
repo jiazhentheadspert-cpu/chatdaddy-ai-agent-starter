@@ -2642,8 +2642,14 @@
 
     .case-optimizer-actions {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
+    }
+
+    @media (max-width: 760px) {
+      .case-optimizer-actions {
+        grid-template-columns: 1fr;
+      }
     }
 
     .case-optimizer-output {
@@ -8178,8 +8184,8 @@
           <div class="case-optimizer-card hidden" id="caseOptimizerCard">
             <div class="case-optimizer-head">
               <div>
-                <b>优化 AI</b>
-                <span>只做复盘，不会发送给顾客</span>
+                <b>让 AI 学这个回复框架</b>
+                <span>学习回答顺序和边界，不会逐字照抄，也不会发送给顾客</span>
               </div>
               <span class="case-optimizer-pill">Owner / Admin</span>
             </div>
@@ -8188,13 +8194,13 @@
               <b>待补人工最终回复</b>
               <small>没有最终人工回复时，只能记录问题，不能让 AI 学。</small>
             </div>
-            <textarea id="caseOptimizerInput" class="case-optimizer-input" placeholder="例：顾客回“有”是在回答上一句，不要重新问；应该接着 Step 1 回答。"></textarea>
+            <textarea id="caseOptimizerInput" class="case-optimizer-input" placeholder="可补充：什么情况适用、要按什么顺序回答、必须接哪个 Flow / 文件、什么不能承诺。"></textarea>
             <div class="case-optimizer-actions">
-              <button class="btn" id="caseOptimizerDraftBtn" type="button">整理规则</button>
-              <button class="btn primary" id="caseOptimizerRecordBtn" type="button">记录优化</button>
-              <button class="btn" id="caseOptimizerApplyBtn" type="button">批准进业务脑</button>
+              <button class="btn" id="caseOptimizerDraftBtn" type="button">预览框架</button>
+              <button class="btn" id="caseOptimizerRecordBtn" type="button">保存复盘备注</button>
+              <button class="btn primary" id="caseOptimizerApplyBtn" type="button">保存回复框架</button>
             </div>
-            <div class="case-optimizer-output" id="caseOptimizerOutput">写下这个 Case 哪里错了，我会整理成可学习规则。</div>
+            <div class="case-optimizer-output" id="caseOptimizerOutput">打开已回复的 Case 后，系统会整理顾客触发问题、回答顺序、附件 / Flow 和自动边界。</div>
           </div>
         </div>
         <aside class="action-stack">
@@ -18545,12 +18551,18 @@
       const canOptimizeCase = state.role !== "staff";
       $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
       $("caseOptimizerInput").value = "";
-      $("caseOptimizerInput").placeholder = caseOptimizerManualReplyText(item)
-        ? "可补充：客服为什么这样回、顾客后来有没有成交；不填也可先记录候选。"
-        : "例：顾客回“有”是在回答上一句，不要重新问；应该接着 Step 1 回答。";
-      $("caseOptimizerOutput").textContent = caseOptimizerManualReplyText(item)
+      const optimizerManualReply = caseOptimizerManualReplyText(item);
+      const optimizerCandidate = caseOptimizerLearningCandidate(item, "");
+      const isRefundOptimizer = optimizerCandidate.artifact_label === "退款回复框架";
+      $("caseOptimizerInput").placeholder = isRefundOptimizer
+        ? "可补充：正式退款条件、适用渠道或必须核对的资料；不填也可先预览框架。"
+        : optimizerManualReply
+          ? "可补充：客服为什么这样回、顾客后来有没有成交；不填也可先记录候选。"
+          : "例：顾客回“有”是在回答上一句，不要重新问；应该接着 Step 1 回答。";
+      $("caseOptimizerOutput").textContent = optimizerManualReply || isRefundOptimizer
         ? buildCaseOptimizerDraft(item, "")
         : "写下这个 Case 哪里错了，我会整理成可学习规则。";
+      $("caseOptimizerApplyBtn").textContent = isRefundOptimizer ? "保存退款框架" : "保存回复框架";
       $("caseOptimizerJudgment").className = `manual-sample-judgment ${manualSampleLearningJudgment(item).tone}`;
       $("caseOptimizerJudgment").innerHTML = manualSampleLearningJudgmentHtml(item);
       $("actionTitle").textContent = actionTitle(item);
@@ -22743,6 +22755,8 @@
 	    }
 
 	    function caseLearningLoopCandidate(item = {}) {
+	      const refundFramework = refundReplyFrameworkCandidate(item, "");
+	      if (refundFramework) return refundFramework;
 	      const existing = item.manual_learning_candidate ||
 	        item.handoff_learning_candidate ||
 	        item.raw_approval?.manual_learning_candidate ||
@@ -23907,13 +23921,41 @@
 	      ].join("\n");
 	    }
 
+    function caseOptimizerConversationReplyText(item = {}) {
+      const messages = inferCancelledScheduledOutboundMessages(Array.isArray(item.messages) ? item.messages : [])
+        .filter((message) => messageHasRenderableContent(message) && !contextMessageWasCancelled(message));
+      if (!messages.length) return "";
+      const isOutbound = (message = {}) => /^(?:outbound|out|agent|assistant|bot)$/i.test(
+        String(message.direction || message.role || message.sender_type || "").trim()
+      );
+      let latestInboundIndex = -1;
+      messages.forEach((message, index) => {
+        if (!isOutbound(message)) latestInboundIndex = index;
+      });
+      if (latestInboundIndex < 0) return "";
+      const replyParts = messages
+        .slice(latestInboundIndex + 1)
+        .filter(isOutbound)
+        .map((message) => messageDisplayText(message))
+        .filter(Boolean);
+      return [...new Set(replyParts)].join("\n\n").trim();
+    }
+
     function caseOptimizerManualReplyText(item = {}) {
       const status = String(item.status || "").toLowerCase();
-      return String(
+      const explicitReply = String(
         item.manual_reply_text ||
         item.raw_approval?.manual_reply_text ||
         (status === "manual_resolved" ? (item.latest_decision?.reply_message || item.final_text || "") : "")
       ).trim();
+      const conversationReply = caseOptimizerConversationReplyText(item);
+      if (!conversationReply) return explicitReply;
+      if (!explicitReply) return conversationReply;
+      const explicitKey = String(explicitReply).toLowerCase().replace(/\s+/g, "").replace(/[^\p{L}\p{N}]+/gu, "");
+      const conversationKey = String(conversationReply).toLowerCase().replace(/\s+/g, "").replace(/[^\p{L}\p{N}]+/gu, "");
+      if (conversationKey.includes(explicitKey)) return conversationReply;
+      if (explicitKey.includes(conversationKey)) return explicitReply;
+      return `${conversationReply}\n\n${explicitReply}`.trim();
     }
 
     function caseOptimizerOriginalAiReply(item = {}) {
@@ -24181,7 +24223,55 @@
       return String(value || "").toLowerCase().replace(/\s+/g, "").replace(/[^\p{L}\p{N}]+/gu, "").slice(0, 500);
     }
 
+    function refundReplyFrameworkCandidate(item = {}, feedback = "") {
+      const decision = item.latest_decision || {};
+      const manualReplyText = caseOptimizerManualReplyText(item);
+      const originalAiReply = caseOptimizerOriginalAiReply(item);
+      const customerText = firstContextText(
+        item.last_message,
+        item.customer_text,
+        decision.customer_text,
+        item.incoming,
+        item.message,
+        customerPreviewText(item)
+      );
+      const combined = [
+        customerText,
+        manualReplyText,
+        originalAiReply,
+        decision.intent,
+        decision.reason,
+        item.raw_context,
+        item.context_text,
+        feedback
+      ].filter(Boolean).join("\n");
+      const isRefundFramework = /(?:30\s*天|一个月|一個月).{0,16}(?:无效|無效|没效果|沒效果|退款|退钱|退錢)|(?:无效|無效|没效果|沒效果).{0,16}(?:退款|退钱|退錢)|(?:退款|退钱|退錢|refund).{0,24}(?:条件|條件|条规|條規|政策|可以|能不能|可不可以|无效|無效)|refund\s*(?:policy|guarantee|terms?)/i.test(combined);
+      if (!isRefundFramework) return null;
+      return {
+        artifact_type: "ops_sop",
+        artifact_label: "退款回复框架",
+        title: "30天无效退款：先回答，再讲条件并接条规",
+        proposed_rule: [
+          "适用场景：顾客询问30天无效、没效果能不能退款、退款条件或退款条规。",
+          "回答顺序：1) 正面确认项目有正式30天无效退款政策；2) 只引用正式条款里已确认的购买渠道、饮用步骤、饮食配合和记录要求，不新增或省略条件；3) 接「WA AFTER PAYMENT 无效退款」Flow 或发送《Beyoute 无效退款.pdf》；4) 顾客正式申请时，才收集订单、购买渠道和使用记录并转人工核对。",
+          "表达方式：亲切、坚定、短句，使用1至2个合适表情；先回答问题，再给正式文件。",
+          "安全边界：不能说成无条件退款，不能自动批准退款，也不能扩大广告承诺；相似退款 Case 只能生成待批准草稿。"
+        ].join("\n"),
+        customer_pattern: "30天没有效可以退款吗 / 没效果能不能退 / 无效退款有什么条件 / refund policy",
+        ai_gap: originalAiReply
+          ? `AI 原草稿：${originalAiReply}`
+          : "AI 过去没有稳定识别退款保障问题、正式条件和必须附上的退款条规。",
+        better_reply: manualReplyText,
+        status: "owner_review_required",
+        next_owner_action: "保存后，相似退款问题由 AI 按这个顺序生成草稿；退款类仍进入待批准，不自动发送。",
+        replay_test: "回放测试：顾客问「30天没效果能退款吗」时，必须先直接回答，再讲适用条件并附退款条规；不得无条件承诺。",
+        safety: "高风险退款框架：只用于生成待批准草稿，不会自动发送、自动批准退款或触发付款动作。"
+      };
+    }
+
     function caseOptimizerLearningCandidate(item = {}, feedback = "") {
+      const refundFramework = refundReplyFrameworkCandidate(item, feedback);
+      if (refundFramework) return refundFramework;
       const existing = item.manual_learning_candidate || item.raw_approval?.manual_learning_candidate || null;
       if (existing && typeof existing === "object") return existing;
       const decision = item.latest_decision || {};
@@ -24700,9 +24790,28 @@
       }
       const candidate = caseOptimizerLearningCandidate(state.active, rawFeedback);
       const faqWritebackEnabled = candidate.artifact_type === "faq" && state.projectKnowledge?.faq_document?.writeback_enabled === true;
-      const confirmed = state.demoMode || window.confirm(
-        `确认批准这个候选进业务脑？\n\n类型：${candidate.artifact_label || candidate.artifact_type}\n\n这会保存新的业务脑版本，但不会发送 WhatsApp，也不会开启自动回复。${faqWritebackEnabled ? "\n\n批准成功后，系统会把这条 FAQ 自动回写项目 Google Docs。" : ""}`
-      );
+      const isRefundFramework = candidate.artifact_label === "退款回复框架";
+      const compactFact = (value = "", max = 180) => {
+        const clean = String(value || "-").replace(/\s+/g, " ").trim();
+        return clean.length > max ? `${clean.slice(0, max)}...` : clean;
+      };
+      const confirmed = state.demoMode || await showSaasConfirm({
+        eyebrow: "AI 回复框架",
+        title: "保存这个回复框架？",
+        subtitle: candidate.artifact_label || candidate.artifact_type || "回复规则",
+        lead: "AI 会学习回答结构、正式资料和安全边界，不会逐字复制客服这段话。",
+        facts: [
+          { label: "触发问题", value: compactFact(candidate.customer_pattern) },
+          { label: "回答顺序", value: compactFact(candidate.proposed_rule) },
+          { label: "附件 / Flow", value: isRefundFramework ? "Beyoute 无效退款.pdf / WA AFTER PAYMENT 无效退款" : "按项目资料判断" },
+          { label: "未来发送", value: isRefundFramework ? "生成草稿后仍需人工批准" : "遵守当前 approval-first" },
+        ],
+        note: isRefundFramework
+          ? "退款与效果承诺属于高风险内容。保存后 AI 会按框架起草，但不会自动发送或自动批准退款。"
+          : `只保存新的业务脑版本，不会发送 WhatsApp，也不会开启自动回复。${faqWritebackEnabled ? "FAQ 会同步到项目 Google Docs。" : ""}`,
+        cancelLabel: "返回检查",
+        confirmLabel: "保存回复框架",
+      });
       if (!confirmed) return;
 
       const payload = {
@@ -24721,15 +24830,15 @@
         state.active.history.push({
           type: "case_learning_note",
           at: new Date().toISOString(),
-          note: `${candidate.artifact_label || "学习"}候选已批准进业务脑（演示）。`,
+          note: `${candidate.artifact_label || "学习"}已保存到业务脑（演示）。`,
         });
-        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：演示已批准；真实版本化需要 Owner 管理员账号。`;
-        showToast("演示：已批准学习候选。");
+        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：回复框架已保存（演示）；真实版本化需要 Owner 管理员账号。`;
+        showToast("演示：回复框架已保存。");
         render();
         return localRecord;
       }
 
-      setPanelBusy(true, "批准学习中...");
+      setPanelBusy(true, "保存框架中...");
       try {
         const api = apiUrlEl.value.trim().replace(/\/$/, "");
         const project = state.active.project_key || projectKeyEl.value.trim() || "beyoute";
@@ -24755,20 +24864,20 @@
         state.active.history.push({
           type: "case_learning_note",
           at: new Date().toISOString(),
-          note: `${candidate.artifact_label || "学习"}候选已批准进业务脑 ${versionText}${docsText}。`,
+          note: `${candidate.artifact_label || "学习"}已保存到业务脑 ${versionText}${docsText}。`,
         });
-        addAuditEvent("case_learning_note", `${customerDisplayLabel(state.active) || "顾客"}：已批准进业务脑 ${versionText}`);
-        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：已批准进业务脑 ${versionText}${docsText}；approval-first 不变。`;
+        addAuditEvent("case_learning_note", `${customerDisplayLabel(state.active) || "顾客"}：回复框架已保存 ${versionText}`);
+        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：回复框架已保存 ${versionText}${docsText}；approval-first 不变。`;
         await Promise.all([
           loadOwnerAdminSummaries(adminTokenEl.value.trim()),
           loadProjectKnowledge({ silent: true })
         ]);
-        showToast(`已批准进业务脑 ${versionText}${docsText}。`);
+        showToast(`回复框架已保存 ${versionText}${docsText}。`);
         render();
         return result;
       } catch (error) {
-        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：批准失败\n原因：${error.message || error}`;
-        alert(`批准学习候选失败：${error.message || error}`);
+        $("caseOptimizerOutput").textContent = `${draft}\n\n记录状态：保存失败\n原因：${error.message || error}`;
+        alert(`保存回复框架失败：${error.message || error}`);
         return null;
       } finally {
         setPanelBusy(false);
@@ -25125,6 +25234,7 @@
       $("learnBtn").disabled = isBusy || readOnly;
 	      $("caseOptimizerDraftBtn").disabled = isBusy;
 	      $("caseOptimizerRecordBtn").disabled = isBusy;
+	      $("caseOptimizerApplyBtn").disabled = isBusy;
 	      $("markPurchaseBtn").disabled = isBusy || !showPurchasePanel || purchaseActionComplete;
 	      const conversationLocked = readOnly && !canManualSend;
 	      $("applyQuickReplyBtn").disabled = isBusy || conversationLocked;
