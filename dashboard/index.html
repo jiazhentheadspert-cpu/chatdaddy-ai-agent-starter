@@ -8454,6 +8454,7 @@
       inboxHasMore: false,
       inboxSearchTimer: null,
       inboxRequestSeq: 0,
+      queueRequestSeq: 0,
       inboxLoading: false,
       inboxLoadingMore: false,
       inboxError: "",
@@ -8914,8 +8915,8 @@
       state.metaCapiStatus = null;
       state.flowCatalog = [];
       state.flowCatalogLoaded = false;
-      loadCases();
-      loadInboxConversations();
+      if (state.workspaceView === "inbox") loadInboxConversations();
+      else loadCases();
       Promise.all([
         loadProjectKnowledge(),
         loadProjectConnectionReadiness(),
@@ -10020,6 +10021,8 @@
       render();
       if (state.workspaceView === "inbox" && !state.demoMode && !state.inboxLoading && !state.inboxConversations.length) {
         loadInboxConversations({ silent: true }).catch(() => null);
+      } else if (state.workspaceView === "cases" && !state.demoMode && !state.loading && !state.cases.length) {
+        loadCases({ silent: true }).catch(() => null);
       }
     }
 
@@ -11219,11 +11222,85 @@
       return items.map(realtimeCaseFingerprint).join("\n");
     }
 
+    const DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS = 12000;
+    const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 2;
+
+    function dashboardQueueSnapshotKey(project = "") {
+      return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
+    }
+
+    function readDashboardQueueSnapshot(project = "", qaMode = false) {
+      try {
+        const raw = sessionStorage.getItem(dashboardQueueSnapshotKey(project));
+        if (!raw) return null;
+        const snapshot = JSON.parse(raw);
+        const savedAt = new Date(snapshot?.saved_at || "").getTime();
+        if (!Number.isFinite(savedAt) || Date.now() - savedAt > DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS) {
+          sessionStorage.removeItem(dashboardQueueSnapshotKey(project));
+          return null;
+        }
+        const items = Array.isArray(snapshot?.items)
+          ? snapshot.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
+          : [];
+        return items.length ? { ...snapshot, items } : null;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function restoreDashboardQueueSnapshot(project = "", qaMode = false) {
+      if (state.cases.length) return false;
+      const snapshot = readDashboardQueueSnapshot(project, qaMode);
+      if (!snapshot) return false;
+      const compactItems = compactApprovalsByConversation(snapshot.items);
+      state.demoMode = false;
+      state.loading = false;
+      state.refreshing = true;
+      state.queueSyncStatus = snapshot.sync_status || null;
+      state.cases = compactItems.map((item) => approvalToCase(item, state.contactNames || {}));
+      state.selected.clear();
+      state.loadingMessage = "正在后台同步最新顾客讯息。";
+      $("modeTag").textContent = "同步中";
+      render();
+      return true;
+    }
+
+    function saveDashboardQueueSnapshot(project = "", items = [], syncStatus = null) {
+      if (!Array.isArray(items)) return;
+      try {
+        sessionStorage.setItem(dashboardQueueSnapshotKey(project), JSON.stringify({
+          version: DASHBOARD_QUEUE_SNAPSHOT_VERSION,
+          saved_at: new Date().toISOString(),
+          sync_status: syncStatus || null,
+          items,
+        }));
+      } catch (_error) {
+        // A full browser storage area must never block the live queue.
+      }
+    }
+
+    async function fetchDashboardQueueWithTimeout(url, options = {}) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          throw new Error("服务器同步超过 12 秒，已停止等待并保留上次资料");
+        }
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     async function loadCases(options = {}) {
       errorEl.textContent = "";
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
       const token = adminTokenEl.value.trim();
+      const requestSeq = ++state.queueRequestSeq;
       const hasAuth = Boolean(token || hasAccountSession());
 
       if (!api || !hasAuth) {
@@ -11245,7 +11322,8 @@
 
 	      try {
 	        const qaMode = canUseQaMode();
-	        if (!options.silent) setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
+          const restoredSnapshot = !options.silent && restoreDashboardQueueSnapshot(project, qaMode);
+	        if (!options.silent && !restoredSnapshot) setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
 	        const visibility = dashboardApprovalVisibilityParams();
         const searchQuery = String(state.query || "").trim();
         const requestedQueueStatus = dashboardQueueStatusParam(searchQuery);
@@ -11254,16 +11332,18 @@
           status: requestedQueueStatus,
           include_tests: visibility.includeTests ? "1" : "0",
           real_only: visibility.realOnly ? "1" : "0",
-          compact_conversations: requestedQueueStatus === "all" ? "0" : "1",
+          compact_conversations: "1",
+          summary_only: "1",
           limit: searchQuery ? "120" : "250",
-          scan_limit: searchQuery ? "2000" : "1000",
+          scan_limit: searchQuery ? "1200" : "600",
         });
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
 	        const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
-	        let res = await fetch(approvalUrl, authRequestOptions(token));
+	        let res = await fetchDashboardQueueWithTimeout(approvalUrl, authRequestOptions(token));
 	        const data = await res.json();
 	        if (res.status === 401 && state.role === "staff" && redirectToUnifiedLogin({ clearSession: true })) return;
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        if (requestSeq !== state.queueRequestSeq) return;
         state.demoMode = false;
         state.loading = false;
         state.refreshing = false;
@@ -11277,6 +11357,7 @@
 	          ? data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
 	          : [];
 	        const compactLiveItems = compactApprovalsByConversation(liveItems);
+	        if (!searchQuery) saveDashboardQueueSnapshot(project, liveItems, data.sync_status || null);
 	        const knownContactNames = options.silent ? (state.contactNames || {}) : {};
 	        if (!options.silent) state.contactNames = {};
 	        state.cases = compactLiveItems.map((item) => approvalToCase(item, knownContactNames));
@@ -11303,6 +11384,7 @@
 	        }
 
 	        if (!options.silent) loadContactNameMap(compactLiveItems, token).then((contactNames) => {
+          if (requestSeq !== state.queueRequestSeq) return;
           if (!contactNames || !Object.keys(contactNames).length) return;
           state.contactNames = contactNames;
           state.cases = compactLiveItems.map((item) => approvalToCase(item, contactNames));
@@ -11332,6 +11414,7 @@
           loadUsageSummary(token).catch(() => null);
         }
       } catch (error) {
+        if (requestSeq !== state.queueRequestSeq) return;
         const message = `同步失败：${error.message}`;
         if (state.cases.length) {
           state.loading = false;
@@ -11385,10 +11468,10 @@
         // Keep the staff Inbox broad enough that a broadcast burst cannot hide
         // ordinary live conversations from the default view. Pagination keeps
         // the same lookup usable when the project grows beyond this page.
-        const params = new URLSearchParams({ limit: "300", scan_limit: "600", offset: String(requestedOffset) });
+        const params = new URLSearchParams({ limit: "60", scan_limit: query ? "600" : "180", offset: String(requestedOffset) });
         if (query) params.set("q", query);
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${params.toString()}`;
-        const liveParams = new URLSearchParams({ project_key: project, page: "0", count: "100" });
+        const liveParams = new URLSearchParams({ project_key: project, page: "0", count: "50" });
         if (query) liveParams.set("q", query);
         const liveEndpoint = `${api}/api/channels/chatdaddy/inbox?${liveParams.toString()}`;
         const [res, liveRes] = await Promise.all([
@@ -11467,15 +11550,19 @@
 	}
 
 	function refreshRealtimeNow() {
-	  refreshQueueRealtime().catch(() => null);
-	  refreshInboxRealtime().catch(() => null);
+	  if (state.workspaceView === "inbox") refreshInboxRealtime().catch(() => null);
+	  else refreshQueueRealtime().catch(() => null);
 	}
 
 	function startQueueAutoRefresh() {
 	  if (state.queueAutoRefreshTimer) clearInterval(state.queueAutoRefreshTimer);
 	  if (state.inboxAutoRefreshTimer) clearInterval(state.inboxAutoRefreshTimer);
-	  state.queueAutoRefreshTimer = setInterval(() => refreshQueueRealtime().catch(() => null), REALTIME_QUEUE_POLL_MS);
-	  state.inboxAutoRefreshTimer = setInterval(() => refreshInboxRealtime().catch(() => null), REALTIME_INBOX_POLL_MS);
+	  state.queueAutoRefreshTimer = setInterval(() => {
+	    if (state.workspaceView !== "inbox") refreshQueueRealtime().catch(() => null);
+	  }, REALTIME_QUEUE_POLL_MS);
+	  state.inboxAutoRefreshTimer = setInterval(() => {
+	    if (state.workspaceView === "inbox") refreshInboxRealtime().catch(() => null);
+	  }, REALTIME_INBOX_POLL_MS);
 	}
 
     function dashboardQueueStatusForFilter(rawFilter = state.filter, role = state.role) {
@@ -18375,6 +18462,10 @@
       const item = (state.visibleCases || []).find((record) => String(record.id || "") === id)
         || state.cases.find((record) => String(record.id || "") === id);
       if (!item) {
+        loadCaseDetailAndOpen(id);
+        return;
+      }
+      if (item.raw_approval?.list_summary === true && options.allowSummary !== true) {
         loadCaseDetailAndOpen(id);
         return;
       }
@@ -25666,8 +25757,16 @@
 	(async function bootDashboard() {
 	  const sessionReady = await bootstrapSaasSession();
 	  if (!sessionReady && apiUrlEl.value.trim()) return;
-	  await Promise.all([loadCases(), loadInboxConversations(), loadFlowCatalog(), loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness(), loadMetaCapiStatus(), syncCurrentProjectAvatarFromChannel({ silent: true })]);
+	  if (state.workspaceView === "inbox") await loadInboxConversations();
+	  else await loadCases();
 	  startQueueAutoRefresh();
+	  Promise.allSettled([
+	    loadFlowCatalog(),
+	    loadProjectKnowledge({ silent: true }),
+	    loadProjectConnectionReadiness(),
+	    loadMetaCapiStatus(),
+	    syncCurrentProjectAvatarFromChannel({ silent: true })
+	  ]).then(() => render());
 	})();
   </script>
 </body>
