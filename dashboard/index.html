@@ -12168,14 +12168,14 @@
     function approvalStatus(item) {
 		      if (item.status === "purchase_confirmed") return "purchase_confirmed";
 		      if (item.status === "manual_resolved") return "manual_resolved";
+		      if (item.status === "auto_sent") return "auto_sent";
 		      if (item.status === "rejected") return isReturnedToAiApproval(item) ? "returned_to_ai" : "handoff_done";
       if (item.status === "sending") return "sending";
-      if (isExternalFlowRecord(item)) return "external_flow_continued";
+      if (isVerifiedAutoFlowCase(item)) return "external_flow_continued";
       if (item.status === "sent" && (item.auto_reply || item.category === "auto" || item.decision?.delivery?.mode === "auto_send" || item.approved_by === "agent_auto_send")) return "auto_sent";
       if (item.status === "sent") return "sent";
       if (item.status === "send_failed") return "send_failed";
-      if (item.status === "auto_record" || item.category === "auto") return "external_flow_continued";
-      if (dashboardIsStepOneKeywordLeadApproval(item)) return "external_flow_continued";
+      if (item.status === "auto_record" || item.status === "context_only" || item.category === "context") return "context_only";
       if (dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item)) return "human_required";
       if (item.category === "handoff" || item.category === "human") return "human_required";
       if (item.category === "ops" || item.category === "order") {
@@ -12230,7 +12230,7 @@
     }
 
     function isExternalFlowRecord(item = {}) {
-      return item.status === "external_flow_continued" || isExternalFlowProgressedApproval(item);
+      return isVerifiedAutoFlowCase(item);
     }
 
     function dashboardApprovalCustomerText(item = {}) {
@@ -12271,6 +12271,75 @@
         rawSignals.customer_text,
         rawSignals.inbound_text
       );
+    }
+
+    function dashboardCaseData(item = {}) {
+      const raw = item.raw_approval || {};
+      if (raw.data && typeof raw.data === "object") return raw.data;
+      if (item.data && typeof item.data === "object") return item.data;
+      return {};
+    }
+
+    function dashboardHasExplicitButtonOrFlowEvidence(item = {}) {
+      if (item.verified_auto_flow === true || item.explicit_button_event === true) return true;
+      const data = dashboardCaseData(item);
+      const normalized = data.normalized || {};
+      const metadata = normalized.metadata || {};
+      const scoped = data.scoped_auto_flow || data.auto_flow || {};
+      const evidence = data.external_flow_evidence || {};
+      const decision = item.decision || data.decision || {};
+      const delivery = decision.delivery || data.delivery || {};
+      const action = item.action || data.action || {};
+      const eventText = [
+        item.event_type,
+        normalized.event_type,
+        metadata.raw_event_type,
+        evidence.provider_event_type,
+      ].filter(Boolean).join(" ");
+      const buttonEvent = Boolean(
+        item.button_text ||
+        normalized.button_text ||
+        metadata.button_text ||
+        evidence.button_text
+      ) || /(button_click|interactive|quick_reply|list_reply|postback)/i.test(eventText);
+      const sentFlow = Boolean(
+        scoped.sent === true && (scoped.provider_flow_id || scoped.provider_bot_id || scoped.flow_key)
+      ) || Boolean(
+        delivery.sent === true && (delivery.provider_flow_id || delivery.flow_id || delivery.flow_key)
+      ) || Boolean(
+        action.sent === true && (action.provider_flow_id || action.flow_id || action.flow_key)
+      );
+      return buttonEvent || sentFlow;
+    }
+
+    function dashboardCustomerAskedActiveQuestion(item = {}) {
+      if (item.customer_active_question === true) return true;
+      const text = dashboardApprovalCustomerText(item).trim();
+      if (!text) return false;
+      return /[?？]|(?:吗|嗎|怎样|怎樣|怎么|怎麼|为什么|為什麼|多久|几|幾|多少|可以|能不能|有没有|有沒有|是不是|哪里|哪裡|what|why|how|when|where|can\s+i|could\s+i)/i.test(text);
+    }
+
+    function isVerifiedAutoFlowCase(item = {}) {
+      const flowStatus = item.status === "external_flow_continued" || item.verified_auto_flow === true;
+      return flowStatus && dashboardHasExplicitButtonOrFlowEvidence(item) && !dashboardCustomerAskedActiveQuestion(item);
+    }
+
+    function isAiHandledCase(item = {}) {
+      return item.status === "auto_sent" || Boolean(
+        item.status === "sent" && (
+          item.auto_reply ||
+          item.decision?.delivery?.mode === "auto_send" ||
+          item.approved_by === "agent_auto_send"
+        )
+      );
+    }
+
+    function staffBusinessCategory(item = {}) {
+      if (isAiHandledCase(item)) return "records";
+      if (isVerifiedAutoFlowCase(item)) return "auto";
+      if (isHumanFirstCase(item)) return "human_first";
+      if (item.status === "approval_required" || needsReturnAiBeforeApproval(item)) return "approval_required";
+      return "other";
     }
 
     function dashboardCompactLeadText(text = "") {
@@ -12854,15 +12923,22 @@
       state.workspaceView = "cases";
       state.sidebarKey = "ai_reply";
       state.activeSetupStep = "4";
-      state.filter = needsAttention ? "needs_attention" : "records";
-      render();
       const existing = state.cases.find((record) => String(record.id || "") === id);
+      const category = existing ? staffBusinessCategory(existing) : "";
+      state.filter = category === "human_first"
+        ? "human_first"
+        : category === "auto"
+          ? "auto"
+          : category === "records"
+            ? "records"
+            : "approval_required";
+      render();
       if (existing) openCase(id);
       else loadCaseDetailAndOpen(id);
     }
 
     function shouldUseStaffCaseSections() {
-      return state.role === "staff" && ["all", "needs_attention", "human_first", "auto", "records"].includes(state.filter);
+      return state.role === "staff" && ["all", "needs_attention", "approval_required", "human_first", "auto", "records"].includes(state.filter);
     }
 
     function caseActivityTimestamp(item = {}) {
@@ -12958,12 +13034,24 @@
     }
 
     function staffAutoDoneCase(item = {}) {
-      return ["auto", "auto_sent", "external_flow_continued"].includes(item.status);
+      return staffBusinessCategory(item) === "auto";
+    }
+
+    function staffAiHandledCase(item = {}) {
+      return staffBusinessCategory(item) === "records";
     }
 
     function staffCaseSectionsHtml(visible = [], counts = {}) {
       if (!visible.length) return emptyHtml();
       const filter = state.filter;
+      if (filter === "approval_required") {
+        return staffCaseSectionHtml({
+          title: "待批准",
+          body: "检查 AI 草稿后发送；未学过、需重写或不够确定的回复都会留在这里。",
+          items: visible,
+          emptyText: "当前没有等待批准的回复。",
+        });
+      }
       if (filter === "needs_attention") {
         return staffCaseSectionHtml({
           title: "全部要处理",
@@ -12980,24 +13068,25 @@
       }
       if (filter === "auto") {
         return staffCaseSectionHtml({
-          title: "自动 Flow / 不用处理",
-          body: "顾客点按钮后由自动 Flow 继续；这里只读留档，不进入客服待处理。",
+          title: "自动 Flow",
+          body: "只显示顾客点过按钮或已执行 Flow，而且没有主动提问的 Case。这里只读，不用客服处理。",
           items: visible,
           emptyText: "当前范围没有自动 Flow 记录。",
         });
       }
       if (filter === "records") {
         return staffCaseSectionHtml({
-          title: "处理记录 / 已处理",
-          body: "已发送、已转人工回复、已成交或失败记录，只用于追踪和复盘。",
+          title: "AI 处理记录",
+          body: "只显示 AI 已经自动回复并成功处理的 Case，方便检查回复质量和复盘。",
           items: visible,
-          emptyText: "当前范围没有处理记录。",
+          emptyText: "当前范围没有 AI 自动处理记录。",
         });
       }
 
       const needs = visible.filter(staffNeedsAttentionCase);
       const auto = visible.filter(staffAutoDoneCase);
-      const others = visible.filter((item) => !staffNeedsAttentionCase(item) && !staffAutoDoneCase(item));
+      const aiHandled = visible.filter(staffAiHandledCase);
+      const others = visible.filter((item) => !staffNeedsAttentionCase(item) && !staffAutoDoneCase(item) && !staffAiHandledCase(item));
       const sections = [];
       if (needs.length) {
         sections.push(staffCaseSectionHtml({
@@ -13009,10 +13098,18 @@
       }
       if (auto.length) {
         sections.push(staffCaseSectionHtml({
-          title: "自动 Flow / 不用处理",
-          body: "顾客点按钮后已由自动 Flow 继续，不再卡住客服队列。",
+          title: "自动 Flow",
+          body: "顾客点按钮后已由 Flow 继续，并且没有主动提问。",
           items: auto,
           countLabel: `${auto.length} 位 · ${Number(counts.auto || auto.length)} 条`,
+        }));
+      }
+      if (aiHandled.length) {
+        sections.push(staffCaseSectionHtml({
+          title: "AI 处理记录",
+          body: "AI 已自动回复成功，只读留档供复盘。",
+          items: aiHandled,
+          countLabel: `${aiHandled.length} 位 · ${Number(counts.records || aiHandled.length)} 条`,
         }));
       }
       if (others.length) {
@@ -13185,7 +13282,7 @@
         pending_manual_reply: ["待补回复", counts.pendingManualReplies],
         order: ["订单/付款", counts.orders],
         auto: ["自动 Flow", counts.auto],
-        records: ["处理记录", counts.records],
+        records: ["AI 处理记录", counts.records],
       };
       document.querySelectorAll("[data-filter]").forEach((button) => {
         const [label, value] = labels[button.dataset.filter] || [button.textContent || "", ""];
@@ -13370,15 +13467,15 @@
 
     function filterCases(cases, filter) {
       if (filter === "all") return cases;
-      if (filter === "auto") return cases.filter((item) => ["auto", "auto_sent", "external_flow_continued"].includes(item.status));
-      if (filter === "records") return cases.filter((item) => ["auto_sent", "external_flow_continued", "sent", "handoff_done", "returned_to_ai", "manual_resolved", "send_failed", "purchase_confirmed"].includes(item.status));
-      if (filter === "human_first") return cases.filter(isHumanFirstCase);
+      if (filter === "auto") return cases.filter((item) => staffBusinessCategory(item) === "auto");
+      if (filter === "records") return cases.filter((item) => staffBusinessCategory(item) === "records");
+      if (filter === "human_first") return cases.filter((item) => staffBusinessCategory(item) === "human_first");
       if (filter === "human_required") return cases.filter(isOpenHumanCase);
       if (filter === "return_ai") return cases.filter(needsReturnAiBeforeApproval);
-      if (filter === "approval_required") return cases.filter(isApprovalReadyCase);
+      if (filter === "approval_required") return cases.filter((item) => staffBusinessCategory(item) === "approval_required");
       if (filter === "pending_manual_reply") return cases.filter(needsManualReplyAfterHandoff);
       if (filter === "needs_attention") {
-        return cases.filter((item) => ["approval_required", "human_required", "order", "send_failed"].includes(item.status) || needsManualReplyAfterHandoff(item));
+        return cases.filter((item) => ["approval_required", "human_first"].includes(staffBusinessCategory(item)));
       }
       return cases.filter((item) => item.status === filter);
     }
@@ -13449,7 +13546,7 @@
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新" : "名字";
       const qaText = "";
       const staffGuide = state.role === "staff"
-        ? ` · 待批准 ${counts.approval || 0}，人工回复 ${Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0)}，自动 Flow ${counts.auto || 0}`
+        ? ` · 待批准 ${counts.approval || 0}，人工回复 ${Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0)}，自动 Flow ${counts.auto || 0}，AI 处理 ${counts.records || 0}`
         : "";
       const realtimeText = state.role === "staff" ? " · 实时同步 ≤5秒" : "";
       const refreshText = state.refreshing ? " · 正在同步" : "";
@@ -13489,8 +13586,15 @@
         {
           action: "auto_records",
           title: "自动 Flow",
-          body: "顾客点按钮后自动走，不用处理",
+          body: "顾客点按钮且没提问，只读",
           count: Number(counts.auto || 0),
+          tone: "good",
+        },
+        {
+          action: "ai_records",
+          title: "AI 处理记录",
+          body: "AI 已自动回复，只读复盘",
+          count: Number(counts.records || 0),
           tone: "good",
         },
       ];
@@ -13668,7 +13772,12 @@
       }
       if (action === "auto_records") {
         setFilter("auto");
-        showToast("自动记录只读：已继续的 Flow 不要重复批准。");
+        showToast("自动 Flow 只读：顾客点过按钮且没有主动提问。");
+        return;
+      }
+      if (action === "ai_records") {
+        setFilter("records");
+        showToast("AI 处理记录只显示已经自动回复成功的 Case。");
       }
     }
 
@@ -14308,6 +14417,9 @@
           const proofText = Array.isArray(salesProcess.post_price_policy?.proof) ? salesProcess.post_price_policy.proof.join("\n") : "";
           const ctaText = String(salesProcess.post_price_policy?.cta || "");
           const urgencyText = Array.isArray(salesProcess.post_price_policy?.urgency) ? salesProcess.post_price_policy.urgency.join("\n") : "";
+          const postPriceRepeatMode = salesProcess.post_price_policy?.cadence?.new_objection_can_soft_cta_after_cooldown === true
+            ? "gentle_retry_after_3"
+            : "answer_only";
           const offer = Array.isArray(salesProcess.post_price_policy?.offers)
             ? salesProcess.post_price_policy.offers.find((item) => item && typeof item === "object") || {}
             : {};
@@ -14358,6 +14470,7 @@
                   <label>顾客提前问价格<select id="salesEarlyPricePolicyInput"><option value="answer_now_and_enter_closer" ${salesProcess.early_price_policy !== "bridge_then_continue_flow" ? "selected" : ""}>直接回答，并进入成交阶段</option><option value="bridge_then_continue_flow" ${salesProcess.early_price_policy === "bridge_then_continue_flow" ? "selected" : ""}>回答后继续原本的介绍流程</option></select></label>
                   <label>价格后的信任素材（每行一项）<textarea id="salesPostPriceProofInput">${escapeHtml(proofText)}</textarea></label>
                   <label>价格后的成交邀请<input id="salesPostPriceCtaInput" value="${escapeHtml(ctaText)}" placeholder="例如：你想先从哪个配套开始？"></label>
+                  <label>顾客继续追问时<select id="salesPostPriceRepeatModeInput"><option value="answer_only" ${postPriceRepeatMode === "answer_only" ? "selected" : ""}>只回答新问题，不重复信任、优惠和成交邀请（推荐）</option><option value="gentle_retry_after_3" ${postPriceRepeatMode === "gentle_retry_after_3" ? "selected" : ""}>至少 3 次顾客回复后，遇到新异议可轻推一次</option></select></label>
                   <label>优惠期限说明（每行一项）<textarea id="salesPostPriceUrgencyInput">${escapeHtml(urgencyText)}</textarea></label>
                   <label>优惠名称<input id="salesOfferTitleInput" value="${escapeHtml(offer.title || offer.name || "")}" placeholder="例如：7月买3送1"></label>
                   <label>优惠截止时间<input id="salesOfferValidUntilInput" type="datetime-local" value="${escapeHtml(dateTimeLocalValue(offer.valid_until || offer.ends_at || ""))}"></label>
@@ -17243,16 +17356,16 @@
     }
 
     function countCases(cases) {
-      const approvalTotal = cases.filter((item) => item.status === "approval_required").length;
-      const approval = cases.filter(isApprovalReadyCase).length;
+      const approval = cases.filter((item) => staffBusinessCategory(item) === "approval_required").length;
+      const approvalTotal = approval;
       const returnAi = cases.filter(needsReturnAiBeforeApproval).length;
       const humanOpen = cases.filter(isOpenHumanCase).length;
       const handoffDone = cases.filter((item) => item.status === "handoff_done").length;
       const pendingManualReplies = cases.filter(needsManualReplyAfterHandoff).length;
       const human = humanOpen;
       const orders = cases.filter((item) => item.status === "order").length;
-      const auto = cases.filter((item) => ["auto", "auto_sent", "external_flow_continued"].includes(item.status)).length;
-      const records = cases.filter((item) => ["auto_sent", "external_flow_continued", "sent", "handoff_done", "returned_to_ai", "manual_resolved", "send_failed", "purchase_confirmed"].includes(item.status)).length;
+      const auto = cases.filter((item) => staffBusinessCategory(item) === "auto").length;
+      const records = cases.filter((item) => staffBusinessCategory(item) === "records").length;
       const failed = cases.filter((item) => item.status === "send_failed").length;
       return {
         total: cases.length,
@@ -17266,7 +17379,7 @@
         failed,
         handoffDone,
         pendingManualReplies,
-        needs: approval + returnAi + humanOpen + pendingManualReplies + orders + failed,
+        needs: approval + cases.filter((item) => staffBusinessCategory(item) === "human_first").length,
       };
     }
 
@@ -17311,12 +17424,12 @@
           body: "检查资料和付款，确认后再提交或交给运营。",
         },
         auto: {
-          title: `${counts.auto} 条自动回复记录`,
-          body: "AI 已回复或外部流程已继续的记录放这里；只读，不会重复发送。",
+          title: `${counts.auto} 条自动 Flow 记录`,
+          body: "只显示顾客点过按钮或 Flow 已执行，而且没有主动提问的 Case。只读，不会重复发送。",
         },
         records: {
-          title: `${counts.records || 0} 条处理记录`,
-          body: "只看已发送、已自动回复、已转人工回复、已成交和失败记录。",
+          title: `${counts.records || 0} 条 AI 处理记录`,
+          body: "只显示 AI 已经自动回复成功的 Case，方便检查回复质量。",
         },
       };
       return views[filter] || views.all;
@@ -18990,6 +19103,7 @@
         if (!currentRes.ok || !current.ok) throw new Error(current.message || current.error || `HTTP ${currentRes.status}`);
         const projectPackage = current.project_package || {};
         const existingPolicy = projectPackage.sales_process?.post_price_policy || {};
+        const postPriceRepeatMode = String($("salesPostPriceRepeatModeInput")?.value || "answer_only");
         const offerTitle = String($("salesOfferTitleInput")?.value || "").trim();
         const offerValidUntil = String($("salesOfferValidUntilInput")?.value || "").trim();
         const offerSource = String($("salesOfferSourceInput")?.value || "").trim();
@@ -19017,11 +19131,13 @@
             offers,
             urgency: String($("salesPostPriceUrgencyInput")?.value || "").split(/\n+/).map((value) => value.trim()).filter(Boolean),
             cadence: {
+              ...(existingPolicy.cadence && typeof existingPolicy.cadence === "object" ? existingPolicy.cadence : {}),
               first_question: "answer_with_one_relevant_proof_and_soft_cta",
               continued_questions: "answer_only",
               soft_cta_min_customer_turns_since_last_cta: 3,
               max_cta_per_funnel: 3,
               proof_reuse_cooldown_turns: 3,
+              new_objection_can_soft_cta_after_cooldown: postPriceRepeatMode === "gentle_retry_after_3",
               strong_buying_signal_can_cta_immediately: true,
               stop_signals_pause_automation: true,
             },
