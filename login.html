@@ -469,11 +469,7 @@
         localStorage.removeItem("agent_staff_token");
         setMessage("登录成功，正在进入工作台…", "success");
 
-        const next = new URLSearchParams({
-          api: apiUrl,
-          project_key: session.projectKey,
-          role
-        });
+        const next = new URLSearchParams({ project_key: session.projectKey });
         const returnToDashboard = params.get("return_to") === "dashboard";
         if (role === "staff" || returnToDashboard) {
           next.set("view", role === "staff" ? "inbox" : (params.get("view") || "operations"));

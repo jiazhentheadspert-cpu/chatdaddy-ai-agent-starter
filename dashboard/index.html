@@ -8527,6 +8527,8 @@
       googleDocsFaqBusy: false,
       googleDocsFaqRetryBusy: false,
     };
+    const CANONICAL_API_URL = "https://ctg-chatdaddy-hermas-agents-runtime.jiazhen-theadspert.workers.dev";
+    const IS_LOCAL_PREVIEW = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
     const DEFAULT_SETTINGS = {
       brandVoice: "请填写这个项目希望 AI 使用的语气、语言和称呼方式。",
@@ -8842,7 +8844,9 @@
 	    const params = new URLSearchParams(window.location.search);
 	    const hashParams = new URLSearchParams(String(window.location.hash || "").replace(/^#/, ""));
 	    state.session = readSession();
-    state.role = params.get("role") || state.session.role || "owner";
+    state.role = IS_LOCAL_PREVIEW
+      ? (params.get("role") || state.session.role || "owner")
+      : (state.session.role || "staff");
     document.body.classList.toggle("staff-mode", state.role === "staff");
     document.body.dataset.role = state.role;
     const mobileStaffViewport = window.matchMedia("(max-width: 820px)").matches;
@@ -8878,8 +8882,12 @@
     state.queueDateScope = state.role === "staff" && !requestedDate ? "open_backlog" : "date";
     syncDateControls();
 
-    const requestedApiUrl = params.get("api") || "";
-    apiUrlEl.value = requestedApiUrl || state.session.apiUrl || localStorage.getItem("agent_api_url") || "";
+    const requestedApiUrl = IS_LOCAL_PREVIEW ? (params.get("api") || "") : "";
+    apiUrlEl.value = IS_LOCAL_PREVIEW
+      ? (requestedApiUrl || state.session.apiUrl || localStorage.getItem("agent_api_url") || "")
+      : CANONICAL_API_URL;
+    if (!IS_LOCAL_PREVIEW) apiUrlEl.readOnly = true;
+    localStorage.setItem("agent_api_url", apiUrlEl.value.trim());
     projectKeyEl.value = params.get("project_key")
       || state.session.projectKey
       || localStorage.getItem("agent_project_key")
@@ -8893,6 +8901,7 @@
     applySessionShell();
 
     $("saveAndLoad").addEventListener("click", () => {
+      if (!IS_LOCAL_PREVIEW) apiUrlEl.value = CANONICAL_API_URL;
       localStorage.setItem("agent_api_url", apiUrlEl.value.trim());
       localStorage.setItem("agent_project_key", projectKeyEl.value.trim());
       localStorage.removeItem("agent_staff_token");

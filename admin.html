@@ -493,6 +493,8 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
+    const CANONICAL_API_URL = "https://ctg-chatdaddy-hermas-agents-runtime.jiazhen-theadspert.workers.dev";
+    const IS_LOCAL_PREVIEW = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
     const state = {
       api: "",
       user: null,
@@ -634,7 +636,11 @@
     }
 
     async function loadSession() {
-      state.api = normalizeApiUrl($("apiUrl").value || localStorage.getItem("agent_api_url"));
+      state.api = normalizeApiUrl(
+        IS_LOCAL_PREVIEW
+          ? ($("apiUrl").value || localStorage.getItem("agent_api_url"))
+          : CANONICAL_API_URL
+      );
       $("apiUrl").value = state.api;
       if (!state.api) {
         setNotice("请填写系统网址，再用管理员账号登录。", "bad");
@@ -761,13 +767,20 @@
     $("usersTable").addEventListener("click", (event) => handleUserAction(event).catch((error) => toast(error.message)));
     $("projectSelect").addEventListener("change", () => loadAdminData().catch((error) => setNotice(error.message, "bad")));
     $("openDashboardBtn").addEventListener("click", () => {
-      const params = new URLSearchParams({ role: "admin", project_key: projectKey() });
-      if (state.api) params.set("api", state.api);
+      const params = new URLSearchParams({ project_key: projectKey() });
+      if (IS_LOCAL_PREVIEW) {
+        params.set("role", "admin");
+        if (state.api) params.set("api", state.api);
+      }
       window.location.href = `dashboard/index.html?${params.toString()}`;
     });
     $("logoutBtn").addEventListener("click", logout);
 
-    $("apiUrl").value = new URLSearchParams(window.location.search).get("api") || localStorage.getItem("agent_api_url") || "";
+    $("apiUrl").value = IS_LOCAL_PREVIEW
+      ? (new URLSearchParams(window.location.search).get("api") || localStorage.getItem("agent_api_url") || "")
+      : CANONICAL_API_URL;
+    if (!IS_LOCAL_PREVIEW) $("apiUrl").readOnly = true;
+    localStorage.setItem("agent_api_url", $("apiUrl").value);
     loadAdminData().catch((error) => setNotice(error.message, "bad"));
   </script>
 </body>
