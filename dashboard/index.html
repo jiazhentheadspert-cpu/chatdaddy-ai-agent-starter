@@ -10189,29 +10189,51 @@
     function isoDateFromValue(value) {
       const text = String(value || "").trim();
       if (!text) return "";
-      const iso = text.match(/\b(\d{4}-\d{2}-\d{2})\b/);
-      if (iso) return iso[1];
-      const slash = text.match(/\b(\d{4})\/(\d{1,2})\/(\d{1,2})\b/);
+      // Preserve an explicit date-only value, but convert real timestamps to
+      // the operator's local date. Taking the YYYY-MM-DD substring from a UTC
+      // timestamp assigns events between 00:00 and 07:59 Malaysia time to the
+      // previous day.
+      if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+      const local = localDateIso(text);
+      if (local) return local;
+      const slash = text.match(/^\s*(\d{4})\/(\d{1,2})\/(\d{1,2})\s*$/);
       if (slash) {
         const [, year, month, day] = slash;
         return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       }
-      return localDateIso(text);
+      const iso = text.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+      return iso ? iso[1] : "";
     }
 
     function caseDateKey(item = {}) {
-      const raw = [
+      const historicalRecord = ["auto", "records"].includes(staffBusinessCategory(item))
+        || ["auto_sent", "external_flow_continued"].includes(String(item.status || "").toLowerCase());
+      const recordTimes = [
+        item.updated_at,
+        item.approved_at,
+        item.raw_approval?.updated_at,
+        item.raw_approval?.approved_at,
+        item.created_at,
+        item.raw_approval?.created_at,
         item.last_message_at,
+        item.raw_approval?.inbound?.message_at,
+        item.latest_decision?.updated_at,
+        item.latest_decision?.created_at,
+      ];
+      const conversationTimes = [
+        item.last_message_at,
+        item.raw_approval?.inbound?.message_at,
         item.updated_at,
         item.created_at,
         item.approved_at,
-        item.raw_approval?.inbound?.message_at,
         item.raw_approval?.updated_at,
         item.raw_approval?.created_at,
         item.raw_approval?.approved_at,
         item.latest_decision?.created_at,
         item.latest_decision?.updated_at,
-      ].find((value) => String(value || "").trim());
+      ];
+      const raw = (historicalRecord ? recordTimes : conversationTimes)
+        .find((value) => String(value || "").trim());
       return isoDateFromValue(raw) || todayISO;
     }
 
@@ -11395,7 +11417,7 @@
           compact_conversations: "1",
           summary_only: "1",
           limit: searchQuery ? "120" : "250",
-          scan_limit: searchQuery ? "1200" : "600",
+          scan_limit: "2000",
         });
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
 	        const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
@@ -13165,12 +13187,22 @@
       return Boolean(staffCaseCollapseKey(item));
     }
 
+    function staffCaseCollapseBucket(item = {}) {
+      const category = staffBusinessCategory(item);
+      if (["approval_required", "human_first"].includes(category)) return "needs_attention";
+      if (category === "auto") return "auto_flow";
+      if (category === "records") return "ai_records";
+      return `other:${category || String(item.status || "unknown")}`;
+    }
+
     function collapseStaffActionableCasesByCustomer(cases = []) {
       if (!Array.isArray(cases) || state.role !== "staff") return cases;
       const grouped = new Map();
       const passthrough = [];
       cases.forEach((item, index) => {
-        const key = shouldCollapseStaffCase(item) ? staffCaseCollapseKey(item) : "";
+        const key = shouldCollapseStaffCase(item)
+          ? `${staffCaseCollapseKey(item)}|${staffCaseCollapseBucket(item)}`
+          : "";
         if (!key) {
           passthrough.push({ index, item });
           return;
