@@ -3885,10 +3885,17 @@
     .queue-date-button.today {
       width: auto;
       padding: 0 12px;
+      color: var(--muted);
+      background: rgba(246,249,251,.94);
+      border-color: rgba(8,23,29,.10);
+      white-space: nowrap;
+    }
+
+    .queue-date-button.today.active {
       color: #075e5f;
       background: rgba(224,255,250,.92);
-      border-color: rgba(16,185,157,.22);
-      white-space: nowrap;
+      border-color: rgba(16,185,157,.34);
+      box-shadow: 0 0 0 3px rgba(16,185,157,.08);
     }
 
     .queue-date-button.is-at-today,
@@ -8049,6 +8056,7 @@
                 <option value="customer_first">顾客回复优先</option>
                 <option value="latest">全部按最新</option>
               </select>
+              <button class="btn" id="inboxLoadAllBtn" type="button">加载全部</button>
               <button class="btn" id="inboxRefreshBtn" type="button">刷新</button>
             </div>
           </div>
@@ -8074,6 +8082,7 @@
                 <input id="caseDateFilter" type="date" />
               </label>
               <button class="queue-date-button today" id="caseTodayDate" type="button">今天</button>
+              <button class="queue-date-button today" id="caseOpenBacklog" type="button">全部未完成</button>
               <button class="queue-date-button" id="caseNextDate" type="button" aria-label="后一天">&gt;</button>
             </div>
             <input id="caseSearch" placeholder="搜索顾客 / 电话 / 关键词" aria-label="搜索全部顾客、电话或关键词" />
@@ -8100,7 +8109,7 @@
             <button class="pill" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_first">人工回复</button>
             <button class="pill" data-filter="auto" id="autoFilterBtn">自动 Flow</button>
-            <button class="pill" data-filter="records" id="recordsFilterBtn">AI 处理记录</button>
+            <button class="pill" data-filter="records" id="recordsFilterBtn">AI 自动回复记录</button>
           </div>
           <div class="selection-tools" aria-label="快速选择">
             <button class="btn" id="selectVisibleBtn" type="button">选择当前</button>
@@ -8474,6 +8483,7 @@
       queueRequestSeq: 0,
       inboxLoading: false,
       inboxLoadingMore: false,
+      inboxLoadingAll: false,
       inboxError: "",
       inboxUpdatedAt: "",
       inboxSort: "customer_first",
@@ -8628,9 +8638,11 @@
     const caseDateFilterEl = $("caseDateFilter");
     const casePrevDateEl = $("casePrevDate");
     const caseTodayDateEl = $("caseTodayDate");
+    const caseOpenBacklogEl = $("caseOpenBacklog");
     const caseNextDateEl = $("caseNextDate");
     const inboxSearchEl = $("inboxSearch");
     const inboxSortEl = $("inboxSort");
+    const inboxLoadAllBtnEl = $("inboxLoadAllBtn");
     const inboxRefreshBtnEl = $("inboxRefreshBtn");
     const inboxLoadMoreEl = $("inboxLoadMore");
     const todayISO = localDateIso();
@@ -9049,12 +9061,15 @@
     if (caseTodayDateEl) {
       caseTodayDateEl.addEventListener("click", () => {
         const selected = normalizeIsoDate(state.selectedDate) || todayISO;
-        if (state.role === "staff" && state.queueDateScope === "date" && selected === todayISO) {
-          setOpenBacklogDateScope({ announce: true });
+        if (state.queueDateScope === "date" && selected === todayISO) {
+          showToast("当前已经只看今天。要看跨日期未完成，请点旁边的「全部未完成」。");
           return;
         }
         setSelectedDate(todayISO, { announce: true });
       });
+    }
+    if (caseOpenBacklogEl) {
+      caseOpenBacklogEl.addEventListener("click", () => setOpenBacklogDateScope({ announce: true }));
     }
     if (inboxSearchEl) {
       inboxSearchEl.addEventListener("input", () => {
@@ -9074,6 +9089,9 @@
     }
     if (inboxRefreshBtnEl) {
       inboxRefreshBtnEl.addEventListener("click", () => loadInboxConversations({ reset: true }));
+    }
+    if (inboxLoadAllBtnEl) {
+      inboxLoadAllBtnEl.addEventListener("click", () => loadAllInboxConversations());
     }
 
     $("gridView").addEventListener("click", () => setView("grid"));
@@ -10041,7 +10059,7 @@
       if (normalized === "needs_attention") return "全部待处理";
       if (normalized === "human_first") return "人工回复";
       if (normalized === "auto") return "自动 Flow";
-      if (normalized === "records") return "AI 处理记录";
+      if (normalized === "records") return "AI 自动回复记录";
       return "待批准";
     }
 
@@ -10137,35 +10155,46 @@
       }
       if (caseTodayDateEl) {
         const openBacklog = useOpenBacklogDateScope();
-        caseTodayDateEl.textContent = openBacklog
-          ? "只看今天"
-          : selected === todayISO
-            ? "查看全部未完成"
-            : "回到今天";
-        caseTodayDateEl.title = openBacklog
-          ? "当前显示全部未完成 Case；点击后只看今天。"
-          : selected === todayISO
-            ? "当前只看今天；点击后显示所有日期的未完成 Case。"
-            : "返回今天的 Case。";
+        caseTodayDateEl.textContent = "今天";
+        caseTodayDateEl.title = openBacklog || selected !== todayISO
+          ? "点击后只看今天的 Case。"
+          : "当前只看今天。";
         caseTodayDateEl.setAttribute("aria-label", caseTodayDateEl.title);
         caseTodayDateEl.dataset.scope = openBacklog ? "open_backlog" : "date";
-        caseTodayDateEl.classList.toggle("active", openBacklog || selected === todayISO);
+        caseTodayDateEl.classList.toggle("active", !openBacklog && selected === todayISO);
+      }
+      if (caseOpenBacklogEl) {
+        const openBacklog = useOpenBacklogDateScope();
+        caseOpenBacklogEl.textContent = "全部未完成";
+        caseOpenBacklogEl.title = openBacklog
+          ? "当前已合并显示所有日期的待批准和人工回复。"
+          : "显示所有日期的待批准和人工回复。";
+        caseOpenBacklogEl.setAttribute("aria-label", caseOpenBacklogEl.title);
+        caseOpenBacklogEl.dataset.scope = openBacklog ? "open_backlog" : "date";
+        caseOpenBacklogEl.classList.toggle("active", openBacklog);
       }
     }
 
     function setOpenBacklogDateScope(options = {}) {
-      if (state.role !== "staff") return setSelectedDate(todayISO, options);
       const previousCount = Array.isArray(state.visibleCases) ? state.visibleCases.length : null;
+      const alreadyOpen = useOpenBacklogDateScope() && state.filter === "needs_attention";
       state.queueDateScope = "open_backlog";
       state.selectedDate = normalizeIsoDate(state.selectedDate) || todayISO;
+      // “全部未完成” is a merged work queue, not a date toggle for whichever
+      // category happened to be selected previously.
+      state.filter = "needs_attention";
+      state.sidebarKey = sidebarKeyForFilter(state.filter);
       state.selected.clear();
       syncDateControls();
+      syncFilterControls();
       render();
       if (options.announce) {
         const nextCount = Array.isArray(state.visibleCases) ? state.visibleCases.length : 0;
-        showToast(previousCount === nextCount
-          ? `已切换为全部未完成；当前仍是 ${nextCount} 条，所以数量看起来相同。`
-          : `已显示全部日期的未完成 Case，共 ${nextCount} 条。`);
+        showToast(alreadyOpen
+          ? `当前已经显示全部未完成，共 ${nextCount} 条。`
+          : previousCount === nextCount
+            ? `已显示全部未完成（待批准 + 人工回复）；当前仍是 ${nextCount} 条，代表较早日期没有额外未完成。`
+            : `已显示全部日期的未完成（待批准 + 人工回复），共 ${nextCount} 条。`);
       }
     }
 
@@ -10257,7 +10286,7 @@
     }
 
     function useOpenBacklogDateScope(filter = state.filter) {
-      if (state.role !== "staff" || state.queueDateScope !== "open_backlog") return false;
+      if (state.queueDateScope !== "open_backlog") return false;
       return staffFilterSupportsOpenBacklog(filter);
     }
 
@@ -11424,7 +11453,7 @@
           status: requestedQueueStatus,
           include_tests: visibility.includeTests ? "1" : "0",
           real_only: visibility.realOnly ? "1" : "0",
-          compact_conversations: "1",
+          compact_conversations: "0",
           summary_only: "1",
           limit: searchQuery ? "120" : "250",
           scan_limit: "2000",
@@ -11547,6 +11576,7 @@
         state.inboxHasMore = false;
         state.inboxLoading = false;
         state.inboxLoadingMore = false;
+        state.inboxLoadingAll = false;
         state.inboxError = hasAuth
           ? ""
           : state.role === "staff"
@@ -11568,6 +11598,7 @@
       state.inboxError = "";
       if (!options.silent) renderInboxView();
       if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = true;
+      if (inboxLoadAllBtnEl) inboxLoadAllBtnEl.disabled = true;
       try {
         // Keep the staff Inbox broad enough that a broadcast burst cannot hide
         // ordinary live conversations from the default view. Pagination keeps
@@ -11640,6 +11671,47 @@
         state.inboxLoading = false;
         state.inboxLoadingMore = false;
         if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = false;
+        if (inboxLoadAllBtnEl) inboxLoadAllBtnEl.disabled = state.inboxLoadingAll || !state.inboxHasMore;
+        renderInboxView();
+      }
+    }
+
+    async function loadAllInboxConversations() {
+      if (state.inboxLoadingAll || state.inboxLoading || state.inboxLoadingMore) return;
+      state.inboxLoadingAll = true;
+      state.inboxError = "";
+      renderInboxView();
+      let rounds = 0;
+      let stoppedWithoutProgress = false;
+      try {
+        while (state.inboxHasMore && rounds < 20) {
+          const before = `${state.inboxConversations.length}|${state.inboxNextOffset ?? ""}|${state.inboxLiveNextPage ?? ""}`;
+          await loadInboxConversations({ append: true, silent: true });
+          rounds += 1;
+          const after = `${state.inboxConversations.length}|${state.inboxNextOffset ?? ""}|${state.inboxLiveNextPage ?? ""}`;
+          if (after === before) {
+            stoppedWithoutProgress = true;
+            break;
+          }
+          if (state.inboxError) break;
+        }
+        const providerTotal = Number(state.inboxProviderTotal);
+        const providerTotalKnown = state.inboxProviderTotal !== null
+          && state.inboxProviderTotal !== ""
+          && Number.isFinite(providerTotal)
+          && providerTotal >= 0;
+        const providerLabel = providerTotalKnown
+          ? `ChatDaddy 当前非归档 ${providerTotal} 条`
+          : "当前可读取对话";
+        if (!state.inboxHasMore) {
+          showToast(`${providerLabel}已全部加载；页面共显示 ${state.inboxConversations.length} 条去重对话。`);
+        } else if (stoppedWithoutProgress || state.inboxError) {
+          showToast(`已加载 ${state.inboxConversations.length} 条；分页暂时没有前进，可以再点一次重试。`);
+        } else {
+          showToast(`已加载 ${state.inboxConversations.length} 条；为避免页面过重，本次先停在这里。`);
+        }
+      } finally {
+        state.inboxLoadingAll = false;
         renderInboxView();
       }
     }
@@ -11664,7 +11736,7 @@
 	}
 
 	async function refreshInboxRealtime() {
-	  if (!realtimeRefreshReady() || state.inboxRefreshInFlight || state.inboxLoading || state.inboxLoadingMore) return;
+	  if (!realtimeRefreshReady() || state.inboxRefreshInFlight || state.inboxLoading || state.inboxLoadingMore || state.inboxLoadingAll) return;
 	  state.inboxRefreshInFlight = true;
 	  try {
 	    await loadInboxConversations({ silent: true, preserveLoaded: true });
@@ -12963,16 +13035,35 @@
         .filter((item) => serverSearchCurrent || !query || inboxConversationSearchHaystack(item).includes(query))
         .sort(inboxConversationSort);
       const counts = inboxConversationCounts(all);
-      const loadedCount = `${all.length}${state.inboxHasMore ? "+" : ""}`;
       const providerTotal = Number(state.inboxProviderTotal);
-      const providerTotalKnown = Number.isFinite(providerTotal) && providerTotal >= 0;
+      const providerTotalKnown = state.inboxProviderTotal !== null
+        && state.inboxProviderTotal !== ""
+        && Number.isFinite(providerTotal)
+        && providerTotal >= 0;
       if (inboxSortEl && inboxSortEl.value !== state.inboxSort) inboxSortEl.value = state.inboxSort;
 
+      if (inboxLoadAllBtnEl) {
+        const complete = !state.inboxHasMore && all.length > 0;
+        inboxLoadAllBtnEl.disabled = Boolean(query) || state.inboxLoadingAll || state.inboxLoading || state.inboxLoadingMore || complete || !state.inboxHasMore;
+        inboxLoadAllBtnEl.textContent = query
+          ? "清空搜索后加载全部"
+          : state.inboxLoadingAll
+          ? `正在加载 ${all.length}${providerTotalKnown ? ` / ${providerTotal}` : ""}`
+          : complete
+            ? `已全部加载 ${all.length}`
+            : providerTotalKnown
+              ? `加载全部 ${providerTotal}`
+              : "加载全部";
+        inboxLoadAllBtnEl.title = providerTotalKnown
+          ? `当前已加载 ${all.length} 条；ChatDaddy 当前非归档共有 ${providerTotal} 条。`
+          : `当前已加载 ${all.length} 条。`;
+      }
+
       updated.textContent = state.inboxUpdatedAt
-        ? `目前已加载 ${loadedCount} 条${state.inboxHasMore ? "，下方可继续加载" : ""} · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
+        ? `目前已加载 ${all.length}${providerTotalKnown ? ` / ${providerTotal}` : state.inboxHasMore ? "+" : ""} 条${state.inboxHasMore ? "，可点上方「加载全部」" : ""} · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
         : state.inboxLoading ? "正在同步" : "等待同步";
       summary.innerHTML = [
-        [counts.total, providerTotalKnown ? `已加载（ChatDaddy 当前非归档 ${providerTotal}）` : "目前已加载"],
+        [providerTotalKnown ? `${counts.total} / ${providerTotal}` : counts.total, providerTotalKnown ? "已加载 / ChatDaddy 非归档" : "目前已加载"],
         [counts.needs_attention, "要处理"],
         [counts.customer_latest, "顾客最后发"],
         [counts.outbound_latest, "客服 / Flow 最后发"],
@@ -13339,7 +13430,7 @@
       if (filter === "needs_attention") {
         return staffCaseSectionHtml({
           title: "全部待处理",
-          body: "合并显示待批准与人工回复；自动 Flow 和 AI 处理记录不会混进来。",
+          body: "合并显示待批准与人工回复；自动 Flow 和 AI 自动回复记录不会混进来。",
           items: visible,
           countLabel: `${visible.length} 位 · ${Number(counts.needs || visible.length)} 条`,
           emptyText: "当前没有未完成的待处理顾客。",
@@ -13370,7 +13461,7 @@
       }
       if (filter === "records") {
         return staffCaseSectionHtml({
-          title: "AI 处理记录",
+          title: "AI 自动回复记录",
           body: "只显示 AI 已经自动回复并成功处理的 Case，方便检查回复质量和复盘。",
           items: visible,
           emptyText: "当前范围没有 AI 自动处理记录。",
@@ -13400,7 +13491,7 @@
       }
       if (aiHandled.length) {
         sections.push(staffCaseSectionHtml({
-          title: "AI 处理记录",
+          title: "AI 自动回复记录",
           body: "AI 已自动回复成功，只读留档供复盘。",
           items: aiHandled,
           countLabel: `${aiHandled.length} 位 · ${Number(counts.records || aiHandled.length)} 条`,
@@ -13571,7 +13662,7 @@
         approval_required: ["待批准", counts.approval],
         human_first: ["人工回复", humanWork],
         auto: ["自动 Flow", counts.auto],
-        records: ["AI 处理记录", counts.records],
+        records: ["AI 自动回复记录", counts.records],
       };
       document.querySelectorAll("[data-filter]").forEach((button) => {
         const [label, value] = labels[button.dataset.filter] || [button.textContent || "", ""];
@@ -13846,9 +13937,10 @@
       const element = $("staffPriorityStrip");
       if (!element) return;
       const steps = staffPriorityQueueSteps(counts);
+      const scopeTitle = useOpenBacklogDateScope() ? "全部范围处理顺序" : "今日处理顺序";
       element.innerHTML = `
         <div class="staff-priority-title">
-          今日处理顺序
+          ${escapeHtml(scopeTitle)}
           <small>从左到右处理</small>
         </div>
         ${steps.map((step, index) => staffPriorityStepHtml(step, index + 1)).join("")}
@@ -13857,6 +13949,7 @@
 
     function staffPriorityQueueSteps(counts = {}) {
       const humanWork = Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0);
+      const scopeWord = useOpenBacklogDateScope() ? "全部范围" : "今日";
       return [
         {
           action: "approval",
@@ -13875,16 +13968,18 @@
         {
           action: "auto_records",
           title: "自动 Flow",
-          body: "只显示渠道回传的执行证据",
+          body: Number(counts.auto || 0) > 0
+            ? "只显示渠道回传的执行证据"
+            : `${scopeWord}无已验证 Flow 回执；广播背景不算`,
           count: Number(counts.auto || 0),
           tone: "good",
         },
         {
           action: "ai_records",
-          title: "AI 处理记录",
-          body: state.runtimeDelivery?.loaded && !state.runtimeDelivery?.sendsMessages
-            ? "安全发送未开启，暂不会新增"
-            : "AI 已自动回复，只读复盘",
+          title: "AI 自动回复记录",
+          body: Number(counts.records || 0) > 0
+            ? "AI 已自动回复，只读复盘"
+            : `${scopeWord}无 AI 自动发送；AI 草稿/人工批准不算`,
           count: Number(counts.records || 0),
           tone: "good",
         },
@@ -14068,7 +14163,7 @@
       }
       if (action === "ai_records") {
         setFilter("records");
-        showToast("AI 处理记录只显示已经自动回复成功的 Case。");
+        showToast("AI 自动回复记录只显示已经自动回复成功的 Case；AI 草稿和人工发送不算。");
       }
     }
 
@@ -17719,7 +17814,7 @@
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
-          body: "合并显示待批准和人工回复；不包含自动 Flow 与 AI 处理记录。",
+          body: "合并显示待批准和人工回复；不包含自动 Flow 与 AI 自动回复记录。",
         },
         approval_required: {
           title: `${counts.approval} 条回复可审核批准`,
@@ -17750,7 +17845,7 @@
           body: "只显示顾客点过按钮或 Flow 已执行，而且没有主动提问的 Case。只读，不会重复发送。",
         },
         records: {
-          title: `${counts.records || 0} 条 AI 处理记录`,
+          title: `${counts.records || 0} 条 AI 自动回复记录`,
           body: "只显示 AI 已经自动回复成功的 Case，方便检查回复质量。",
         },
       };
@@ -25982,9 +26077,9 @@
         const requestedNote = runtime.autoSendRequested
           ? "项目虽已选择已批准规则自动回复，但线上安全发送开关仍关闭。"
           : "线上 AI 自动发送目前没有开启。";
-        return `${queueDateScopeLabel()}没有 AI 处理记录；${requestedNote}人工批准或客服发送不算 AI 自动处理。`;
+        return `${queueDateScopeLabel()}没有 AI 自动回复记录；${requestedNote}AI 草稿、人工批准或客服发送都不算 AI 自动处理。`;
       }
-      return `${queueDateScopeLabel()}没有 AI 处理记录；这里只统计 AI 已经自动回复成功的 Case，人工批准或客服发送不会算进来。`;
+      return `${queueDateScopeLabel()}没有 AI 自动回复记录；这里只统计 AI 已经自动回复成功的 Case，AI 草稿、人工批准或客服发送不会算进来。`;
     }
 
     function demoCase(config) {
