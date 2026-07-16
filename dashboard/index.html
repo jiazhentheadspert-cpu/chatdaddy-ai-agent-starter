@@ -7790,6 +7790,40 @@
 
     .inbox-conversation-list {
       display: grid;
+      gap: 14px;
+    }
+
+    .inbox-date-group {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .inbox-date-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f5f9fa;
+    }
+
+    .inbox-date-head strong {
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 950;
+    }
+
+    .inbox-date-head span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .inbox-date-list {
+      display: grid;
       gap: 8px;
     }
 
@@ -7965,7 +7999,7 @@
           <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-segment.svg" alt=""></span><em>Segment</em></span>
           <small id="navStep7Badge">待</small>
         </button>
-        <div class="side-note">最新讯息看全部对话；操作台只放需要处理的顾客。</div>
+        <div class="side-note">最新讯息按日期查看对话；操作台只放需要处理的顾客。</div>
 
         <div class="side-settings" id="sideSettings" aria-label="设置">
           <button class="side-settings-title" id="sideSettingsToggle" type="button" aria-expanded="false" aria-controls="sideSettingsPanel"><span class="side-label side-label-plain"><em>设置</em></span></button>
@@ -8056,7 +8090,7 @@
                 <option value="customer_first">顾客回复优先</option>
                 <option value="latest">全部按最新</option>
               </select>
-              <button class="btn" id="inboxLoadAllBtn" type="button">加载全部</button>
+              <button class="btn" id="inboxLoadEarlierDateBtn" type="button">加载更早一天</button>
               <button class="btn" id="inboxRefreshBtn" type="button">刷新</button>
             </div>
           </div>
@@ -8489,7 +8523,8 @@
       queueHistoryFetchedAt: 0,
       inboxLoading: false,
       inboxLoadingMore: false,
-      inboxLoadingAll: false,
+      inboxLoadingEarlierDate: false,
+      inboxVisibleDateCount: 1,
       inboxError: "",
       inboxUpdatedAt: "",
       inboxSort: "customer_first",
@@ -8650,10 +8685,17 @@
     const caseNextDateEl = $("caseNextDate");
     const inboxSearchEl = $("inboxSearch");
     const inboxSortEl = $("inboxSort");
-    const inboxLoadAllBtnEl = $("inboxLoadAllBtn");
+    const inboxLoadEarlierDateBtnEl = $("inboxLoadEarlierDateBtn");
     const inboxRefreshBtnEl = $("inboxRefreshBtn");
     const inboxLoadMoreEl = $("inboxLoadMore");
     const todayISO = localDateIso();
+    const INBOX_BUSINESS_TIME_ZONE = "Asia/Kuala_Lumpur";
+    const INBOX_DATE_PARTS_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+      timeZone: INBOX_BUSINESS_TIME_ZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
 
     const DEMO_SCENARIOS = {
       ecommerce: [
@@ -9098,8 +9140,8 @@
     if (inboxRefreshBtnEl) {
       inboxRefreshBtnEl.addEventListener("click", () => loadInboxConversations({ reset: true }));
     }
-    if (inboxLoadAllBtnEl) {
-      inboxLoadAllBtnEl.addEventListener("click", () => loadAllInboxConversations());
+    if (inboxLoadEarlierDateBtnEl) {
+      inboxLoadEarlierDateBtnEl.addEventListener("click", () => loadEarlierInboxDate());
     }
 
     $("gridView").addEventListener("click", () => setView("grid"));
@@ -10018,7 +10060,7 @@
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
       $("modeTag").textContent = state.workspaceView === "inbox" ? "最新讯息" : state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
 
-      $("dashboardSubtitle").textContent = state.workspaceView === "inbox" ? "全部新对话。" : "只看需要处理的顾客。";
+      $("dashboardSubtitle").textContent = state.workspaceView === "inbox" ? "按日期查看新对话。" : "只看需要处理的顾客。";
 
       $("setupPanel").classList.toggle("hidden", true);
       renderProjectSwitcher();
@@ -10400,7 +10442,7 @@
         },
         inbox: {
           title: "最新讯息",
-          subtitle: "全部新对话。",
+          subtitle: "按日期查看新对话。",
         },
         operations: {
           title: state.activeSetupStep === "7" ? "Segment" : "设置",
@@ -11708,7 +11750,8 @@
         state.inboxHasMore = false;
         state.inboxLoading = false;
         state.inboxLoadingMore = false;
-        state.inboxLoadingAll = false;
+        state.inboxLoadingEarlierDate = false;
+        state.inboxVisibleDateCount = 1;
         state.inboxError = hasAuth
           ? ""
           : state.role === "staff"
@@ -11730,7 +11773,7 @@
       state.inboxError = "";
       if (!options.silent) renderInboxView();
       if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = true;
-      if (inboxLoadAllBtnEl) inboxLoadAllBtnEl.disabled = true;
+      if (inboxLoadEarlierDateBtnEl) inboxLoadEarlierDateBtnEl.disabled = true;
       try {
         // Keep the staff Inbox broad enough that a broadcast burst cannot hide
         // ordinary live conversations from the default view. Pagination keeps
@@ -11761,6 +11804,7 @@
         state.inboxConversations = append || preserveLoaded
           ? mergeInboxConversationPages(incoming, priorConversations)
           : incoming;
+        if (!append && !preserveLoaded) state.inboxVisibleDateCount = 1;
         state.inboxSummary = inboxConversationCounts(state.inboxConversations);
         state.inboxAppliedQuery = query;
         state.inboxOffset = requestedOffset;
@@ -11803,47 +11847,49 @@
         state.inboxLoading = false;
         state.inboxLoadingMore = false;
         if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = false;
-        if (inboxLoadAllBtnEl) inboxLoadAllBtnEl.disabled = state.inboxLoadingAll || !state.inboxHasMore;
+        if (inboxLoadEarlierDateBtnEl) inboxLoadEarlierDateBtnEl.disabled = state.inboxLoadingEarlierDate;
         renderInboxView();
       }
     }
 
-    async function loadAllInboxConversations() {
-      if (state.inboxLoadingAll || state.inboxLoading || state.inboxLoadingMore) return;
-      state.inboxLoadingAll = true;
+    async function loadEarlierInboxDate() {
+      if (state.inboxLoadingEarlierDate || state.inboxLoading || state.inboxLoadingMore || String(state.inboxQuery || "").trim()) return;
+      const beforeGroups = inboxConversationDateGroups(state.inboxConversations || []);
+      const visibleDateCount = Math.max(1, Math.min(Number(state.inboxVisibleDateCount || 1), Math.max(1, beforeGroups.length)));
+      if (visibleDateCount < beforeGroups.length) {
+        state.inboxVisibleDateCount = visibleDateCount + 1;
+        const revealed = beforeGroups[state.inboxVisibleDateCount - 1];
+        renderInboxView();
+        showToast(`已显示${revealed ? inboxConversationDateLabel(revealed.dateKey) : "下一天"}；每次只增加一个日期。`);
+        return;
+      }
+      if (!state.inboxHasMore) {
+        showToast("已经到最早日期。");
+        return;
+      }
+
+      state.inboxLoadingEarlierDate = true;
       state.inboxError = "";
       renderInboxView();
-      let rounds = 0;
-      let stoppedWithoutProgress = false;
+      const before = `${state.inboxConversations.length}|${state.inboxNextOffset ?? ""}|${state.inboxLiveNextPage ?? ""}`;
       try {
-        while (state.inboxHasMore && rounds < 20) {
-          const before = `${state.inboxConversations.length}|${state.inboxNextOffset ?? ""}|${state.inboxLiveNextPage ?? ""}`;
-          await loadInboxConversations({ append: true, silent: true });
-          rounds += 1;
-          const after = `${state.inboxConversations.length}|${state.inboxNextOffset ?? ""}|${state.inboxLiveNextPage ?? ""}`;
-          if (after === before) {
-            stoppedWithoutProgress = true;
-            break;
-          }
-          if (state.inboxError) break;
-        }
-        const providerTotal = Number(state.inboxProviderTotal);
-        const providerTotalKnown = state.inboxProviderTotal !== null
-          && state.inboxProviderTotal !== ""
-          && Number.isFinite(providerTotal)
-          && providerTotal >= 0;
-        const providerLabel = providerTotalKnown
-          ? `ChatDaddy 当前非归档 ${providerTotal} 条`
-          : "当前可读取对话";
-        if (!state.inboxHasMore) {
-          showToast(`${providerLabel}已全部加载；页面共显示 ${state.inboxConversations.length} 条去重对话。`);
-        } else if (stoppedWithoutProgress || state.inboxError) {
-          showToast(`已加载 ${state.inboxConversations.length} 条；分页暂时没有前进，可以再点一次重试。`);
+        await loadInboxConversations({ append: true, silent: true });
+        const afterGroups = inboxConversationDateGroups(state.inboxConversations || []);
+        const after = `${state.inboxConversations.length}|${state.inboxNextOffset ?? ""}|${state.inboxLiveNextPage ?? ""}`;
+        if (afterGroups.length > beforeGroups.length) {
+          state.inboxVisibleDateCount = Math.min(visibleDateCount + 1, afterGroups.length);
+          const revealed = afterGroups[state.inboxVisibleDateCount - 1];
+          showToast(`已显示${revealed ? inboxConversationDateLabel(revealed.dateKey) : "更早一天"}；更早日期仍按天加载。`);
+        } else if (after !== before) {
+          const current = afterGroups[Math.max(0, visibleDateCount - 1)];
+          showToast(`${current ? inboxConversationDateLabel(current.dateKey) : "当前日期"}对话较多，本次只补一页；再点一次继续往前。`);
+        } else if (state.inboxError) {
+          showToast("较早日期暂时读取失败，原有进度已保留。");
         } else {
-          showToast(`已加载 ${state.inboxConversations.length} 条；为避免页面过重，本次先停在这里。`);
+          showToast("分页没有前进，可以再点一次重试。");
         }
       } finally {
-        state.inboxLoadingAll = false;
+        state.inboxLoadingEarlierDate = false;
         renderInboxView();
       }
     }
@@ -11868,7 +11914,7 @@
 	}
 
 	async function refreshInboxRealtime() {
-	  if (!realtimeRefreshReady() || state.inboxRefreshInFlight || state.inboxLoading || state.inboxLoadingMore || state.inboxLoadingAll) return;
+	  if (!realtimeRefreshReady() || state.inboxRefreshInFlight || state.inboxLoading || state.inboxLoadingMore || state.inboxLoadingEarlierDate) return;
 	  state.inboxRefreshInFlight = true;
 	  try {
 	    await loadInboxConversations({ silent: true, preserveLoaded: true });
@@ -13213,10 +13259,17 @@
       const query = String(state.inboxQuery || "").trim().toLowerCase();
       const all = Array.isArray(state.inboxConversations) ? state.inboxConversations : [];
       const serverSearchCurrent = Boolean(query && state.inboxAppliedQuery === String(state.inboxQuery || "").trim());
-      const visible = all
-        .filter((item) => serverSearchCurrent || !query || inboxConversationSearchHaystack(item).includes(query))
-        .sort(inboxConversationSort);
-      const counts = inboxConversationCounts(all);
+      const matching = all.filter((item) => serverSearchCurrent || !query || inboxConversationSearchHaystack(item).includes(query));
+      const dateGroups = inboxConversationDateGroups(matching);
+      if (!query) {
+        state.inboxVisibleDateCount = Math.max(1, Math.min(Number(state.inboxVisibleDateCount || 1), Math.max(1, dateGroups.length)));
+      }
+      const visibleDateGroups = query
+        ? dateGroups
+        : dateGroups.slice(0, Math.max(1, Number(state.inboxVisibleDateCount || 1)));
+      const visible = visibleDateGroups.flatMap((group) => group.items);
+      const counts = inboxConversationCounts(visible);
+      const dateAction = inboxEarlierDateAction(dateGroups);
       const providerTotal = Number(state.inboxProviderTotal);
       const providerTotalKnown = state.inboxProviderTotal !== null
         && state.inboxProviderTotal !== ""
@@ -13224,33 +13277,29 @@
         && providerTotal >= 0;
       if (inboxSortEl && inboxSortEl.value !== state.inboxSort) inboxSortEl.value = state.inboxSort;
 
-      if (inboxLoadAllBtnEl) {
-        const complete = !state.inboxHasMore && all.length > 0;
-        inboxLoadAllBtnEl.disabled = Boolean(query) || state.inboxLoadingAll || state.inboxLoading || state.inboxLoadingMore || complete || !state.inboxHasMore;
-        inboxLoadAllBtnEl.textContent = query
-          ? "清空搜索后加载全部"
-          : state.inboxLoadingAll
-          ? `正在加载 ${all.length}${providerTotalKnown ? ` / ${providerTotal}` : ""}`
-          : complete
-            ? `已全部加载 ${all.length}`
-            : providerTotalKnown
-              ? `加载全部 ${providerTotal}`
-              : "加载全部";
-        inboxLoadAllBtnEl.title = providerTotalKnown
-          ? `当前已加载 ${all.length} 条；ChatDaddy 当前非归档共有 ${providerTotal} 条。`
-          : `当前已加载 ${all.length} 条。`;
+      if (inboxLoadEarlierDateBtnEl) {
+        const busy = state.inboxLoadingEarlierDate || state.inboxLoading || state.inboxLoadingMore;
+        inboxLoadEarlierDateBtnEl.disabled = Boolean(query) || busy || !dateAction.canLoad;
+        inboxLoadEarlierDateBtnEl.textContent = query
+          ? "清空搜索后按日期加载"
+          : busy
+            ? "正在读取更早日期..."
+            : dateAction.label;
+        inboxLoadEarlierDateBtnEl.title = query
+          ? "搜索会查询完整索引；清空搜索后可继续按日期浏览。"
+          : `每次最多读取一页，并且只增加一个日期；不会一次加载 ${providerTotalKnown ? providerTotal : "全部"} 条。`;
       }
 
       updated.textContent = state.inboxUpdatedAt
-        ? `目前已加载 ${all.length}${providerTotalKnown ? ` / ${providerTotal}` : state.inboxHasMore ? "+" : ""} 条${state.inboxHasMore ? "，可点上方「加载全部」" : ""} · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
+        ? `当前显示 ${visible.length} 条 · ${visibleDateGroups.length} 个日期 · 已缓存 ${all.length}${state.inboxHasMore ? "+" : ""} 条${providerTotalKnown ? ` · ChatDaddy 非归档 ${providerTotal} 条` : ""}${dateAction.canLoad && !query ? "，可按日期继续" : ""} · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
         : state.inboxLoading ? "正在同步" : "等待同步";
       summary.innerHTML = [
-        [providerTotalKnown ? `${counts.total} / ${providerTotal}` : counts.total, providerTotalKnown ? "已加载 / ChatDaddy 非归档" : "目前已加载"],
-        [counts.needs_attention, "要处理"],
-        [counts.customer_latest, "顾客最后发"],
-        [counts.outbound_latest, "客服 / Flow 最后发"],
+        [visible.length, `当前显示（${visibleDateGroups.length} 个日期）`],
+        [counts.needs_attention, "当前显示要处理"],
+        [counts.customer_latest, "当前显示顾客最后发"],
+        [counts.outbound_latest, "当前显示客服 / Flow 最后发"],
       ].map(([value, label]) => `<div class="inbox-summary-item"><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span></div>`).join("");
-      renderInboxLoadMore(query, visible.length);
+      renderInboxLoadMore(query, visible.length, dateGroups);
 
       if (state.inboxLoading && !all.length) {
         list.innerHTML = `<div class="box"><h3>正在读取最新讯息</h3></div>`;
@@ -13261,11 +13310,18 @@
         return;
       }
       if (!visible.length) {
-        list.innerHTML = `<div class="box"><h3>${escapeHtml(query ? `找不到「${state.inboxQuery}」` : "没有最新讯息")}</h3></div>`;
+        list.innerHTML = `<div class="box"><h3>${escapeHtml(query ? `找不到「${state.inboxQuery}」` : "当前日期范围没有对话")}</h3></div>`;
         return;
       }
 
-      list.innerHTML = visible.map(inboxConversationCardHtml).join("");
+      list.innerHTML = visibleDateGroups.map((group) => `
+        <section class="inbox-date-group" data-inbox-date="${escapeHtml(group.dateKey)}">
+          <div class="inbox-date-head">
+            <strong><time datetime="${escapeHtml(group.dateKey === "unknown" ? "" : group.dateKey)}">${escapeHtml(inboxConversationDateLabel(group.dateKey))}</time></strong>
+            <span>${escapeHtml(group.items.length)} 条对话</span>
+          </div>
+          <div class="inbox-date-list">${group.items.map(inboxConversationCardHtml).join("")}</div>
+        </section>`).join("");
       list.querySelectorAll("[data-inbox-case-id]").forEach((button) => {
         button.addEventListener("click", (event) => {
           event.preventDefault();
@@ -13273,6 +13329,66 @@
           openInboxCase(button.dataset.inboxCaseId, button.dataset.inboxAttention === "1");
         });
       });
+    }
+
+    function inboxBusinessDateKey(value = "") {
+      const date = value instanceof Date ? value : new Date(value || "");
+      if (!Number.isFinite(date.getTime())) return "unknown";
+      const parts = Object.fromEntries(INBOX_DATE_PARTS_FORMATTER.formatToParts(date).map((part) => [part.type, part.value]));
+      return parts.year && parts.month && parts.day ? `${parts.year}-${parts.month}-${parts.day}` : "unknown";
+    }
+
+    function inboxConversationDateKey(item = {}) {
+      return inboxBusinessDateKey(
+        item.latest_at
+        || item.latest_message?.at
+        || item.latest_message?.message_at
+        || item.updated_at
+        || item.created_at
+      );
+    }
+
+    function inboxConversationDateLabel(dateKey = "") {
+      if (dateKey === "unknown") return "日期不明";
+      const today = inboxBusinessDateKey(new Date());
+      const formatted = String(dateKey).replaceAll("-", "/");
+      if (dateKey === today) return `今天 · ${formatted}`;
+      if (dateKey === shiftIsoDate(today, -1)) return `昨天 · ${formatted}`;
+      return formatted;
+    }
+
+    function inboxConversationDateGroups(items = []) {
+      const byDate = new Map();
+      (items || []).forEach((item) => {
+        const dateKey = inboxConversationDateKey(item);
+        if (!byDate.has(dateKey)) byDate.set(dateKey, []);
+        byDate.get(dateKey).push(item);
+      });
+      return [...byDate.entries()]
+        .sort(([left], [right]) => {
+          if (left === "unknown") return 1;
+          if (right === "unknown") return -1;
+          return right.localeCompare(left);
+        })
+        .map(([dateKey, rows]) => ({ dateKey, items: [...rows].sort(inboxConversationSort) }));
+    }
+
+    function inboxEarlierDateAction(dateGroups = []) {
+      const visibleDateCount = Math.max(1, Math.min(Number(state.inboxVisibleDateCount || 1), Math.max(1, dateGroups.length)));
+      const hiddenGroup = dateGroups[visibleDateCount] || null;
+      const currentOldestGroup = dateGroups[Math.max(0, visibleDateCount - 1)] || null;
+      if (hiddenGroup) {
+        return { canLoad: true, label: `显示 ${inboxConversationDateLabel(hiddenGroup.dateKey)}`, hiddenGroup, currentOldestGroup };
+      }
+      if (state.inboxHasMore) {
+        return {
+          canLoad: true,
+          label: currentOldestGroup ? `继续读取 ${inboxConversationDateLabel(currentOldestGroup.dateKey)}` : "加载更早一天",
+          hiddenGroup: null,
+          currentOldestGroup,
+        };
+      }
+      return { canLoad: false, label: dateGroups.length ? "已到最早日期" : "没有更早日期", hiddenGroup: null, currentOldestGroup };
     }
 
     function inboxConversationSort(left = {}, right = {}) {
@@ -13317,9 +13433,10 @@
       return state.inboxSort === "latest" ? "全部按最新" : "顾客回复优先";
     }
 
-    function renderInboxLoadMore(query = "", displayedCount = 0) {
+    function renderInboxLoadMore(query = "", displayedCount = 0, dateGroups = []) {
       if (!inboxLoadMoreEl) return;
-      if (query || !state.inboxHasMore) {
+      const action = inboxEarlierDateAction(dateGroups);
+      if (query || !action.canLoad) {
         inboxLoadMoreEl.innerHTML = "";
         return;
       }
@@ -13328,11 +13445,11 @@
         : "";
       inboxLoadMoreEl.innerHTML = `
         ${error}
-        <button class="btn" id="inboxLoadMoreButton" type="button" ${state.inboxLoadingMore ? "disabled" : ""}>
-          ${state.inboxLoadingMore ? "正在加载..." : `继续加载较早对话（已显示 ${escapeHtml(displayedCount)} 条）`}
+        <button class="btn" id="inboxLoadMoreButton" type="button" ${state.inboxLoadingMore || state.inboxLoadingEarlierDate ? "disabled" : ""}>
+          ${state.inboxLoadingMore || state.inboxLoadingEarlierDate ? "正在读取更早日期..." : `${escapeHtml(action.label)}（当前显示 ${escapeHtml(displayedCount)} 条）`}
         </button>`;
       const button = $("inboxLoadMoreButton");
-      if (button) button.addEventListener("click", () => loadInboxConversations({ append: true }));
+      if (button) button.addEventListener("click", () => loadEarlierInboxDate());
     }
 
     function mergeInboxConversationPages(incoming = [], existing = []) {
