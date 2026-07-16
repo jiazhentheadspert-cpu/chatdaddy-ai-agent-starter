@@ -7431,6 +7431,12 @@
       display: none;
     }
 
+    body.staff-mode .side-settings,
+    body.staff-mode [data-side-key]:not([data-side-key="inbox"]):not([data-side-key="ai_reply"]),
+    body.staff-mode #learnBtn {
+      display: none !important;
+    }
+
     body.staff-mode .queue-head {
       grid-template-columns: 1fr;
       align-items: stretch;
@@ -8071,7 +8077,7 @@
         <div class="stat"><b id="statApproval">0</b><span>待批准</span></div>
         <div class="stat"><b id="statHuman">0</b><span>人工回复</span></div>
         <div class="stat"><b id="statOrder">0</b><span>订单/付款</span></div>
-        <div class="stat"><b id="statAuto">0</b><span>自动 Flow</span></div>
+        <div class="stat"><b id="statAuto">0</b><span>无需介入</span></div>
       </div>
 
       <section class="ops-grid hidden" id="opsGrid" aria-label="运营状态"></section>
@@ -8142,7 +8148,7 @@
             <button class="pill active" data-filter="needs_attention">全部待处理</button>
             <button class="pill" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_first">人工回复</button>
-            <button class="pill" data-filter="auto" id="autoFilterBtn">自动 Flow</button>
+            <button class="pill" data-filter="auto" id="autoFilterBtn">无需介入</button>
             <button class="pill" data-filter="records" id="recordsFilterBtn">AI 自动回复记录</button>
           </div>
           <div class="selection-tools" aria-label="快速选择">
@@ -8521,6 +8527,9 @@
       queueHistoryItems: { auto: [], records: [] },
       queueHistoryCacheKey: "",
       queueHistoryFetchedAt: 0,
+      queueNoInterventionCases: [],
+      queueNoInterventionCacheKey: "",
+      queueNoInterventionFetchedAt: 0,
       inboxLoading: false,
       inboxLoadingMore: false,
       inboxLoadingEarlierDate: false,
@@ -10065,7 +10074,7 @@
       $("setupPanel").classList.toggle("hidden", true);
       renderProjectSwitcher();
       $("autoFilterBtn").classList.toggle("hidden", false);
-      $("learnBtn").classList.toggle("hidden", false);
+      $("learnBtn").classList.toggle("hidden", state.role === "staff");
       syncOptionalUiModules();
       applySidebarRoleLabels();
       applySidebarCollapsedState();
@@ -10108,7 +10117,7 @@
       const normalized = normalizeStaffQueueFilter(filter);
       if (normalized === "needs_attention") return "全部待处理";
       if (normalized === "human_first") return "人工回复";
-      if (normalized === "auto") return "自动 Flow";
+      if (normalized === "auto") return "无需介入";
       if (normalized === "records") return "AI 自动回复记录";
       return "待批准";
     }
@@ -10117,6 +10126,11 @@
       const nextFilter = normalizeStaffQueueFilter(filter);
       const unchanged = state.filter === nextFilter;
       state.filter = nextFilter;
+      // “全部未完成” only applies to work that still needs staff action.
+      // Read-only audit queues always honor the selected calendar date.
+      if (["auto", "records"].includes(nextFilter) && state.queueDateScope === "open_backlog") {
+        state.queueDateScope = "date";
+      }
       // Queue category and date scope are independent controls. Once staff
       // chooses today (or a specific date), switching categories must keep that
       // date instead of silently reopening the full historical backlog.
@@ -10132,7 +10146,10 @@
     }
 
     function setWorkspaceView(view) {
-      state.workspaceView = view || "cases";
+      const requestedView = view || "cases";
+      state.workspaceView = state.role === "staff" && !["inbox", "cases"].includes(requestedView)
+        ? "cases"
+        : requestedView;
       render();
       if (state.workspaceView === "inbox" && !state.demoMode && !state.inboxLoading && !state.inboxConversations.length) {
         loadInboxConversations({ silent: true }).catch(() => null);
@@ -10332,7 +10349,7 @@
     }
 
     function staffFilterSupportsOpenBacklog(filter = state.filter) {
-      return ["needs_attention", "approval_required", "human_first", "auto", "records"].includes(normalizeStaffQueueFilter(filter));
+      return ["needs_attention", "approval_required", "human_first"].includes(normalizeStaffQueueFilter(filter));
     }
 
     function useOpenBacklogDateScope(filter = state.filter) {
@@ -10695,7 +10712,7 @@
 
     function casesForRole(cases) {
       if (state.role !== "staff") return cases;
-      return cases.filter((item) => ["approval_required", "human_required", "handoff_done", "returned_to_ai", "manual_resolved", "order", "send_failed", "auto_sent", "external_flow_continued", "sent", "sending", "purchase_confirmed"].includes(item.status));
+      return cases.filter((item) => ["approval_required", "human_required", "handoff_done", "returned_to_ai", "manual_resolved", "order", "send_failed", "no_intervention", "auto_sent", "external_flow_continued", "sent", "sending", "purchase_confirmed"].includes(item.status));
     }
 
     function setView(view) {
@@ -11396,7 +11413,8 @@
     const DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS = 12000;
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
-    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 4;
+    const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 5;
 
     function dashboardQueueSnapshotKey(project = "") {
       return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
@@ -11443,12 +11461,19 @@
         auto: normalizeIsoDate(snapshotHistoryDates.auto),
         records: normalizeIsoDate(snapshotHistoryDates.records),
       };
-      state.queueHistoryLoaded = state.queueHistoryCounts.auto !== null || state.queueHistoryCounts.records !== null;
+      state.queueHistoryLoaded = state.queueHistoryCounts.records !== null;
+      state.queueNoInterventionCases = Array.isArray(snapshot.no_intervention_cases)
+        ? snapshot.no_intervention_cases.filter((item) => item?.status === "no_intervention")
+        : [];
+      state.queueNoInterventionCacheKey = project;
+      state.queueNoInterventionFetchedAt = new Date(snapshot.saved_at || "").getTime() || 0;
       state.demoMode = false;
       state.loading = false;
       state.refreshing = true;
       state.queueSyncStatus = snapshot.sync_status || null;
-      state.cases = compactItems.map((item) => approvalToCase(item, state.contactNames || {}));
+      state.cases = dashboardCasesWithNoIntervention(
+        compactItems.map((item) => approvalToCase(item, state.contactNames || {}))
+      );
       state.selected.clear();
       state.loadingMessage = "正在后台同步最新顾客讯息。";
       $("modeTag").textContent = "同步中";
@@ -11465,6 +11490,7 @@
           sync_status: syncStatus || null,
           history_counts: history.counts || null,
           history_latest_date: history.latestDate || null,
+          no_intervention_cases: Array.isArray(history.noInterventionCases) ? history.noInterventionCases : [],
           items,
         }));
       } catch (_error) {
@@ -11525,6 +11551,125 @@
       return `${api}/api/approvals/pending?${params.toString()}`;
     }
 
+    function dashboardNoInterventionRequestUrls(api = "", project = "") {
+      const stored = new URLSearchParams({ limit: "120", scan_limit: "120", offset: "0" });
+      const live = new URLSearchParams({ project_key: project, count: "100" });
+      return {
+        stored: `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${stored.toString()}`,
+        live: `${api}/api/channels/chatdaddy/inbox?${live.toString()}`,
+      };
+    }
+
+    function dashboardConversationIsNoIntervention(item = {}) {
+      const caseStatus = String(item.case_status || "").toLowerCase();
+      const caseAction = String(item.case_action || "").toLowerCase();
+      const actor = String(item.latest_actor || "").toLowerCase();
+      const direction = String(item.latest_direction || "").toLowerCase();
+      const manualHandled = /manual|human_reply|channel_reply|reply_sent|purchase_confirmed/.test(`${caseStatus} ${caseAction}`)
+        || actor === "staff";
+      const aiHandled = /auto_sent|auto_reply/.test(`${caseStatus} ${caseAction}`)
+        || actor === "ai";
+      const stillActionable = /pending|approval|human_required|handoff|order|send_failed|sending/.test(caseStatus)
+        || item.requires_attention === true
+        || item.unhandled_customer_message === true;
+      if (Object.prototype.hasOwnProperty.call(item, "no_intervention")) {
+        return item.no_intervention === true && !manualHandled && !aiHandled && !stillActionable;
+      }
+      const latest = item.latest_message || {};
+      const providerStatus = String(latest.provider_status || latest.delivery_status || latest.status || "").toLowerCase();
+      const notDelivered = latest.delivery_cancelled === true
+        || /cancelled|canceled|failed|not_sent|pending|queued/.test(providerStatus);
+      return direction === "agent" && !notDelivered && !manualHandled && !aiHandled && !stillActionable;
+    }
+
+    function dashboardNoInterventionConversationItems(storedItems = [], liveItems = []) {
+      const stored = Array.isArray(storedItems) ? storedItems : [];
+      const live = Array.isArray(liveItems) ? liveItems : [];
+      const storedIdentities = new Set(stored.map(inboxConversationIdentity).filter(Boolean));
+      const liveOnly = live.filter((item) => {
+        const identity = inboxConversationIdentity(item);
+        return identity && !storedIdentities.has(identity);
+      });
+      return [...stored, ...liveOnly]
+        .filter(dashboardConversationIsNoIntervention)
+        .map(dashboardConversationToNoInterventionCase);
+    }
+
+    function dashboardConversationToNoInterventionCase(item = {}) {
+      const identity = inboxConversationIdentity(item) || String(item.conversation_id || item.id || "").trim();
+      const customer = item.customer || {};
+      const latestAt = item.latest_at || item.latest_message?.at || item.latest_message?.message_at || "";
+      const rawReason = String(item.no_intervention_reason || "").trim();
+      const reason = ["button_self_service", "button_self_serve"].includes(rawReason)
+        ? "button_self_service"
+        : rawReason
+        || (item.no_intervention === true && String(item.latest_direction || "").toLowerCase() === "customer"
+          ? "button_self_service"
+          : "no_customer_reply");
+      const statusText = reason === "button_self_service"
+        ? "顾客点 Button 自助继续"
+        : "顾客尚未回复";
+      return {
+        id: `no-intervention:${identity}`,
+        source: "conversation_no_intervention",
+        project_key: item.project_key || projectKeyEl.value.trim() || "beyoute",
+        status: "no_intervention",
+        contact: {
+          id: customer.chat_id || customer.external_customer_id || customer.id || identity,
+          name: firstCleanCustomerName(customer.name, customer.display_name) || fallbackCustomerNameFromDigits(customer.phone || customer.phone_e164 || customer.external_customer_id),
+          phone: customer.phone || customer.phone_e164 || customer.external_customer_id || "",
+        },
+        last_message: statusText,
+        last_message_at: latestAt,
+        updated_at: latestAt,
+        created_at: latestAt,
+        messages: Array.isArray(item.messages) ? item.messages : (item.latest_message ? [item.latest_message] : []),
+        latest_decision: {
+          reply_message: "",
+          intent: reason,
+          stage: item.conversation_stage || "FOLLOW_UP",
+          risk: "low",
+          action: "no_intervention",
+          reason: reason === "button_self_service"
+            ? "顾客已点 Button 自助继续，且没有新问题；当前无需客服介入。"
+            : "最后一条由渠道/Flow 发出，顾客尚未回复；当前无需客服介入。",
+          keywords: [statusText, "只读"],
+          send_now: false,
+        },
+        history: [{
+          type: "no_intervention_observed",
+          at: latestAt,
+          note: `${statusText}；只读观察，不发送消息、不触发 Flow。`,
+        }],
+        read_only: true,
+        no_intervention_reason: reason,
+        raw_conversation_state: {
+          case_status: item.case_status || "",
+          case_action: item.case_action || "",
+          latest_actor: item.latest_actor || "",
+          latest_direction: item.latest_direction || "",
+        },
+      };
+    }
+
+    function dashboardCasesWithNoIntervention(approvalCases = []) {
+      const approvals = Array.isArray(approvalCases) ? approvalCases : [];
+      const projected = Array.isArray(state.queueNoInterventionCases) ? state.queueNoInterventionCases : [];
+      const existing = new Set(
+        approvals
+          .filter(isNoInterventionCase)
+          .map((item) => `${staffCaseCollapseKey(item)}|${caseDateKey(item)}`)
+          .filter((value) => !value.startsWith("|"))
+      );
+      return [
+        ...approvals,
+        ...projected.filter((item) => {
+          const key = `${staffCaseCollapseKey(item)}|${caseDateKey(item)}`;
+          return key.startsWith("|") || !existing.has(key);
+        }),
+      ];
+    }
+
     async function loadCases(options = {}) {
       errorEl.textContent = "";
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
@@ -11570,6 +11715,12 @@
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
         const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
         const historyCacheKey = `${project}|${searchQuery.toLowerCase()}`;
+        // The former `auto` history endpoint only counts verified Flow records.
+        // “无需介入” is broader and is now sourced from conversation projection,
+        // so never reuse that incomparable Flow-only total or item list.
+        state.queueHistoryItems = { ...(state.queueHistoryItems || {}), auto: [] };
+        state.queueHistoryCounts = { ...(state.queueHistoryCounts || {}), auto: null };
+        state.queueHistoryLatestDate = { ...(state.queueHistoryLatestDate || {}), auto: "" };
         const historyCacheFresh = state.queueHistoryCacheKey === historyCacheKey
           && Date.now() - Number(state.queueHistoryFetchedAt || 0) < DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS;
         if (state.queueHistoryCacheKey !== historyCacheKey) {
@@ -11580,10 +11731,25 @@
         }
         const historyPromise = historyCacheFresh
           ? Promise.resolve([])
-          : Promise.all(["auto", "records"].map(async (status) => ({
+          : Promise.all(["records"].map(async (status) => ({
               status,
               result: await fetchDashboardQueueResult(dashboardHistoryRequest(api, approvalParams, status), token),
             })));
+        const noInterventionCacheFresh = state.queueNoInterventionCacheKey === project
+          && Date.now() - Number(state.queueNoInterventionFetchedAt || 0) < DASHBOARD_NO_INTERVENTION_MAX_AGE_MS;
+        if (state.queueNoInterventionCacheKey !== project) {
+          state.queueNoInterventionCases = [];
+          state.queueNoInterventionFetchedAt = 0;
+        }
+        const noInterventionPromise = noInterventionCacheFresh
+          ? Promise.resolve(null)
+          : (() => {
+              const urls = dashboardNoInterventionRequestUrls(api, project);
+              return Promise.all([
+                fetchDashboardQueueResult(urls.stored, token),
+                fetchDashboardQueueResult(urls.live, token),
+              ]);
+            })();
         const primary = await fetchDashboardQueueResult(approvalUrl, token);
         const res = primary.response;
         const data = primary.data || {};
@@ -11610,7 +11776,9 @@
 	        let compactLiveItems = compactApprovalsByConversation(liveItems);
 	        const knownContactNames = options.silent ? (state.contactNames || {}) : {};
 	        if (!options.silent) state.contactNames = {};
-	        state.cases = compactLiveItems.map((item) => approvalToCase(item, knownContactNames));
+	        state.cases = dashboardCasesWithNoIntervention(
+	          compactLiveItems.map((item) => approvalToCase(item, knownContactNames))
+	        );
 	        if (options.preserveSelection) {
 	          const liveCaseIds = new Set(state.cases.map((record) => String(record.id || "")));
 	          state.selected = new Set([...state.selected].filter((caseId) => liveCaseIds.has(String(caseId))));
@@ -11618,7 +11786,7 @@
 	        const queueChanged = realtimeQueueFingerprint(state.cases) !== previousQueueFingerprint;
 	        if (!options.silent || queueChanged) render();
 
-        const historyResults = await historyPromise;
+        const [historyResults, noInterventionResults] = await Promise.all([historyPromise, noInterventionPromise]);
         if (requestSeq !== state.queueRequestSeq) return;
         if (historyResults.length) {
           const nextHistoryItems = { ...(state.queueHistoryItems || { auto: [], records: [] }) };
@@ -11631,7 +11799,7 @@
               ? result.data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
               : [];
             const strictItems = status === "auto"
-              ? responseItems.filter(isVerifiedAutoFlowCase)
+              ? responseItems.filter(isNoInterventionCase)
               : responseItems.filter(isAiHandledCase);
             nextHistoryItems[status] = strictItems;
             nextHistoryCounts[status] = dashboardHistoryResponseCount(result.data, strictItems);
@@ -11642,13 +11810,15 @@
             state.queueHistoryItems = nextHistoryItems;
             state.queueHistoryCounts = nextHistoryCounts;
             state.queueHistoryLatestDate = nextHistoryDates;
-            state.queueHistoryLoaded = nextHistoryCounts.auto !== null || nextHistoryCounts.records !== null;
+            state.queueHistoryLoaded = nextHistoryCounts.records !== null;
             state.queueHistoryCacheKey = historyCacheKey;
             state.queueHistoryFetchedAt = Date.now();
             liveItems = mergeDashboardApprovalItems(primaryItems, nextHistoryItems.auto || [], nextHistoryItems.records || [])
               .filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)));
             compactLiveItems = compactApprovalsByConversation(liveItems);
-            state.cases = compactLiveItems.map((item) => approvalToCase(item, knownContactNames));
+	            state.cases = dashboardCasesWithNoIntervention(
+	              compactLiveItems.map((item) => approvalToCase(item, knownContactNames))
+	            );
             if (options.preserveSelection) {
               const liveCaseIds = new Set(state.cases.map((record) => String(record.id || "")));
               state.selected = new Set([...state.selected].filter((caseId) => liveCaseIds.has(String(caseId))));
@@ -11656,10 +11826,25 @@
             render();
           }
         }
+        if (Array.isArray(noInterventionResults)) {
+          const [storedResult, liveResult] = noInterventionResults;
+          const storedItems = storedResult?.ok && Array.isArray(storedResult.data?.items) ? storedResult.data.items : [];
+          const liveConversationItems = liveResult?.ok && Array.isArray(liveResult.data?.items) ? liveResult.data.items : [];
+          if (storedResult?.ok || liveResult?.ok) {
+            state.queueNoInterventionCases = dashboardNoInterventionConversationItems(storedItems, liveConversationItems);
+            state.queueNoInterventionCacheKey = project;
+            state.queueNoInterventionFetchedAt = Date.now();
+          }
+        }
+        state.cases = dashboardCasesWithNoIntervention(
+          compactLiveItems.map((item) => approvalToCase(item, knownContactNames))
+        );
+        if (!options.silent || Array.isArray(noInterventionResults)) render();
         if (!searchQuery) {
           saveDashboardQueueSnapshot(project, liveItems, data.sync_status || null, {
             counts: state.queueHistoryCounts,
             latestDate: state.queueHistoryLatestDate,
+            noInterventionCases: state.queueNoInterventionCases,
           });
         }
 	        if (options.refreshActive && previousActiveId) {
@@ -11682,7 +11867,9 @@
           if (requestSeq !== state.queueRequestSeq) return;
           if (!contactNames || !Object.keys(contactNames).length) return;
           state.contactNames = contactNames;
-          state.cases = compactLiveItems.map((item) => approvalToCase(item, contactNames));
+	          state.cases = dashboardCasesWithNoIntervention(
+	            compactLiveItems.map((item) => approvalToCase(item, contactNames))
+	          );
           render();
         }).catch(() => {});
 
@@ -11705,9 +11892,9 @@
           state.qualityLiftRepairQueue = null;
           state.learningNotes = null;
           state.adsConnection = null;
-          loadRuntimeSettings({ silent: true }).then(() => render()).catch(() => null);
-          loadMetaCapiStatus().catch(() => null);
-          loadUsageSummary(token).catch(() => null);
+          state.runtimeDelivery = null;
+          state.metaCapiStatus = null;
+          state.usageSummary = null;
         }
       } catch (error) {
         if (requestSeq !== state.queueRequestSeq) return;
@@ -11954,7 +12141,7 @@
     async function loadUsageSummary(token) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
-      if (!api || (!token && !hasAccountSession())) {
+      if (!api || state.role === "staff" || (!token && !hasAccountSession())) {
         state.usageSummary = null;
         return null;
       }
@@ -11974,7 +12161,7 @@
     async function loadMetaCapiStatus() {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
-      if (!api) {
+      if (!api || state.role === "staff") {
         state.metaCapiStatus = null;
         return null;
       }
@@ -12064,6 +12251,10 @@
     async function loadRuntimeSettings(options = {}) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
+      if (state.role === "staff") {
+        state.runtimeDelivery = null;
+        return null;
+      }
       if (!api) return null;
       try {
         const endpoint = `${api}/api/agent-runtime/config?project_key=${encodeURIComponent(project)}`;
@@ -12871,6 +13062,51 @@
       return flowStatus && dashboardHasExplicitButtonOrFlowEvidence(item) && !dashboardCustomerAskedActiveQuestion(item);
     }
 
+    function dashboardIsExplicitNoReplyRecord(item = {}) {
+      const raw = item.raw_approval || {};
+      const data = dashboardCaseData(item);
+      const rawStatus = String(item.source_status || raw.source_status || raw.status || "").toLowerCase();
+      const rawBucket = String(item.raw?.queue_bucket || raw.raw?.queue_bucket || raw.queue_bucket || "").toLowerCase();
+      const action = String(
+        item.latest_decision?.action ||
+        item.action?.type ||
+        raw.action?.type ||
+        raw.next_action ||
+        data.action?.type ||
+        ""
+      ).toLowerCase();
+      const recorded = item.no_reply_needed === true
+        || raw.no_reply_needed === true
+        || data.no_reply_needed === true
+        || action === "record_no_reply"
+        || action === "record-no-reply"
+        || (rawStatus === "auto_record" && rawBucket === "auto_record" && action === "record_auto_event");
+      if (!recorded) return false;
+      return !dashboardCustomerAskedActiveQuestion(item);
+    }
+
+    function dashboardIsClosedAutoRecordWithoutCustomerReply(item = {}) {
+      const raw = item.raw_approval || {};
+      const rawStatus = String(item.source_status || raw.source_status || raw.status || "").toLowerCase();
+      const rawBucket = String(item.raw?.queue_bucket || raw.raw?.queue_bucket || raw.queue_bucket || "").toLowerCase();
+      const closedAutoRecord = rawStatus === "auto_record"
+        || rawBucket === "auto_record"
+        || String(item.status || "").toLowerCase() === "auto_record";
+      if (!closedAutoRecord || dashboardCustomerAskedActiveQuestion(item)) return false;
+      return !dashboardApprovalCustomerText(item).trim();
+    }
+
+    function isNoInterventionCase(item = {}) {
+      if (!item || isAiHandledCase(item)) return false;
+      const status = String(item.status || "").toLowerCase();
+      if (status === "manual_resolved") return false;
+      if (status === "no_intervention") return true;
+      if (dashboardCustomerAskedActiveQuestion(item)) return false;
+      return isVerifiedAutoFlowCase(item)
+        || dashboardIsExplicitNoReplyRecord(item)
+        || dashboardIsClosedAutoRecordWithoutCustomerReply(item);
+    }
+
     function isAiHandledCase(item = {}) {
       return item.status === "auto_sent" || Boolean(
         item.status === "sent" && (
@@ -12883,7 +13119,7 @@
 
     function staffBusinessCategory(item = {}) {
       if (isAiHandledCase(item)) return "records";
-      if (isVerifiedAutoFlowCase(item)) return "auto";
+      if (isNoInterventionCase(item)) return "auto";
       if (isHumanFirstCase(item)) return "human_first";
       if (item.status === "approval_required" || needsReturnAiBeforeApproval(item)) return "approval_required";
       return "other";
@@ -13729,7 +13965,7 @@
       if (filter === "needs_attention") {
         return staffCaseSectionHtml({
           title: "全部待处理",
-          body: "合并显示待批准与人工回复；自动 Flow 和 AI 自动回复记录不会混进来。",
+          body: "合并显示待批准与人工回复；无需介入和 AI 自动回复记录不会混进来。",
           items: visible,
           countLabel: `${visible.length} 位 · ${Number(counts.needs || visible.length)} 条`,
           emptyText: "当前没有未完成的待处理顾客。",
@@ -13752,10 +13988,10 @@
       }
       if (filter === "auto") {
         return staffCaseSectionHtml({
-          title: "自动 Flow",
-          body: "只显示顾客点过按钮或已执行 Flow，而且没有主动提问的 Case。这里只读，不用客服处理。",
+          title: "无需介入",
+          body: "只显示已点 Button / Flow 已继续且没有新问题，或有明确无需回复证据的 Case。这里只读。",
           items: visible,
-          emptyText: "当前范围没有自动 Flow 记录。",
+          emptyText: "当前日期没有无需介入记录。",
         });
       }
       if (filter === "records") {
@@ -13782,8 +14018,8 @@
       }
       if (auto.length) {
         sections.push(staffCaseSectionHtml({
-          title: "自动 Flow",
-          body: "顾客点按钮后已由 Flow 继续，并且没有主动提问。",
+          title: "无需介入",
+          body: "已由 Button / Flow 继续，或明确无需回复；顾客没有待处理问题。",
           items: auto,
           countLabel: `${auto.length} 位 · ${Number(counts.auto || auto.length)} 条`,
         }));
@@ -13957,6 +14193,9 @@
     function renderFilterCounts(counts = {}) {
       const humanWork = Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0);
       const historyBadge = (category, current) => {
+        // “无需介入” combines approval records with the bounded conversation
+        // projection, so the old Flow-only history total is not comparable.
+        if (category === "auto") return Number(current || 0);
         const rawHistorical = state.queueHistoryCounts?.[category];
         const historical = Number(rawHistorical);
         if (!state.queueHistoryLoaded || rawHistorical === null || rawHistorical === undefined || !Number.isFinite(historical)) return current;
@@ -13968,22 +14207,26 @@
         needs_attention: ["全部待处理", counts.needs],
         approval_required: ["待批准", counts.approval],
         human_first: ["人工回复", humanWork],
-        auto: ["自动 Flow", historyBadge("auto", counts.auto)],
+        auto: ["无需介入", historyBadge("auto", counts.auto)],
         records: ["AI 自动回复记录", historyBadge("records", counts.records)],
       };
       document.querySelectorAll("[data-filter]").forEach((button) => {
         const [label, value] = labels[button.dataset.filter] || [button.textContent || "", ""];
         button.innerHTML = `${escapeHtml(label)}<span class="pill-count">${escapeHtml(value ?? 0)}</span>`;
+        if (button.dataset.filter === "auto") {
+          button.title = "按当前选中日期显示无需介入记录；全部只读。";
+          return;
+        }
         const rawHistorical = state.queueHistoryCounts?.[button.dataset.filter];
-        if (["auto", "records"].includes(button.dataset.filter) && state.queueHistoryLoaded && rawHistorical !== null && rawHistorical !== undefined) {
+        if (button.dataset.filter === "records" && state.queueHistoryLoaded && rawHistorical !== null && rawHistorical !== undefined) {
           const historical = Number(rawHistorical || 0);
-          button.title = `当前日期与全部历史分开计数；全部历史 ${historical} 条。`;
+          button.title = `当前日期与全部历史分开计数；全部历史 ${historical} 条。无需介入记录只读。`;
         }
       });
     }
 
     function pruneSelection(cases) {
-      const allowed = new Set(cases.map((item) => item.id));
+      const allowed = new Set(cases.filter((item) => !isCaseReadOnly(item)).map((item) => item.id));
       [...state.selected].forEach((id) => {
         if (!allowed.has(id)) state.selected.delete(id);
       });
@@ -13991,6 +14234,8 @@
 
     function toggleCaseSelection(caseId, checked) {
       if (!caseId) return;
+      const item = state.cases.find((record) => String(record.id || "") === String(caseId));
+      if (!item || isCaseReadOnly(item)) return;
       if (checked) state.selected.add(caseId);
       else state.selected.delete(caseId);
       render();
@@ -14238,7 +14483,7 @@
       const sortText = state.sort === "priority" ? "优先级" : state.sort === "newest" ? "最新" : "名字";
       const qaText = "";
       const staffGuide = state.role === "staff"
-        ? ` · 待批准 ${counts.approval || 0}，人工回复 ${Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0)}，自动 Flow ${counts.auto || 0}，AI 处理 ${counts.records || 0}`
+        ? ` · 待批准 ${counts.approval || 0}，人工回复 ${Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0)}，无需介入 ${counts.auto || 0}，AI 处理 ${counts.records || 0}`
         : "";
       const realtimeText = state.role === "staff" ? " · 实时同步 ≤5秒" : "";
       const refreshText = state.refreshing ? " · 正在同步" : "";
@@ -14279,10 +14524,10 @@
         },
         {
           action: "auto_records",
-          title: "自动 Flow",
+          title: "无需介入",
           body: Number(counts.auto || 0) > 0
-            ? "只显示渠道回传的执行证据"
-            : `${scopeWord}无已验证 Flow 回执；广播背景不算`,
+            ? "Button / Flow 或明确无需回复；只读"
+            : `${scopeWord}没有无需介入记录`,
           count: Number(counts.auto || 0),
           tone: "good",
         },
@@ -14332,8 +14577,8 @@
           tone: returnAiCount > 0 ? "risk" : "",
         },
         {
-          title: "自动流程",
-          body: "已接下一段的旧 Case 放自动记录，只读。",
+          title: "无需介入",
+          body: "已接下一段或明确无需回复的 Case 只读留档。",
           badge: `${externalFlowRecords} 只读`,
           tone: "",
         },
@@ -14423,11 +14668,11 @@
         },
         {
           action: "auto_records",
-          title: "自动记录",
-          body: "已接下一段的记录只读，不重复处理旧卡。",
+          title: "无需介入",
+          body: "Button / Flow 已继续或明确无需回复；只读不重复处理。",
           count: externalFlowRecords,
           badge: `${externalFlowRecords} 只读`,
-          button: "看自动记录",
+          button: "看无需介入",
           tone: "",
           blocksAuto: false,
         },
@@ -14470,7 +14715,7 @@
       }
       if (action === "auto_records") {
         setFilter("auto");
-        showToast("自动 Flow 只读：顾客点过按钮且没有主动提问。");
+        showToast("无需介入只读：Button / Flow 已继续或明确无需回复；有新问题不会进入。");
         return;
       }
       if (action === "ai_records") {
@@ -18126,7 +18371,7 @@
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
-          body: "合并显示待批准和人工回复；不包含自动 Flow 与 AI 自动回复记录。",
+          body: "合并显示待批准和人工回复；不包含无需介入与 AI 自动回复记录。",
         },
         approval_required: {
           title: `${counts.approval} 条回复可审核批准`,
@@ -18153,8 +18398,8 @@
           body: "检查资料和付款，确认后再提交或交给运营。",
         },
         auto: {
-          title: `${counts.auto} 条自动 Flow 记录`,
-          body: "只显示顾客点过按钮或 Flow 已执行，而且没有主动提问的 Case。只读，不会重复发送。",
+          title: `${counts.auto} 条无需介入记录`,
+          body: "只显示 Button / Flow 已继续且没有新问题，或有明确无需回复证据的 Case。只读，不会重复发送。",
         },
         records: {
           title: `${counts.records || 0} 条 AI 自动回复记录`,
@@ -18950,7 +19195,7 @@
       if (tone === "fix") return "不能自动：让 AI 重写 修到能答清顾客问题才可审";
       if (tone === "handoff") return "不能自动：先转人工回复处理，贴最终回复给复盘";
       if (tone === "order") return "不能自动：订单/付款/物流先人工确认";
-      if (/^(auto_sent|external_flow_continued|sent|manual_resolved|handoff_done|returned_to_ai|purchase_confirmed)$/.test(status)) {
+	      if (/^(no_intervention|auto_sent|external_flow_continued|sent|manual_resolved|handoff_done|returned_to_ai|purchase_confirmed)$/.test(status)) {
         return "只读复盘：记录人工/已发结果；不会重复发送或触发 Flow";
       }
       if (action.includes("flow")) {
@@ -19034,28 +19279,33 @@
 
 	    function cardHtml(item) {
 	      const decision = item.latest_decision || {};
+	      const readOnly = isCaseReadOnly(item);
 	      const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
 	      const baseDisplayName = customerDisplayLabel(item);
 	      const displayName = customerDisplayLabelWithTail(item, baseDisplayName);
 	      const initials = initialsFor(baseDisplayName);
-	      const selected = state.selected.has(item.id);
+	      const selected = !readOnly && state.selected.has(item.id);
 	      const sla = slaInfo(item);
 	      const learningFollowup = caseLearningFollowup(item);
 	      const stage = stageLabel(decision.stage);
-	      const preview = customerPreviewText(item);
+	      const noInterventionProjection = item.status === "no_intervention";
+	      const preview = noInterventionProjection
+	        ? (["button_self_service", "button_self_serve"].includes(item.no_intervention_reason) ? "顾客点 Button 自助继续" : "顾客尚未回复，无需客服介入")
+	        : customerPreviewText(item);
+	      const previewLabel = noInterventionProjection ? "当前状态" : "顾客最后一句";
 	      const tags = caseMiniTags(item, decision);
 	      const statusText = caseStatusLabel(item, decision.risk);
 	      const footPillText = learningFollowup ? learningFollowup.pill : item.seen_by_operator ? "已看" : sla.text;
 	      const footPillTone = learningFollowup ? learningFollowup.tone : sla.tone;
 
 	      return `
-	        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}" role="button" tabindex="0" title="打开顾客 Case" aria-label="打开 ${escapeHtml(displayName)} 的 ${escapeHtml(statusText)} Case">
+	        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}" role="button" tabindex="0" title="${readOnly ? "查看只读记录" : "打开顾客 Case"}" aria-label="${readOnly ? "查看" : "打开"} ${escapeHtml(displayName)} 的 ${escapeHtml(statusText)}${readOnly ? "只读记录" : " Case"}">
           <div class="case-head">
             <div class="case-name">
-              <label class="case-select" title="选择这个顾客">
-                <input type="checkbox" data-select-case-id="${escapeHtml(item.id)}" ${selected ? "checked" : ""} />
-                <span aria-hidden="true"></span>
-              </label>
+	              ${readOnly ? "" : `<label class="case-select" title="选择这个顾客">
+	                <input type="checkbox" data-select-case-id="${escapeHtml(item.id)}" ${selected ? "checked" : ""} />
+	                <span aria-hidden="true"></span>
+	              </label>`}
 	              <span class="case-id">${escapeHtml(initials)}</span>
 	              <div>
                 <b>${escapeHtml(displayName)}</b>
@@ -19067,7 +19317,7 @@
 	            <span class="badge ${riskClass}">${escapeHtml(statusText)}</span>
 	          </div>
           <div class="case-word-block">
-            <span class="case-block-label">顾客最后一句</span>
+            <span class="case-block-label">${escapeHtml(previewLabel)}</span>
             <strong>${escapeHtml(preview)}</strong>
             <div class="case-word-mini">
               ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
@@ -20440,6 +20690,17 @@
 	          never: [...neverBase, "不要当成付款截图", "不要按确认收款 / COD", "不要接销售 Flow"],
 	        };
 	      }
+	      if (status === "no_intervention") {
+	        return {
+	          tone: "good",
+	          title: "无需介入，只读",
+	          body: ["button_self_service", "button_self_serve"].includes(item.no_intervention_reason)
+	            ? "顾客已点 Button 自助继续，且没有新问题；这里只观察，不发送消息、不触发 Flow。"
+	            : "最后一条由渠道/Flow 发出，顾客尚未回复；这里只观察，不发送消息、不触发 Flow。",
+	          buttons: ["关闭"],
+	          never: ["不要重复发送", "不要主动追问", "不要触发 Flow"],
+	        };
+	      }
 	      if (status === "external_flow_continued") {
 	        return {
 	          tone: "good",
@@ -20525,7 +20786,8 @@
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return { text: learningFollowup.pill, tone: learningFollowup.tone, note: learningFollowup.body };
 	      const status = item.status;
-      if (status === "auto" || status === "auto_sent" || status === "external_flow_continued" || status === "sent" || status === "handoff_done" || status === "returned_to_ai" || status === "manual_resolved" || status === "purchase_confirmed") {
+	      if (status === "no_intervention" || status === "auto" || status === "auto_sent" || status === "external_flow_continued" || status === "sent" || status === "handoff_done" || status === "returned_to_ai" || status === "manual_resolved" || status === "purchase_confirmed") {
+	        if (status === "no_intervention") return { text: "只读", tone: "", note: "顾客尚未回复，无需介入。" };
         if (status === "handoff_done") return { text: "已转人工回复", tone: "", note: "已留处理记录。" };
         if (status === "returned_to_ai") return { text: "已让 AI 重写", tone: "", note: "等待重写或复盘。" };
         if (status === "manual_resolved") return { text: "已手动回", tone: "", note: "已保存人工回复。" };
@@ -20578,6 +20840,7 @@
 	      const channelOutageFailure = item.status === "send_failed" && /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(channelOutageText);
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return learningFollowup.title;
+	      if (item.status === "no_intervention") return "无需介入";
 	      if (item.status === "external_flow_continued") return "外部已处理";
 	      if (item.status === "auto_sent") return "AI 已自动回复";
       if (item.status === "sent") return "已发送";
@@ -20614,6 +20877,9 @@
 	      const channelOutageFailure = item.status === "send_failed" && /(?:API access disrupted|Data Use Checkup|App Dashboard|Whatsapp channel was turned off|WhatsApp channel was turned off|channel was turned off|api.{0,24}disrupt|access.{0,18}disrupt|data\s*use|whatsapp.{0,24}(?:off|disabled|turned\s*off))/i.test(channelOutageText);
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return learningFollowup.body;
+	      if (item.status === "no_intervention") return ["button_self_service", "button_self_serve"].includes(item.no_intervention_reason)
+	        ? "顾客已点 Button 自助继续，且没有新问题；当前只读观察，不发送消息、不触发 Flow。"
+	        : "最后一条由渠道/Flow 发出，顾客尚未回复；当前只读观察，不发送消息、不触发 Flow。";
 	      if (item.status === "external_flow_continued") return "外部渠道/Flow 已处理；这条旧 Case 只留过渡记录，不能重复批准。以后客服请直接在 Dashboard 回复。";
 	      if (item.status === "auto_sent") return "下面显示的回复已经自动发送给顾客。";
       if (item.status === "sent") return "这条回复已发送，保留给团队追踪。";
@@ -23315,11 +23581,13 @@
     }
 
     function isCaseReadOnly(item) {
-      return ["auto", "auto_record", "auto_sent", "external_flow_continued", "sent", "sending", "handoff_done", "returned_to_ai", "manual_resolved", "purchase_confirmed", "rejected"].includes(item.status);
+      return isNoInterventionCase(item)
+        || ["auto", "auto_record", "auto_sent", "external_flow_continued", "sent", "sending", "handoff_done", "returned_to_ai", "manual_resolved", "purchase_confirmed", "rejected"].includes(item.status);
     }
 
 	    function canManualResolveCase(item = {}) {
 	      if (!item) return false;
+	      if (isNoInterventionCase(item)) return false;
 	      return !["auto", "auto_sent", "external_flow_continued", "sent", "sending", "manual_resolved", "purchase_confirmed"].includes(item.status);
 	    }
 
@@ -23349,6 +23617,7 @@
 
 	    function canManualSendCase(item = {}, closer = null, approvalGuard = null) {
 	      if (!item) return false;
+	      if (isNoInterventionCase(item)) return false;
 	      const status = String(item.status || "").toLowerCase();
 	      if (["auto", "auto_sent", "auto_record", "external_flow_continued", "sending"].includes(status)) return false;
 	      const decision = item.latest_decision || {};
@@ -26361,7 +26630,7 @@
           : state.demoMode
             ? "当前筛选没有演示顾客，可以切换筛选或载入其他行业演示。"
             : state.filter === "auto"
-            ? autoFlowEmptyMessage()
+            ? noInterventionEmptyMessage()
             : state.filter === "records"
               ? aiRecordEmptyMessage()
             : state.role === "staff"
@@ -26375,18 +26644,12 @@
       `;
     }
 
-    function autoFlowEmptyMessage() {
+    function noInterventionEmptyMessage() {
       const runtime = state.runtimeDelivery || {};
-      const historical = state.queueHistoryCounts?.auto;
-      const historicalCount = historical === null || historical === undefined ? null : Number(historical);
-      const latestDate = normalizeIsoDate(state.queueHistoryLatestDate?.auto);
-      if (Number.isFinite(historicalCount) && historicalCount > 0 && !useOpenBacklogDateScope()) {
-        return `${queueDateScopeLabel()}没有自动 Flow；全部历史共有 ${historicalCount} 条${latestDate ? `，最近一条在 ${latestDate}` : ""}。这是日期范围差异，不是记录消失；用上方日期选择器可查看。`;
-      }
       const workerNote = runtime.loaded && !runtime.autoFlowEffective
         ? "ReplyPilot 自动触发 Flow 当前未开启；"
         : "";
-      return `${queueDateScopeLabel()}没有可验证的自动 Flow 记录；${workerNote}这里只统计 ChatDaddy 已回传明确按钮或 Flow 执行证据、而且顾客没有另外主动提问的 Case。没有回传证据的旧 Flow 不会补算。`;
+      return `${queueDateScopeLabel()}没有无需介入记录；${workerNote}这里只包括已验证 Button / Flow 且没有新问题，或客服明确确认无需回复的 Case。人工已处理另行留档；顾客仍有问题一定留在待处理。`;
     }
 
     function aiRecordEmptyMessage() {
@@ -26479,6 +26742,7 @@
       if (status === "manual_resolved") return "已手动回复";
       if (status === "purchase_confirmed") return "已成交";
       if (status === "order") return "订单";
+      if (status === "no_intervention") return "无需介入";
       if (status === "auto") return "自动 Flow";
       if (status === "external_flow_continued") return "自动 Flow 已处理";
       if (status === "auto_sent") return "已自动回复";
@@ -26509,6 +26773,7 @@
 	        manual_send: "回复并发送",
 	        channel_reply_resolved: "已由人工回复",
 	        record_no_reply: "无需回复",
+	        no_intervention: "无需介入",
 	        external_flow_continued: "自动 Flow 已处理",
 	        mark_purchase_action: "确认成交",
         mark_seen: "标记已看",
