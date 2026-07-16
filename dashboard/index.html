@@ -13015,7 +13015,9 @@
 
     function inboxLiveContinuationRequest(nextPage) {
       const continuation = String(nextPage ?? "").trim();
-      if (!continuation) return { page: "0" };
+      // ChatDaddy treats an omitted page as the first page; explicit page=0 can
+      // return an empty collection on some accounts.
+      if (!continuation) return {};
       return /^\d+$/.test(continuation)
         ? { page: continuation }
         : { cursor: continuation };
