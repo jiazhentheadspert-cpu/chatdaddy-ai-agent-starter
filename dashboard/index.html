@@ -7946,7 +7946,7 @@
           <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-inbox.svg" alt=""></span><em>最新讯息</em></span>
           <small id="navInboxBadge">0</small>
         </button>
-        <button class="active" aria-label="操作台" title="操作台" data-short="台" data-icon-nav data-side-key="ai_reply" data-side-filter="approval_required" data-workspace-target="cases" data-step-nav data-step-view="4">
+        <button class="active" aria-label="操作台" title="操作台" data-short="台" data-icon-nav data-side-key="ai_reply" data-side-filter="needs_attention" data-workspace-target="cases" data-step-nav data-step-view="4">
           <span class="side-label"><span class="main-nav-icon" aria-hidden="true"><img src="../assets/icons/nav-workbench.svg" alt=""></span><em>操作台</em></span>
           <small id="navCasesBadge">0</small>
         </button>
@@ -8096,7 +8096,8 @@
         </details>
         <div class="toolbar">
           <div class="filters">
-            <button class="pill active" data-filter="approval_required">待批准</button>
+            <button class="pill active" data-filter="needs_attention">全部待处理</button>
+            <button class="pill" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_first">人工回复</button>
             <button class="pill" data-filter="auto" id="autoFilterBtn">自动 Flow</button>
             <button class="pill" data-filter="records" id="recordsFilterBtn">AI 处理记录</button>
@@ -8473,7 +8474,7 @@
       inboxError: "",
       inboxUpdatedAt: "",
       inboxSort: "customer_first",
-      filter: "approval_required",
+      filter: "needs_attention",
       active: null,
       demoMode: false,
       scenario: "ecommerce",
@@ -9972,7 +9973,7 @@
         state.workspaceView = ["inbox", "cases"].includes(state.workspaceView) ? state.workspaceView : "inbox";
         state.sidebarKey = state.workspaceView === "inbox" ? "inbox" : "ai_reply";
         state.activeSetupStep = "4";
-        state.filter = "approval_required";
+        state.filter = "needs_attention";
       }
 
       const titleParts = [projectDisplayName(), "客服工作台"];
@@ -10018,15 +10019,16 @@
     }
 
     function normalizeStaffQueueFilter(filter = "") {
-      const requested = String(filter || "").trim() || "approval_required";
+      const requested = String(filter || "").trim() || "needs_attention";
       if (state.role !== "staff") return requested;
-      return ["approval_required", "human_first", "auto", "records"].includes(requested)
+      return ["needs_attention", "approval_required", "human_first", "auto", "records"].includes(requested)
         ? requested
-        : "approval_required";
+        : "needs_attention";
     }
 
     function staffQueueFilterLabel(filter = "") {
       const normalized = normalizeStaffQueueFilter(filter);
+      if (normalized === "needs_attention") return "全部待处理";
       if (normalized === "human_first") return "人工回复";
       if (normalized === "auto") return "自动 Flow";
       if (normalized === "records") return "AI 处理记录";
@@ -10219,7 +10221,7 @@
     }
 
     function staffFilterSupportsOpenBacklog(filter = state.filter) {
-      return ["approval_required", "human_first", "auto", "records"].includes(normalizeStaffQueueFilter(filter));
+      return ["needs_attention", "approval_required", "human_first", "auto", "records"].includes(normalizeStaffQueueFilter(filter));
     }
 
     function useOpenBacklogDateScope(filter = state.filter) {
@@ -10500,7 +10502,7 @@
         return;
       }
       if (action === "cases") {
-        state.filter = "approval_required";
+        state.filter = "needs_attention";
         state.sidebarKey = "ai_reply";
         state.activeSetupStep = "4";
         setWorkspaceView("cases");
@@ -13126,7 +13128,7 @@
     }
 
     function shouldUseStaffCaseSections() {
-      return state.role === "staff" && ["approval_required", "human_first", "auto", "records"].includes(state.filter);
+      return state.role === "staff" && ["needs_attention", "approval_required", "human_first", "auto", "records"].includes(state.filter);
     }
 
     function caseActivityTimestamp(item = {}) {
@@ -13232,6 +13234,15 @@
     function staffCaseSectionsHtml(visible = [], counts = {}) {
       if (!visible.length) return emptyHtml();
       const filter = state.filter;
+      if (filter === "needs_attention") {
+        return staffCaseSectionHtml({
+          title: "全部待处理",
+          body: "合并显示待批准与人工回复；自动 Flow 和 AI 处理记录不会混进来。",
+          items: visible,
+          countLabel: `${visible.length} 位 · ${Number(counts.needs || visible.length)} 条`,
+          emptyText: "当前没有未完成的待处理顾客。",
+        });
+      }
       if (filter === "approval_required") {
         return staffCaseSectionHtml({
           title: "待批准",
@@ -13454,6 +13465,7 @@
     function renderFilterCounts(counts = {}) {
       const humanWork = Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0);
       const labels = {
+        needs_attention: ["全部待处理", counts.needs],
         approval_required: ["待批准", counts.approval],
         human_first: ["人工回复", humanWork],
         auto: ["自动 Flow", counts.auto],
@@ -17576,7 +17588,7 @@
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
-          body: "只显示可批准、要人工、让 AI 重写、待补人工回复、订单和发送失败。",
+          body: "合并显示待批准和人工回复；不包含自动 Flow 与 AI 处理记录。",
         },
         approval_required: {
           title: `${counts.approval} 条回复可审核批准`,
