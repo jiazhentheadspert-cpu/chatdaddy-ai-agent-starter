@@ -8481,6 +8481,12 @@
       inboxSearchTimer: null,
       inboxRequestSeq: 0,
       queueRequestSeq: 0,
+      queueHistoryCounts: { auto: null, records: null },
+      queueHistoryLatestDate: { auto: "", records: "" },
+      queueHistoryLoaded: false,
+      queueHistoryItems: { auto: [], records: [] },
+      queueHistoryCacheKey: "",
+      queueHistoryFetchedAt: 0,
       inboxLoading: false,
       inboxLoadingMore: false,
       inboxLoadingAll: false,
@@ -8504,8 +8510,10 @@
         loaded: false,
         autoSendRequested: false,
         autoFlowRequested: false,
-        sendsMessages: false,
-        triggersFlows: false,
+        autoSendEffective: false,
+        autoFlowEffective: false,
+        activeApprovedRuleCount: 0,
+        blockReasons: [],
         tier: "approval_first",
       },
       auditEvents: [],
@@ -11345,7 +11353,8 @@
 
     const DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS = 12000;
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
-    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 3;
+    const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 4;
 
     function dashboardQueueSnapshotKey(project = "") {
       return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
@@ -11375,6 +11384,24 @@
       const snapshot = readDashboardQueueSnapshot(project, qaMode);
       if (!snapshot) return false;
       const compactItems = compactApprovalsByConversation(snapshot.items);
+      const snapshotHistoryCounts = snapshot.history_counts && typeof snapshot.history_counts === "object"
+        ? snapshot.history_counts
+        : {};
+      const snapshotHistoryDates = snapshot.history_latest_date && typeof snapshot.history_latest_date === "object"
+        ? snapshot.history_latest_date
+        : {};
+      const snapshotHistoryCount = (value) => value === null || value === undefined || value === ""
+        ? null
+        : Number.isFinite(Number(value)) ? Number(value) : null;
+      state.queueHistoryCounts = {
+        auto: snapshotHistoryCount(snapshotHistoryCounts.auto),
+        records: snapshotHistoryCount(snapshotHistoryCounts.records),
+      };
+      state.queueHistoryLatestDate = {
+        auto: normalizeIsoDate(snapshotHistoryDates.auto),
+        records: normalizeIsoDate(snapshotHistoryDates.records),
+      };
+      state.queueHistoryLoaded = state.queueHistoryCounts.auto !== null || state.queueHistoryCounts.records !== null;
       state.demoMode = false;
       state.loading = false;
       state.refreshing = true;
@@ -11387,13 +11414,15 @@
       return true;
     }
 
-    function saveDashboardQueueSnapshot(project = "", items = [], syncStatus = null) {
+    function saveDashboardQueueSnapshot(project = "", items = [], syncStatus = null, history = {}) {
       if (!Array.isArray(items)) return;
       try {
         sessionStorage.setItem(dashboardQueueSnapshotKey(project), JSON.stringify({
           version: DASHBOARD_QUEUE_SNAPSHOT_VERSION,
           saved_at: new Date().toISOString(),
           sync_status: syncStatus || null,
+          history_counts: history.counts || null,
+          history_latest_date: history.latestDate || null,
           items,
         }));
       } catch (_error) {
@@ -11414,6 +11443,44 @@
       } finally {
         clearTimeout(timer);
       }
+    }
+
+    async function fetchDashboardQueueResult(url, token) {
+      try {
+        const response = await fetchDashboardQueueWithTimeout(url, authRequestOptions(token));
+        const data = await response.json().catch(() => ({}));
+        return { ok: response.ok && data?.ok === true, response, data, error: null };
+      } catch (error) {
+        return { ok: false, response: null, data: null, error };
+      }
+    }
+
+    function dashboardHistoryResponseCount(data = {}, fallbackItems = []) {
+      const value = Number(data?.count);
+      return Number.isFinite(value) && value >= 0 ? value : fallbackItems.length;
+    }
+
+    function dashboardHistoryLatestDate(items = []) {
+      const latest = [...items].sort((a, b) => approvalSortTime(b) - approvalSortTime(a))[0] || {};
+      const candidates = [
+        latest.updated_at,
+        latest.approved_at,
+        latest.created_at,
+        latest.event_at,
+        latest.inbound?.message_at,
+      ];
+      for (const value of candidates) {
+        const date = isoDateFromValue(value);
+        if (date) return date;
+      }
+      return "";
+    }
+
+    function dashboardHistoryRequest(api, baseParams, status) {
+      const params = new URLSearchParams(baseParams.toString());
+      params.set("status", status);
+      params.set("limit", "250");
+      return `${api}/api/approvals/pending?${params.toString()}`;
     }
 
     async function loadCases(options = {}) {
@@ -11459,11 +11526,27 @@
           scan_limit: "2000",
         });
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
-	        const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
-	        let res = await fetchDashboardQueueWithTimeout(approvalUrl, authRequestOptions(token));
-	        const data = await res.json();
-	        if (res.status === 401 && state.role === "staff" && redirectToUnifiedLogin({ clearSession: true })) return;
-        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
+        const historyCacheKey = `${project}|${searchQuery.toLowerCase()}`;
+        const historyCacheFresh = state.queueHistoryCacheKey === historyCacheKey
+          && Date.now() - Number(state.queueHistoryFetchedAt || 0) < DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS;
+        if (state.queueHistoryCacheKey !== historyCacheKey) {
+          state.queueHistoryItems = { auto: [], records: [] };
+          state.queueHistoryCounts = { auto: null, records: null };
+          state.queueHistoryLatestDate = { auto: "", records: "" };
+          state.queueHistoryLoaded = false;
+        }
+        const historyPromise = historyCacheFresh
+          ? Promise.resolve([])
+          : Promise.all(["auto", "records"].map(async (status) => ({
+              status,
+              result: await fetchDashboardQueueResult(dashboardHistoryRequest(api, approvalParams, status), token),
+            })));
+        const primary = await fetchDashboardQueueResult(approvalUrl, token);
+        const res = primary.response;
+        const data = primary.data || {};
+        if (res?.status === 401 && state.role === "staff" && redirectToUnifiedLogin({ clearSession: true })) return;
+        if (!primary.ok) throw new Error(primary.error?.message || data.error || `HTTP ${res?.status || 0}`);
         if (requestSeq !== state.queueRequestSeq) return;
         state.demoMode = false;
         state.loading = false;
@@ -11474,11 +11557,15 @@
 	        const previousQueueFingerprint = realtimeQueueFingerprint(state.cases);
 	        if (!options.preserveSelection) state.selected.clear();
 	        $("modeTag").textContent = activeModeLabel();
-	        const liveItems = Array.isArray(data.items)
+	        const primaryItems = Array.isArray(data.items)
 	          ? data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
 	          : [];
-	        const compactLiveItems = compactApprovalsByConversation(liveItems);
-	        if (!searchQuery) saveDashboardQueueSnapshot(project, liveItems, data.sync_status || null);
+	        let liveItems = mergeDashboardApprovalItems(
+            primaryItems,
+            state.queueHistoryItems.auto || [],
+            state.queueHistoryItems.records || []
+          ).filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)));
+	        let compactLiveItems = compactApprovalsByConversation(liveItems);
 	        const knownContactNames = options.silent ? (state.contactNames || {}) : {};
 	        if (!options.silent) state.contactNames = {};
 	        state.cases = compactLiveItems.map((item) => approvalToCase(item, knownContactNames));
@@ -11488,6 +11575,51 @@
 	        }
 	        const queueChanged = realtimeQueueFingerprint(state.cases) !== previousQueueFingerprint;
 	        if (!options.silent || queueChanged) render();
+
+        const historyResults = await historyPromise;
+        if (requestSeq !== state.queueRequestSeq) return;
+        if (historyResults.length) {
+          const nextHistoryItems = { ...(state.queueHistoryItems || { auto: [], records: [] }) };
+          const nextHistoryCounts = { ...(state.queueHistoryCounts || { auto: null, records: null }) };
+          const nextHistoryDates = { ...(state.queueHistoryLatestDate || { auto: "", records: "" }) };
+          let successfulHistoryResponses = 0;
+          for (const { status, result } of historyResults) {
+            if (!result?.ok) continue;
+            const responseItems = Array.isArray(result.data?.items)
+              ? result.data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
+              : [];
+            const strictItems = status === "auto"
+              ? responseItems.filter(isVerifiedAutoFlowCase)
+              : responseItems.filter(isAiHandledCase);
+            nextHistoryItems[status] = strictItems;
+            nextHistoryCounts[status] = dashboardHistoryResponseCount(result.data, strictItems);
+            nextHistoryDates[status] = dashboardHistoryLatestDate(strictItems);
+            successfulHistoryResponses += 1;
+          }
+          if (successfulHistoryResponses > 0) {
+            state.queueHistoryItems = nextHistoryItems;
+            state.queueHistoryCounts = nextHistoryCounts;
+            state.queueHistoryLatestDate = nextHistoryDates;
+            state.queueHistoryLoaded = nextHistoryCounts.auto !== null || nextHistoryCounts.records !== null;
+            state.queueHistoryCacheKey = historyCacheKey;
+            state.queueHistoryFetchedAt = Date.now();
+            liveItems = mergeDashboardApprovalItems(primaryItems, nextHistoryItems.auto || [], nextHistoryItems.records || [])
+              .filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)));
+            compactLiveItems = compactApprovalsByConversation(liveItems);
+            state.cases = compactLiveItems.map((item) => approvalToCase(item, knownContactNames));
+            if (options.preserveSelection) {
+              const liveCaseIds = new Set(state.cases.map((record) => String(record.id || "")));
+              state.selected = new Set([...state.selected].filter((caseId) => liveCaseIds.has(String(caseId))));
+            }
+            render();
+          }
+        }
+        if (!searchQuery) {
+          saveDashboardQueueSnapshot(project, liveItems, data.sync_status || null, {
+            counts: state.queueHistoryCounts,
+            latestDate: state.queueHistoryLatestDate,
+          });
+        }
 	        if (options.refreshActive && previousActiveId) {
 	          const refreshedActive = state.cases.find((record) => String(record.id || "") === previousActiveId) || null;
 	          if (refreshedActive) {
@@ -11893,12 +12025,17 @@
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.settings = settingsFromRuntimeConfig(data.runtime_config, state.settings || readProjectSettings(project));
+        const operational = data.operational_state && typeof data.operational_state === "object"
+          ? data.operational_state
+          : {};
         state.runtimeDelivery = {
           loaded: true,
           autoSendRequested: data.runtime_config?.auto_send_enabled === true,
           autoFlowRequested: data.runtime_config?.auto_trigger_flows_enabled === true,
-          sendsMessages: data.sends_messages === true,
-          triggersFlows: data.triggers_flows === true,
+          autoSendEffective: operational.auto_send_effective === true,
+          autoFlowEffective: operational.auto_flow_effective === true,
+          activeApprovedRuleCount: Number(operational.active_approved_rule_count || 0),
+          blockReasons: Array.isArray(operational.block_reasons) ? operational.block_reasons : [],
           tier: String(data.runtime_config?.allowed_auto_reply_tier || "approval_first"),
         };
         syncPauseAgentStateFromRuntime(data.runtime_config, data);
@@ -12003,6 +12140,19 @@
       return 20;
     }
 
+    function approvalConversationBucket(item = {}) {
+      // Historical automation evidence must never be swallowed by a newer
+      // actionable card from the same customer. Keep the strict evidence
+      // predicates here instead of trusting loose source categories.
+      if (isVerifiedAutoFlowCase(item)) return "auto_flow";
+      if (isAiHandledCase(item)) return "ai_records";
+      const status = approvalStatus(item);
+      if (["approval_required", "human_required", "order", "send_failed", "returned_to_ai", "sending", "handoff_done"].includes(status)) {
+        return "needs_attention";
+      }
+      return `other:${status || "unknown"}`;
+    }
+
     function messageMergeKey(message = {}) {
       const ids = [
         message.id,
@@ -12047,10 +12197,35 @@
         .sort((a, b) => new Date(a.at || a.message_at || 0) - new Date(b.at || b.message_at || 0));
     }
 
+    function dashboardApprovalItemIdentity(item = {}) {
+      const stableId = [
+        item.id,
+        item.case_id,
+        item.provider_event_id,
+        item.provider_message_id,
+        item.inbound?.provider_message_id,
+      ].map((value) => String(value || "").trim()).find(Boolean);
+      if (stableId) return `id:${stableId}`;
+      return [
+        approvalConversationKey(item),
+        approvalConversationBucket(item),
+        item.updated_at || item.created_at || item.inbound?.message_at || "",
+      ].join("|");
+    }
+
+    function mergeDashboardApprovalItems(...groups) {
+      const merged = new Map();
+      groups.flat().filter(Boolean).forEach((item) => {
+        const key = dashboardApprovalItemIdentity(item);
+        if (!merged.has(key)) merged.set(key, item);
+      });
+      return [...merged.values()];
+    }
+
     function compactApprovalsByConversation(items = []) {
       const groups = new Map();
       for (const item of items) {
-        const key = approvalConversationKey(item);
+        const key = `${approvalConversationKey(item)}|${approvalConversationBucket(item)}`;
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
       }
@@ -12123,10 +12298,13 @@
       const safety = runtimeConfig.safety_mode || runtimeConfig.safety || {};
       const requestedAutoSend = runtimeConfig.auto_send_enabled === true || safety.auto_send_enabled === true;
       const requestedAutoFlow = runtimeConfig.auto_trigger_flows_enabled === true || safety.auto_trigger_flows_enabled === true;
-      const hasEffectiveFlags = Object.prototype.hasOwnProperty.call(effectiveRuntime, "sends_messages")
-        || Object.prototype.hasOwnProperty.call(effectiveRuntime, "triggers_flows");
-      const autoSend = hasEffectiveFlags ? effectiveRuntime.sends_messages === true : requestedAutoSend;
-      const autoFlow = hasEffectiveFlags ? effectiveRuntime.triggers_flows === true : requestedAutoFlow;
+      const operational = effectiveRuntime.operational_state && typeof effectiveRuntime.operational_state === "object"
+        ? effectiveRuntime.operational_state
+        : {};
+      const hasEffectiveFlags = Object.prototype.hasOwnProperty.call(operational, "auto_send_effective")
+        || Object.prototype.hasOwnProperty.call(operational, "auto_flow_effective");
+      const autoSend = hasEffectiveFlags ? operational.auto_send_effective === true : requestedAutoSend;
+      const autoFlow = hasEffectiveFlags ? operational.auto_flow_effective === true : requestedAutoFlow;
       updatePauseAgentUi(!(autoSend || autoFlow));
     }
 
@@ -12167,10 +12345,14 @@
         }));
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) throw new Error(data.error || data.next || `HTTP ${res.status}`);
-        updatePauseAgentUi(targetPaused);
+        syncPauseAgentStateFromRuntime(data.runtime_config || {}, data);
+        const effective = data.operational_state?.auto_send_effective === true;
+        const approvedRules = Number(data.operational_state?.active_approved_rule_count || 0);
         showToast(targetPaused
           ? "已暂停 AI 自动回复；ChatDaddy 既有 Flow 不受影响。"
-          : "已开启已批准同类自动回复；系统不会自动触发 Flow。"
+          : effective
+            ? "已开启已批准同类自动回复；系统不会自动触发 Flow。"
+            : `已请求开启，但当前批准规则为 ${approvedRules} 条，尚未生效；系统不会自动触发 Flow。`
         );
       } catch (error) {
         alert(`暂停接管失败：${error.message || error}`);
@@ -13657,16 +13839,29 @@
 
     function renderFilterCounts(counts = {}) {
       const humanWork = Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0);
+      const historyBadge = (category, current) => {
+        const rawHistorical = state.queueHistoryCounts?.[category];
+        const historical = Number(rawHistorical);
+        if (!state.queueHistoryLoaded || rawHistorical === null || rawHistorical === undefined || !Number.isFinite(historical)) return current;
+        if (useOpenBacklogDateScope()) return `历史 ${historical}`;
+        const selected = normalizeIsoDate(state.selectedDate) || todayISO;
+        return `${selected === todayISO ? "今" : "当日"} ${Number(current || 0)} · 历史 ${historical}`;
+      };
       const labels = {
         needs_attention: ["全部待处理", counts.needs],
         approval_required: ["待批准", counts.approval],
         human_first: ["人工回复", humanWork],
-        auto: ["自动 Flow", counts.auto],
-        records: ["AI 自动回复记录", counts.records],
+        auto: ["自动 Flow", historyBadge("auto", counts.auto)],
+        records: ["AI 自动回复记录", historyBadge("records", counts.records)],
       };
       document.querySelectorAll("[data-filter]").forEach((button) => {
         const [label, value] = labels[button.dataset.filter] || [button.textContent || "", ""];
         button.innerHTML = `${escapeHtml(label)}<span class="pill-count">${escapeHtml(value ?? 0)}</span>`;
+        const rawHistorical = state.queueHistoryCounts?.[button.dataset.filter];
+        if (["auto", "records"].includes(button.dataset.filter) && state.queueHistoryLoaded && rawHistorical !== null && rawHistorical !== undefined) {
+          const historical = Number(rawHistorical || 0);
+          button.title = `当前日期与全部历史分开计数；全部历史 ${historical} 条。`;
+        }
       });
     }
 
@@ -26065,18 +26260,32 @@
 
     function autoFlowEmptyMessage() {
       const runtime = state.runtimeDelivery || {};
-      const workerNote = runtime.loaded && !runtime.triggersFlows
-        ? "ReplyPilot 目前不会主动触发 Flow；"
+      const historical = state.queueHistoryCounts?.auto;
+      const historicalCount = historical === null || historical === undefined ? null : Number(historical);
+      const latestDate = normalizeIsoDate(state.queueHistoryLatestDate?.auto);
+      if (Number.isFinite(historicalCount) && historicalCount > 0 && !useOpenBacklogDateScope()) {
+        return `${queueDateScopeLabel()}没有自动 Flow；全部历史共有 ${historicalCount} 条${latestDate ? `，最近一条在 ${latestDate}` : ""}。这是日期范围差异，不是记录消失；用上方日期选择器可查看。`;
+      }
+      const workerNote = runtime.loaded && !runtime.autoFlowEffective
+        ? "ReplyPilot 自动触发 Flow 当前未开启；"
         : "";
       return `${queueDateScopeLabel()}没有可验证的自动 Flow 记录；${workerNote}这里只统计 ChatDaddy 已回传明确按钮或 Flow 执行证据、而且顾客没有另外主动提问的 Case。没有回传证据的旧 Flow 不会补算。`;
     }
 
     function aiRecordEmptyMessage() {
       const runtime = state.runtimeDelivery || {};
-      if (runtime.loaded && !runtime.sendsMessages) {
-        const requestedNote = runtime.autoSendRequested
-          ? "项目虽已选择已批准规则自动回复，但线上安全发送开关仍关闭。"
-          : "线上 AI 自动发送目前没有开启。";
+      const historical = state.queueHistoryCounts?.records;
+      const historicalCount = historical === null || historical === undefined ? null : Number(historical);
+      const latestDate = normalizeIsoDate(state.queueHistoryLatestDate?.records);
+      if (Number.isFinite(historicalCount) && historicalCount > 0 && !useOpenBacklogDateScope()) {
+        return `${queueDateScopeLabel()}没有 AI 自动回复；全部历史共有 ${historicalCount} 条${latestDate ? `，最近一条在 ${latestDate}` : ""}。用上方日期选择器可查看；人工批准或客服发送不会算进这里。`;
+      }
+      if (runtime.loaded && !runtime.autoSendEffective) {
+        const requestedNote = runtime.autoSendRequested && Number(runtime.activeApprovedRuleCount || 0) === 0
+          ? "项目已请求开启，但 Owner 已批准且启用的低风险规则为 0，所以实际不会自动发送。"
+          : runtime.autoSendRequested
+            ? "项目已请求开启，但当前执行条件未通过，所以实际不会自动发送。"
+            : "线上 AI 自动发送目前没有开启。";
         return `${queueDateScopeLabel()}没有 AI 自动回复记录；${requestedNote}AI 草稿、人工批准或客服发送都不算 AI 自动处理。`;
       }
       return `${queueDateScopeLabel()}没有 AI 自动回复记录；这里只统计 AI 已经自动回复成功的 Case，AI 草稿、人工批准或客服发送不会算进来。`;
