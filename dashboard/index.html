@@ -12639,11 +12639,12 @@
       const words = approvalWords(item, signals, action);
       const at = item.updated_at || item.created_at || inbound.message_at || new Date().toISOString();
       const rawFinalReply = item.final_text || item.manual_reply_text || reply.text || "";
+      const mediaKind = dashboardItemMediaKind(item);
       const unverifiedAttachment = dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item);
       const externalFlowRecord = status === "external_flow_continued";
       const finalReply = externalFlowRecord
         ? externalFlowReadOnlyMessage(item)
-        : unverifiedAttachment ? dashboardSafeAttachmentReply() : rawFinalReply;
+        : unverifiedAttachment ? dashboardSafeAttachmentReply(item) : rawFinalReply;
       const originalAiReply = externalFlowRecord
         ? (reply.text || rawFinalReply || "")
         : unverifiedAttachment
@@ -12690,6 +12691,10 @@
           id: inbound.provider_message_id || inbound.event_id || `${item.id}-in`,
           direction: "inbound",
           text: displayInboundText || "",
+          type: mediaKind || "text",
+          message_type: mediaKind || "text",
+          media_kind: mediaKind || "",
+          is_attachment: Boolean(mediaKind),
           at: displayInboundAt || at,
         },
       ];
@@ -12709,6 +12714,7 @@
       return {
         id: item.id,
         source: "approval",
+        media_kind: mediaKind || "",
         project_key: item.project_key || projectKeyEl.value.trim() || "beyoute",
         status,
         contact: {
@@ -12736,6 +12742,7 @@
 	          ai_brain: item.ai_brain || item.decision?.ai_brain || null,
 	          source_refs: item.source_refs || item.decision?.source_refs || [],
 	          execution_plan: executionPlan,
+	          media_kind: mediaKind || "",
 	        },
         execution_plan: executionPlan,
         messages,
@@ -12795,7 +12802,9 @@
             direction: isOutbound ? "outbound" : "inbound",
             role: isOutbound ? "agent" : "customer",
             text: firstContextText(message?.text, message?.body, message?.caption, message?.content, message?.message),
-            type: message?.type || message?.message_type || "text",
+	            type: firstContextText(message?.type, message?.message_type, message?.content?.message_type, message?.media_kind) || "text",
+	            media_kind: firstContextText(message?.media_kind, message?.media_type, message?.content?.media_kind, message?.metadata?.media_kind),
+	            is_attachment: message?.is_attachment === true || (Array.isArray(message?.attachments) && message.attachments.length > 0),
             at: firstContextText(message?.at, message?.message_at, message?.created_at, message?.timestamp),
             message_at: firstContextText(message?.message_at, message?.at, message?.created_at, message?.timestamp),
             created_at: firstContextText(message?.created_at, message?.createdAt),
@@ -12804,6 +12813,8 @@
 	            delivery_status: providerStatus || "",
 	            delivery_cancelled: deliveryCancelled,
 	            cancel_reason: deliveryCancelled ? cancelReason || providerStatus : "",
+	            content: message?.content || undefined,
+	            metadata: message?.metadata || undefined,
 	            attachments: dashboardContextAttachments(message),
 	          };
 	        })
@@ -13174,7 +13185,7 @@
     }
 
     function dashboardIsAttachmentPlaceholderText(text = "") {
-      return /^\s*[\[【(（]?\s*(?:付款截图|付款截圖|付款证明|付款證明|收据|收據|receipt|payment\s*proof|image|photo|图片|圖片|照片|附件)\s*[\]】)）]?\s*$/i.test(String(text || "").trim());
+      return /^\s*[\[【(（]?\s*(?:付款截图|付款截圖|付款证明|付款證明|收据|收據|receipt|payment\s*proof|image|photo|图片|圖片|照片|audio|voice|语音|語音|音频|音訊|video|视频|影片|document|file|文件|附件)\s*[\]】)）]?\s*$/i.test(String(text || "").trim());
     }
 
     function dashboardTextHasExplicitPaymentReceiptEvidence(text = "") {
@@ -13207,10 +13218,15 @@
       const rawDecision = raw.decision || {};
       const rawSignals = rawDecision.signals || {};
       return [
+        item.media_kind,
         item.message_type,
         item.inbound_type,
         item.attachment_type,
         item.media_type,
+        item.inbound?.media_kind,
+        item.latest_customer_message?.media_kind,
+        item.conversation_context?.latest_customer_message?.media_kind,
+        item.latest_decision?.media_kind,
         signals.message_type,
         signals.inbound_type,
         signals.attachment_type,
@@ -13219,6 +13235,10 @@
         raw.inbound_type,
         raw.attachment_type,
         raw.media_type,
+        raw.media_kind,
+        raw.inbound?.media_kind,
+        raw.latest_customer_message?.media_kind,
+        raw.conversation_context?.latest_customer_message?.media_kind,
         rawSignals.message_type,
         rawSignals.inbound_type,
         rawSignals.attachment_type,
@@ -13226,14 +13246,191 @@
       ].filter(Boolean).join(" ");
     }
 
+    function dashboardExplicitMediaKind(value = "") {
+      const clean = String(value || "").trim().toLowerCase();
+      if (!clean) return "";
+      if (/(?:voice[_\s-]?note|voice|ptt|语音|語音|音频|音訊)/i.test(clean)) return "audio";
+      if (/(?:video\/|\bvideo\b|视频|影片|\.mp4(?:$|[?#])|\.mov(?:$|[?#])|\.webm(?:$|[?#]))/i.test(clean)) return "video";
+      if (/(?:audio\/|\baudio\b|\.ogg(?:$|[?#])|\.mp3(?:$|[?#])|\.m4a(?:$|[?#])|\.wav(?:$|[?#]))/i.test(clean)) return "audio";
+      if (/(?:image\/|\bimage\b|\bphoto\b|\bpicture\b|图片|圖片|照片|截图|截圖|\.jpe?g(?:$|[?#])|\.png(?:$|[?#])|\.webp(?:$|[?#])|\.gif(?:$|[?#]))/i.test(clean)) return "image";
+      if (/(?:application\/pdf|\bpdf\b|\bdocument\b|文件|\.docx?(?:$|[?#])|\.xlsx?(?:$|[?#])|\.pptx?(?:$|[?#]))/i.test(clean)) return "file";
+      if (/(?:generic[_\s-]?file|\bfile\b|\battachment\b|\bmedia\b|附件)/i.test(clean)) return "file";
+      return "";
+    }
+
+    function dashboardPlaceholderMediaKind(text = "") {
+      const clean = String(text || "").trim().replace(/^[\[【(（]\s*|\s*[\]】)）]$/g, "");
+      if (/(?:付款截图|付款截圖|付款证明|付款證明|收据|收據|receipt|payment\s*proof|贴图|貼圖)/i.test(clean)) return "image";
+      return dashboardExplicitMediaKind(clean);
+    }
+
+    function dashboardRawMessageAttachments(message = {}) {
+      const arrays = [
+        message.attachments,
+        message.content?.attachments,
+        message.payload?.attachments,
+        message.data?.attachments,
+      ].filter(Array.isArray);
+      const direct = [message.attachment, message.file, message.document, message.media]
+        .filter((value) => value && (typeof value === "string" || typeof value === "object"));
+      return [...arrays.flatMap((items) => items || []), ...direct];
+    }
+
+    function dashboardMessageMediaKind(message = {}) {
+      let fallback = "";
+      const attachments = dashboardRawMessageAttachments(message);
+      for (const attachment of attachments) {
+        const record = attachment && typeof attachment === "object" ? attachment : { url: attachment };
+        for (const value of [record.media_kind, record.media_type, record.mime_type, record.mimeType, record.type, record.message_type, record.messageType]) {
+          const kind = dashboardExplicitMediaKind(value);
+          if (kind && kind !== "file") return kind;
+          if (kind) fallback = kind;
+        }
+        for (const value of [record.name, record.filename, record.file_name, record.fileName, record.url, record.link, record.media_url, record.mediaUrl]) {
+          const kind = dashboardExplicitMediaKind(value);
+          if (kind && kind !== "file") return kind;
+          if (kind) fallback = kind;
+        }
+      }
+      for (const value of [
+        message.media_kind,
+        message.media_type,
+        message.attachment_type,
+        message.mime_type,
+        message.mimeType,
+        message.message_type,
+        message.messageType,
+        message.type,
+        message.content?.media_type,
+        message.content?.message_type,
+        message.metadata?.media_type,
+        message.metadata?.message_type,
+      ]) {
+        const kind = dashboardExplicitMediaKind(value);
+        if (kind && kind !== "file") return kind;
+        if (kind) fallback = kind;
+      }
+      const placeholderKind = dashboardPlaceholderMediaKind(firstContextText(message.text, message.body, message.caption, message.content?.text));
+      if (placeholderKind && placeholderKind !== "file") return placeholderKind;
+      if (placeholderKind) fallback = placeholderKind;
+      return fallback || ((message.is_attachment === true || attachments.length) ? "file" : "");
+    }
+
+    function dashboardMessageIsInbound(message = {}) {
+      const direction = String(message.direction || message.role || message.sender_type || message.from || "").toLowerCase();
+      return !/(?:outbound|agent|assistant|bot|staff|operator)/i.test(direction) && message.from_me !== true && message.fromMe !== true;
+    }
+
+    function dashboardRecentInboundMediaKind(messages = []) {
+      let fallback = "";
+      const inbound = (Array.isArray(messages) ? messages : []).filter(dashboardMessageIsInbound);
+      const latest = inbound.at(-1) || null;
+      if (!latest) return "";
+      const direct = dashboardMessageMediaKind(latest);
+      if (direct && direct !== "file") return direct;
+      const latestText = firstContextText(latest.text, latest.body, latest.caption, latest.content?.text);
+      if (latestText && !dashboardIsAttachmentPlaceholderText(latestText)) return direct;
+      const latestAt = new Date(firstContextText(latest.at, latest.message_at, latest.created_at) || 0).getTime();
+      for (let index = inbound.length - 2; index >= 0; index -= 1) {
+        const candidate = inbound[index];
+        const candidateAt = new Date(firstContextText(candidate.at, candidate.message_at, candidate.created_at) || 0).getTime();
+        if (latestAt && candidateAt && latestAt - candidateAt > 5 * 60 * 1000) break;
+        const kind = dashboardMessageMediaKind(candidate);
+        if (kind && kind !== "file") return kind;
+        if (!fallback && kind) fallback = kind;
+      }
+      return direct || fallback;
+    }
+
+    function dashboardItemMediaKind(item = {}) {
+      const raw = item.raw_approval || {};
+      const latestCandidates = [
+        item.latest_customer_message,
+        item.conversation_context?.latest_customer_message,
+        raw.latest_customer_message,
+        raw.conversation_context?.latest_customer_message,
+      ].filter(Boolean);
+      for (const message of latestCandidates) {
+        const kind = dashboardMessageMediaKind(message);
+        if (kind && kind !== "file") return kind;
+      }
+
+      const lists = [
+        item.messages,
+        item.chat_preview,
+        item.conversation_context?.messages,
+        raw.messages,
+        raw.chat_preview,
+        raw.conversation_context?.messages,
+        raw.recent_context?.messages,
+        raw.latest_context?.messages,
+      ].filter(Array.isArray);
+      for (const messages of lists) {
+        const kind = dashboardRecentInboundMediaKind(messages);
+        if (kind && kind !== "file") return kind;
+      }
+
+      const direct = dashboardExplicitMediaKind(dashboardAttachmentTypeText(item));
+      if (direct) return direct;
+      const placeholder = dashboardPlaceholderMediaKind(dashboardApprovalCustomerText(item));
+      if (placeholder) return placeholder;
+      return latestCandidates.some((message) => dashboardMessageMediaKind(message) === "file")
+        || lists.some((messages) => dashboardRecentInboundMediaKind(messages) === "file")
+        ? "file"
+        : "";
+    }
+
+    function dashboardMediaDisplayLabel(kind = "") {
+      if (kind === "audio") return "语音讯息";
+      if (kind === "image") return "图片";
+      if (kind === "video") return "视频";
+      if (kind === "file") return "文件";
+      return "内容";
+    }
+
+    function dashboardMediaReviewCopy(item = {}) {
+      const kind = dashboardItemMediaKind(item);
+      if (kind === "audio") return {
+        title: "语音先人工听",
+        body: "顾客只发语音，Dashboard 不能凭空知道她问什么。客服先听完并补一句问题摘要；确认后再回复，不自动接 Flow。",
+        flowPolicy: "先听完语音并补摘要，不猜内容、不接销售 Flow",
+        nextAction: "转人工回复听取原始语音；处理完把最终人工回复补回 Dashboard。",
+      };
+      if (kind === "image") return {
+        title: "图片先人工看",
+        body: "顾客只发图片，Dashboard 不能判断是付款、Review、投诉还是问题图。客服先打开确认；确认后再回复，不自动接 Flow。",
+        flowPolicy: "先查看图片内容，不猜付款、不接销售 Flow",
+        nextAction: "转人工回复查看原始图片；处理完把最终人工回复补回 Dashboard。",
+      };
+      if (kind === "video") return {
+        title: "视频先人工看",
+        body: "顾客只发视频，Dashboard 不能凭画面猜问题。客服先播放确认内容；确认后再回复，不自动接 Flow。",
+        flowPolicy: "先查看视频内容，不猜意图、不接销售 Flow",
+        nextAction: "转人工回复查看原始视频；处理完把最终人工回复补回 Dashboard。",
+      };
+      if (kind === "file") return {
+        title: "文件先人工看",
+        body: "顾客只发文件，Dashboard 不能凭文件名判断内容。客服先打开确认；确认后再回复，不自动接 Flow。",
+        flowPolicy: "先打开文件确认内容，不猜意图、不接销售 Flow",
+        nextAction: "转人工回复打开原始文件；处理完把最终人工回复补回 Dashboard。",
+      };
+      return {
+        title: "内容先人工确认",
+        body: "顾客没有留下可直接判断的文字。客服先打开原始内容确认；确认后再回复，不自动接 Flow。",
+        flowPolicy: "先确认顾客发来的内容，不猜意图、不接销售 Flow",
+        nextAction: "转人工回复确认原始内容；处理完把最终人工回复补回 Dashboard。",
+      };
+    }
+
     function dashboardBoundaryDecision(item = {}) {
       const customerText = dashboardApprovalCustomerText(item);
+      const mediaKind = dashboardItemMediaKind(item);
       const keywordLead = dashboardIsStepOneKeywordLeadText(customerText);
       const explicitPaymentReceipt = dashboardTextHasExplicitPaymentReceiptEvidence(customerText);
       const explicitOrderIntent = dashboardTextHasExplicitOrderIntent(customerText, keywordLead);
       const attachmentOnly =
         dashboardIsAttachmentPlaceholderText(customerText) ||
-        (!customerText && /(attachment|image|photo|media|截图|截圖|图片|圖片|照片|receipt|proof)/i.test(dashboardAttachmentTypeText(item)));
+        (!customerText && Boolean(mediaKind));
       const unverifiedAttachment = attachmentOnly && !explicitPaymentReceipt;
       const verifiedOrderOrPayment = explicitPaymentReceipt || explicitOrderIntent;
       const kind = keywordLead
@@ -13248,6 +13445,7 @@
       return {
         kind,
         customerText,
+        mediaKind,
         keywordLead,
         attachmentOnly,
         unverifiedAttachment,
@@ -13255,7 +13453,7 @@
         explicitOrderIntent,
         verifiedOrderOrPayment,
         suppressOrderReceiptWords: keywordLead || unverifiedAttachment,
-        safeAttachmentReply: dashboardSafeAttachmentReply(),
+        safeAttachmentReply: dashboardSafeAttachmentReply(item),
       };
     }
 
@@ -13263,8 +13461,13 @@
       return dashboardBoundaryDecision(item).unverifiedAttachment;
     }
 
-    function dashboardSafeAttachmentReply() {
-      return "亲，我先打开图片/附件确认内容，确认后再回复你。";
+    function dashboardSafeAttachmentReply(item = {}) {
+      const kind = dashboardItemMediaKind(item);
+      if (kind === "audio") return "亲，我先听完你发来的语音，确认内容后再回复你。";
+      if (kind === "image") return "亲，我先查看你发来的图片，确认内容后再回复你。";
+      if (kind === "video") return "亲，我先查看你发来的视频，确认内容后再回复你。";
+      if (kind === "file") return "亲，我先打开你发来的文件，确认内容后再回复你。";
+      return "亲，我先确认你发来的内容，确认清楚后再回复你。";
     }
 
     function externalFlowReadOnlyMessage() {
@@ -13774,7 +13977,7 @@
       const name = firstCleanCustomerName(item.customer?.name, item.customer?.display_name) || fallbackCustomerNameFromDigits(item.customer?.phone || item.customer?.external_customer_id);
       const phone = String(item.customer?.phone || item.customer?.phone_e164 || item.customer?.external_customer_id || "").trim();
       const latest = item.latest_message || {};
-      const preview = messageDisplayText(latest) || "[附件]";
+      const preview = messageDisplayText(latest) || dashboardMediaDisplayLabel(dashboardMessageMediaKind(latest));
       const stateKey = String(item.state || "inbox_only");
       const actor = String(item.latest_actor || (item.latest_direction === "agent" ? "channel_outbound" : "customer"));
       const directionClass = item.latest_direction === "agent" ? "outbound-latest" : "customer-latest";
@@ -18537,8 +18740,10 @@
         contextMessage?.text,
       ];
       const text = firstContextText(...textCandidates);
-      if (text) return text;
-      if (dashboardIsUnverifiedAttachmentApproval(item)) return "顾客发了图片/附件，需人工打开确认";
+      if (text && !dashboardIsAttachmentPlaceholderText(text)) return text;
+      if ((text && dashboardIsAttachmentPlaceholderText(text)) || dashboardIsUnverifiedAttachmentApproval(item)) {
+        return dashboardMediaDisplayLabel(dashboardItemMediaKind(item) || "file");
+      }
       if ((decision.intent === "receipt" || decision.action === "review_receipt") && dashboardHasExplicitPaymentReceiptEvidence(item)) return "顾客表示已付款，需审核资料";
       const actionType = String(item.action?.type || decision.action || "").toLowerCase();
       const deliveryMode = String(item.decision?.delivery?.mode || decision.delivery?.mode || "").toLowerCase();
@@ -18839,7 +19044,7 @@
       const attachmentContext = /(Inbox message image attachment|attachment|image|photo|media|照片|图片|圖片|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText) || (/^(?:\.{3}|…)$/.test(String(customerText || "").trim()) && /(image|attachment|photo|media|截图|截圖|receipt|proof|WhatsApp Image)/i.test(sourceText));
       const afterSalesPhotoReportContext = attachmentContext && /(报平安|報平安|BPA|After payment|收到货|收到貨|收到了|review|Review|回购券|回購券|VIP|parcel|product\s+photo)/i.test(sourceText);
 	      if (attachmentContext) {
-	        return afterSalesPhotoReportContext ? "图片报平安：先看图；确认收货后接BPA/Review" : "图片/附件：先打开看；不接 Flow";
+	        return afterSalesPhotoReportContext ? "图片报平安：先看图；确认收货后接BPA/Review" : `${dashboardMediaDisplayLabel(dashboardItemMediaKind(item) || "image")}：先确认内容；不接 Flow`;
 	      }
 	      const offlineAvailabilityContext = /(药店|实体店|实体門店|門市|门市|門店|门店|线下|線下|哪里买|哪裡買|哪里有卖|哪裡有賣|有卖吗|有賣嗎|现货|現貨|pharmacy|store|outlet|retail|where\s+are\s+(?:you|u)\s+located|location)/i.test(customerText);
 	      if (offlineAvailabilityContext) {
@@ -20704,10 +20909,11 @@
 	        };
 	      }
 	      if (dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item)) {
+	        const mediaReview = dashboardMediaReviewCopy(item);
 	        return {
 	          tone: "risk",
-	          title: "图片/附件先人工看",
-	          body: "顾客只发图片/附件，Dashboard 不能判断是不是付款、Review、投诉或问题图。客服先打开确认；如果已经由人工回复或发了付款链接，按「已由人工回复」收起旧草稿。",
+	          title: mediaReview.title,
+	          body: `${mediaReview.body} 如果已经由人工回复或发了付款链接，按「已由人工回复」收起旧草稿。`,
 	          buttons: ["已由人工回复", "转人工回复", "记录人工回复"],
 	          never: [...neverBase, "不要当成付款截图", "不要按确认收款 / COD", "不要接销售 Flow"],
 	        };
@@ -20982,10 +21188,10 @@
 	      const type = String(typeText || "").toLowerCase();
 	      const extra = detail ? ` ${String(detail).slice(0, 80)}` : "";
 	      if (/image|photo|picture|jpeg|jpg|png|webp|gif|receipt|screenshot|截图|圖片|图片|照片/i.test(`${type} ${detail}`)) return `[图片${extra}]`;
-	      if (/audio|voice|ogg|mpeg|mp3|m4a|语音|語音|音频|音訊/i.test(`${type} ${detail}`)) return `[语音${extra}]`;
+	      if (/audio|voice|ogg|mpeg|mp3|m4a|语音|語音|音频|音訊/i.test(`${type} ${detail}`)) return `[语音讯息${extra}]`;
 	      if (/video|mp4|mov|视频|影片/i.test(`${type} ${detail}`)) return `[视频${extra}]`;
 	      if (/sticker|贴图|貼圖/i.test(`${type} ${detail}`)) return `[贴图${extra}]`;
-	      if (/file|document|pdf|attachment|media|附件|文件/i.test(`${type} ${detail}`)) return `[附件${extra}]`;
+	      if (/file|document|pdf|attachment|media|附件|文件/i.test(`${type} ${detail}`)) return `[文件${extra}]`;
 	      return "";
 	    }
 
@@ -20998,7 +21204,10 @@
 	        message.message,
 	        message.payload
 	      );
-	      if (text) return text;
+	      if (text && !dashboardIsAttachmentPlaceholderText(text)) return text;
+	      const mediaKind = dashboardMessageMediaKind(message);
+	      if (mediaKind) return `[${dashboardMediaDisplayLabel(mediaKind)}]`;
+	      if (text) return "[文件]";
 	      const typeText = firstContextText(message.type, message.message_type, message.messageType, message.mime_type, message.mimeType);
 	      const firstAttachment = dashboardContextAttachments(message)[0] || {};
 	      const detail = firstContextText(message.filename, message.file_name, message.fileName, message.url, message.media_url, message.mediaUrl, firstAttachment.name, firstAttachment.url);
@@ -21050,11 +21259,7 @@
 	    }
 
 	    function dashboardAttachmentKind(attachment = {}, message = {}) {
-	      const combined = `${attachment.type || ""} ${attachment.name || ""} ${attachment.url || ""} ${message.type || ""} ${message.message_type || ""}`.toLowerCase();
-	      if (/image|photo|picture|jpeg|jpg|png|webp|gif|receipt|screenshot/.test(combined)) return "image";
-	      if (/audio|voice|ogg|mpeg|mp3|m4a|wav/.test(combined)) return "audio";
-	      if (/video|mp4|mov|webm/.test(combined)) return "video";
-	      return "file";
+	      return dashboardMessageMediaKind({ ...message, attachments: [attachment] }) || "file";
 	    }
 
 	    function messageHasRenderableContent(message = {}) {
@@ -21068,27 +21273,27 @@
 	      const mediaClass = kinds.includes("audio") ? " has-audio" : "";
 	      return `<div class="bubble-media${mediaClass}">${attachments.map((attachment) => {
 	        const url = escapeHtml(attachment.url);
-	        const label = escapeHtml(attachment.name || attachmentDisplayLabel(attachment.type, attachment.url) || "打开附件");
+	        const label = escapeHtml(attachment.name || attachmentDisplayLabel(attachment.type, attachment.url) || "打开文件");
 	        const kind = dashboardAttachmentKind(attachment, message);
 	        if (kind === "image") return `<a href="${url}" target="_blank" rel="noopener noreferrer" aria-label="打开图片原图"><img src="${url}" alt="${label || "顾客图片"}" loading="lazy" /></a>`;
 	        if (kind === "audio") return `<div class="bubble-audio"><audio controls preload="none" src="${url}" aria-label="播放顾客语音"></audio><a class="bubble-audio-fallback" href="${url}" target="_blank" rel="noopener noreferrer">无法播放时打开语音原档</a></div>`;
 	        if (kind === "video") return `<video controls playsinline preload="metadata" src="${url}" aria-label="播放顾客视频"></video>`;
-	        return `<a class="bubble-file-link" href="${url}" target="_blank" rel="noopener noreferrer">${label || "打开附件"}</a>`;
+	        return `<a class="bubble-file-link" href="${url}" target="_blank" rel="noopener noreferrer">${label || "打开文件"}</a>`;
 	      }).join("")}</div>`;
 	    }
 
 	    function messageBubbleContentHtml(message = {}) {
 	      const media = messageMediaHtml(message);
 	      const text = messageDisplayText(message);
-	      const mediaOnlyLabel = /^\[(?:图片|语音|视频|贴图|附件)/.test(text);
-	      const hasAudio = dashboardContextAttachments(message).some((attachment) => dashboardAttachmentKind(attachment, message) === "audio");
-	      const mediaLabelHtml = media && mediaOnlyLabel && hasAudio
-	        ? `<div class="bubble-media-label">语音讯息</div>`
+	      const mediaOnlyLabel = /^\[(?:图片|语音|视频|贴图|文件)/.test(text);
+	      const mediaKind = dashboardMessageMediaKind(message);
+	      const mediaLabelHtml = media && mediaOnlyLabel && mediaKind
+	        ? `<div class="bubble-media-label">${escapeHtml(dashboardMediaDisplayLabel(mediaKind))}</div>`
 	        : "";
 	      const textHtml = text && !(media && mediaOnlyLabel)
 	        ? `<div class="bubble-text">${escapeHtml(text)}</div>`
 	        : "";
-	      return `${textHtml}${mediaLabelHtml}${media}` || `<div class="bubble-text">${escapeHtml(text || "[附件]")}</div>`;
+	      return `${textHtml}${mediaLabelHtml}${media}` || `<div class="bubble-text">${escapeHtml(text || `[${dashboardMediaDisplayLabel(mediaKind || "file")}]`)}</div>`;
 	    }
 
 	    function contextSnippet(value, limit = 132) {
@@ -21656,18 +21861,19 @@
       const catalog = standardAnswerCatalog();
       if (forcedId) return catalog.find((entry) => entry.id === forcedId) || null;
       if (dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item)) {
+        const mediaReview = dashboardMediaReviewCopy(item);
         return {
           id: "ql_attachment_human_confirm",
-          title: "图片/附件先人工看",
+          title: mediaReview.title,
           mode: "人工处理",
           customerFacing: true,
-          flowPolicy: "先确认图片/附件内容，不猜付款、不接销售 Flow",
+          flowPolicy: mediaReview.flowPolicy,
           priority: 120,
           patterns: [],
-          answer: dashboardSafeAttachmentReply(),
+          answer: dashboardSafeAttachmentReply(item),
           mustInclude: ["客服打开确认", "确认后再回复"],
           mustNotDo: ["当成付款截图", "按确认收款 / COD", "接销售 Flow"],
-          nextAction: "转人工回复打开原始图片/附件；处理完把最终人工回复补回 Dashboard。"
+          nextAction: mediaReview.nextAction
         };
       }
       const decision = item.latest_decision || {};
@@ -23125,7 +23331,8 @@
         return { tone: "fix", title: "不能过，先修发送", reason: "发送失败不代表话术通过；先检查渠道或改人工处理。" };
       }
       if (dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item)) {
-        return { tone: "handoff", title: "图片/附件先人工看", reason: "顾客只发图片/附件，Dashboard 不能知道它是不是汇款截图、Review、投诉或问题图。客服先打开确认，再决定审款、售后、回答问题或接 Flow；不要让 AI 猜。" };
+        const mediaReview = dashboardMediaReviewCopy(item);
+        return { tone: "handoff", title: mediaReview.title, reason: mediaReview.body };
       }
       if (outdatedPriceDraft) {
         return { tone: "fix", title: "不能过：草稿含旧价", reason: "草稿仍有 RM368、加 RM10、3送1 或旧送盒说法；旧 pending 不要批准。让 AI 重新生成，或手动改成当前可用价：1盒 RM150 / 2盒 RM258 / 3盒 RM378【新人疗程配套】后再处理。" };
@@ -23221,7 +23428,7 @@
 				        return { tone: "handoff", title: "语音先人工摘要", reason: "ManyChat Jolin：顾客发语音/音频，Dashboard 看不到原文；客服要先听完并写一句顾客问题摘要/转文字，AI 才能判断可学/要修/不学。不要从人工回复反推 FAQ，也不要自动接 Flow。" };
 				      }
 				      if (attachmentOnlyMessage) {
-				        return { tone: "handoff", title: afterSalesPhotoReportContext ? "图片报平安先人工" : "图片/附件先人工看", reason: "顾客只发图片/附件，没有文字问题；客服必须先打开图片确认是报平安、Review 截图、付款证明、投诉还是问题图。确认后才接对应售后 Flow，不要让 AI 猜图意，也不要把它当 FAQ 或成交话术学习。" };
+				        return { tone: "handoff", title: afterSalesPhotoReportContext ? "图片报平安先人工" : "图片先人工看", reason: "顾客只发图片，没有文字问题；客服必须先打开图片确认是报平安、Review 截图、付款证明、投诉还是问题图。确认后才接对应售后 Flow，不要让 AI 猜图意，也不要把它当 FAQ 或成交话术学习。" };
 				      }
 			      if (adverseReactionUnsafeDraft || adverseReactionSalesPushDraft) {
 			        return { tone: "fix", title: "不能过：不适反应别否认", reason: "顾客说喝后肚子不舒服/想吐；草稿不能说一定没副作用、心脏病/三高都能喝，也不能继续 LAST CALL、优惠或成交 Flow。先暂停销售，问喝法、时间、症状和严重程度，必要时建议暂停并人工售后/医生确认。" };
@@ -24909,7 +25116,7 @@
     function caseOptimizerOriginalAiReply(item = {}) {
       const manualReplyText = caseOptimizerManualReplyText(item);
       if (dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item)) {
-        return dashboardSafeAttachmentReply();
+        return dashboardSafeAttachmentReply(item);
       }
       const rawReply = String(
         item.original_ai_reply ||
@@ -25258,7 +25465,7 @@
 	      if (/(?:inbox message audio attachment|audio|voice(?:\s*message)?|语音|語音|音频|音訊|0:00\s*\/\s*0:0?\d+)/i.test(combined)) {
 	        artifact = {
 	          artifact_type: "flow_context_rule",
-	          artifact_label: "语音/附件学习边界",
+	          artifact_label: "语音学习边界",
 	          title: "语音样本要先补顾客问题摘要",
 	          proposed_rule: "顾客只发语音/音频时，客服必须先听并补一句顾客问题摘要；AI 不从人工回复反推 FAQ/成交话术，也不自动接 Flow。",
 	          next_owner_action: "审核后加入人工样本 SOP、Dashboard 提示和语音回放测试。"
