@@ -9217,6 +9217,13 @@
     });
 
     document.addEventListener("click", (event) => {
+      const faqAction = event.target.closest("[data-project-faq-action]");
+      if (faqAction) {
+        event.preventDefault();
+        event.stopPropagation();
+        reviewProjectFaq(faqAction.dataset.projectFaqAction || "", faqAction.dataset.faqId || "", faqAction);
+        return;
+      }
       const faqFilter = event.target.closest("[data-project-faq-filter]");
       if (faqFilter) {
         event.preventDefault();
@@ -14171,7 +14178,7 @@
         ${projectSettingsHtml()}
       `;
 
-	      const learningBaseHtml = setupStepScreenHtml(setupStep, cases, counts, learned) || `
+	      const learningBaseHtml = `
 	        <div class="command-grid">
 	          <section class="command-panel accent">
             <div class="command-kicker">复盘</div>
@@ -14646,6 +14653,10 @@
           const offer = Array.isArray(salesProcess.post_price_policy?.offers)
             ? salesProcess.post_price_policy.offers.find((item) => item && typeof item === "object") || {}
             : {};
+          const offerMode = String(salesProcess.post_price_policy?.offer_mode || "").toLowerCase()
+            || (urgencyText || Object.keys(offer).length ? "active_offer" : "standard_price");
+          const priceDeliveryMode = String(salesProcess.post_price_policy?.price_delivery_mode || "").toLowerCase()
+            || (salesProcess.post_price_policy?.price_asset_key ? "asset_required" : "text_only");
           const docsMediaRefs = projectDocsMediaReferences(knowledge);
           const settingsReadOnly = !canManageProjectSettings();
           const canApproveProjectMedia = state.role !== "staff";
@@ -14694,6 +14705,8 @@
                   <label>价格后的信任素材（每行一项）<textarea id="salesPostPriceProofInput">${escapeHtml(proofText)}</textarea></label>
                   <label>价格后的成交邀请<input id="salesPostPriceCtaInput" value="${escapeHtml(ctaText)}" placeholder="例如：你想先从哪个配套开始？"></label>
                   <label>顾客继续追问时<select id="salesPostPriceRepeatModeInput"><option value="answer_only" ${postPriceRepeatMode === "answer_only" ? "selected" : ""}>只回答新问题，不重复信任、优惠和成交邀请（推荐）</option><option value="gentle_retry_after_3" ${postPriceRepeatMode === "gentle_retry_after_3" ? "selected" : ""}>至少 3 次顾客回复后，遇到新异议可轻推一次</option></select></label>
+                  <label>现在使用什么价格<select id="salesOfferModeInput"><option value="standard_price" ${offerMode !== "active_offer" ? "selected" : ""}>标准文字价格（不制造限时感）</option><option value="active_offer" ${offerMode === "active_offer" ? "selected" : ""}>有期限的当前优惠</option></select></label>
+                  <label>怎样显示价格<select id="salesPriceDeliveryModeInput"><option value="text_only" ${priceDeliveryMode !== "asset_required" ? "selected" : ""}>文字价格（没有新价格图也可用）</option><option value="asset_required" ${priceDeliveryMode === "asset_required" ? "selected" : ""}>必须使用已批准价格图</option></select></label>
                   <label>优惠期限说明（每行一项）<textarea id="salesPostPriceUrgencyInput">${escapeHtml(urgencyText)}</textarea></label>
                   <label>优惠名称<input id="salesOfferTitleInput" value="${escapeHtml(offer.title || offer.name || "")}" placeholder="例如：7月买3送1"></label>
                   <label>优惠截止时间<input id="salesOfferValidUntilInput" type="datetime-local" value="${escapeHtml(dateTimeLocalValue(offer.valid_until || offer.ends_at || ""))}"></label>
@@ -14808,19 +14821,19 @@
               <p class="project-upload-note">先把 Google Doc 以 Editor 权限分享给 ${escapeHtml(googleDocsConnection.share_email || "平台服务账号")}。每个项目使用独立文件。</p>
             </details>
           </section>
-          <section class="command-panel">
+          <section class="command-panel" data-project-faq-panel>
             <div class="command-kicker">FAQ</div>
             <strong class="command-title">${faq.length} 条 FAQ</strong>
             <p class="command-copy">默认只显示问题，点击后才展开答案。</p>
             <div class="faq-toolbar">
-              <input id="projectFaqSearchInput" data-project-faq-search value="${escapeHtml(state.projectFaqQuery || "")}" placeholder="搜索问题或答案" aria-label="搜索 FAQ">
+              <input data-project-faq-search value="${escapeHtml(state.projectFaqQuery || "")}" placeholder="搜索问题或答案" aria-label="搜索 FAQ">
               <div class="faq-filters" aria-label="筛选 FAQ">
                 <button class="faq-filter" data-project-faq-filter="all" type="button">全部</button>
                 <button class="faq-filter" data-project-faq-filter="pending" type="button">待批准</button>
                 <button class="faq-filter" data-project-faq-filter="images" type="button">含图片</button>
               </div>
             </div>
-            <div class="faq-count-note">现在显示 <span id="projectFaqVisibleCount">${faq.length}</span> 条</div>
+            <div class="faq-count-note">现在显示 <span data-project-faq-visible-count>${faq.length}</span> 条</div>
             <div class="knowledge-section">${faq.map(projectFaqItemHtml).join("") || knowledgeItemHtml("还没有 FAQ", "贴上 Google Doc 后导入并整理", "待补")}</div>
           </section>
           <details class="settings-section">
@@ -14887,36 +14900,59 @@
         const inactive = ["rejected", "retired"].includes(rawStatus);
         const question = item.question || item.title || "FAQ";
         const answer = item.answer || item.better_reply || "待补答案";
+        const faqId = String(item.id || "");
+        const risk = projectFaqReviewRisk(item);
         const searchText = `${question} ${answer} ${item.customer_pattern || ""}`.toLowerCase();
         const status = inactive ? (rawStatus === "retired" ? "已停用" : "已拒绝") : pending ? "待批准" : imageCount ? `已批准 · ${imageCount} 张图` : "已批准";
-        return `<details class="knowledge-item faq-item" data-project-faq-item data-faq-status="${inactive ? "inactive" : pending ? "pending" : "approved"}" data-faq-has-images="${imageCount ? "1" : "0"}" data-faq-search="${escapeHtml(searchText)}">
+        const reviewActions = pending && faqId && canManageProjectFaq()
+          ? `<div class="quick-actions">
+              ${risk.level === "sensitive" ? "" : `<button class="quick-action primary" data-project-faq-action="approve" data-faq-id="${escapeHtml(faqId)}" type="button">批准这条</button>`}
+              <button class="quick-action" data-project-faq-action="reject" data-faq-id="${escapeHtml(faqId)}" type="button">${risk.level === "sensitive" ? "退回修改" : "不批准"}</button>
+            </div>
+            <p class="project-upload-note">${risk.level === "sensitive"
+              ? "涉及健康、退款或绝对功效承诺；请先在 Google Doc 改成安全答案，再重新导入。"
+              : "批准只会保存到项目草稿；不会发送顾客讯息，发布后才会启用。"}</p>`
+          : "";
+        return `<details class="knowledge-item faq-item" data-project-faq-item data-faq-id="${escapeHtml(faqId)}" data-faq-risk="${escapeHtml(risk.level)}" data-faq-status="${inactive ? "inactive" : pending ? "pending" : "approved"}" data-faq-has-images="${imageCount ? "1" : "0"}" data-faq-search="${escapeHtml(searchText)}">
           <summary><span>${escapeHtml(question)}</span><small>${escapeHtml(status)}</small></summary>
           <div class="faq-answer">${escapeHtml(answer)}</div>
+          ${reviewActions}
         </details>`;
       }
 
+      function projectFaqReviewRisk(item = {}) {
+        const text = `${item.question || item.title || item.customer_pattern || ""}\n${item.answer || item.better_reply || item.proposed_rule || ""}`;
+        const healthOrMedication = /(?:怀孕|孕妇|备孕|哺乳|洗肾|癫痫|地中海贫血|肌瘤|水瘤|肉瘤|肿瘤|癌|心脏病|三高|尿酸|慢性|处方药|长期药|胃酸|胃痛|寻麻疹|荨麻疹|月经|副作用|咖啡因过敏)/i.test(text);
+        const absoluteClaim = /(?:一定不会|绝对不会|肯定会|保证(?:能|会)|全额退款|不会反弹|没有任何副作用|不会有副作用|治疗|治愈|排毒|燃脂|阻断(?:油脂|糖分|淀粉|碳水)|减少.{0,12}吸收)/i.test(text);
+        const refundPolicy = /(?:退款|refund|无效退款)/i.test(text);
+        return { level: healthOrMedication || absoluteClaim || refundPolicy ? "sensitive" : "standard" };
+      }
+
       function applyProjectFaqFilters() {
-        const input = $("projectFaqSearchInput");
-        const query = String(input?.value ?? state.projectFaqQuery ?? "").trim().toLowerCase();
+        const query = String(state.projectFaqQuery ?? "").trim().toLowerCase();
         const filter = ["all", "pending", "images"].includes(state.projectFaqFilter) ? state.projectFaqFilter : "all";
         state.projectFaqQuery = query;
-        let visibleCount = 0;
-        document.querySelectorAll("[data-project-faq-item]").forEach((item) => {
-          const matchesQuery = !query || String(item.dataset.faqSearch || "").includes(query);
-          const matchesFilter = filter === "all"
-            || (filter === "pending" && item.dataset.faqStatus === "pending")
-            || (filter === "images" && item.dataset.faqHasImages === "1");
-          const visible = matchesQuery && matchesFilter;
-          item.classList.toggle("hidden", !visible);
-          if (visible) visibleCount += 1;
+        document.querySelectorAll("[data-project-faq-panel]").forEach((panel) => {
+          const input = panel.querySelector("[data-project-faq-search]");
+          if (input && input.value !== state.projectFaqQuery) input.value = state.projectFaqQuery;
+          let visibleCount = 0;
+          panel.querySelectorAll("[data-project-faq-item]").forEach((item) => {
+            const matchesQuery = !query || String(item.dataset.faqSearch || "").includes(query);
+            const matchesFilter = filter === "all"
+              || (filter === "pending" && item.dataset.faqStatus === "pending")
+              || (filter === "images" && item.dataset.faqHasImages === "1");
+            const visible = matchesQuery && matchesFilter;
+            item.classList.toggle("hidden", !visible);
+            if (visible) visibleCount += 1;
+          });
+          panel.querySelectorAll("[data-project-faq-filter]").forEach((button) => {
+            const active = button.dataset.projectFaqFilter === filter;
+            button.classList.toggle("active", active);
+            button.setAttribute("aria-pressed", active ? "true" : "false");
+          });
+          const counter = panel.querySelector("[data-project-faq-visible-count]");
+          if (counter) counter.textContent = String(visibleCount);
         });
-        document.querySelectorAll("[data-project-faq-filter]").forEach((button) => {
-          const active = button.dataset.projectFaqFilter === filter;
-          button.classList.toggle("active", active);
-          button.setAttribute("aria-pressed", active ? "true" : "false");
-        });
-        const counter = $("projectFaqVisibleCount");
-        if (counter) counter.textContent = String(visibleCount);
       }
 
       function knowledgeItemHtml(title, body, meta = "") {
@@ -19084,6 +19120,57 @@
 	  showToast("还没有同步到 Flow；请先完成这个项目的 ChatDaddy 账号连接。");
 	}
 
+    async function reviewProjectFaq(action, faqId, button) {
+      if (!["approve", "reject"].includes(String(action || "")) || !faqId) return;
+      if (!canManageProjectFaq()) {
+        showToast("当前账号没有这个项目的 FAQ 管理权限。");
+        return;
+      }
+      if (button?.disabled) return;
+      if (action === "reject" && !window.confirm("确认把这条 FAQ 退回、不让它用于顾客回复？")) return;
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      const expectedVersionNo = Number(state.projectKnowledge?.version_no || 0);
+      if (!api || (!token && !hasAccountSession()) || !expectedVersionNo) {
+        showToast("请先重新读取项目 FAQ，再进行批准。");
+        return;
+      }
+      if (button) {
+        button.disabled = true;
+        button.dataset.originalLabel = button.textContent || "";
+        button.textContent = action === "approve" ? "批准中..." : "退回中...";
+      }
+      try {
+        const response = await fetch(
+          `${api}/api/hermas/projects/${encodeURIComponent(project)}/knowledge/faqs`,
+          authRequestOptions(token, {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              expected_version_no: expectedVersionNo,
+              decisions: [{ faq_id: faqId, action, reason: action === "reject" ? "负责人从 FAQ 审核页退回" : "" }]
+            })
+          })
+        );
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.ok) throw new Error(result.message || result.error || `HTTP ${response.status}`);
+        showToast(action === "approve"
+          ? "这条 FAQ 已批准到草稿；尚未发布，也没有发送顾客讯息。"
+          : "这条 FAQ 已退回，不会用于顾客回复。");
+        await Promise.all([loadProjectKnowledge({ silent: true }), loadProjectConnectionReadiness()]);
+      } catch (error) {
+        const message = String(error?.message || error || "FAQ 审核失败");
+        showToast(/version|刷新|更新/i.test(message) ? "FAQ 已有更新，正在刷新，请再操作一次。" : `FAQ 审核失败：${message}`);
+        await loadProjectKnowledge({ silent: true });
+      } finally {
+        if (button?.isConnected) {
+          button.disabled = false;
+          button.textContent = button.dataset.originalLabel || (action === "approve" ? "批准这条" : "不批准");
+        }
+      }
+    }
+
     async function loadProjectKnowledge(options = {}) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "beyoute";
@@ -19337,10 +19424,12 @@
         const projectPackage = current.project_package || {};
         const existingPolicy = projectPackage.sales_process?.post_price_policy || {};
         const postPriceRepeatMode = String($("salesPostPriceRepeatModeInput")?.value || "answer_only");
+        const offerMode = String($("salesOfferModeInput")?.value || "standard_price");
+        const priceDeliveryMode = String($("salesPriceDeliveryModeInput")?.value || "text_only");
         const offerTitle = String($("salesOfferTitleInput")?.value || "").trim();
         const offerValidUntil = String($("salesOfferValidUntilInput")?.value || "").trim();
         const offerSource = String($("salesOfferSourceInput")?.value || "").trim();
-        const offers = offerTitle || offerValidUntil || offerSource
+        const offers = offerMode === "active_offer" && (offerTitle || offerValidUntil || offerSource)
           ? [{
               title: offerTitle,
               valid_until: offerValidUntil ? new Date(offerValidUntil).toISOString() : null,
@@ -19361,8 +19450,13 @@
             proof_enabled: true,
             proof: String($("salesPostPriceProofInput")?.value || "").split(/\n+/).map((value) => value.trim()).filter(Boolean),
             cta: String($("salesPostPriceCtaInput")?.value || "").trim(),
+            offer_mode: offerMode,
+            price_delivery_mode: priceDeliveryMode,
+            price_asset_key: priceDeliveryMode === "asset_required" ? String(existingPolicy.price_asset_key || "").trim() : "",
             offers,
-            urgency: String($("salesPostPriceUrgencyInput")?.value || "").split(/\n+/).map((value) => value.trim()).filter(Boolean),
+            urgency: offerMode === "active_offer"
+              ? String($("salesPostPriceUrgencyInput")?.value || "").split(/\n+/).map((value) => value.trim()).filter(Boolean)
+              : [],
             cadence: {
               ...(existingPolicy.cadence && typeof existingPolicy.cadence === "object" ? existingPolicy.cadence : {}),
               first_question: "answer_with_one_relevant_proof_and_soft_cta",
@@ -19422,10 +19516,10 @@
         .flatMap((items) => Array.isArray(items) ? items : [])
         .filter((item) => item?.status === "studied_draft").length;
       if (studiedDraftCount > 0) {
-        const approved = window.confirm(
-          `这次会一起批准 ${studiedDraftCount} 条 FAQ 草稿。\n\n请先在知识库逐条查看问题和答案；如果内容不对，先修改 Google Doc 并重新导入。\n\n确认这些内容可以用于正式回复？`
-        );
-        if (!approved) return;
+        state.projectFaqFilter = "pending";
+        showToast(`还有 ${studiedDraftCount} 条学习草稿；请逐条批准或退回，系统不会再批量批准未检查内容。`);
+        render();
+        return;
       }
       try {
         showToast("正在检查销售 Step、价格后节奏与安全规则...");
@@ -19448,7 +19542,6 @@
           body: JSON.stringify({
             mock_test_passed: true,
             mock_test_reference: `dashboard:${new Date().toISOString()}`,
-            approve_studied_faqs: studiedDraftCount > 0,
           }),
         }));
         const published = await publishRes.json().catch(() => ({}));
