@@ -10296,7 +10296,7 @@
       const text = String(value || "").trim();
       if (!text) return "";
       // Preserve an explicit date-only value, but convert real timestamps to
-      // the operator's local date. Taking the YYYY-MM-DD substring from a UTC
+      // the operator local date. Taking the YYYY-MM-DD substring from a UTC
       // timestamp assigns events between 00:00 and 07:59 Malaysia time to the
       // previous day.
       if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
@@ -11585,12 +11585,32 @@
     function dashboardNoInterventionConversationItems(storedItems = [], liveItems = []) {
       const stored = Array.isArray(storedItems) ? storedItems : [];
       const live = Array.isArray(liveItems) ? liveItems : [];
-      const storedIdentities = new Set(stored.map(inboxConversationIdentity).filter(Boolean));
-      const liveOnly = live.filter((item) => {
+      const storedLatestByIdentity = new Map();
+      stored.forEach((item) => {
         const identity = inboxConversationIdentity(item);
-        return identity && !storedIdentities.has(identity);
+        if (!identity) return;
+        const current = storedLatestByIdentity.get(identity);
+        const itemAt = new Date(item.latest_at || 0).getTime();
+        const currentAt = new Date(current?.latest_at || 0).getTime();
+        if (!current || itemAt > currentAt) storedLatestByIdentity.set(identity, item);
       });
-      return [...stored, ...liveOnly]
+      const liveSupplemental = live.filter((item) => {
+        const identity = inboxConversationIdentity(item);
+        if (!identity) return false;
+        const storedLatest = storedLatestByIdentity.get(identity);
+        if (!storedLatest) return true;
+        const liveAt = new Date(item.latest_at || 0).getTime();
+        const storedAt = new Date(storedLatest.latest_at || 0).getTime();
+        // A contact may already exist in Supabase from an older business day
+        // while the latest ChatDaddy outbound today has not been persisted yet.
+        // Deduping by contact alone hid that current-day state. Keep the newer
+        // live projection when it belongs to a different Malaysia date.
+        return Number.isFinite(liveAt)
+          && Number.isFinite(storedAt)
+          && liveAt > storedAt
+          && isoDateFromValue(item.latest_at) !== isoDateFromValue(storedLatest.latest_at);
+      });
+      return [...stored, ...liveSupplemental]
         .filter(dashboardConversationIsNoIntervention)
         .map(dashboardConversationToNoInterventionCase);
     }
@@ -11610,7 +11630,7 @@
         ? "顾客点 Button 自助继续"
         : "顾客尚未回复";
       return {
-        id: `no-intervention:${identity}`,
+        id: `no-intervention:${identity}:${isoDateFromValue(latestAt) || "current"}`,
         source: "conversation_no_intervention",
         project_key: item.project_key || projectKeyEl.value.trim() || "beyoute",
         status: "no_intervention",
