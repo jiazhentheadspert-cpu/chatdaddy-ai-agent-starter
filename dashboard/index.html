@@ -12464,14 +12464,24 @@
         if (!storedLatest) return true;
         const liveAt = new Date(item.latest_at || 0).getTime();
         const storedAt = new Date(storedLatest.latest_at || 0).getTime();
+        const liveNoIntervention = dashboardConversationIsNoIntervention(item);
+        const storedNoIntervention = dashboardConversationIsNoIntervention(storedLatest);
+        const classificationChanged = liveNoIntervention !== storedNoIntervention
+          || String(item.state || "") !== String(storedLatest.state || "")
+          || String(item.latest_actor || "") !== String(storedLatest.latest_actor || "");
         // A contact may already exist in Supabase from an older business day
         // while the latest ChatDaddy outbound today has not been persisted yet.
         // Deduping by contact alone hid that current-day state. Keep the newer
-        // live projection when it belongs to a different Malaysia date.
+        // live projection when it belongs to a different Malaysia date. Also
+        // retain a same-message live auto-Flow projection beside an older
+        // actionable Case: the Flow record and the pending review are two
+        // different truths and neither may overwrite the other.
         return Number.isFinite(liveAt)
           && Number.isFinite(storedAt)
-          && liveAt > storedAt
-          && isoDateFromValue(item.latest_at) !== isoDateFromValue(storedLatest.latest_at);
+          && (
+            (liveAt > storedAt && isoDateFromValue(item.latest_at) !== isoDateFromValue(storedLatest.latest_at))
+            || (liveAt >= storedAt && classificationChanged && liveNoIntervention)
+          );
       });
       return [...stored, ...liveSupplemental]
         .filter(dashboardConversationIsNoIntervention)
@@ -12489,9 +12499,11 @@
         || (item.no_intervention === true && String(item.latest_direction || "").toLowerCase() === "customer"
           ? "button_self_service"
           : "no_customer_reply");
+      const liveAutoFlow = String(item.state || "").toLowerCase() === "auto_flow"
+        || String(item.latest_actor || "").toLowerCase() === "channel_outbound";
       const statusText = reason === "button_self_service"
         ? "顾客点 Button 自助继续"
-        : "顾客尚未回复";
+        : liveAutoFlow ? "ChatDaddy Flow 已发送，顾客尚未回复" : "顾客尚未回复";
       return {
         id: `no-intervention:${identity}:${isoDateFromValue(latestAt) || "current"}`,
         source: "conversation_no_intervention",
@@ -12779,6 +12791,7 @@
           state.metaCapiStatus = null;
           state.usageSummary = null;
         }
+	    if (!options.skipCaseSync) scheduleAllCaseConversationSync({ immediate: !options.silent });
       } catch (error) {
         if (requestSeq !== state.queueRequestSeq) return;
         const message = `同步失败：${error.message}`;
@@ -12909,6 +12922,7 @@
         state.inboxError = liveContinuationState.retry
           ? "ChatDaddy 较早对话读取暂时失败；已保留原进度，可以重试。"
           : "";
+        if (!options.skipCaseSync) scheduleAllCaseConversationSync({ immediate: true, force: append });
       } catch (error) {
         if (requestSeq !== state.inboxRequestSeq) return;
         state.inboxError = `最新讯息读取失败：${error.message || error}`;
@@ -12963,6 +12977,82 @@
         renderInboxView();
       }
     }
+
+	const CASE_CONVERSATION_SYNC_TTL_MS = 2 * 60 * 1000;
+	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 18;
+
+	function scheduleAllCaseConversationSync(options = {}) {
+	  if (state.demoMode || state.role !== "staff" || document.hidden) return;
+	  if (state.caseConversationSyncTimer) clearTimeout(state.caseConversationSyncTimer);
+	  state.caseConversationSyncTimer = setTimeout(() => {
+	    syncAllLoadedCaseConversations(options).catch(() => null);
+	  }, options.immediate ? 0 : 250);
+	}
+
+	async function syncAllLoadedCaseConversations(options = {}) {
+	  const api = apiUrlEl.value.trim().replace(/\/$/, "");
+	  const project = projectKeyEl.value.trim() || "beyoute";
+	  const token = adminTokenEl.value.trim();
+	  if (!api || (!token && !hasAccountSession()) || state.demoMode || state.caseConversationSyncInFlight) return null;
+	  if (!options.force && Date.now() - Number(state.caseConversationSyncAt || 0) < CASE_CONVERSATION_SYNC_TTL_MS) return null;
+
+	  const chatIds = [...new Set([
+	    ...(state.cases || []),
+	    ...(state.inboxConversations || []),
+	  ].map(caseChatIdForSync).filter(Boolean))];
+	  if (!chatIds.length) return null;
+	  const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/conversation-history/sync-chatdaddy-batch`;
+	  state.caseConversationSyncInFlight = true;
+	  state.caseConversationSyncProgress = { done: 0, total: chatIds.length, imported: 0, failed: 0 };
+	  let shouldRefresh = false;
+	  try {
+	    for (let index = 0; index < chatIds.length; index += CASE_CONVERSATION_SYNC_BATCH_SIZE) {
+	      if (project !== (projectKeyEl.value.trim() || "beyoute")) break;
+	      const batch = chatIds.slice(index, index + CASE_CONVERSATION_SYNC_BATCH_SIZE);
+	      $("modeTag").textContent = `同步 ${Math.min(index, chatIds.length)}/${chatIds.length}`;
+	      try {
+	        const response = await fetchDashboardQueueWithTimeout(endpoint, authRequestOptions(token, {
+	          method: "POST",
+	          headers: { "content-type": "application/json" },
+	          body: JSON.stringify({
+	            chat_ids: batch,
+	            count: 80,
+	            concurrency: 3,
+	            fetch_from_platform: true,
+	            create_approval_cases: false,
+	          }),
+	        }), 45000);
+	        if (response.status === 401 && state.role === "staff") {
+	          redirectToUnifiedLogin({ clearSession: true });
+	          break;
+	        }
+	        const data = await response.json().catch(() => ({}));
+	        const imported = Number(data?.imported_count || 0);
+	        const failed = Number(data?.failed_count || 0);
+	        state.caseConversationSyncProgress.imported += imported;
+	        state.caseConversationSyncProgress.failed += failed;
+	        if (imported > 0) shouldRefresh = true;
+	      } catch (_error) {
+	        state.caseConversationSyncProgress.failed += batch.length;
+	      }
+	      state.caseConversationSyncProgress.done = Math.min(index + batch.length, chatIds.length);
+	    }
+	    state.caseConversationSyncAt = Date.now();
+	    state.caseConversationSyncSummary = { ...state.caseConversationSyncProgress, at: new Date().toISOString() };
+	  } finally {
+	    state.caseConversationSyncInFlight = false;
+	    $("modeTag").textContent = activeModeLabel();
+	  }
+	  if (shouldRefresh && !state.actionBusy) {
+	    await loadCases({
+	      silent: true,
+	      refreshActive: true,
+	      preserveSelection: true,
+	      skipCaseSync: true,
+	    });
+	  }
+	  return state.caseConversationSyncSummary;
+	}
 
 	const REALTIME_QUEUE_POLL_MS = 5000;
 	const REALTIME_INBOX_POLL_MS = 10000;
@@ -13585,7 +13675,19 @@
         },
         last_message: displayInboundText || "",
         last_message_at: displayInboundAt || at,
-        updated_at: item.updated_at || displayInboundAt || at,
+        updated_at: firstContextText(
+          contextMessages.slice().sort((left, right) => messageTimeMs(left) - messageTimeMs(right)).at(-1)?.at,
+          item.conversation_latest_at,
+          item.updated_at,
+          displayInboundAt,
+          at
+        ),
+        conversation_latest_at: firstContextText(
+          contextMessages.slice().sort((left, right) => messageTimeMs(left) - messageTimeMs(right)).at(-1)?.at,
+          item.conversation_latest_at,
+          item.updated_at,
+          at
+        ),
         created_at: item.created_at || at,
         word_cloud: words,
 	        latest_decision: {
@@ -13680,7 +13782,9 @@
 	          };
 	        })
 	        .filter((message) => message.text || message.attachments.length || /attachment|image|photo|file|audio|voice|video/i.test(message.type));
-      return inferCancelledScheduledOutboundMessages(mapped);
+	      return inferCancelledScheduledOutboundMessages(mapped)
+	        .slice()
+	        .sort((left, right) => messageTimeMs(left) - messageTimeMs(right));
     }
 
     function latestInboundContextMessage(messages = []) {
@@ -20473,12 +20577,22 @@
       const externalFlowReadOnly = item.status === "external_flow_continued";
       const baseDisplayName = customerDisplayLabel(item);
       const displayName = customerDisplayLabelWithTail(item, baseDisplayName);
+	  const renderableMessages = (item.messages || [])
+	    .filter((message) => messageHasRenderableContent(message) && !contextMessageWasCancelled(message))
+	    .slice()
+	    .sort((left, right) => messageTimeMs(left) - messageTimeMs(right));
+	  const latestMessage = renderableMessages.at(-1) || {};
+	  const conversationLatestAt = firstContextText(
+	    latestMessage.at,
+	    latestMessage.message_at,
+	    latestMessage.created_at,
+	    item.conversation_latest_at,
+	    item.updated_at
+	  );
 	      $("panelName").textContent = displayName;
 	      $("panelAvatar").textContent = initialsFor(baseDisplayName);
-      $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · ${formatDate(item.updated_at)}`;
+	  $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · 对话更新 ${formatDate(conversationLatestAt)}`;
 	  $("replyCard").classList.toggle("hidden", hideReplyCardForMode);
-	  const renderableMessages = (item.messages || []).filter((message) => messageHasRenderableContent(message) && !contextMessageWasCancelled(message));
-	  const latestMessage = renderableMessages.at(-1) || {};
 	  const latestMessageOutbound = /outbound|agent|assistant|bot/i.test(String(latestMessage.direction || latestMessage.role || latestMessage.sender_type || ""));
 	  const manualConversationMode = canManualSend && (readOnly || paymentConfirmationCase || latestMessageOutbound);
 	  const originalProposedReply = externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
@@ -20589,7 +20703,60 @@
       }).join("");
 
       $("panel").classList.add("open");
+	  requestAnimationFrame(() => {
+	    const chat = $("chatBox");
+	    chat.scrollTop = chat.scrollHeight;
+	  });
 	  syncWhatsappComposer();
+    }
+
+    function caseChatIdForSync(item = {}) {
+      const raw = item.raw_approval || item;
+      const candidates = [
+        item.contact?.phone,
+        item.contact?.id,
+        raw.customer?.phone,
+        raw.customer?.chat_id,
+        raw.inbound?.phone,
+        raw.inbound?.chat_id,
+        raw.raw?.external_customer_id,
+      ];
+      for (const candidate of candidates) {
+        const digits = String(candidate || "").replace(/\D/g, "");
+        if (digits.length >= 10 && digits.length <= 16) return digits;
+      }
+      return "";
+    }
+
+    async function syncOneCaseConversationFromChatDaddy(item, options = {}) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "beyoute";
+      const token = adminTokenEl.value.trim();
+      const chatId = caseChatIdForSync(item);
+      if (!api || !chatId || (!token && !hasAccountSession())) return { ok: false, skipped: true };
+      const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/conversation-history/sync-chatdaddy`;
+      try {
+        const response = await fetchDashboardQueueWithTimeout(endpoint, authRequestOptions(token, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            count: 80,
+            fetch_from_platform: true,
+            create_approval_cases: false,
+          }),
+        }), options.timeoutMs || 30000);
+        const data = await response.json().catch(() => ({}));
+        return {
+          ok: response.ok && data?.ok === true,
+          skipped: false,
+          imported: Number(data?.imported_count || 0),
+          fetched: Number(data?.fetched_count || 0),
+          error: response.ok && data?.ok === true ? "" : data?.error || `HTTP ${response.status}`,
+        };
+      } catch (error) {
+        return { ok: false, skipped: false, imported: 0, fetched: 0, error: String(error?.message || error || "sync_failed") };
+      }
     }
 
     async function loadCaseDetailAndOpen(caseId) {
@@ -20606,8 +20773,14 @@
         return;
       }
       state.loadingCaseDetailId = id;
-      showToast("正在打开这张复盘 Case...");
+      const summaryItem = (state.visibleCases || []).find((record) => String(record.id || "") === id)
+        || state.cases.find((record) => String(record.id || "") === id)
+        || null;
+      showToast("正在从 ChatDaddy 同步并打开 Case...");
       try {
+        const syncResult = summaryItem
+          ? await syncOneCaseConversationFromChatDaddy(summaryItem)
+          : { ok: false, skipped: true };
         const detailUrl = `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(id)}`;
         const data = await fetchJsonSafe(detailUrl, authRequestOptions(token));
         const raw = data?.item || data?.case || null;
@@ -20621,6 +20794,9 @@
           : "all";
         render();
         requestAnimationFrame(() => openCase(loaded.id));
+        if (!syncResult.ok && !syncResult.skipped) {
+          showToast("Case 已打开；ChatDaddy 即时回查暂时失败，正在显示最后一次已入库资料。");
+        }
       } catch (_error) {
         state.query = id;
         if (caseSearchEl) caseSearchEl.value = id;
