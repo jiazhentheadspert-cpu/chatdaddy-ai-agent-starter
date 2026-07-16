@@ -5652,9 +5652,10 @@
     }
 
 	    .reply-command-bar {
+	      position: relative;
 	      display: grid;
-	      grid-template-columns: 74px 122px minmax(420px, 1fr) 112px;
-	      grid-template-areas: "more channel reply pay";
+	      grid-template-columns: 122px minmax(420px, 1fr) 112px;
+	      grid-template-areas: "channel reply pay";
 	      align-items: center;
 	      justify-content: stretch;
 	      gap: 5px;
@@ -5708,27 +5709,23 @@
 	    }
 
 	    .reply-action-group {
-	      border: 1px solid rgba(92,112,121,.18);
-	      border-radius: 8px;
-	      background: #fff;
-	      padding: 3px;
+	      border: 0;
+	      border-radius: 24px;
+	      background: transparent;
+	      padding: 0;
       min-width: 0;
-      box-shadow: 0 1px 5px rgba(8,23,29,.035);
+      box-shadow: none;
     }
 
 	    .reply-action-group {
 	      grid-area: reply;
 	      display: grid;
-	      grid-template-columns: minmax(220px, 1fr) auto;
-	      grid-template-areas:
-	        "composer send-actions"
-	        "tools send-actions";
-	      align-items: center;
-	      gap: 3px 6px;
+	      grid-template-columns: minmax(0, 1fr);
+	      align-items: stretch;
+	      gap: 5px;
 	    }
 
 	    .reply-send-actions {
-	      grid-area: send-actions;
 	      display: flex;
 	      align-items: center;
 	      justify-content: flex-end;
@@ -5736,42 +5733,104 @@
 	      min-width: 0;
 	    }
 
+	    .reply-composer-content {
+	      min-width: 0;
+	      display: grid;
+	      gap: 5px;
+	      border: 0;
+	      background: transparent;
+	    }
+
+	    .whatsapp-composer-row {
+	      min-width: 0;
+	      display: grid;
+	      grid-template-columns: 44px minmax(0, 1fr) 44px;
+	      align-items: end;
+	      gap: 8px;
+	    }
+
+	    .composer-round-button {
+	      width: 44px;
+	      height: 44px;
+	      min-width: 44px;
+	      display: inline-grid;
+	      place-items: center;
+	      border: 0;
+	      border-radius: 999px;
+	      background: #edf2f1;
+	      color: #325c55;
+	      padding: 0;
+	      font-size: 21px;
+	      line-height: 1;
+	      cursor: pointer;
+	      transition: transform .16s ease, background .16s ease, color .16s ease, box-shadow .16s ease;
+	    }
+
+	    .composer-round-button:hover:not(:disabled) {
+	      transform: translateY(-1px);
+	      background: #e3ecea;
+	      color: #006b57;
+	    }
+
+	    .composer-round-button:focus-visible {
+	      outline: 3px solid rgba(0,168,132,.20);
+	      outline-offset: 2px;
+	    }
+
+	    .composer-round-button:disabled {
+	      cursor: not-allowed;
+	      opacity: .42;
+	    }
+
+	    .composer-primary-button.is-mic {
+	      background: transparent;
+	      color: #087c69;
+	      box-shadow: none;
+	    }
+
+	    .composer-primary-button.is-send {
+	      background: #00a884;
+	      color: #fff;
+	      box-shadow: 0 8px 18px rgba(0,168,132,.24);
+	    }
+
+	    .composer-primary-button.is-send:hover:not(:disabled) {
+	      background: #009678;
+	      color: #fff;
+	    }
+
 	    .reply-composer-main {
-	      grid-area: composer;
 	      min-width: 0;
 	      display: grid;
 	      grid-template-columns: minmax(0, 1fr) auto;
 	      align-items: center;
-	      gap: 7px;
+	      gap: 2px;
 	      border: 1px solid rgba(92,112,121,.16);
-	      border-radius: 7px;
-	      background: #fff;
-	      padding: 2px 6px 2px 9px;
+	      border-radius: 24px;
+	      background: #f0f2f2;
+	      padding: 2px 4px 2px 14px;
 	      transition: border-color .16s ease, box-shadow .16s ease;
-	    }
-
-	    .reply-composer-content {
-	      display: contents;
+	      position: relative;
 	    }
 
 	    .reply-composer-main:focus-within {
 	      border-color: rgba(0,168,132,.58);
-	      box-shadow: 0 0 0 3px rgba(0,168,132,.10);
+	      box-shadow: 0 0 0 3px rgba(0,168,132,.11);
 	    }
 
 	    #replyBox {
 	      width: 100%;
 	      min-width: 0;
-	      min-height: 40px;
+	      min-height: 42px;
 	      max-height: 104px;
-	      height: 40px;
+	      height: 42px;
 	      box-sizing: border-box;
 	      resize: none;
 	      overflow-y: auto;
 	      border: 0;
 	      border-radius: 0;
 	      background: transparent;
-	      padding: 9px 0 7px;
+	      padding: 10px 0 8px;
 	      font-size: 14px;
 	      line-height: 1.45;
 	      font-weight: 720;
@@ -5780,10 +5839,63 @@
 
 	    .reply-composer-status {
 	      min-width: 0;
-	      display: inline-flex;
+	      display: flex;
 	      align-items: center;
-	      justify-content: flex-end;
+	      justify-content: space-between;
 	      gap: 6px;
+	      padding: 0 52px;
+	    }
+
+	    .composer-emoji-button {
+	      width: 38px;
+	      height: 38px;
+	      display: inline-grid;
+	      place-items: center;
+	      border: 0;
+	      border-radius: 999px;
+	      background: transparent;
+	      color: #68787d;
+	      padding: 0;
+	      font-size: 20px;
+	      cursor: pointer;
+	    }
+
+	    .composer-emoji-button:hover:not(:disabled) {
+	      background: rgba(92,112,121,.10);
+	      color: #284a44;
+	    }
+
+	    .composer-emoji-panel {
+	      position: absolute;
+	      right: 2px;
+	      bottom: calc(100% + 8px);
+	      z-index: 30;
+	      width: min(280px, calc(100vw - 48px));
+	      display: grid;
+	      grid-template-columns: repeat(6, 1fr);
+	      gap: 4px;
+	      border: 1px solid rgba(92,112,121,.20);
+	      border-radius: 16px;
+	      background: rgba(255,255,255,.99);
+	      padding: 8px;
+	      box-shadow: 0 18px 48px rgba(8,23,29,.18);
+	    }
+
+	    .composer-emoji-panel button {
+	      width: 36px;
+	      height: 36px;
+	      display: inline-grid;
+	      place-items: center;
+	      border: 0;
+	      border-radius: 10px;
+	      background: transparent;
+	      padding: 0;
+	      font-size: 21px;
+	      cursor: pointer;
+	    }
+
+	    .composer-emoji-panel button:hover {
+	      background: #eef5f3;
 	    }
 
 	    .ai-brain-badge {
@@ -5867,14 +5979,169 @@
 	    }
 
 	    .reply-action-group .reply-tools {
-	      grid-area: tools;
 	      margin: 0;
-	      padding: 0 4px 1px;
+	      padding: 0 52px 1px;
 	    }
 
 	    .reply-action-group .reply-chip {
 	      padding: 5px 8px;
 	      font-size: 11px;
+	    }
+
+	    .voice-composer-panel {
+	      min-width: 0;
+	      border: 1px solid rgba(0,168,132,.24);
+	      border-radius: 22px;
+	      background: #f7fbfa;
+	      padding: 8px;
+	      box-shadow: 0 8px 22px rgba(8,23,29,.07);
+	    }
+
+	    .voice-recording-row,
+	    .voice-requesting-row,
+	    .voice-preview-row {
+	      min-width: 0;
+	      display: grid;
+	      grid-template-columns: auto minmax(0, 1fr) auto;
+	      align-items: center;
+	      gap: 10px;
+	    }
+
+	    .voice-preview-row {
+	      grid-template-columns: minmax(180px, 1fr) auto;
+	    }
+
+	    .voice-recording-copy,
+	    .voice-preview-copy {
+	      min-width: 0;
+	      display: grid;
+	      gap: 2px;
+	    }
+
+	    .voice-recording-copy strong,
+	    .voice-preview-copy strong {
+	      color: var(--ink);
+	      font-size: 12px;
+	      font-weight: 950;
+	    }
+
+	    .voice-recording-copy span,
+	    .voice-preview-copy span {
+	      color: var(--muted);
+	      font-size: 10.5px;
+	      font-weight: 780;
+	    }
+
+	    .voice-recording-dot {
+	      width: 34px;
+	      height: 34px;
+	      display: inline-grid;
+	      place-items: center;
+	      border-radius: 999px;
+	      background: #fff0f1;
+	      color: #d54b54;
+	      font-size: 16px;
+	      animation: voicePulse 1.2s ease-in-out infinite;
+	    }
+
+	    .voice-requesting-icon {
+	      width: 34px;
+	      height: 34px;
+	      display: inline-grid;
+	      place-items: center;
+	      border-radius: 999px;
+	      background: #eaf7f4;
+	      color: #087c69;
+	      font-size: 16px;
+	      animation: voiceSpin 1s linear infinite;
+	    }
+
+	    .voice-recorder-actions,
+	    .voice-preview-actions {
+	      display: flex;
+	      align-items: center;
+	      justify-content: flex-end;
+	      gap: 6px;
+	    }
+
+	    .voice-action-button {
+	      min-height: 38px;
+	      display: inline-flex;
+	      align-items: center;
+	      justify-content: center;
+	      gap: 6px;
+	      border: 1px solid rgba(92,112,121,.20);
+	      border-radius: 999px;
+	      background: #fff;
+	      color: #405159;
+	      padding: 0 12px;
+	      font: inherit;
+	      font-size: 11px;
+	      font-weight: 900;
+	      cursor: pointer;
+	    }
+
+	    .voice-action-button.icon-only {
+	      width: 38px;
+	      padding: 0;
+	    }
+
+	    .voice-action-button.stop {
+	      border-color: rgba(213,75,84,.30);
+	      background: #d54b54;
+	      color: #fff;
+	    }
+
+	    .voice-action-button.send {
+	      border-color: #00a884;
+	      background: #00a884;
+	      color: #fff;
+	    }
+
+	    .voice-action-button:disabled {
+	      cursor: not-allowed;
+	      opacity: .5;
+	    }
+
+	    #voicePreviewAudio {
+	      width: 100%;
+	      min-width: 0;
+	      height: 38px;
+	    }
+
+	    .reply-action-group.voice-active .whatsapp-composer-row,
+	    .reply-action-group.voice-active .reply-composer-status,
+	    .reply-action-group.voice-active .reply-tools {
+	      display: none;
+	    }
+
+	    .composer-native-send {
+	      position: absolute !important;
+	      width: 1px !important;
+	      height: 1px !important;
+	      overflow: hidden !important;
+	      clip: rect(0 0 0 0) !important;
+	      clip-path: inset(50%) !important;
+	      white-space: nowrap !important;
+	      padding: 0 !important;
+	      border: 0 !important;
+	    }
+
+	    .reply-send-actions .composer-learn-button:not(.hidden) {
+	      min-height: 34px;
+	      min-width: 0;
+	      border-radius: 999px !important;
+	      padding: 0 11px !important;
+	      font-size: 10.5px;
+	    }
+
+	    @keyframes voicePulse {
+	      0%, 100% { transform: scale(.92); opacity: .72; }
+	      50% { transform: scale(1); opacity: 1; }
+	    }
+
+	    @keyframes voiceSpin {
+	      to { transform: rotate(360deg); }
 	    }
 
 	    .operation-label,
@@ -6003,33 +6270,24 @@
     }
 
 	    .function-menu {
-      grid-area: more;
-      position: relative;
-	      align-self: center;
-      display: flex;
-	      align-items: center;
+	      position: absolute;
+	      left: 6px;
+	      bottom: 6px;
+	      width: 44px;
+	      height: 44px;
+	      z-index: 72;
+	      pointer-events: none;
     }
 
 	    .function-menu summary {
-	      list-style: none;
-	      min-height: 44px;
-	      height: 44px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      border: 1px solid rgba(92,112,121,.22);
-	      border-radius: 8px;
-      background: #fff;
-      color: var(--green-deep);
-	      padding: 0 8px;
-      font-weight: 950;
-      cursor: pointer;
-      user-select: none;
-      box-shadow: none;
-      width: 100%;
-	      min-height: 44px;
-    }
+	      position: absolute;
+	      width: 1px;
+	      height: 1px;
+	      overflow: hidden;
+	      clip: rect(0 0 0 0);
+	      clip-path: inset(50%);
+	      white-space: nowrap;
+	    }
 
     .function-menu-icon {
       width: 24px;
@@ -6050,6 +6308,14 @@
     .function-menu summary::-webkit-details-marker {
       display: none;
     }
+
+	    .function-menu[open] .function-menu-panel {
+	      pointer-events: auto;
+	    }
+
+	    .function-menu[open] {
+	      pointer-events: auto;
+	    }
 
 	    .channel-action-picker {
       grid-area: channel;
@@ -7018,10 +7284,10 @@
       .reply-card { margin-top: 0; }
 	      .reply-command-bar {
 	        align-items: stretch;
-	        grid-template-columns: minmax(64px, .72fr) minmax(108px, 1.25fr) minmax(82px, .82fr);
+	        grid-template-columns: minmax(108px, 1.25fr) minmax(82px, .82fr);
 	        grid-template-areas:
-	          "more channel pay"
-	          "reply reply reply";
+	          "channel pay"
+	          "reply reply";
 	        gap: 6px;
         width: auto !important;
         bottom: auto !important;
@@ -7035,12 +7301,8 @@
 	      }
       .reply-action-group {
 	        grid-template-columns: minmax(0, 1fr);
-	        grid-template-areas:
-	          "composer"
-	          "tools"
-	          "send-actions";
 	        gap: 5px;
-        padding: 5px;
+	        padding: 0;
 	        width: 100%;
 	        overflow: hidden;
       }
@@ -7051,18 +7313,30 @@
 	        flex-wrap: wrap;
 	        gap: 5px;
 	      }
+	      .whatsapp-composer-row {
+	        grid-template-columns: 42px minmax(0, 1fr) 42px;
+	        gap: 6px;
+	      }
+	      .composer-round-button {
+	        width: 42px;
+	        height: 42px;
+	        min-width: 42px;
+	      }
 	      .reply-composer-main {
 	        grid-template-columns: minmax(0, 1fr) auto;
-	        padding-right: 6px;
+	        padding-right: 3px;
 	      }
 	      #replyBox {
 	        min-height: 40px;
 	        max-height: 96px;
 	        height: 40px;
 	      }
-	      .reply-composer-status .reply-mode-badge {
-	        display: none;
+	      .reply-composer-status,
+	      .reply-action-group .reply-tools {
+	        padding-left: 48px;
+	        padding-right: 48px;
 	      }
+	      .reply-composer-status .reply-mode-badge { display: none; }
 	      .ai-brain-badge {
 	        padding-right: 5px;
 	      }
@@ -7078,11 +7352,16 @@
 	      .reply-action-group .reply-tools::-webkit-scrollbar {
 	        display: none;
       }
-	      .composer-send-button {
-	        width: auto !important;
-	        min-width: 0;
-	        flex: 1 1 104px;
+	      .voice-recording-row,
+	      .voice-requesting-row,
+	      .voice-preview-row {
+	        grid-template-columns: auto minmax(0, 1fr);
 	      }
+	      .voice-recorder-actions,
+	      .voice-preview-actions {
+	        grid-column: 1 / -1;
+	      }
+	      .voice-preview-row { grid-template-columns: minmax(0, 1fr); }
 		      .composer-learn-button {
 		        width: auto !important;
 		        min-width: 0;
@@ -8386,15 +8665,40 @@
 	    </details>
 	    <div class="reply-action-group" id="replyActionGroup" aria-label="回复并发送">
 	      <div class="reply-composer-content reply-card" id="replyCard">
-	        <div class="reply-composer-main">
-	          <textarea id="replyBox" rows="1" aria-label="回复顾客" placeholder="输入回复给顾客..."></textarea>
-	          <div class="reply-composer-status">
-	            <span class="ai-brain-badge" id="aiBrainBadge" role="status" aria-live="polite" title="正在读取回复来源">
-	              <span class="ai-brain-mark" aria-hidden="true">AI</span>
-	              <span class="ai-brain-badge-label" id="aiBrainBadgeLabel">读取中</span>
-	            </span>
-	            <span class="reply-mode-badge" id="replyModeLabel">可修改</span>
+	        <div class="whatsapp-composer-row">
+	          <button class="composer-round-button" id="composerMoreBtn" type="button" aria-label="打开更多客服操作" aria-controls="functionMenu" aria-expanded="false" title="更多客服操作">
+	            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+	          </button>
+	          <div class="reply-composer-main">
+	            <textarea id="replyBox" rows="1" aria-label="回复顾客" placeholder="输入回复给顾客..."></textarea>
+	            <button class="composer-emoji-button" id="composerEmojiBtn" type="button" aria-label="选择表情" aria-controls="composerEmojiPanel" aria-expanded="false" title="选择表情">
+	              <i class="bi bi-emoji-smile" aria-hidden="true"></i>
+	            </button>
+	            <div class="composer-emoji-panel hidden" id="composerEmojiPanel" aria-label="常用表情">
+	              <button type="button" data-composer-emoji="😊" aria-label="微笑">😊</button>
+	              <button type="button" data-composer-emoji="🙏" aria-label="谢谢">🙏</button>
+	              <button type="button" data-composer-emoji="👍" aria-label="赞">👍</button>
+	              <button type="button" data-composer-emoji="❤️" aria-label="爱心">❤️</button>
+	              <button type="button" data-composer-emoji="✨" aria-label="闪亮">✨</button>
+	              <button type="button" data-composer-emoji="🎉" aria-label="庆祝">🎉</button>
+	              <button type="button" data-composer-emoji="😂" aria-label="笑哭">😂</button>
+	              <button type="button" data-composer-emoji="🥰" aria-label="喜欢">🥰</button>
+	              <button type="button" data-composer-emoji="💚" aria-label="绿色爱心">💚</button>
+	              <button type="button" data-composer-emoji="👌" aria-label="好的">👌</button>
+	              <button type="button" data-composer-emoji="🙌" aria-label="举手庆祝">🙌</button>
+	              <button type="button" data-composer-emoji="💪" aria-label="加油">💪</button>
+	            </div>
 	          </div>
+	          <button class="composer-round-button composer-primary-button is-mic" id="composerPrimaryBtn" type="button" aria-label="录制语音" title="录制语音">
+	            <i class="bi bi-mic-fill" id="composerPrimaryIcon" aria-hidden="true"></i>
+	          </button>
+	        </div>
+	        <div class="reply-composer-status">
+	          <span class="ai-brain-badge" id="aiBrainBadge" role="status" aria-live="polite" title="正在读取回复来源">
+	            <span class="ai-brain-mark" aria-hidden="true">AI</span>
+	            <span class="ai-brain-badge-label" id="aiBrainBadgeLabel">读取中</span>
+	          </span>
+	          <span class="reply-mode-badge" id="replyModeLabel">可修改</span>
 	        </div>
 	        <div class="reply-tools" id="replyTools" aria-label="回复快捷调整">
 	          <button class="reply-chip" data-reply-template="warm" type="button">温柔</button>
@@ -8402,11 +8706,44 @@
 	          <button class="reply-chip" data-reply-template="ask_phone" type="button">先问电话</button>
 	          <button class="reply-chip" data-reply-template="shorten" type="button">缩短</button>
 	        </div>
+	        <div class="voice-composer-panel hidden" id="voiceRecorderPanel" aria-live="polite">
+	          <div class="voice-requesting-row hidden" id="voiceRequestingRow">
+	            <span class="voice-requesting-icon" aria-hidden="true"><i class="bi bi-arrow-repeat"></i></span>
+	            <div class="voice-recording-copy">
+	              <strong>正在请求麦克风权限</strong>
+	              <span>浏览器只会在你主动按麦克风后录音。</span>
+	            </div>
+	            <button class="voice-action-button" id="voiceRequestCancelBtn" type="button">取消</button>
+	          </div>
+	          <div class="voice-recording-row hidden" id="voiceRecordingRow">
+	            <span class="voice-recording-dot" aria-hidden="true"><i class="bi bi-mic-fill"></i></span>
+	            <div class="voice-recording-copy">
+	              <strong>正在录音 <span id="voiceRecordingTimer">0:00</span></strong>
+	              <span>最多 5 分钟 / 4 MB；停止后先试听，不会自动发送。</span>
+	            </div>
+	            <div class="voice-recorder-actions">
+	              <button class="voice-action-button icon-only" id="voiceCancelBtn" type="button" aria-label="取消录音" title="取消录音"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+	              <button class="voice-action-button stop" id="voiceStopBtn" type="button"><i class="bi bi-stop-fill" aria-hidden="true"></i><span>停止</span></button>
+	            </div>
+	          </div>
+	          <div class="voice-preview-row hidden" id="voicePreviewRow">
+	            <div class="voice-preview-copy">
+	              <strong>发送前先试听</strong>
+	              <audio id="voicePreviewAudio" controls preload="metadata"></audio>
+	              <span id="voicePreviewMeta">语音准备完成</span>
+	            </div>
+	            <div class="voice-preview-actions">
+	              <button class="voice-action-button icon-only" id="voiceDiscardBtn" type="button" aria-label="删除这段语音" title="删除这段语音"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+	              <button class="voice-action-button" id="voiceRerecordBtn" type="button"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i><span>重录</span></button>
+	              <button class="voice-action-button send" id="voiceSendBtn" type="button"><i class="bi bi-send-fill" aria-hidden="true"></i><span>发送语音</span></button>
+	            </div>
+	          </div>
+	        </div>
 	      </div>
 	      <div class="reply-send-actions">
-	        <button class="btn primary composer-send-button" id="approveBtn" type="button">批准并发送</button>
+	        <button class="btn primary composer-send-button composer-native-send" id="approveBtn" type="button">批准并发送</button>
 	        <button class="btn composer-learn-button hidden" id="learnAndSendBtn" type="button" title="批准并发送这次回复；同项目、同意图的低风险问题以后自动回复">批准并开启自动回复</button>
-	        <button class="btn primary composer-send-button hidden" id="manualSendBtn" type="button">回复并发送</button>
+	        <button class="btn primary composer-send-button composer-native-send hidden" id="manualSendBtn" type="button">回复并发送</button>
 	      </div>
 	    </div>
 	    <details class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
@@ -8617,6 +8954,26 @@
     };
     const CANONICAL_API_URL = "https://ctg-chatdaddy-hermas-agents-runtime.jiazhen-theadspert.workers.dev";
     const IS_LOCAL_PREVIEW = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+	const VOICE_MIN_DURATION_MS = 250;
+	const VOICE_MAX_DURATION_MS = 5 * 60 * 1000;
+	const VOICE_MAX_BYTES = 4 * 1024 * 1024;
+	const voiceComposer = {
+	  phase: "idle",
+	  recorder: null,
+	  stream: null,
+	  chunks: [],
+	  bytesRecorded: 0,
+	  timer: null,
+	  startedAt: 0,
+	  durationMs: 0,
+	  blob: null,
+	  objectUrl: "",
+	  mimeType: "",
+	  caseId: "",
+	  clientMessageId: "",
+	  cancelRequested: false,
+	  limitReached: false,
+	};
 
     const DEFAULT_SETTINGS = {
       brandVoice: "请填写这个项目希望 AI 使用的语气、语言和称呼方式。",
@@ -9175,6 +9532,25 @@
     $("learnBtn").addEventListener("click", learnActive);
     $("manualResolveBtn").addEventListener("click", manualResolveActive);
     $("manualSendBtn").addEventListener("click", manualSendActive);
+	$("composerMoreBtn").addEventListener("click", toggleComposerFunctionMenu);
+	$("composerEmojiBtn").addEventListener("click", toggleComposerEmojiPanel);
+	$("composerPrimaryBtn").addEventListener("click", handleComposerPrimaryAction);
+	$("voiceRequestCancelBtn").addEventListener("click", resetVoiceComposer);
+	$("voiceCancelBtn").addEventListener("click", resetVoiceComposer);
+	$("voiceStopBtn").addEventListener("click", stopVoiceRecording);
+	$("voiceDiscardBtn").addEventListener("click", resetVoiceComposer);
+	$("voiceRerecordBtn").addEventListener("click", rerecordVoiceMessage);
+	$("voiceSendBtn").addEventListener("click", sendVoiceMessage);
+	document.querySelectorAll("[data-composer-emoji]").forEach((button) => {
+	  button.addEventListener("click", () => insertComposerEmoji(button.dataset.composerEmoji || ""));
+	});
+	document.addEventListener("click", (event) => {
+	  const panel = $("composerEmojiPanel");
+	  const button = $("composerEmojiBtn");
+	  if (panel.classList.contains("hidden")) return;
+	  if (panel.contains(event.target) || button.contains(event.target)) return;
+	  closeComposerEmojiPanel();
+	});
 	    $("channelReplyResolvedBtn").addEventListener("click", channelReplyResolvedActive);
 	    $("noReplyNeededBtn").addEventListener("click", recordNoReplyActive);
 	    $("returnAiBtn").addEventListener("click", returnAiActive);
@@ -9184,12 +9560,15 @@
 		    $("triggerFlowBtn").addEventListener("click", triggerFlowActive);
 		    $("flowSelect").addEventListener("change", () => updateFlowSelectionNote(state.active));
 		    $("flowSearchInput").addEventListener("input", () => renderFlowPickerOptions(state.active));
-		    $("functionMenu").addEventListener("toggle", () => {
-		      if ($("functionMenu").open) {
-		        $("purchasePanel").open = false;
-		        $("channelActionPicker").open = false;
-		      }
-		    });
+	    $("functionMenu").addEventListener("toggle", () => {
+	      $("composerMoreBtn").setAttribute("aria-expanded", $("functionMenu").open ? "true" : "false");
+	      if ($("functionMenu").open) {
+	        $("purchasePanel").open = false;
+	        $("channelActionPicker").open = false;
+	        closeComposerEmojiPanel();
+	        positionComposerFunctionMenuPanel();
+	      } else clearComposerFunctionMenuPanelPosition();
+	    });
 		    $("channelActionPicker").addEventListener("toggle", () => {
 		      if ($("channelActionPicker").open) {
 		        $("functionMenu").open = false;
@@ -9223,7 +9602,13 @@
       resizeReplyComposer();
       if (state.active) updateQualityEvaluationPanel(state.active);
       if (state.active) setPanelBusy(false);
+	  syncWhatsappComposer();
     });
+
+	window.addEventListener("beforeunload", () => resetVoiceComposer({ sync: false }));
+	window.addEventListener("resize", () => {
+	  if ($("functionMenu").open) positionComposerFunctionMenuPanel();
+	});
 
     window.addEventListener("focus", refreshRealtimeNow);
     document.addEventListener("visibilitychange", () => {
@@ -10637,12 +11022,488 @@
       }
     }
 
+	function currentComposerTextActionButton() {
+	  const candidates = [$("manualSendBtn"), $("approveBtn"), $("learnAndSendBtn")].filter(Boolean);
+	  const visible = candidates.filter((button) => !button.classList.contains("hidden"));
+	  return visible.find((button) => !button.disabled) || visible[0] || null;
+	}
+
+	function syncWhatsappComposer() {
+	  const group = $("replyActionGroup");
+	  const box = $("replyBox");
+	  const primary = $("composerPrimaryBtn");
+	  const primaryIcon = $("composerPrimaryIcon");
+	  if (!group || !box || !primary || !primaryIcon) return;
+
+	  const voiceActive = voiceComposer.phase !== "idle";
+	  const previewVisible = voiceComposer.phase === "preview" || voiceComposer.phase === "sending";
+	  const hasText = Boolean(box.value.trim());
+	  const textAction = currentComposerTextActionButton();
+	  const cardHidden = $("replyCard").classList.contains("hidden");
+	  const composerLocked = !state.active || cardHidden || box.readOnly || state.actionBusy;
+
+	  group.classList.toggle("voice-active", voiceActive);
+	  $("voiceRecorderPanel").classList.toggle("hidden", !voiceActive);
+	  $("voiceRequestingRow").classList.toggle("hidden", voiceComposer.phase !== "requesting");
+	  $("voiceRecordingRow").classList.toggle("hidden", !["recording", "stopping"].includes(voiceComposer.phase));
+	  $("voicePreviewRow").classList.toggle("hidden", !previewVisible);
+
+	  primary.classList.toggle("is-send", hasText);
+	  primary.classList.toggle("is-mic", !hasText);
+	  primaryIcon.className = hasText ? "bi bi-send-fill" : "bi bi-mic-fill";
+	  primary.setAttribute("aria-label", hasText ? "发送文字回复" : "录制语音");
+	  primary.title = hasText ? "发送文字回复" : "录制语音";
+	  primary.disabled = voiceActive || composerLocked || (hasText && (!textAction || textAction.disabled));
+
+	  $("composerMoreBtn").disabled = voiceActive || composerLocked;
+	  $("composerEmojiBtn").disabled = voiceActive || composerLocked;
+	  $("voiceRequestCancelBtn").disabled = voiceComposer.phase !== "requesting";
+	  $("voiceCancelBtn").disabled = !["recording", "stopping"].includes(voiceComposer.phase);
+	  $("voiceStopBtn").disabled = voiceComposer.phase !== "recording";
+	  $("voiceDiscardBtn").disabled = voiceComposer.phase === "sending";
+	  $("voiceRerecordBtn").disabled = voiceComposer.phase === "sending";
+	  $("voiceSendBtn").disabled = voiceComposer.phase !== "preview" || state.actionBusy;
+	  $("voiceSendBtn").innerHTML = voiceComposer.phase === "sending"
+	    ? '<i class="bi bi-arrow-repeat" aria-hidden="true"></i><span>发送中</span>'
+	    : '<i class="bi bi-send-fill" aria-hidden="true"></i><span>发送语音</span>';
+	}
+
+	function toggleComposerFunctionMenu() {
+	  const button = $("composerMoreBtn");
+	  if (button.disabled) return;
+	  closeComposerEmojiPanel();
+	  $("channelActionPicker").open = false;
+	  $("purchasePanel").open = false;
+	  $("functionMenu").open = !$("functionMenu").open;
+	}
+
+	function clearComposerFunctionMenuPanelPosition() {
+	  const panel = $("functionMenu")?.querySelector(".function-menu-panel");
+	  if (!panel) return;
+	  ["position", "left", "right", "bottom", "width", "maxHeight", "overflowY", "zIndex"].forEach((property) => {
+	    panel.style[property] = "";
+	  });
+	}
+
+	function positionComposerFunctionMenuPanel() {
+	  const button = $("composerMoreBtn");
+	  const panel = $("functionMenu")?.querySelector(".function-menu-panel");
+	  if (!button || !panel) return;
+	  if (window.matchMedia("(max-width: 720px)").matches) {
+	    clearComposerFunctionMenuPanelPosition();
+	    return;
+	  }
+	  const rect = button.getBoundingClientRect();
+	  const viewportPadding = 12;
+	  const width = Math.min(460, Math.max(280, window.innerWidth - viewportPadding * 2));
+	  const left = Math.min(
+	    Math.max(viewportPadding, rect.left),
+	    Math.max(viewportPadding, window.innerWidth - width - viewportPadding),
+	  );
+	  const availableHeight = Math.max(180, rect.top - viewportPadding * 2);
+	  panel.style.position = "fixed";
+	  panel.style.left = `${Math.round(left)}px`;
+	  panel.style.right = "auto";
+	  panel.style.bottom = `${Math.round(window.innerHeight - rect.top + 10)}px`;
+	  panel.style.width = `${Math.round(width)}px`;
+	  panel.style.maxHeight = `${Math.round(availableHeight)}px`;
+	  panel.style.overflowY = "auto";
+	  panel.style.zIndex = "90";
+	}
+
+	function closeComposerEmojiPanel() {
+	  const panel = $("composerEmojiPanel");
+	  const button = $("composerEmojiBtn");
+	  if (!panel || !button) return;
+	  panel.classList.add("hidden");
+	  button.setAttribute("aria-expanded", "false");
+	}
+
+	function toggleComposerEmojiPanel() {
+	  const panel = $("composerEmojiPanel");
+	  const button = $("composerEmojiBtn");
+	  if (!panel || !button || button.disabled) return;
+	  const opening = panel.classList.contains("hidden");
+	  $("functionMenu").open = false;
+	  panel.classList.toggle("hidden", !opening);
+	  button.setAttribute("aria-expanded", opening ? "true" : "false");
+	}
+
+	function insertComposerEmoji(emoji = "") {
+	  const box = $("replyBox");
+	  if (!emoji || !box || box.readOnly) return;
+	  const start = Number.isFinite(box.selectionStart) ? box.selectionStart : box.value.length;
+	  const end = Number.isFinite(box.selectionEnd) ? box.selectionEnd : start;
+	  box.setRangeText(emoji, start, end, "end");
+	  box.dispatchEvent(new Event("input", { bubbles: true }));
+	  closeComposerEmojiPanel();
+	  box.focus();
+	}
+
+	function handleComposerPrimaryAction() {
+	  const box = $("replyBox");
+	  if (!box || state.actionBusy) return;
+	  if (box.value.trim()) {
+	    const actionButton = currentComposerTextActionButton();
+	    if (!actionButton || actionButton.disabled) {
+	      showToast("当前 Case 还不能发送，请先检查处理状态。");
+	      return;
+	    }
+	    actionButton.click();
+	    return;
+	  }
+	  startVoiceRecording();
+	}
+
+	function preferredVoiceMimeType() {
+	  const candidates = [
+	    "audio/webm;codecs=opus",
+	    "audio/webm",
+	    "audio/ogg;codecs=opus",
+	    "audio/mp4",
+	  ];
+	  if (!globalThis.MediaRecorder || typeof globalThis.MediaRecorder.isTypeSupported !== "function") return "";
+	  return candidates.find((candidate) => globalThis.MediaRecorder.isTypeSupported(candidate)) || "";
+	}
+
+	function voiceRecordingErrorMessage(error) {
+	  const name = String(error?.name || "");
+	  if (name === "NotAllowedError" || name === "SecurityError") return "没有麦克风权限。请在浏览器地址栏允许麦克风后再试。";
+	  if (name === "NotFoundError" || name === "DevicesNotFoundError") return "没有找到可用麦克风，请检查电脑的声音输入设备。";
+	  if (name === "NotReadableError" || name === "TrackStartError") return "麦克风正在被其他应用占用，请关掉占用后再试。";
+	  if (name === "NotSupportedError") return "当前浏览器不支持录音，请改用最新版 Chrome 或 Safari。";
+	  return `无法开始录音：${error?.message || "请检查麦克风设置"}`;
+	}
+
+	async function startVoiceRecording() {
+	  const box = $("replyBox");
+	  if (!state.active || !box || box.readOnly || $("replyCard").classList.contains("hidden")) {
+	    showToast("当前 Case 不能发送语音。");
+	    return;
+	  }
+	  if (!navigator.mediaDevices?.getUserMedia || !globalThis.MediaRecorder) {
+	    showToast("当前浏览器不支持录音，请改用最新版 Chrome 或 Safari。");
+	    return;
+	  }
+	  if (voiceComposer.phase !== "idle") resetVoiceComposer({ sync: false });
+	  const caseId = String(state.active.id || "");
+	  voiceComposer.phase = "requesting";
+	  voiceComposer.caseId = caseId;
+	  voiceComposer.cancelRequested = false;
+	  voiceComposer.limitReached = false;
+	  closeComposerEmojiPanel();
+	  $("functionMenu").open = false;
+	  syncWhatsappComposer();
+
+	  let requestedStream = null;
+	  try {
+	    requestedStream = await navigator.mediaDevices.getUserMedia({
+	      audio: {
+	        echoCancellation: true,
+	        noiseSuppression: true,
+	        autoGainControl: true,
+	      },
+	    });
+	    const stream = requestedStream;
+	    if (voiceComposer.phase !== "requesting" || voiceComposer.caseId !== caseId || String(state.active?.id || "") !== caseId) {
+	      stream.getTracks().forEach((track) => track.stop());
+	      return;
+	    }
+
+	    const mimeType = preferredVoiceMimeType();
+	    const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+	    voiceComposer.stream = stream;
+	    voiceComposer.recorder = recorder;
+	    voiceComposer.mimeType = recorder.mimeType || mimeType || "audio/webm";
+	    voiceComposer.chunks = [];
+	    voiceComposer.bytesRecorded = 0;
+	    voiceComposer.startedAt = Date.now();
+	    voiceComposer.durationMs = 0;
+
+	    recorder.ondataavailable = (event) => {
+	      if (voiceComposer.cancelRequested || !event.data?.size) return;
+	      voiceComposer.chunks.push(event.data);
+	      voiceComposer.bytesRecorded += event.data.size;
+	      if (voiceComposer.bytesRecorded > VOICE_MAX_BYTES && voiceComposer.phase === "recording") {
+	        voiceComposer.limitReached = "bytes";
+	        stopVoiceRecording();
+	      }
+	    };
+	    recorder.onerror = (event) => {
+	      const message = voiceRecordingErrorMessage(event.error || event);
+	      resetVoiceComposer();
+	      showToast(message);
+	    };
+	    recorder.onstop = finalizeVoiceRecording;
+
+	    recorder.start(250);
+	    voiceComposer.phase = "recording";
+	    updateVoiceRecordingTimer();
+	    voiceComposer.timer = window.setInterval(() => {
+	      updateVoiceRecordingTimer();
+	      if (Date.now() - voiceComposer.startedAt >= VOICE_MAX_DURATION_MS && voiceComposer.phase === "recording") {
+	        voiceComposer.limitReached = "duration";
+	        stopVoiceRecording();
+	      }
+	    }, 250);
+	    syncWhatsappComposer();
+	  } catch (error) {
+	    requestedStream?.getTracks?.().forEach((track) => {
+	      try { track.stop(); } catch {}
+	    });
+	    const message = voiceRecordingErrorMessage(error);
+	    resetVoiceComposer();
+	    showToast(message);
+	  }
+	}
+
+	function updateVoiceRecordingTimer() {
+	  const elapsed = voiceComposer.startedAt ? Math.min(Date.now() - voiceComposer.startedAt, VOICE_MAX_DURATION_MS) : 0;
+	  voiceComposer.durationMs = elapsed;
+	  $("voiceRecordingTimer").textContent = formatVoiceDuration(elapsed);
+	}
+
+	function stopVoiceRecording() {
+	  if (voiceComposer.phase !== "recording") return;
+	  updateVoiceRecordingTimer();
+	  voiceComposer.phase = "stopping";
+	  if (voiceComposer.timer) window.clearInterval(voiceComposer.timer);
+	  voiceComposer.timer = null;
+	  syncWhatsappComposer();
+	  try {
+	    if (voiceComposer.recorder?.state === "recording") voiceComposer.recorder.stop();
+	    else finalizeVoiceRecording();
+	  } catch (error) {
+	    resetVoiceComposer();
+	    showToast(`无法完成录音：${error.message || error}`);
+	  }
+	}
+
+	function stopVoiceTracks() {
+	  voiceComposer.stream?.getTracks?.().forEach((track) => {
+	    try { track.stop(); } catch {}
+	  });
+	  voiceComposer.stream = null;
+	}
+
+	function finalizeVoiceRecording() {
+	  if (voiceComposer.timer) window.clearInterval(voiceComposer.timer);
+	  voiceComposer.timer = null;
+	  stopVoiceTracks();
+	  if (voiceComposer.cancelRequested) return;
+	  const limitReached = voiceComposer.limitReached;
+	  const durationMs = Math.max(0, Math.min(voiceComposer.durationMs || (Date.now() - voiceComposer.startedAt), VOICE_MAX_DURATION_MS));
+	  const mimeType = voiceComposer.recorder?.mimeType || voiceComposer.mimeType || "audio/webm";
+	  const blob = new Blob(voiceComposer.chunks, { type: mimeType });
+	  voiceComposer.recorder = null;
+	  voiceComposer.chunks = [];
+
+	  if (limitReached === "bytes" || blob.size > VOICE_MAX_BYTES) {
+	    resetVoiceComposer();
+	    showToast("这段语音超过 4 MB，已取消。请录短一点再试。");
+	    return;
+	  }
+	  if (!blob.size) {
+	    resetVoiceComposer();
+	    showToast("没有录到声音，请检查麦克风后重录。");
+	    return;
+	  }
+	  if (durationMs < VOICE_MIN_DURATION_MS) {
+	    resetVoiceComposer();
+	    showToast("这段语音太短（少于 0.25 秒），请重新录制。");
+	    return;
+	  }
+
+	  voiceComposer.blob = blob;
+	  voiceComposer.durationMs = durationMs;
+	  voiceComposer.mimeType = blob.type || mimeType;
+	  voiceComposer.clientMessageId = createClientMessageId();
+	  voiceComposer.objectUrl = URL.createObjectURL(blob);
+	  voiceComposer.phase = "preview";
+	  const audio = $("voicePreviewAudio");
+	  audio.src = voiceComposer.objectUrl;
+	  audio.load();
+	  $("voicePreviewMeta").textContent = `${formatVoiceDuration(durationMs)} · ${formatVoiceBytes(blob.size)}${limitReached === "duration" ? " · 已到 5 分钟上限" : ""}`;
+	  syncWhatsappComposer();
+	  if (limitReached === "duration") showToast("已到 5 分钟上限，请试听后确认发送。");
+	}
+
+	function resetVoiceComposer(options = {}) {
+	  const shouldSync = options?.sync !== false;
+	  voiceComposer.cancelRequested = true;
+	  if (voiceComposer.timer) window.clearInterval(voiceComposer.timer);
+	  voiceComposer.timer = null;
+	  const recorder = voiceComposer.recorder;
+	  if (recorder) {
+	    recorder.ondataavailable = null;
+	    recorder.onerror = null;
+	    recorder.onstop = null;
+	    try {
+	      if (recorder.state !== "inactive") recorder.stop();
+	    } catch {}
+	  }
+	  stopVoiceTracks();
+	  if (voiceComposer.objectUrl) URL.revokeObjectURL(voiceComposer.objectUrl);
+	  const audio = $("voicePreviewAudio");
+	  if (audio) {
+	    audio.pause();
+	    audio.removeAttribute("src");
+	    audio.load();
+	  }
+	  Object.assign(voiceComposer, {
+	    phase: "idle",
+	    recorder: null,
+	    stream: null,
+	    chunks: [],
+	    bytesRecorded: 0,
+	    timer: null,
+	    startedAt: 0,
+	    durationMs: 0,
+	    blob: null,
+	    objectUrl: "",
+	    mimeType: "",
+	    caseId: "",
+	    clientMessageId: "",
+	    cancelRequested: false,
+	    limitReached: false,
+	  });
+	  if ($("voiceRecordingTimer")) $("voiceRecordingTimer").textContent = "0:00";
+	  if ($("voicePreviewMeta")) $("voicePreviewMeta").textContent = "语音准备完成";
+	  if (shouldSync) syncWhatsappComposer();
+	}
+
+	async function rerecordVoiceMessage() {
+	  resetVoiceComposer();
+	  await startVoiceRecording();
+	}
+
+	function formatVoiceDuration(durationMs = 0) {
+	  const totalSeconds = Math.max(0, Math.floor(Number(durationMs || 0) / 1000));
+	  const minutes = Math.floor(totalSeconds / 60);
+	  const seconds = String(totalSeconds % 60).padStart(2, "0");
+	  return `${minutes}:${seconds}`;
+	}
+
+	function formatVoiceBytes(bytes = 0) {
+	  const size = Number(bytes || 0);
+	  if (size < 1024) return `${size} B`;
+	  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+	  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+	}
+
+	function voiceFilename(mimeType = "") {
+	  const value = String(mimeType || "").toLowerCase();
+	  const extension = value.includes("mp4") ? "m4a" : value.includes("ogg") ? "ogg" : "webm";
+	  return `voice-${Date.now()}.${extension}`;
+	}
+
+	function blobToBase64(blob) {
+	  return new Promise((resolve, reject) => {
+	    const reader = new FileReader();
+	    reader.addEventListener("error", () => reject(reader.error || new Error("语音读取失败")), { once: true });
+	    reader.addEventListener("load", () => {
+	      const value = String(reader.result || "");
+	      const comma = value.indexOf(",");
+	      if (comma < 0) reject(new Error("语音编码失败"));
+	      else resolve(value.slice(comma + 1));
+	    }, { once: true });
+	    reader.readAsDataURL(blob);
+	  });
+	}
+
+	async function sendVoiceMessage() {
+	  if (voiceComposer.phase !== "preview" || !voiceComposer.blob || state.actionBusy) return;
+	  const caseId = String(state.active?.id || "");
+	  if (!caseId || caseId !== voiceComposer.caseId) {
+	    resetVoiceComposer();
+	    showToast("Case 已切换，这段语音没有发送。");
+	    return;
+	  }
+
+	  const confirmed = await showSaasConfirm({
+	    eyebrow: "真实发送语音",
+	    title: "确认把这段语音发送给顾客？",
+	    subtitle: customerDisplayLabel(state.active) || "这位顾客",
+	    lead: `语音 ${formatVoiceDuration(voiceComposer.durationMs)}，请先试听内容是否正确。`,
+	    facts: [
+	      { label: "顾客消息", value: "确认后立即发送" },
+	      { label: "AI / Flow", value: "不会自动介入" },
+	      { label: "语音大小", value: formatVoiceBytes(voiceComposer.blob.size) },
+	    ],
+	    note: "取消会保留这段试听；只有按下确认才会上传并发送。",
+	    cancelLabel: "返回试听",
+	    confirmLabel: "确认发送语音",
+	  });
+	  if (!confirmed || voiceComposer.phase !== "preview" || String(state.active?.id || "") !== caseId) return;
+	  if (state.demoMode) {
+	    showToast("演示模式不会发送真实语音。");
+	    return;
+	  }
+
+	  const api = apiUrlEl.value.trim().replace(/\/$/, "");
+	  const project = projectKeyEl.value.trim() || "demo";
+	  const token = adminTokenEl.value.trim();
+	  const blob = voiceComposer.blob;
+	  const durationMs = Math.round(voiceComposer.durationMs);
+	  const mimeType = voiceComposer.mimeType || blob.type || "audio/webm";
+	  voiceComposer.phase = "sending";
+	  setPanelBusy(true, "语音发送中...");
+	  syncWhatsappComposer();
+
+	  try {
+	    const dataBase64 = await blobToBase64(blob);
+	    if (String(state.active?.id || "") !== caseId || voiceComposer.phase !== "sending") throw new Error("Case 已切换，语音没有发送");
+	    const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/conversation-media-reply`;
+	    const response = await fetch(endpoint, authRequestOptions(token, {
+	      method: "POST",
+	      headers: { "content-type": "application/json" },
+	      body: JSON.stringify({
+	        confirmLiveSend: true,
+	        client_message_id: voiceComposer.clientMessageId || (voiceComposer.clientMessageId = createClientMessageId()),
+	        media: {
+	          kind: "audio",
+	          data_base64: dataBase64,
+	          mime_type: mimeType,
+	          bytes: blob.size,
+	          duration_ms: durationMs,
+	          filename: voiceFilename(mimeType),
+	        },
+	      }),
+	    }));
+	    const data = await response.json().catch(() => ({}));
+	    if (data.partial_success === true && data.sends_messages === true) {
+	      addAuditEvent("case_conversation_media_reply_partial", `真实顾客 ${caseId} 的语音已发出，但 Case 保存未完成。`);
+	      resetVoiceComposer({ sync: false });
+	      await loadCases();
+	      alert("语音已经发出，请勿重复发送。Case 保存未完成，页面已刷新，请先检查顾客对话记录。");
+	      showToast("语音已发出，请勿重复发送；请检查 Case 记录。");
+	      return;
+	    }
+	    if (!response.ok || !data.ok) throw new Error(caseActionErrorMessage(data, `HTTP ${response.status}`));
+	    addAuditEvent("case_conversation_media_reply", `真实顾客 ${caseId} 已由客服确认发送语音。`);
+	    resetVoiceComposer({ sync: false });
+	    await loadCases();
+	    const returnedCase = data.case || data.item;
+	    if (returnedCase) {
+	      upsertReturnedCase(returnedCase);
+	      openCase(returnedCase.id);
+	    }
+	    showToast("语音已发送给顾客；不会触发 AI 或 Flow。");
+	  } catch (error) {
+	    if (voiceComposer.phase === "sending") voiceComposer.phase = "preview";
+	    alert(`语音发送失败：${error.message || error}`);
+	  } finally {
+	    if (state.active) setPanelBusy(false);
+	    syncWhatsappComposer();
+	  }
+	}
+
     function resizeReplyComposer() {
       const box = $("replyBox");
       if (!box) return;
-      box.style.height = "46px";
+	  box.style.height = "42px";
       const maxHeight = window.matchMedia("(max-width: 820px)").matches ? 116 : 132;
-      box.style.height = `${Math.min(Math.max(box.scrollHeight, 46), maxHeight)}px`;
+	  box.style.height = `${Math.min(Math.max(box.scrollHeight, 42), maxHeight)}px`;
     }
 
     function applyReplyTemplate(template) {
@@ -14307,9 +15168,13 @@
     }
 
     function closePanel() {
+	  resetVoiceComposer({ sync: false });
+	  closeComposerEmojiPanel();
+	  $("functionMenu").open = false;
       $("panel").classList.remove("open");
       state.active = null;
       state.replyDraftDirty = false;
+	  syncWhatsappComposer();
     }
 
     function projectChannelProviderLabel(provider = "") {
@@ -19561,6 +20426,8 @@
     function openCase(caseId, options = {}) {
       const id = String(caseId || "").trim();
       const previousActiveId = String(state.active?.id || "");
+	  if (voiceComposer.phase !== "idle" && previousActiveId !== id) resetVoiceComposer({ sync: false });
+	  closeComposerEmojiPanel();
       const openingNewCase = previousActiveId !== id || !$("panel").classList.contains("open");
       const preserveReplyDraft = options.preserveReplyDraft === true
         && previousActiveId === id
@@ -19722,6 +20589,7 @@
       }).join("");
 
       $("panel").classList.add("open");
+	  syncWhatsappComposer();
     }
 
     async function loadCaseDetailAndOpen(caseId) {
@@ -26361,7 +27229,10 @@
 
     function setPanelBusy(isBusy, label = "处理中...") {
       state.actionBusy = isBusy;
-      if (!state.active) return;
+	  if (!state.active) {
+	    syncWhatsappComposer();
+	    return;
+	  }
       const decision = state.active.latest_decision || {};
       const readOnly = isCaseReadOnly(state.active);
       const canManualResolve = canManualResolveCase(state.active);
@@ -26411,6 +27282,7 @@
 	        $("markPurchaseBtn").textContent = label;
 	        $("triggerFlowBtn").textContent = label;
 	        $("externalFlowRecordBtn").textContent = label;
+	        syncWhatsappComposer();
 	        return;
 	      }
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(state.active, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : state.active.status === "order" ? "确认已处理" : "批准并发送";
@@ -26424,6 +27296,7 @@
 	      $("triggerFlowBtn").textContent = "确认并接 Flow";
 	      $("externalFlowRecordBtn").textContent = "标记为自动 Flow 已处理";
 	      updateExternalFlowButtonState(state.active);
+	      syncWhatsappComposer();
 	    }
 
     function approvalActionEndpoint(api, caseId, action, project) {
