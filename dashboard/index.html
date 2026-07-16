@@ -11411,6 +11411,7 @@
     }
 
     const DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS = 12000;
+    const DASHBOARD_NO_INTERVENTION_REQUEST_TIMEOUT_MS = 30000;
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
@@ -11498,14 +11499,15 @@
       }
     }
 
-    async function fetchDashboardQueueWithTimeout(url, options = {}) {
+    async function fetchDashboardQueueWithTimeout(url, options = {}, timeoutMs = DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS) {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS);
+      const effectiveTimeoutMs = Math.max(1000, Number(timeoutMs || DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS));
+      const timer = setTimeout(() => controller.abort(), effectiveTimeoutMs);
       try {
         return await fetch(url, { ...options, signal: controller.signal });
       } catch (error) {
         if (error?.name === "AbortError") {
-          throw new Error("服务器同步超过 12 秒，已停止等待并保留上次资料");
+          throw new Error(`服务器同步超过 ${Math.ceil(effectiveTimeoutMs / 1000)} 秒，已停止等待并保留上次资料`);
         }
         throw error;
       } finally {
@@ -11513,9 +11515,9 @@
       }
     }
 
-    async function fetchDashboardQueueResult(url, token) {
+    async function fetchDashboardQueueResult(url, token, timeoutMs = DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS) {
       try {
-        const response = await fetchDashboardQueueWithTimeout(url, authRequestOptions(token));
+        const response = await fetchDashboardQueueWithTimeout(url, authRequestOptions(token), timeoutMs);
         const data = await response.json().catch(() => ({}));
         return { ok: response.ok && data?.ok === true, response, data, error: null };
       } catch (error) {
@@ -11767,7 +11769,7 @@
               const urls = dashboardNoInterventionRequestUrls(api, project);
               return Promise.all([
                 fetchDashboardQueueResult(urls.stored, token),
-                fetchDashboardQueueResult(urls.live, token),
+                fetchDashboardQueueResult(urls.live, token, DASHBOARD_NO_INTERVENTION_REQUEST_TIMEOUT_MS),
               ]);
             })();
         const primary = await fetchDashboardQueueResult(approvalUrl, token);
