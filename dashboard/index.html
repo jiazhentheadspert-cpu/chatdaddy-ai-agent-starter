@@ -8465,6 +8465,9 @@
       inboxAppliedQuery: "",
       inboxOffset: 0,
       inboxNextOffset: null,
+      inboxLiveNextPage: null,
+      inboxLiveHasMore: false,
+      inboxProviderTotal: null,
       inboxHasMore: false,
       inboxSearchTimer: null,
       inboxRequestSeq: 0,
@@ -11524,9 +11527,13 @@
       const token = adminTokenEl.value.trim();
       const requestSeq = ++state.inboxRequestSeq;
       const query = String(options.query !== undefined ? options.query : state.inboxQuery || "").trim();
-      const append = options.append === true && !query && Number.isFinite(Number(state.inboxNextOffset));
+      const storedContinuationReady = state.inboxNextOffset !== null
+        && state.inboxNextOffset !== ""
+        && Number.isFinite(Number(state.inboxNextOffset));
+      const liveContinuationReady = Boolean(state.inboxLiveHasMore && state.inboxLiveNextPage !== null);
+      const append = options.append === true && !query && (storedContinuationReady || liveContinuationReady);
       const preserveLoaded = options.preserveLoaded === true && !query && !append && state.inboxConversations.length > 0;
-      const requestedOffset = append ? Math.max(0, Number(state.inboxNextOffset)) : 0;
+      const requestedOffset = append && storedContinuationReady ? Math.max(0, Number(state.inboxNextOffset)) : 0;
       const hasAuth = Boolean(token || hasAccountSession());
       if (!api || !hasAuth || state.demoMode) {
         state.inboxConversations = [];
@@ -11534,6 +11541,9 @@
         state.inboxAppliedQuery = "";
         state.inboxOffset = 0;
         state.inboxNextOffset = null;
+        state.inboxLiveNextPage = null;
+        state.inboxLiveHasMore = false;
+        state.inboxProviderTotal = null;
         state.inboxHasMore = false;
         state.inboxLoading = false;
         state.inboxLoadingMore = false;
@@ -11549,6 +11559,10 @@
       const priorConversations = state.inboxConversations;
       const priorNextOffset = state.inboxNextOffset;
       const priorHasMore = state.inboxHasMore;
+      const priorLiveNextPage = state.inboxLiveNextPage;
+      const priorLiveHasMore = state.inboxLiveHasMore;
+      const shouldLoadStored = !append || storedContinuationReady;
+      const shouldLoadLive = !append || liveContinuationReady;
       state.inboxLoading = !append;
       state.inboxLoadingMore = append;
       state.inboxError = "";
@@ -11561,20 +11575,22 @@
         const params = new URLSearchParams({ limit: "60", scan_limit: query ? "600" : "180", offset: String(requestedOffset) });
         if (query) params.set("q", query);
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${params.toString()}`;
-        const liveParams = new URLSearchParams({ project_key: project, page: "0", count: "50" });
+        const liveParams = new URLSearchParams({ project_key: project, count: "50" });
+        const liveContinuationRequest = inboxLiveContinuationRequest(append && liveContinuationReady ? state.inboxLiveNextPage : null);
+        Object.entries(liveContinuationRequest).forEach(([key, value]) => liveParams.set(key, value));
         if (query) liveParams.set("q", query);
         const liveEndpoint = `${api}/api/channels/chatdaddy/inbox?${liveParams.toString()}`;
         const [res, liveRes] = await Promise.all([
-          fetch(endpoint, authRequestOptions(token)),
-          fetch(liveEndpoint, authRequestOptions(token)).catch(() => null),
+          shouldLoadStored ? fetch(endpoint, authRequestOptions(token)) : Promise.resolve(null),
+          shouldLoadLive ? fetch(liveEndpoint, authRequestOptions(token)).catch(() => null) : Promise.resolve(null),
         ]);
-        const data = await res.json().catch(() => ({}));
+        const data = res ? await res.json().catch(() => ({})) : { ok: true, items: [], has_more: false, next_offset: null };
         const liveData = liveRes ? await liveRes.json().catch(() => ({})) : {};
-        if (res.status === 401 && state.role === "staff") {
+        if ((res?.status === 401 || liveRes?.status === 401) && state.role === "staff") {
           redirectToUnifiedLogin({ clearSession: true });
           return;
         }
-        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        if (res && (!res.ok || !data.ok)) throw new Error(data.error || `HTTP ${res.status}`);
         if (requestSeq !== state.inboxRequestSeq) return;
         const storedItems = Array.isArray(data.items) ? data.items : [];
         const liveItems = liveRes?.ok && liveData?.ok && Array.isArray(liveData.items) ? liveData.items : [];
@@ -11586,18 +11602,36 @@
         state.inboxAppliedQuery = query;
         state.inboxOffset = requestedOffset;
         const nextOffset = Number(data.next_offset);
+        const liveContinuationState = inboxLiveContinuationState({
+          requested: shouldLoadLive,
+          responseOk: Boolean(liveRes?.ok && liveData?.ok),
+          responseHasMore: Boolean(liveData.has_more),
+          responseNextPage: liveData.next_page,
+          previousHasMore: priorLiveHasMore,
+          previousNextPage: priorLiveNextPage,
+        });
+        const fetchedLiveNextPage = liveContinuationState.nextPage;
+        const fetchedLiveHasMore = liveContinuationState.hasMore;
+        const providerTotal = Number(liveData.total_count);
+        if (Number.isFinite(providerTotal) && providerTotal >= 0) state.inboxProviderTotal = providerTotal;
         if (preserveLoaded) {
           const offsets = [priorNextOffset, Number.isFinite(nextOffset) ? nextOffset : null]
-            .filter((value) => Number.isFinite(Number(value)) && Number(value) >= 0)
+            .filter((value) => value !== null && value !== "" && Number.isFinite(Number(value)) && Number(value) >= 0)
             .map(Number);
           state.inboxNextOffset = offsets.length ? Math.max(...offsets) : null;
-          state.inboxHasMore = Boolean(data.has_more || priorHasMore);
+          state.inboxLiveNextPage = priorLiveHasMore ? priorLiveNextPage : fetchedLiveNextPage;
+          state.inboxLiveHasMore = Boolean(priorLiveHasMore || fetchedLiveHasMore);
+          state.inboxHasMore = Boolean(data.has_more || priorHasMore || state.inboxLiveHasMore);
         } else {
           state.inboxNextOffset = Boolean(data.has_more) && Number.isFinite(nextOffset) ? nextOffset : null;
-          state.inboxHasMore = Boolean(data.has_more) && state.inboxNextOffset !== null;
+          state.inboxLiveNextPage = fetchedLiveNextPage;
+          state.inboxLiveHasMore = fetchedLiveHasMore;
+          state.inboxHasMore = Boolean(state.inboxNextOffset !== null || state.inboxLiveHasMore);
         }
         state.inboxUpdatedAt = new Date().toISOString();
-        state.inboxError = "";
+        state.inboxError = liveContinuationState.retry
+          ? "ChatDaddy 较早对话读取暂时失败；已保留原进度，可以重试。"
+          : "";
       } catch (error) {
         if (requestSeq !== state.inboxRequestSeq) return;
         state.inboxError = `最新讯息读取失败：${error.message || error}`;
@@ -12930,13 +12964,15 @@
         .sort(inboxConversationSort);
       const counts = inboxConversationCounts(all);
       const loadedCount = `${all.length}${state.inboxHasMore ? "+" : ""}`;
+      const providerTotal = Number(state.inboxProviderTotal);
+      const providerTotalKnown = Number.isFinite(providerTotal) && providerTotal >= 0;
       if (inboxSortEl && inboxSortEl.value !== state.inboxSort) inboxSortEl.value = state.inboxSort;
 
       updated.textContent = state.inboxUpdatedAt
-        ? `已加载 ${loadedCount} 条 · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
+        ? `目前已加载 ${loadedCount} 条${state.inboxHasMore ? "，下方可继续加载" : ""} · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
         : state.inboxLoading ? "正在同步" : "等待同步";
       summary.innerHTML = [
-        [counts.total, "全部对话"],
+        [counts.total, providerTotalKnown ? `已加载（ChatDaddy 当前非归档 ${providerTotal}）` : "目前已加载"],
         [counts.needs_attention, "要处理"],
         [counts.customer_latest, "顾客最后发"],
         [counts.outbound_latest, "客服 / Flow 最后发"],
@@ -12977,6 +13013,31 @@
       return priority(left) - priority(right) || newestFirst;
     }
 
+    function inboxLiveContinuationRequest(nextPage) {
+      const continuation = String(nextPage ?? "").trim();
+      if (!continuation) return { page: "0" };
+      return /^\d+$/.test(continuation)
+        ? { page: continuation }
+        : { cursor: continuation };
+    }
+
+    function inboxLiveContinuationState({
+      requested = false,
+      responseOk = false,
+      responseHasMore = false,
+      responseNextPage = null,
+      previousHasMore = false,
+      previousNextPage = null,
+    } = {}) {
+      const responseContinuation = responseOk && responseHasMore && responseNextPage !== null && responseNextPage !== undefined
+        ? String(responseNextPage)
+        : null;
+      if (requested && !responseOk && previousHasMore && previousNextPage !== null) {
+        return { nextPage: String(previousNextPage), hasMore: true, retry: true };
+      }
+      return { nextPage: responseContinuation, hasMore: Boolean(responseContinuation), retry: false };
+    }
+
     function inboxSortLabel() {
       return state.inboxSort === "latest" ? "全部按最新" : "顾客回复优先";
     }
@@ -12993,7 +13054,7 @@
       inboxLoadMoreEl.innerHTML = `
         ${error}
         <button class="btn" id="inboxLoadMoreButton" type="button" ${state.inboxLoadingMore ? "disabled" : ""}>
-          ${state.inboxLoadingMore ? "正在加载..." : `加载更多（已显示 ${escapeHtml(displayedCount)} 条）`}
+          ${state.inboxLoadingMore ? "正在加载..." : `继续加载较早对话（已显示 ${escapeHtml(displayedCount)} 条）`}
         </button>`;
       const button = $("inboxLoadMoreButton");
       if (button) button.addEventListener("click", () => loadInboxConversations({ append: true }));
