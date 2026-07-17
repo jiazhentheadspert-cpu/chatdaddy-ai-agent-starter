@@ -6004,6 +6004,7 @@
 	      height: 26px;
 	      min-width: 26px;
 	      min-height: 26px;
+	      position: relative;
 	      display: inline-flex;
 	      align-items: center;
 	      justify-content: center;
@@ -6018,6 +6019,11 @@
 	      line-height: 1;
 	      white-space: nowrap;
 	      cursor: help;
+	    }
+
+	    .ai-brain-badge:focus-visible {
+	      outline: 3px solid rgba(0,168,132,.20);
+	      outline-offset: 2px;
 	    }
 
 	    .ai-brain-mark {
@@ -6061,6 +6067,120 @@
 	    .ai-brain-badge.failed .ai-brain-mark {
 	      background: #d54b54;
 	      color: #fff;
+	    }
+
+	    .ai-brain-tooltip {
+	      position: absolute;
+	      left: -7px;
+	      bottom: calc(100% + 12px);
+	      z-index: 80;
+	      width: min(294px, calc(100vw - 48px));
+	      display: grid;
+	      gap: 9px;
+	      visibility: hidden;
+	      opacity: 0;
+	      transform: translateY(6px);
+	      border: 1px solid rgba(0,168,132,.24);
+	      border-radius: 15px;
+	      background: rgba(255,255,255,.99);
+	      color: var(--ink);
+	      padding: 13px;
+	      text-align: left;
+	      white-space: normal;
+	      box-shadow: 0 20px 52px rgba(8,23,29,.20);
+	      pointer-events: none;
+	      transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
+	    }
+
+	    .ai-brain-badge:hover .ai-brain-tooltip,
+	    .ai-brain-badge:focus .ai-brain-tooltip,
+	    .ai-brain-badge:focus-within .ai-brain-tooltip {
+	      visibility: visible;
+	      opacity: 1;
+	      transform: translateY(0);
+	    }
+
+	    .ai-brain-tooltip-kicker {
+	      color: #087c69;
+	      font-size: 10px;
+	      font-weight: 950;
+	      letter-spacing: .08em;
+	      line-height: 1.2;
+	      text-transform: uppercase;
+	    }
+
+	    .ai-brain-tooltip > strong {
+	      color: var(--ink);
+	      font-size: 14px;
+	      font-weight: 950;
+	      line-height: 1.3;
+	    }
+
+	    .ai-brain-tooltip-list {
+	      display: grid;
+	      gap: 0;
+	      margin: 0;
+	      border-top: 1px solid rgba(92,112,121,.14);
+	    }
+
+	    .ai-brain-tooltip-row {
+	      display: grid;
+	      grid-template-columns: 86px minmax(0, 1fr);
+	      gap: 10px;
+	      align-items: start;
+	      margin: 0;
+	      padding: 7px 0;
+	      border-bottom: 1px solid rgba(92,112,121,.11);
+	    }
+
+	    .ai-brain-tooltip-row dt,
+	    .ai-brain-tooltip-row dd {
+	      margin: 0;
+	      line-height: 1.35;
+	    }
+
+	    .ai-brain-tooltip-row dt {
+	      color: var(--muted);
+	      font-size: 11px;
+	      font-weight: 820;
+	    }
+
+	    .ai-brain-tooltip-row dd {
+	      color: var(--ink);
+	      font-size: 11.5px;
+	      font-weight: 900;
+	      overflow-wrap: anywhere;
+	    }
+
+	    .ai-brain-tooltip-note {
+	      color: var(--muted);
+	      font-size: 10.5px;
+	      font-weight: 760;
+	      line-height: 1.45;
+	    }
+
+	    .ai-brain-badge.upgraded .ai-brain-tooltip {
+	      border-color: rgba(37,99,235,.25);
+	    }
+
+	    .ai-brain-badge.upgraded .ai-brain-tooltip-kicker {
+	      color: #2457b8;
+	    }
+
+	    .ai-brain-badge.failed .ai-brain-tooltip {
+	      border-color: rgba(213,75,84,.26);
+	    }
+
+	    .ai-brain-badge.failed .ai-brain-tooltip-kicker {
+	      color: #bd414b;
+	    }
+
+	    .ai-brain-badge.rule .ai-brain-tooltip {
+	      border-color: rgba(92,112,121,.22);
+	    }
+
+	    .ai-brain-badge.rule .ai-brain-tooltip-kicker {
+	      color: #59696f;
 	    }
 
 	    #replyBox:focus {
@@ -8763,9 +8883,32 @@
 	            <i class="bi bi-plus-lg" aria-hidden="true"></i>
 	          </button>
 	          <div class="reply-composer-main">
-	            <span class="ai-brain-badge" id="aiBrainBadge" role="status" aria-live="polite" title="正在读取回复来源">
+	            <span class="ai-brain-badge" id="aiBrainBadge" role="status" aria-live="polite" aria-describedby="aiBrainTooltip" tabindex="0">
 	              <span class="ai-brain-mark" aria-hidden="true">AI</span>
 	              <span class="ai-brain-badge-label" id="aiBrainBadgeLabel">读取中</span>
+	              <span class="ai-brain-tooltip" id="aiBrainTooltip" role="tooltip">
+	                <span class="ai-brain-tooltip-kicker">ChatGPT 状态</span>
+	                <strong id="aiBrainTooltipStatus">正在读取</strong>
+	                <dl class="ai-brain-tooltip-list">
+	                  <div class="ai-brain-tooltip-row">
+	                    <dt>经过大脑</dt>
+	                    <dd id="aiBrainTooltipUsed">读取中</dd>
+	                  </div>
+	                  <div class="ai-brain-tooltip-row">
+	                    <dt>大脑等级</dt>
+	                    <dd id="aiBrainTooltipLevel">读取中</dd>
+	                  </div>
+	                  <div class="ai-brain-tooltip-row">
+	                    <dt>使用模型</dt>
+	                    <dd id="aiBrainTooltipModel">读取中</dd>
+	                  </div>
+	                  <div class="ai-brain-tooltip-row">
+	                    <dt>处理模式</dt>
+	                    <dd id="aiBrainTooltipMode">读取中</dd>
+	                  </div>
+	                </dl>
+	                <span class="ai-brain-tooltip-note" id="aiBrainTooltipNote">AI 参与不等于已经通过质量检查。</span>
+	              </span>
 	            </span>
 	            <textarea id="replyBox" rows="1" aria-label="回复顾客" placeholder="输入回复给顾客..."></textarea>
 	            <button class="composer-emoji-button" id="composerEmojiBtn" type="button" aria-label="选择表情" aria-controls="composerEmojiPanel" aria-expanded="false" title="选择表情">
@@ -20738,6 +20881,32 @@
       `;
     }
 
+	function aiBrainTierPresentation(tier = "") {
+	  const normalizedTier = String(tier || "").toLowerCase();
+	  if (normalizedTier === "luna") {
+	    return {
+	      label: "Level 1 · Luna",
+	      hint: "基础判断：明确 FAQ、单轮问题",
+	    };
+	  }
+	  if (normalizedTier === "terra") {
+	    return {
+	      label: "Level 2 · Terra",
+	      hint: "加强判断：销售异议、多轮上下文",
+	    };
+	  }
+	  if (normalizedTier === "sol") {
+	    return {
+	      label: "Level 3 · Sol",
+	      hint: "深度判断：健康、退款或高风险问题",
+	    };
+	  }
+	  return {
+	    label: "等级未记录",
+	    hint: "这条旧记录没有带回大脑等级",
+	  };
+	}
+
 	function aiBrainPresentation(item = {}) {
 	  const decision = item.latest_decision || {};
 	  const brain = decision.ai_brain || item.ai_brain || item.raw_approval?.ai_brain || item.raw_approval?.decision?.ai_brain || {};
@@ -20753,6 +20922,7 @@
 	  const tier = String(brain.tier || tierRef.split(":")[1] || "").toLowerCase();
 	  const model = String(brain.model || (used ? "OpenAI" : "") || "").trim();
 	  const error = String(brain.error || "").trim();
+	  const tierPresentation = aiBrainTierPresentation(tier);
 
 	  if (used) {
 	    const upgraded = tier === "terra" || tier === "sol" || /(?:^|[-_.])(?:gpt-5\.4|gpt-5\.6)(?!-mini)/i.test(model);
@@ -20762,6 +20932,12 @@
 	    return {
 	      tone: upgraded ? "upgraded" : "gpt",
 	      label,
+	      status: "已经过 ChatGPT 大脑",
+	      brainUsed: "有，模型结果已采用",
+	      level: `${tierPresentation.label}｜${tierPresentation.hint}`,
+	      model: model || "OpenAI（型号未记录）",
+	      mode: "审批草稿，不会自动发送",
+	      note: "AI 已参与理解与写稿；仍要结合风险、上下文和质量检查决定是否发送。",
 	      title: `${label}：这份草稿有使用 ${model || "OpenAI 模型"}${tierText}。这表示 GPT 有参与，不代表回复已自动通过质量检查；仍需结合质量评分与顾客上下文判断。`,
 	    };
 	  }
@@ -20770,6 +20946,12 @@
 	    return {
 	      tone: "failed",
 	      label: "GPT 未完成",
+	      status: "ChatGPT 尝试过，但没有完成",
+	      brainUsed: "有尝试，模型结果未采用",
+	      level: `${tierPresentation.label}｜${tierPresentation.hint}`,
+	      model: model || "OpenAI（型号未记录）",
+	      mode: "已回退到安全规则草稿",
+	      note: error ? `失败原因：${error}` : "模型结果没有采用，请重点检查当前回退草稿。",
 	      title: `GPT 曾尝试处理，但没有成功采用模型结果${error ? `：${error}` : ""}。目前显示的是安全回退草稿，请重点检查回复质量。`,
 	    };
 	  }
@@ -20777,6 +20959,12 @@
 	  return {
 	    tone: "rule",
 	    label: "规则回复",
+	    status: "没有经过 ChatGPT 大脑",
+	    brainUsed: "没有，使用固定规则与知识",
+	    level: "Level 0 · 规则判断｜不调用语言模型",
+	    model: "未调用 ChatGPT",
+	    mode: "规则 Router / 已批准知识",
+	    note: "适合明确、固定的问题；复杂销售异议或高风险问题需要人工检查。",
 	    title: "这份草稿由规则 Router / 已批准知识生成，没有使用 GPT 大脑。适合明确、固定的问题；复杂销售异议请更仔细检查。",
 	  };
 	}
@@ -20784,12 +20972,23 @@
 	function renderAiBrainBadge(item = {}) {
 	  const badge = $("aiBrainBadge");
 	  const label = $("aiBrainBadgeLabel");
-	  if (!badge || !label) return;
+	  const status = $("aiBrainTooltipStatus");
+	  const used = $("aiBrainTooltipUsed");
+	  const level = $("aiBrainTooltipLevel");
+	  const model = $("aiBrainTooltipModel");
+	  const mode = $("aiBrainTooltipMode");
+	  const note = $("aiBrainTooltipNote");
+	  if (!badge || !label || !status || !used || !level || !model || !mode || !note) return;
 	  const presentation = aiBrainPresentation(item);
 	  badge.className = `ai-brain-badge ${presentation.tone}`;
-	  badge.title = presentation.title;
 	  badge.setAttribute("aria-label", presentation.title);
 	  label.textContent = presentation.label;
+	  status.textContent = presentation.status;
+	  used.textContent = presentation.brainUsed;
+	  level.textContent = presentation.level;
+	  model.textContent = presentation.model;
+	  mode.textContent = presentation.mode;
+	  note.textContent = presentation.note;
 	}
 
 	    function cardHtml(item) {
