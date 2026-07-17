@@ -5934,6 +5934,8 @@
 	      font-size: 14px;
 	      line-height: 1.45;
 	      font-weight: 720;
+	      color: #111b21;
+	      caret-color: #00a884;
 	      box-shadow: none;
 	    }
 
@@ -9156,6 +9158,8 @@
       queueAutoRefreshTimer: null,
       inboxAutoRefreshTimer: null,
       replyDraftDirty: false,
+      replyDrafts: {},
+      replyCompositionActive: false,
       actionBusy: false,
       bulkBusy: false,
       sidebarCollapsed: false,
@@ -9835,10 +9839,20 @@
     $("bulkReturnAi").addEventListener("click", () => bulkCaseAction("return_ai"));
     $("bulkHandoff").addEventListener("click", () => bulkCaseAction("handoff"));
     $("bulkClear").addEventListener("click", clearSelection);
-    $("replyBox").addEventListener("input", () => {
-      state.replyDraftDirty = true;
-      resizeReplyComposer();
+    $("replyBox").addEventListener("compositionstart", () => {
+      state.replyCompositionActive = true;
+      rememberReplyDraftForCase();
+    });
+    $("replyBox").addEventListener("compositionend", () => {
+      state.replyCompositionActive = false;
+      rememberReplyDraftForCase();
       if (state.active) updateQualityEvaluationPanel(state.active);
+      syncWhatsappComposer();
+    });
+    $("replyBox").addEventListener("input", () => {
+      rememberReplyDraftForCase();
+      resizeReplyComposer();
+      if (state.active && !state.replyCompositionActive) updateQualityEvaluationPanel(state.active);
       if (state.active) setPanelBusy(false);
 	  syncWhatsappComposer();
     });
@@ -11266,6 +11280,34 @@
 	  return visible.find((button) => !button.disabled) || visible[0] || null;
 	}
 
+	function replyDraftCaseKey(caseId = state.active?.id) {
+	  return String(caseId || "").trim();
+	}
+
+	function hasRememberedReplyDraft(caseId = state.active?.id) {
+	  const key = replyDraftCaseKey(caseId);
+	  return Boolean(key && Object.prototype.hasOwnProperty.call(state.replyDrafts || {}, key));
+	}
+
+	function rememberedReplyDraft(caseId = state.active?.id) {
+	  const key = replyDraftCaseKey(caseId);
+	  return hasRememberedReplyDraft(key) ? String(state.replyDrafts[key] ?? "") : "";
+	}
+
+	function rememberReplyDraftForCase(caseId = state.active?.id, value = $("replyBox")?.value) {
+	  const key = replyDraftCaseKey(caseId);
+	  if (!key) return "";
+	  state.replyDrafts[key] = String(value ?? "");
+	  state.replyDraftDirty = true;
+	  return state.replyDrafts[key];
+	}
+
+	function clearRememberedReplyDraft(caseId = state.active?.id) {
+	  const key = replyDraftCaseKey(caseId);
+	  if (key && state.replyDrafts) delete state.replyDrafts[key];
+	  if (!key || key === replyDraftCaseKey(state.active?.id)) state.replyDraftDirty = false;
+	}
+
 	function syncWhatsappComposer() {
 	  const group = $("replyActionGroup");
 	  const box = $("replyBox");
@@ -11757,6 +11799,7 @@
       };
 
       box.value = templates[template] || text;
+      rememberReplyDraftForCase(state.active?.id, box.value);
       resizeReplyComposer();
       box.focus();
       updateQualityEvaluationPanel(state.active);
@@ -11773,6 +11816,7 @@
         return;
       }
       box.value = anchor.answer;
+      rememberReplyDraftForCase(state.active?.id, box.value);
       resizeReplyComposer();
       box.focus();
       updateQualityEvaluationPanel(state.active);
@@ -15566,6 +15610,10 @@
     }
 
     function closePanel() {
+      if (state.active && (state.replyDraftDirty || state.replyCompositionActive)) {
+        rememberReplyDraftForCase(state.active.id);
+      }
+      state.replyCompositionActive = false;
 	  resetVoiceComposer({ sync: false });
 	  closeComposerEmojiPanel();
 	  $("functionMenu").open = false;
@@ -21120,15 +21168,28 @@
     function openCase(caseId, options = {}) {
       const id = String(caseId || "").trim();
       const previousActiveId = String(state.active?.id || "");
+      const panelIsOpen = $("panel").classList.contains("open");
+      const replyBox = $("replyBox");
+      if (previousActiveId && panelIsOpen && (state.replyDraftDirty || state.replyCompositionActive)) {
+        rememberReplyDraftForCase(previousActiveId, replyBox.value);
+      }
+      const sameCaseAlreadyOpen = previousActiveId === id && panelIsOpen;
+      const hasStoredReplyDraft = hasRememberedReplyDraft(id);
+      const composingSameCase = sameCaseAlreadyOpen && state.replyCompositionActive;
 	  const purchasePanelWasOpen = previousActiveId === id && $("purchasePanel").open;
 	  if (voiceComposer.phase !== "idle" && previousActiveId !== id) resetVoiceComposer({ sync: false });
+	  if (previousActiveId !== id) state.replyCompositionActive = false;
 	  closeComposerEmojiPanel();
-      const openingNewCase = previousActiveId !== id || !$("panel").classList.contains("open");
-      const preserveReplyDraft = options.preserveReplyDraft === true
-        && previousActiveId === id
-        && state.replyDraftDirty
-        && $("panel").classList.contains("open");
-      const preservedReplyDraft = preserveReplyDraft ? $("replyBox").value : "";
+      const openingNewCase = previousActiveId !== id || !panelIsOpen;
+      const preserveReplyDraft = hasStoredReplyDraft
+        || (sameCaseAlreadyOpen && (
+          state.replyDraftDirty
+          || state.replyCompositionActive
+          || (options.preserveReplyDraft === true && Boolean(replyBox.value))
+        ));
+      const preservedReplyDraft = sameCaseAlreadyOpen
+        ? replyBox.value
+        : rememberedReplyDraft(id);
       const item = (state.visibleCases || []).find((record) => String(record.id || "") === id)
         || state.cases.find((record) => String(record.id || "") === id);
       if (!item) {
@@ -21191,8 +21252,17 @@
 	  const originalProposedReply = externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
 	  const proposedReply = hideReplyCardForMode || isManualFollowUp || manualConversationMode ? "" : originalProposedReply;
 	  const misleadingPaymentDraft = paymentConfirmationCase && /(先帮你核对|先幫你核對|确认好后再回复|確認好後再回覆|稍后再回复|稍後再回覆|不会重复向你收款|不會重複向你收款)/i.test(originalProposedReply);
-	  $("replyBox").value = preserveReplyDraft ? preservedReplyDraft : (misleadingPaymentDraft ? "" : proposedReply);
-	  state.replyDraftDirty = preserveReplyDraft;
+	  const canRestoreReplyDraft = !readOnly || canManualResolve || canManualSend;
+	  const restoreReplyDraft = preserveReplyDraft && canRestoreReplyDraft;
+	  if (!composingSameCase) {
+	    replyBox.value = restoreReplyDraft ? preservedReplyDraft : (misleadingPaymentDraft ? "" : proposedReply);
+	  }
+	  if (restoreReplyDraft || composingSameCase) {
+	    state.replyDrafts[id] = String(replyBox.value || "");
+	  } else if (!canRestoreReplyDraft) {
+	    clearRememberedReplyDraft(id);
+	  }
+	  state.replyDraftDirty = restoreReplyDraft || composingSameCase;
 	  renderAiBrainBadge(item);
       $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : manualConversationMode ? "输入下一条讯息，发送后还可以继续回复..." : "输入回复给顾客...";
       $("replyBox").readOnly = readOnly && !canManualResolve && !canManualSend;
@@ -24449,7 +24519,7 @@
       if (!state.active) return "";
       const draft = shortVersionDraftForCase(state.active, extraShort);
       $("replyBox").value = draft;
-	  state.replyDraftDirty = true;
+	  rememberReplyDraftForCase(state.active.id, draft);
 	  resizeReplyComposer();
       $("replyModeLabel").textContent = extraShort ? "已继续缩短" : "短版可批准";
       updateQualityEvaluationPanel(state.active);
@@ -27796,6 +27866,7 @@
           if (returnedCase) upsertReturnedCase(returnedCase);
           if (options.reopen !== false && returnedCase) openCase(returnedCase.id);
 	      if (action === "manual_send" && returnedCase) {
+	        clearRememberedReplyDraft(returnedCase.id);
 	        $("replyBox").value = "";
 	        state.replyDraftDirty = false;
 	        $("replyBox").placeholder = "输入下一条讯息，发送后还可以继续回复...";
