@@ -4598,13 +4598,17 @@
       display: flex;
       align-items: center;
       min-width: 0;
+      flex: 1 1 auto;
     }
 
     .case-name > div {
       min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
     }
 
     .case-name b {
+      display: block;
       font-size: 19px;
       white-space: nowrap;
       overflow: hidden;
@@ -4727,6 +4731,97 @@
       padding: 5px 8px;
       font-size: 12px;
       font-weight: 900;
+    }
+
+    .case-no-intervention-summary {
+      align-content: start;
+      gap: 8px;
+    }
+
+    .case-no-intervention-summary strong {
+      color: var(--green-deep);
+      font-size: clamp(17px, 1.45vw, 21px);
+      line-height: 1.28;
+    }
+
+    .case-no-intervention-summary.review {
+      border-color: rgba(201,74,85,.30);
+      background:
+        linear-gradient(90deg, rgba(201,74,85,.05) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(8,23,29,.035) 1px, transparent 1px),
+        rgba(255,248,248,.90);
+    }
+
+    .case-no-intervention-summary.review strong {
+      color: var(--red);
+    }
+
+    .case-no-intervention-facts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .case-no-intervention-fact {
+      min-width: 0;
+      border: 1px solid rgba(16,185,157,.22);
+      border-radius: 10px;
+      background: rgba(236,253,245,.88);
+      padding: 6px 7px;
+    }
+
+    .case-no-intervention-fact span,
+    .case-no-intervention-fact b {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .case-no-intervention-fact span {
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .case-no-intervention-fact b {
+      margin-top: 2px;
+      color: var(--green-deep);
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .case-no-intervention-fact.never-replied {
+      border-color: rgba(53,120,246,.22);
+      background: rgba(239,246,255,.88);
+    }
+
+    .case-no-intervention-fact.never-replied b {
+      color: var(--blue);
+    }
+
+    .case-no-intervention-fact.stale {
+      border-color: rgba(183,121,31,.28);
+      background: var(--soft-amber);
+    }
+
+    .case-no-intervention-fact.stale b {
+      color: var(--amber);
+    }
+
+    .case-no-intervention-fact.review {
+      border-color: rgba(201,74,85,.28);
+      background: var(--soft-red);
+    }
+
+    .case-no-intervention-fact.review b {
+      color: var(--red);
+    }
+
+    @media (max-width: 420px) {
+      .case-no-intervention-facts {
+        grid-template-columns: 1fr;
+      }
     }
 
     .case-context-mini {
@@ -12490,6 +12585,16 @@
       const identity = inboxConversationIdentity(item) || String(item.conversation_id || item.id || "").trim();
       const customer = item.customer || {};
       const latestAt = item.latest_at || item.latest_message?.at || item.latest_message?.message_at || "";
+      const messageRows = Array.isArray(item.messages) ? item.messages.slice() : [];
+      const latestMessage = item.latest_message && typeof item.latest_message === "object" ? item.latest_message : null;
+      const latestMessageIdentity = firstContextText(latestMessage?.id, latestMessage?.provider_message_id);
+      const latestMessageAlreadyIncluded = latestMessage && messageRows.some((message) => {
+        const messageIdentity = firstContextText(message?.id, message?.provider_message_id);
+        if (latestMessageIdentity && messageIdentity) return latestMessageIdentity === messageIdentity;
+        return messageTimeMs(message) === messageTimeMs(latestMessage)
+          && firstContextText(message?.text, message?.body, message?.message) === firstContextText(latestMessage?.text, latestMessage?.body, latestMessage?.message);
+      });
+      if (latestMessage && !latestMessageAlreadyIncluded) messageRows.push(latestMessage);
       const rawReason = String(item.no_intervention_reason || "").trim();
       const reason = ["button_self_service", "button_self_serve"].includes(rawReason)
         ? "button_self_service"
@@ -12516,7 +12621,12 @@
         last_message_at: latestAt,
         updated_at: latestAt,
         created_at: latestAt,
-        messages: Array.isArray(item.messages) ? item.messages : (item.latest_message ? [item.latest_message] : []),
+        messages: messageRows,
+        latest_message: latestMessage || messageRows.at(-1) || null,
+        latest_direction: item.latest_direction || "",
+        latest_actor: item.latest_actor || "",
+        conversation_stage: item.conversation_stage || "",
+        unhandled_customer_message: item.unhandled_customer_message === true,
         latest_decision: {
           reply_message: "",
           intent: reason,
@@ -19748,6 +19858,217 @@
       return `<div class="case-duplicate">${escapeHtml(parts.join(" · "))}</div>`;
     }
 
+    function noInterventionMessageRows(item = {}) {
+      const rows = Array.isArray(item.messages) ? item.messages.slice() : [];
+      const latest = item.latest_message && typeof item.latest_message === "object" ? item.latest_message : null;
+      if (latest) {
+        const latestIdentity = firstContextText(latest.id, latest.provider_message_id);
+        const included = rows.some((message) => {
+          const identity = firstContextText(message?.id, message?.provider_message_id);
+          if (latestIdentity && identity) return latestIdentity === identity;
+          return messageTimeMs(message) === messageTimeMs(latest)
+            && firstContextText(message?.text, message?.body, message?.message) === firstContextText(latest.text, latest.body, latest.message);
+        });
+        if (!included) rows.push(latest);
+      }
+      return rows
+        .filter((message) => message && !contextMessageWasCancelled(message))
+        .sort((left, right) => messageTimeMs(left) - messageTimeMs(right));
+    }
+
+    function noInterventionMessageIsCustomer(message = {}) {
+      const direction = String(message.direction || message.role || message.sender_type || "").toLowerCase();
+      return ["inbound", "in", "customer", "user"].includes(direction);
+    }
+
+    function noInterventionMessageIsSelfServeButton(message = {}) {
+      const metadata = message.metadata && typeof message.metadata === "object" ? message.metadata : {};
+      const content = message.content && typeof message.content === "object" ? message.content : {};
+      const buttonText = firstContextText(
+        message.button_text,
+        message.buttonText,
+        metadata.button_text,
+        metadata.buttonText,
+        content.button_text,
+        content.buttonText
+      );
+      const eventText = [
+        message.type,
+        message.message_type,
+        message.event_type,
+        metadata.event_type,
+        metadata.raw_event_type,
+        content.event_type,
+        content.message_type,
+      ].map((value) => String(value || "")).join(" ");
+      return Boolean(buttonText) || /button(?:_click)?|interactive|quick[_\s-]?reply|list[_\s-]?reply|postback/i.test(eventText);
+    }
+
+    function noInterventionStepLabel(message = {}) {
+      const metadata = message.metadata && typeof message.metadata === "object" ? message.metadata : {};
+      const content = message.content && typeof message.content === "object" ? message.content : {};
+      const candidates = [
+        message.flow_step,
+        message.flowStep,
+        message.step,
+        message.step_name,
+        message.stage,
+        metadata.flow_step,
+        metadata.flowStep,
+        metadata.step,
+        metadata.step_name,
+        metadata.stage,
+        content.flow_step,
+        content.flowStep,
+        content.step,
+        content.step_name,
+        content.stage,
+        message.flow_name,
+        metadata.flow_name,
+        content.flow_name,
+        message.button_text,
+        message.buttonText,
+        metadata.button_text,
+        metadata.buttonText,
+        content.button_text,
+        content.buttonText,
+      ];
+      for (const candidate of candidates) {
+        const value = String(candidate || "").trim();
+        if (!value) continue;
+        const stepMatch = value.match(/(?:^|[^a-z0-9])step[_\s-]*(\d+)(?:[^a-z0-9]|$)/i)
+          || value.match(/^s[_\s-]?(\d+)$/i);
+        if (stepMatch) return `Step ${Number(stepMatch[1])}`;
+      }
+      return "";
+    }
+
+    function noInterventionButtonLabel(message = {}) {
+      const metadata = message.metadata && typeof message.metadata === "object" ? message.metadata : {};
+      const content = message.content && typeof message.content === "object" ? message.content : {};
+      const buttonText = firstContextText(
+        message.button_text,
+        message.buttonText,
+        metadata.button_text,
+        metadata.buttonText,
+        content.button_text,
+        content.buttonText
+      );
+      if (!buttonText) return "";
+      const text = String(buttonText).replace(/\s+/g, " ").trim();
+      if (!text) return "";
+      return `Button「${text.length > 14 ? `${text.slice(0, 14)}…` : text}」`;
+    }
+
+    function noInterventionProgress(item = {}, rows = []) {
+      const buttonIndex = rows.reduce((latestIndex, message, index) => (
+        noInterventionMessageIsCustomer(message) && noInterventionMessageIsSelfServeButton(message) ? index : latestIndex
+      ), -1);
+      if (buttonIndex >= 0) {
+        const buttonMessage = rows[buttonIndex];
+        const adjacentFlow = rows.slice(0, buttonIndex).reverse().find((message) => contextMessageIsOutbound(message));
+        const step = noInterventionStepLabel(buttonMessage) || noInterventionStepLabel(adjacentFlow || {});
+        return {
+          kind: "button",
+          label: step || noInterventionButtonLabel(buttonMessage) || "Button",
+          eventAt: messageTimeMs(buttonMessage),
+        };
+      }
+      const outbound = rows.slice().reverse().find((message) => contextMessageIsOutbound(message));
+      const step = noInterventionStepLabel(outbound || {});
+      return {
+        kind: "flow",
+        label: step || "Flow",
+        eventAt: messageTimeMs(outbound || {}),
+      };
+    }
+
+    function noInterventionWaitInfo(item = {}, progress = {}, rows = []) {
+      const latestRowAt = rows.length ? messageTimeMs(rows.at(-1)) : 0;
+      const referenceAt = progress.eventAt
+        || latestRowAt
+        || new Date(item.last_message_at || item.updated_at || item.created_at || 0).getTime();
+      if (!Number.isFinite(referenceAt) || referenceAt <= 0) return { label: "时间待确认", stale: false };
+      const elapsedMinutes = Math.max(0, Math.floor((Date.now() - referenceAt) / 60000));
+      if (elapsedMinutes < 60) return { label: `${Math.max(1, elapsedMinutes)} 分钟`, stale: false };
+      const elapsedHours = Math.floor(elapsedMinutes / 60);
+      if (elapsedHours < 24) return { label: `${elapsedHours} 小时`, stale: false };
+      const elapsedDays = Math.floor(elapsedHours / 24);
+      return { label: `${elapsedDays} 天`, stale: true };
+    }
+
+    function noInterventionSummary(item = {}) {
+      const rows = noInterventionMessageRows(item);
+      const typedCustomerReplies = rows.filter((message) => (
+        noInterventionMessageIsCustomer(message)
+        && !noInterventionMessageIsSelfServeButton(message)
+        && messageHasRenderableContent(message)
+      ));
+      const progress = noInterventionProgress(item, rows);
+      const wait = noInterventionWaitInfo(item, progress, rows);
+      const latest = rows.at(-1) || item.latest_message || {};
+      const latestIsTypedCustomer = noInterventionMessageIsCustomer(latest)
+        && !noInterventionMessageIsSelfServeButton(latest)
+        && messageHasRenderableContent(latest);
+      const needsReview = item.unhandled_customer_message === true || latestIsTypedCustomer;
+      const reason = String(item.no_intervention_reason || "").toLowerCase();
+      let headline = "";
+      if (needsReview) {
+        headline = "顾客刚回复，需复查归类";
+      } else if (reason === "button_self_service" || progress.kind === "button") {
+        headline = `点了 ${progress.label} 后未再回复`;
+      } else if (typedCustomerReplies.length > 0) {
+        headline = `${progress.label} 发出后，顾客未再回复`;
+      } else {
+        headline = `${progress.label} 已发出，顾客从未回复`;
+      }
+      const replyLabel = typedCustomerReplies.length > 0
+        ? `回复过 ${typedCustomerReplies.length} 次`
+        : "从未回复";
+      const progressLabel = progress.kind === "button"
+        ? `点了 ${progress.label}`
+        : `${progress.label} 已发出`;
+      return {
+        tone: needsReview ? "review" : "ok",
+        headline,
+        facts: [
+          {
+            label: "顾客历史",
+            value: needsReview ? "刚有新回复" : replyLabel,
+            tone: needsReview ? "review" : typedCustomerReplies.length > 0 ? "has-reply" : "never-replied",
+          },
+          {
+            label: "最后停在",
+            value: progressLabel,
+            tone: needsReview ? "review" : "",
+          },
+          {
+            label: wait.stale ? "已超 24 小时" : "已等待",
+            value: wait.label,
+            tone: wait.stale ? "stale" : "",
+          },
+        ],
+      };
+    }
+
+    function noInterventionSummaryHtml(item = {}) {
+      const summary = noInterventionSummary(item);
+      return `
+        <div class="case-word-block case-no-intervention-summary ${escapeHtml(summary.tone)}">
+          <span class="case-block-label">流程停点</span>
+          <strong>${escapeHtml(summary.headline)}</strong>
+          <div class="case-no-intervention-facts">
+            ${summary.facts.map((fact) => `
+              <div class="case-no-intervention-fact ${escapeHtml(fact.tone || "")}" title="${escapeHtml(`${fact.label}：${fact.value}`)}">
+                <span>${escapeHtml(fact.label)}</span>
+                <b>${escapeHtml(fact.value)}</b>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }
+
     function cardQuickActionsHtml(item) {
       if (isCaseReadOnly(item)) return "";
       const decision = item.latest_decision || {};
@@ -20483,10 +20804,8 @@
 	      const learningFollowup = caseLearningFollowup(item);
 	      const stage = stageLabel(decision.stage);
 	      const noInterventionProjection = item.status === "no_intervention";
-	      const preview = noInterventionProjection
-	        ? (["button_self_service", "button_self_serve"].includes(item.no_intervention_reason) ? "顾客点 Button 自助继续" : "顾客尚未回复，无需客服介入")
-	        : customerPreviewText(item);
-	      const previewLabel = noInterventionProjection ? "当前状态" : "顾客最后一句";
+	      const preview = customerPreviewText(item);
+	      const previewLabel = "顾客最后一句";
 	      const tags = caseMiniTags(item, decision);
 	      const statusText = caseStatusLabel(item, decision.risk);
 	      const footPillText = learningFollowup ? learningFollowup.pill : item.seen_by_operator ? "已看" : sla.text;
@@ -20510,13 +20829,13 @@
             </div>
 	            <span class="badge ${riskClass}">${escapeHtml(statusText)}</span>
 	          </div>
-          <div class="case-word-block">
+          ${noInterventionProjection ? noInterventionSummaryHtml(item) : `<div class="case-word-block">
             <span class="case-block-label">${escapeHtml(previewLabel)}</span>
             <strong>${escapeHtml(preview)}</strong>
             <div class="case-word-mini">
               ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
             </div>
-          </div>
+          </div>`}
 		          <div class="case-foot">
 	            <span>${escapeHtml(formatDate(item.updated_at))}</span>
 	            <span class="sla-pill ${escapeHtml(footPillTone)}">${escapeHtml(footPillText)}</span>
