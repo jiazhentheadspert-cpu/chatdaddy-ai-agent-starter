@@ -754,20 +754,30 @@
         const setupIntake = collectSetupIntake();
         const projectKey = setupIntake.project_key;
         const existing = await apiGet(`/api/admin/projects/${encodeURIComponent(projectKey)}`);
-        if (Array.isArray(existing.projects) && existing.projects.length) {
-          throw new Error(`项目代码 ${projectKey} 已存在，请换一个新代码，避免覆盖旧项目。`);
-        }
-        await apiPost("/api/admin/projects", {
-          project_key: projectKey,
-          name: setupIntake.company_name,
-          status: "active",
-          automation_mode: "approval_first",
-          settings: {
-            auto_send_enabled: false,
-            auto_trigger_flows_enabled: false,
-            onboarding_status: "owner_approved_draft"
+        const existingProject = Array.isArray(existing.projects) ? existing.projects[0] : null;
+        if (existingProject) {
+          const retryable = existingProject.settings?.onboarding_status === "owner_approved_draft";
+          const currentPackage = retryable
+            ? await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`)
+            : null;
+          const alreadySaved = currentPackage?.project_package?.metadata?.source === "owner_six_question_onboarding";
+          if (!retryable || alreadySaved) {
+            throw new Error(`项目代码 ${projectKey} 已存在，请换一个新代码，避免覆盖旧项目。`);
           }
-        });
+          addLog("继续上次未完成的创建", `项目 ${projectKey} 已建立但业务草稿尚未写完；现在安全重试保存。`);
+        } else {
+          await apiPost("/api/admin/projects", {
+            project_key: projectKey,
+            name: setupIntake.company_name,
+            status: "active",
+            automation_mode: "approval_first",
+            settings: {
+              auto_send_enabled: false,
+              auto_trigger_flows_enabled: false,
+              onboarding_status: "owner_approved_draft"
+            }
+          });
+        }
         const projectPackage = buildProjectPackage(setupIntake, true);
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`, {
           project_package: projectPackage,
