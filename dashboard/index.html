@@ -7926,8 +7926,7 @@
     }
 
     body.staff-mode .side-settings,
-    body.staff-mode [data-side-key]:not([data-side-key="inbox"]):not([data-side-key="ai_reply"]),
-    body.staff-mode #learnBtn {
+    body.staff-mode [data-side-key]:not([data-side-key="inbox"]):not([data-side-key="ai_reply"]) {
       display: none !important;
     }
 
@@ -28089,7 +28088,7 @@
 	      const executionSummary = executionPlanSummary(item);
 	      const projectKey = String(item?.project_key || projectKeyEl.value || "").trim().toLowerCase();
 	      const toneReminder = projectKey === "beyoute"
-	        ? "Beyoute 回复要亲切，适合时加 ❤️/😊/🙏。"
+	        ? "Beyoute 回复要亲切，适合时加 ❤️/😊/🙏；付款、投诉、健康问题保持稳重，少用或不用表情。"
 	        : "回复会遵循当前项目 Project Brain 的语气与成交规则。";
 	      return showSaasConfirm({
 	        eyebrow: action === "learn" ? "批准并学习" : "真实发送",
