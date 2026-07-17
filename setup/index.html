@@ -35,6 +35,7 @@
 
     button,
     input,
+    select,
     textarea {
       font: inherit;
     }
@@ -336,6 +337,7 @@
     }
 
     input,
+    select,
     textarea {
       width: 100%;
       border: 1px solid #cfdcda;
@@ -351,6 +353,11 @@
       padding: 0 14px;
     }
 
+    select {
+      min-height: 48px;
+      padding: 0 42px 0 14px;
+    }
+
     textarea {
       min-height: 108px;
       padding: 14px;
@@ -359,6 +366,7 @@
     }
 
     input:focus,
+    select:focus,
     textarea:focus {
       border-color: rgba(21, 184, 215, 0.85);
       box-shadow: 0 0 0 3px rgba(21, 184, 215, 0.12);
@@ -710,6 +718,113 @@
       background: rgba(255, 255, 255, 0.7);
     }
 
+    .contract-lessons {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .contract-lesson {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--cyan);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .contract-lesson b {
+      display: block;
+      font-size: 17px;
+    }
+
+    .contract-lesson p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .contract-form {
+      display: grid;
+      gap: 16px;
+      margin-top: 18px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .contract-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .contract-field.full {
+      grid-column: 1 / -1;
+    }
+
+    .contract-field small {
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .contract-source-evidence,
+    .contract-preview {
+      padding: 16px;
+      border: 1px solid rgba(21, 184, 215, 0.24);
+      border-radius: 8px;
+      color: var(--muted);
+      background: #f4fcfe;
+      font-weight: 800;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .contract-preview {
+      margin-top: 18px;
+      border-left: 5px solid var(--teal);
+      color: var(--ink);
+      background: #f5fffc;
+    }
+
+    .contract-mock {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .contract-mock-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--muted);
+      font-weight: 850;
+    }
+
+    .contract-mock-row strong {
+      color: var(--ink);
+    }
+
+    .contract-mock-row .ok {
+      color: #08796f;
+    }
+
+    .contract-mock-row .bad {
+      color: var(--danger);
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
     @media (max-width: 980px) {
       .shell {
         grid-template-columns: 1fr;
@@ -724,9 +839,15 @@
       .toolbar,
       .fields,
       .preview-grid,
+      .contract-lessons,
+      .contract-grid,
       .review-card-head,
       .review-decision {
         grid-template-columns: 1fr;
+      }
+
+      .contract-field.full {
+        grid-column: auto;
       }
 
       .review-decision .actions {
@@ -759,6 +880,7 @@
           <div class="side-row"><span>自主 Agent</span><strong>未接管</strong></div>
         </div>
         <a class="side-link" href="#learningReviewPanel"><span>Owner 草稿审核</span><strong>→</strong></a>
+        <a class="side-link" href="#replyContractPanel"><span>Reply Contract</span><strong>→</strong></a>
       </div>
     </aside>
 
@@ -834,6 +956,134 @@
         <div class="review-list" id="learningReviewList">
           <div class="review-empty">先填写或打开项目代码，再点「加载当前项目草稿」。</div>
         </div>
+      </section>
+
+      <section class="panel" id="replyContractPanel">
+        <div class="toolbar">
+          <div>
+            <h2>5. Reply Contract：教 AI 怎样收尾</h2>
+            <p>把“信心内容、下一步 CTA、方案选择”绑定到 Owner 已批准的真实资料。这里只保存项目草稿；预览和 Mock Test 都不会发讯息或触发 Flow。</p>
+          </div>
+          <div class="status" id="replyContractStatus">尚未加载</div>
+        </div>
+
+        <div class="contract-lessons">
+          <article class="contract-lesson">
+            <b>① Confidence 信心内容</b>
+            <p>回答后补一个有来源的理由，让顾客相信。不能写保证效果、绝对退款或没有来源的 Proof。</p>
+          </article>
+          <article class="contract-lesson">
+            <b>② CTA 下一步</b>
+            <p>只给一个自然动作，例如“我可以帮你安排”。顾客继续提问时仍然先回答，不要每一轮都逼单。</p>
+          </article>
+          <article class="contract-lesson">
+            <b>③ Package Choice 方案选择</b>
+            <p>让顾客选择真实配套或下一步方案。这里不能凭空新增价格、赠品、库存或付款承诺。</p>
+          </article>
+        </div>
+
+        <form class="contract-form" id="replyContractForm">
+          <div class="contract-grid">
+            <label class="contract-field">
+              <b>价格 / Offer 模式</b>
+              <small>平时固定方案选“标准价格”；只有来源和截止时间都确认时才选限时活动。</small>
+              <select id="contractOfferMode">
+                <option value="standard_price">标准价格 / 常设方案</option>
+                <option value="active_offer">当前限时活动</option>
+              </select>
+            </label>
+            <label class="contract-field">
+              <b>价格发送方式</b>
+              <small>没有已批准价格图时先用文字；选择图片后仍会受素材批准 Gate 保护。</small>
+              <select id="contractPriceDeliveryMode">
+                <option value="text_only">文字说明</option>
+                <option value="asset_required">已批准价格图</option>
+              </select>
+            </label>
+
+            <label class="contract-field full">
+              <b>Confidence：第一句回答后可用的信心内容 *</b>
+              <textarea id="contractConfidence" placeholder="例：资料会先保留来源与审核状态，未批准内容不会进入正式回复。"></textarea>
+            </label>
+            <label class="contract-field">
+              <b>Confidence 来源 *</b>
+              <select id="contractConfidenceSource"></select>
+            </label>
+            <div class="contract-source-evidence" id="contractConfidenceEvidence">请选择来源。</div>
+
+            <label class="contract-field full">
+              <b>CTA：一个自然下一步 *</b>
+              <textarea id="contractCta" placeholder="例：你告诉我目标和预算，我可以帮你安排适合的方案。"></textarea>
+            </label>
+            <label class="contract-field">
+              <b>CTA 来源 *</b>
+              <select id="contractCtaSource"></select>
+            </label>
+            <div class="contract-source-evidence" id="contractCtaEvidence">请选择来源。</div>
+
+            <label class="contract-field full">
+              <b>Package Choice：让顾客选择真实配套 / 下一步 *</b>
+              <textarea id="contractPackageChoice" placeholder="例：你要先选择 A 方案、B 方案，还是让客服按需求推荐？"></textarea>
+            </label>
+            <label class="contract-field">
+              <b>Package Choice 来源 *</b>
+              <select id="contractPackageChoiceSource"></select>
+            </label>
+            <div class="contract-source-evidence" id="contractPackageChoiceEvidence">请选择来源。</div>
+
+            <div class="contract-field full" id="contractOfferFields" hidden>
+              <div class="contract-grid">
+                <label class="contract-field">
+                  <b>活动名称 *</b>
+                  <input id="contractOfferTitle" placeholder="例：7 月 Owner 已批准活动">
+                </label>
+                <label class="contract-field">
+                  <b>活动截止时间 *</b>
+                  <input id="contractOfferValidUntil" type="datetime-local">
+                </label>
+                <label class="contract-field full">
+                  <b>真实 Urgency *</b>
+                  <textarea id="contractUrgency" placeholder="例：这个活动有效到 7 月 31 日晚上 11:59。"></textarea>
+                </label>
+                <label class="contract-field">
+                  <b>Urgency 来源 *</b>
+                  <select id="contractUrgencySource"></select>
+                </label>
+                <div class="contract-source-evidence" id="contractUrgencyEvidence">请选择来源。</div>
+              </div>
+            </div>
+
+            <label class="contract-field full" id="contractPriceAssetField" hidden>
+              <b>已批准价格图 Asset Key *</b>
+              <input id="contractPriceAssetKey" placeholder="只填当前项目已经批准的素材 Asset Key">
+            </label>
+          </div>
+
+          <label class="confirm">
+            <input id="contractOwnerSourceConfirm" type="checkbox">
+            我已逐项核对文字和来源；没有新增来源里不存在的价格、赠品、库存、保证或付款承诺。
+          </label>
+          <label class="confirm">
+            <input id="contractSensitiveConfirm" type="checkbox">
+            如果内容涉及健康、退款、法律或绝对承诺，我已明确核对并承担 Owner 审核责任。
+          </label>
+        </form>
+
+        <div class="actions">
+          <button class="btn" type="button" id="loadReplyContractButton">加载当前设置</button>
+          <button class="btn" type="button" id="previewReplyContractButton">预览回复结构</button>
+          <button class="btn primary" type="button" id="saveReplyContractButton">保存为项目草稿</button>
+          <button class="btn" type="button" id="runReplyContractMockButton">运行 Mock Test</button>
+        </div>
+
+        <div class="preview-grid" id="replyContractMetrics">
+          <div class="metric"><span>Confidence</span><strong>未填</strong></div>
+          <div class="metric"><span>CTA</span><strong>未填</strong></div>
+          <div class="metric"><span>方案选择</span><strong>未填</strong></div>
+          <div class="metric"><span>发送 / Flow</span><strong>0 / 0</strong></div>
+        </div>
+        <div class="contract-preview" id="replyContractPreview">加载项目后，这里会显示“回答 → 信心 → CTA → 方案选择”的安全预览。</div>
+        <div class="contract-mock" id="replyContractMock"></div>
       </section>
     </main>
   </div>
@@ -931,7 +1181,9 @@
       created: null,
       learningReview: null,
       learningReviewFilter: "pending",
-      learningReviewBusy: false
+      learningReviewBusy: false,
+      replyContract: null,
+      replyContractBusy: false
     };
 
     const setupForm = document.getElementById("setupForm");
@@ -948,6 +1200,15 @@
     const learningReviewFilters = document.getElementById("learningReviewFilters");
     const learningReviewList = document.getElementById("learningReviewList");
     const loadReviewButton = document.getElementById("loadReviewButton");
+    const replyContractForm = document.getElementById("replyContractForm");
+    const replyContractStatus = document.getElementById("replyContractStatus");
+    const replyContractMetrics = document.getElementById("replyContractMetrics");
+    const replyContractPreview = document.getElementById("replyContractPreview");
+    const replyContractMock = document.getElementById("replyContractMock");
+    const loadReplyContractButton = document.getElementById("loadReplyContractButton");
+    const previewReplyContractButton = document.getElementById("previewReplyContractButton");
+    const saveReplyContractButton = document.getElementById("saveReplyContractButton");
+    const runReplyContractMockButton = document.getElementById("runReplyContractMockButton");
 
     document.addEventListener("DOMContentLoaded", init);
     previewButton.addEventListener("click", previewPackage);
@@ -956,6 +1217,12 @@
     loadReviewButton.addEventListener("click", loadLearningReview);
     learningReviewFilters.addEventListener("click", handleLearningReviewFilter);
     learningReviewList.addEventListener("click", handleLearningReviewAction);
+    loadReplyContractButton.addEventListener("click", loadReplyContract);
+    previewReplyContractButton.addEventListener("click", previewReplyContract);
+    saveReplyContractButton.addEventListener("click", saveReplyContract);
+    runReplyContractMockButton.addEventListener("click", runReplyContractMock);
+    replyContractForm.addEventListener("input", handleReplyContractInput);
+    replyContractForm.addEventListener("change", handleReplyContractInput);
 
     async function init() {
       localStorage.setItem("hermas_setup_api", apiBase);
@@ -968,7 +1235,10 @@
         renderSafety(ONBOARDING_TEMPLATE);
         renderForm(ONBOARDING_TEMPLATE);
         setButtons(true);
-        if (params.get("project_key")) await loadLearningReview();
+        if (params.get("project_key")) {
+          await loadLearningReview();
+          await loadReplyContract();
+        }
       } catch (error) {
         setStatus("需要 Owner 登录", "bad");
         formHelp.textContent = "请先从 ReplyPilot Dashboard 登录 Owner / Admin 账号，再点左侧项目切换器里的「新项目」。";
@@ -1499,6 +1769,255 @@
       });
     }
 
+    async function loadReplyContract() {
+      const projectKey = currentProjectKey();
+      if (!projectKey) {
+        setReplyContractStatus("需要项目代码", "bad");
+        return;
+      }
+      try {
+        setReplyContractBusy(true);
+        setReplyContractStatus("加载中", "");
+        const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/reply-contract`);
+        state.replyContract = data;
+        renderReplyContract(data);
+      } catch (error) {
+        setReplyContractStatus(error.message || "加载失败", "bad");
+      } finally {
+        setReplyContractBusy(false);
+      }
+    }
+
+    function renderReplyContract(data) {
+      const current = data?.current || {};
+      setSelectValue("contractOfferMode", current.offer_mode || "standard_price");
+      setSelectValue("contractPriceDeliveryMode", current.price_delivery_mode || "text_only");
+      setInputValue("contractConfidence", current.confidence || "");
+      setInputValue("contractCta", current.cta || "");
+      setInputValue("contractPackageChoice", current.package_choice || "");
+      setInputValue("contractUrgency", current.urgency || "");
+      setInputValue("contractOfferTitle", current.offer_title || "");
+      setInputValue("contractOfferValidUntil", toDateTimeLocal(current.offer_valid_until));
+      setInputValue("contractPriceAssetKey", current.price_asset_key || "");
+      renderReplyContractSourceSelect("confidence", current.source_bindings?.confidence);
+      renderReplyContractSourceSelect("cta", current.source_bindings?.cta);
+      renderReplyContractSourceSelect("package_choice", current.source_bindings?.package_choice);
+      renderReplyContractSourceSelect("urgency", current.source_bindings?.urgency);
+      document.getElementById("contractOwnerSourceConfirm").checked = false;
+      document.getElementById("contractSensitiveConfirm").checked = false;
+      updateReplyContractConditionalFields();
+      updateReplyContractSourceEvidence();
+      previewReplyContract();
+      const errors = Array.isArray(data?.validation?.errors) ? data.validation.errors : [];
+      setReplyContractStatus(errors.length ? `还差 ${errors.length} 项` : "Reply Contract 完整", errors.length ? "" : "ok");
+    }
+
+    function renderReplyContractSourceSelect(part, selectedValue) {
+      const select = document.getElementById(`contract${replyContractPartId(part)}Source`);
+      if (!select) return;
+      const allowed = (state.replyContract?.source_options || []).filter((option) => (option.allowed_parts || []).includes(part));
+      const selected = selectedValue || allowed[0]?.id || "";
+      select.innerHTML = [
+        `<option value="">请选择 Owner 已批准来源</option>`,
+        ...allowed.map((option) => `<option value="${escapeAttr(option.id)}">${escapeHtml(option.title)}</option>`)
+      ].join("");
+      select.value = selected;
+    }
+
+    function handleReplyContractInput() {
+      updateReplyContractConditionalFields();
+      updateReplyContractSourceEvidence();
+      previewReplyContract();
+    }
+
+    function updateReplyContractConditionalFields() {
+      const offerMode = document.getElementById("contractOfferMode").value;
+      const priceDeliveryMode = document.getElementById("contractPriceDeliveryMode").value;
+      document.getElementById("contractOfferFields").hidden = offerMode !== "active_offer";
+      document.getElementById("contractPriceAssetField").hidden = priceDeliveryMode !== "asset_required";
+    }
+
+    function updateReplyContractSourceEvidence() {
+      for (const part of ["confidence", "cta", "package_choice", "urgency"]) {
+        const select = document.getElementById(`contract${replyContractPartId(part)}Source`);
+        const evidence = document.getElementById(`contract${replyContractPartId(part)}Evidence`);
+        if (!select || !evidence) continue;
+        const option = (state.replyContract?.source_options || []).find((item) => item.id === select.value);
+        evidence.textContent = option
+          ? `${option.title}\n${option.excerpt || "来源已批准，但没有可显示的摘要。"}`
+          : "请选择来源。";
+      }
+    }
+
+    function collectReplyContract() {
+      return {
+        expected_version_no: Number(state.replyContract?.version_no || 0),
+        offer_mode: document.getElementById("contractOfferMode").value,
+        price_delivery_mode: document.getElementById("contractPriceDeliveryMode").value,
+        confidence: document.getElementById("contractConfidence").value.trim(),
+        cta: document.getElementById("contractCta").value.trim(),
+        package_choice: document.getElementById("contractPackageChoice").value.trim(),
+        urgency: document.getElementById("contractUrgency").value.trim(),
+        offer_title: document.getElementById("contractOfferTitle").value.trim(),
+        offer_valid_until: fromDateTimeLocal(document.getElementById("contractOfferValidUntil").value),
+        price_asset_key: document.getElementById("contractPriceAssetKey").value.trim(),
+        source_bindings: {
+          confidence: document.getElementById("contractConfidenceSource").value,
+          cta: document.getElementById("contractCtaSource").value,
+          package_choice: document.getElementById("contractPackageChoiceSource").value,
+          urgency: document.getElementById("contractUrgencySource").value
+        },
+        confirm_owner_sources: document.getElementById("contractOwnerSourceConfirm").checked,
+        confirm_sensitive: document.getElementById("contractSensitiveConfirm").checked
+      };
+    }
+
+    function previewReplyContract() {
+      const draft = collectReplyContract();
+      const lines = [
+        "【顾客问题的完整答案】",
+        draft.confidence ? `信心：${draft.confidence}` : "信心：尚未填写",
+        draft.cta ? `下一步：${draft.cta}` : "下一步：尚未填写",
+        draft.offer_mode === "active_offer"
+          ? (draft.urgency ? `真实时限：${draft.urgency}` : "真实时限：尚未填写")
+          : "真实时限：标准价格模式，不制造 Urgency",
+        draft.package_choice ? `方案选择：${draft.package_choice}` : "方案选择：尚未填写"
+      ];
+      replyContractPreview.textContent = lines.join("\n\n");
+      const sourceCount = ["confidence", "cta", "package_choice"]
+        .filter((part) => draft.source_bindings[part]).length;
+      const completeCount = [draft.confidence, draft.cta, draft.package_choice].filter(Boolean).length;
+      replyContractMetrics.innerHTML = [
+        metricHtml("Confidence", draft.confidence ? "已填" : "未填"),
+        metricHtml("CTA", draft.cta ? "已填" : "未填"),
+        metricHtml("方案选择", draft.package_choice ? "已填" : "未填"),
+        metricHtml("内容 / 来源", `${completeCount}/3 · ${sourceCount}/3`)
+      ].join("");
+    }
+
+    async function saveReplyContract() {
+      if (!state.replyContract?.version_no) {
+        setReplyContractStatus("请先加载当前设置", "bad");
+        return;
+      }
+      try {
+        setReplyContractBusy(true);
+        setReplyContractStatus("保存草稿中", "");
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/reply-contract`, collectReplyContract());
+        state.replyContract = data;
+        renderReplyContract(data);
+        setReplyContractStatus(`草稿已保存 · v${data.version_no}`, "ok");
+        replyContractMock.innerHTML = `<div class="contract-mock-row"><strong>保存边界</strong><span class="ok">未发送 · 未触发 Flow · 未发布</span></div>`;
+      } catch (error) {
+        const details = Array.isArray(error.data?.errors) ? error.data.errors.map(replyContractErrorLabel).join("；") : "";
+        setReplyContractStatus(details || error.message || "保存失败", "bad");
+      } finally {
+        setReplyContractBusy(false);
+      }
+    }
+
+    async function runReplyContractMock() {
+      const projectKey = currentProjectKey();
+      if (!projectKey) {
+        setReplyContractStatus("需要项目代码", "bad");
+        return;
+      }
+      try {
+        setReplyContractBusy(true);
+        setReplyContractStatus("运行 Mock Test", "");
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/test-cases/run`, {});
+        renderReplyContractMock(data);
+      } catch (error) {
+        if (error.data?.tests || error.data?.blockers) {
+          renderReplyContractMock(error.data);
+        } else {
+          setReplyContractStatus(error.message || "Mock Test 失败", "bad");
+        }
+      } finally {
+        setReplyContractBusy(false);
+      }
+    }
+
+    function renderReplyContractMock(data) {
+      const blockers = Array.isArray(data?.blockers) ? data.blockers : [];
+      const replyBlockers = blockers.filter((item) => String(item.code || "").startsWith("reply_contract_"));
+      const externalBlockers = blockers.filter((item) => !String(item.code || "").startsWith("reply_contract_"));
+      replyContractMock.innerHTML = [
+        contractMockRow("Reply Contract", replyBlockers.length === 0, replyBlockers.length ? replyBlockers.map((item) => item.message || item.code).join("；") : "通过：三个内容与来源已完整"),
+        contractMockRow("销售对话 Mock", Number(data?.failed_count || 0) === 0 || (data?.tests || []).filter((test) => !test.passed && !["channel_connection_exists", "project_connection_publish_gates"].includes(test.name)).length === 0, `${data?.passed_count || 0} 通过 / ${data?.failed_count || 0} 未通过`),
+        contractMockRow("外部上线 Gate", externalBlockers.length === 0, externalBlockers.length ? `仍有 ${externalBlockers.length} 项：渠道、Flow 或能力尚未完成` : "已通过")
+      ].join("");
+      const contractReady = replyBlockers.length === 0;
+      setReplyContractStatus(contractReady ? "Reply Contract Mock 通过" : "Reply Contract 仍有阻塞", contractReady ? "ok" : "bad");
+    }
+
+    function contractMockRow(label, passed, detail) {
+      return `<div class="contract-mock-row"><strong>${escapeHtml(label)}</strong><span class="${passed ? "ok" : "bad"}">${escapeHtml(detail)}</span></div>`;
+    }
+
+    function replyContractPartId(part) {
+      return {
+        confidence: "Confidence",
+        cta: "Cta",
+        package_choice: "PackageChoice",
+        urgency: "Urgency"
+      }[part] || part;
+    }
+
+    function replyContractErrorLabel(code) {
+      const labels = {
+        reply_contract_confidence_required: "请填写 Confidence",
+        reply_contract_cta_required: "请填写 CTA",
+        reply_contract_package_choice_required: "请填写方案选择",
+        reply_contract_confidence_source_required: "请选择 Confidence 来源",
+        reply_contract_cta_source_required: "请选择 CTA 来源",
+        reply_contract_package_choice_source_required: "请选择方案选择来源",
+        reply_contract_urgency_required: "请填写真实 Urgency",
+        reply_contract_urgency_source_required: "请选择 Urgency 来源",
+        reply_contract_offer_title_required: "请填写活动名称",
+        reply_contract_offer_valid_until_required: "请填写活动截止时间",
+        reply_contract_offer_valid_until_invalid: "活动截止时间必须晚于现在",
+        reply_contract_owner_source_confirmation_required: "请确认文字与来源",
+        reply_contract_sensitive_confirmation_required: "敏感内容需要 Owner 明确确认"
+      };
+      return labels[code] || code;
+    }
+
+    function setReplyContractBusy(busy) {
+      state.replyContractBusy = busy;
+      [loadReplyContractButton, previewReplyContractButton, saveReplyContractButton, runReplyContractMockButton]
+        .forEach((button) => { button.disabled = busy; });
+    }
+
+    function setReplyContractStatus(text, tone) {
+      replyContractStatus.textContent = text;
+      replyContractStatus.className = `status ${tone || ""}`;
+    }
+
+    function setInputValue(id, value) {
+      const input = document.getElementById(id);
+      if (input) input.value = value || "";
+    }
+
+    function setSelectValue(id, value) {
+      const select = document.getElementById(id);
+      if (select) select.value = value || "";
+    }
+
+    function toDateTimeLocal(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 16);
+    }
+
+    function fromDateTimeLocal(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+    }
+
     function renderPreview(data, title) {
       const pkg = data.package_preview || {};
       const quality = data.quality || {};
@@ -1573,7 +2092,10 @@
         data = null;
       }
       if (!response.ok || !data || data.ok === false) {
-        throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
+        const error = new Error(data?.message || data?.error || `HTTP ${response.status}`);
+        error.data = data;
+        error.status = response.status;
+        throw error;
       }
       return data;
     }
