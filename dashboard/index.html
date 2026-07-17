@@ -5683,7 +5683,6 @@
       box-shadow:
         0 22px 64px rgba(8,23,29,.24),
         0 1px 0 rgba(255,255,255,.92) inset;
-      backdrop-filter: blur(16px);
     }
 
 	    .reply-command-bar .quick-action-head {
@@ -5724,6 +5723,7 @@
 	      display: grid;
 	      grid-template-columns: minmax(0, 1fr);
 	      align-items: stretch;
+	      align-self: end;
 	      gap: 5px;
 	    }
 
@@ -5737,13 +5737,16 @@
 
 	    .reply-composer-content {
 	      min-width: 0;
-	      display: grid;
+	      position: relative;
+	      display: flex;
+	      flex-direction: column;
 	      gap: 5px;
 	      border: 0;
 	      background: transparent;
 	    }
 
 	    .whatsapp-composer-row {
+	      order: 3;
 	      min-width: 0;
 	      display: grid;
 	      grid-template-columns: 44px minmax(0, 1fr) 44px;
@@ -5804,13 +5807,13 @@
 	    .reply-composer-main {
 	      min-width: 0;
 	      display: grid;
-	      grid-template-columns: minmax(0, 1fr) auto;
+	      grid-template-columns: auto minmax(0, 1fr) auto;
 	      align-items: center;
-	      gap: 2px;
+	      gap: 5px;
 	      border: 1px solid rgba(92,112,121,.16);
 	      border-radius: 24px;
 	      background: #f0f2f2;
-	      padding: 2px 4px 2px 14px;
+	      padding: 2px 4px 2px 7px;
 	      transition: border-color .16s ease, box-shadow .16s ease;
 	      position: relative;
 	    }
@@ -5840,12 +5843,13 @@
 	    }
 
 	    .reply-composer-status {
-	      min-width: 0;
-	      display: flex;
-	      align-items: center;
-	      justify-content: space-between;
-	      gap: 6px;
-	      padding: 0 52px;
+	      position: absolute;
+	      width: 1px;
+	      height: 1px;
+	      overflow: hidden;
+	      clip: rect(0 0 0 0);
+	      clip-path: inset(50%);
+	      white-space: nowrap;
 	    }
 
 	    .composer-emoji-button {
@@ -5901,15 +5905,19 @@
 	    }
 
 	    .ai-brain-badge {
+	      width: 26px;
+	      height: 26px;
+	      min-width: 26px;
 	      min-height: 26px;
 	      display: inline-flex;
 	      align-items: center;
-	      gap: 5px;
-	      border: 1px solid rgba(92,112,121,.18);
+	      justify-content: center;
+	      gap: 0;
+	      border: 0;
 	      border-radius: 999px;
-	      background: #f5f7f7;
+	      background: transparent;
 	      color: #64737a;
-	      padding: 2px 7px 2px 3px;
+	      padding: 0;
 	      font-size: 10.5px;
 	      font-weight: 900;
 	      line-height: 1;
@@ -5918,8 +5926,8 @@
 	    }
 
 	    .ai-brain-mark {
-	      width: 20px;
-	      height: 20px;
+	      width: 24px;
+	      height: 24px;
 	      display: inline-grid;
 	      place-items: center;
 	      border-radius: 999px;
@@ -5931,8 +5939,7 @@
 	    }
 
 	    .ai-brain-badge.gpt {
-	      border-color: rgba(0,168,132,.24);
-	      background: #eefaf7;
+	      background: transparent;
 	      color: #087c69;
 	    }
 
@@ -5942,8 +5949,7 @@
 	    }
 
 	    .ai-brain-badge.upgraded {
-	      border-color: rgba(37,99,235,.24);
-	      background: #eff6ff;
+	      background: transparent;
 	      color: #2457b8;
 	    }
 
@@ -5953,8 +5959,7 @@
 	    }
 
 	    .ai-brain-badge.failed {
-	      border-color: rgba(213,75,84,.24);
-	      background: #fff4f4;
+	      background: transparent;
 	      color: #bd414b;
 	    }
 
@@ -5980,9 +5985,18 @@
 	      white-space: nowrap;
 	    }
 
+	    .ai-brain-badge-label {
+	      position: absolute;
+	      width: 1px;
+	      height: 1px;
+	      overflow: hidden;
+	      clip: rect(0 0 0 0);
+	      clip-path: inset(50%);
+	      white-space: nowrap;
+	    }
+
 	    .reply-action-group .reply-tools {
-	      margin: 0;
-	      padding: 0 52px 1px;
+	      display: none !important;
 	    }
 
 	    .reply-action-group .reply-chip {
@@ -5991,6 +6005,7 @@
 	    }
 
 	    .voice-composer-panel {
+	      order: 1;
 	      min-width: 0;
 	      border: 1px solid rgba(0,168,132,.24);
 	      border-radius: 22px;
@@ -6111,9 +6126,7 @@
 	      height: 38px;
 	    }
 
-	    .reply-action-group.voice-active .whatsapp-composer-row,
-	    .reply-action-group.voice-active .reply-composer-status,
-	    .reply-action-group.voice-active .reply-tools {
+	    .reply-action-group.voice-active .whatsapp-composer-row {
 	      display: none;
 	    }
 
@@ -7329,7 +7342,7 @@
 	        min-width: 42px;
 	      }
 	      .reply-composer-main {
-	        grid-template-columns: minmax(0, 1fr) auto;
+	        grid-template-columns: auto minmax(0, 1fr) auto;
 	        padding-right: 3px;
 	      }
 	      #replyBox {
@@ -7337,27 +7350,6 @@
 	        max-height: 96px;
 	        height: 40px;
 	      }
-	      .reply-composer-status,
-	      .reply-action-group .reply-tools {
-	        padding-left: 48px;
-	        padding-right: 48px;
-	      }
-	      .reply-composer-status .reply-mode-badge { display: none; }
-	      .ai-brain-badge {
-	        padding-right: 5px;
-	      }
-	      .ai-brain-badge-label {
-	        display: none;
-	      }
-	      .reply-action-group .reply-tools {
-	        flex-wrap: nowrap;
-	        overflow-x: auto;
-	        padding-bottom: 2px;
-	        scrollbar-width: none;
-	      }
-	      .reply-action-group .reply-tools::-webkit-scrollbar {
-	        display: none;
-      }
 	      .voice-recording-row,
 	      .voice-requesting-row,
 	      .voice-preview-row {
@@ -8676,6 +8668,10 @@
 	            <i class="bi bi-plus-lg" aria-hidden="true"></i>
 	          </button>
 	          <div class="reply-composer-main">
+	            <span class="ai-brain-badge" id="aiBrainBadge" role="status" aria-live="polite" title="正在读取回复来源">
+	              <span class="ai-brain-mark" aria-hidden="true">AI</span>
+	              <span class="ai-brain-badge-label" id="aiBrainBadgeLabel">读取中</span>
+	            </span>
 	            <textarea id="replyBox" rows="1" aria-label="回复顾客" placeholder="输入回复给顾客..."></textarea>
 	            <button class="composer-emoji-button" id="composerEmojiBtn" type="button" aria-label="选择表情" aria-controls="composerEmojiPanel" aria-expanded="false" title="选择表情">
 	              <i class="bi bi-emoji-smile" aria-hidden="true"></i>
@@ -8700,13 +8696,9 @@
 	          </button>
 	        </div>
 	        <div class="reply-composer-status">
-	          <span class="ai-brain-badge" id="aiBrainBadge" role="status" aria-live="polite" title="正在读取回复来源">
-	            <span class="ai-brain-mark" aria-hidden="true">AI</span>
-	            <span class="ai-brain-badge-label" id="aiBrainBadgeLabel">读取中</span>
-	          </span>
 	          <span class="reply-mode-badge" id="replyModeLabel">可修改</span>
 	        </div>
-	        <div class="reply-tools" id="replyTools" aria-label="回复快捷调整">
+	        <div class="reply-tools" id="replyTools" aria-label="回复快捷调整" aria-hidden="true">
 	          <button class="reply-chip" data-reply-template="warm" type="button">温柔</button>
 	          <button class="reply-chip" data-reply-template="no_discount" type="button">不折扣</button>
 	          <button class="reply-chip" data-reply-template="ask_phone" type="button">先问电话</button>
