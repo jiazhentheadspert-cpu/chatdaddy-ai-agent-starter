@@ -452,6 +452,195 @@
       color: var(--danger);
     }
 
+    .review-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .filter-btn {
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: white;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      color: #075666;
+      border-color: rgba(21, 184, 215, 0.42);
+      background: #ecfbff;
+    }
+
+    .review-list {
+      display: grid;
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .review-card {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--cyan);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .review-card[data-risk="sensitive"] {
+      border-left-color: var(--danger);
+    }
+
+    .review-card[data-risk="high"] {
+      border-left-color: var(--amber);
+    }
+
+    .review-card[data-status="approved"] {
+      border-left-color: var(--teal);
+      background: #f7fffc;
+    }
+
+    .review-card[data-status="rejected"] {
+      border-left-color: #9a9fa0;
+      background: #fafafa;
+    }
+
+    .review-card-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .review-card h3 {
+      margin: 8px 0 0;
+      font-size: 22px;
+      line-height: 1.25;
+    }
+
+    .review-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .review-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--soft);
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .review-badge.risk-sensitive {
+      color: var(--danger);
+      border-color: rgba(189, 73, 68, 0.25);
+      background: #fff4f3;
+    }
+
+    .review-badge.risk-high {
+      color: var(--amber);
+      border-color: rgba(165, 105, 24, 0.24);
+      background: #fff8ec;
+    }
+
+    .review-source {
+      margin-top: 14px;
+      padding: 13px 14px;
+      border: 1px solid rgba(21, 184, 215, 0.2);
+      border-radius: 8px;
+      color: var(--muted);
+      background: #f4fcfe;
+      font-weight: 800;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .review-fields {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .review-fields textarea {
+      min-height: 82px;
+      font-weight: 800;
+    }
+
+    .review-decision {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: end;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .review-decision .actions {
+      margin: 0;
+      justify-content: flex-end;
+    }
+
+    .btn.small {
+      min-height: 40px;
+      padding: 0 14px;
+      min-width: 0;
+    }
+
+    .btn.approve {
+      color: white;
+      border-color: transparent;
+      background: var(--teal);
+    }
+
+    .btn.danger {
+      color: var(--danger);
+      border-color: rgba(189, 73, 68, 0.28);
+      background: #fff7f6;
+    }
+
+    .review-confirm {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-top: 12px;
+      color: var(--danger);
+      font-weight: 900;
+      line-height: 1.4;
+    }
+
+    .review-confirm input {
+      width: 18px;
+      height: 18px;
+      min-height: 0;
+      flex: 0 0 auto;
+      margin-top: 2px;
+    }
+
+    .review-confirm.optional {
+      color: var(--muted);
+    }
+
+    .review-empty {
+      padding: 28px;
+      border: 1px dashed #bfd0cd;
+      border-radius: 8px;
+      color: var(--muted);
+      text-align: center;
+      font-weight: 900;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
     @media (max-width: 980px) {
       .shell {
         grid-template-columns: 1fr;
@@ -465,8 +654,14 @@
 
       .toolbar,
       .fields,
-      .preview-grid {
+      .preview-grid,
+      .review-card-head,
+      .review-decision {
         grid-template-columns: 1fr;
+      }
+
+      .review-decision .actions {
+        justify-content: flex-start;
       }
     }
   </style>
@@ -541,6 +736,33 @@
         </div>
         <div class="log" id="resultLog">
           <div class="log-item">填写业务资料后先点「预览业务大脑」。</div>
+        </div>
+      </section>
+
+      <section class="panel" id="learningReviewPanel">
+        <div class="toolbar">
+          <div>
+            <h2>4. Owner 学习草稿审核</h2>
+            <p>AI 学到的 FAQ、SOP 和 Flow 判断必须逐条审核。这里没有“全部批准”，任何决定都不会发送顾客讯息、触发 Flow 或发布 Runtime。</p>
+          </div>
+          <div class="status" id="learningReviewStatus">尚未加载</div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="loadReviewButton">加载当前项目草稿</button>
+        </div>
+        <div class="preview-grid" id="learningReviewMetrics">
+          <div class="metric"><span>待审核</span><strong>-</strong></div>
+          <div class="metric"><span>已批准</span><strong>-</strong></div>
+          <div class="metric"><span>已退回</span><strong>-</strong></div>
+          <div class="metric"><span>敏感 / 高风险</span><strong>-</strong></div>
+        </div>
+        <div class="review-toolbar" id="learningReviewFilters">
+          <button class="filter-btn active" type="button" data-review-filter="pending">待审核</button>
+          <button class="filter-btn" type="button" data-review-filter="sensitive">敏感 / 高风险</button>
+          <button class="filter-btn" type="button" data-review-filter="all">全部记录</button>
+        </div>
+        <div class="review-list" id="learningReviewList">
+          <div class="review-empty">先填写或打开项目代码，再点「加载当前项目草稿」。</div>
         </div>
       </section>
     </main>
@@ -636,7 +858,10 @@
     const state = {
       template: null,
       preview: null,
-      created: null
+      created: null,
+      learningReview: null,
+      learningReviewFilter: "pending",
+      learningReviewBusy: false
     };
 
     const setupForm = document.getElementById("setupForm");
@@ -648,11 +873,19 @@
     const createConfirm = document.getElementById("createConfirm");
     const resultLog = document.getElementById("resultLog");
     const previewMetrics = document.getElementById("previewMetrics");
+    const learningReviewStatus = document.getElementById("learningReviewStatus");
+    const learningReviewMetrics = document.getElementById("learningReviewMetrics");
+    const learningReviewFilters = document.getElementById("learningReviewFilters");
+    const learningReviewList = document.getElementById("learningReviewList");
+    const loadReviewButton = document.getElementById("loadReviewButton");
 
     document.addEventListener("DOMContentLoaded", init);
     previewButton.addEventListener("click", previewPackage);
     createButton.addEventListener("click", createProject);
     copyButton.addEventListener("click", copySummary);
+    loadReviewButton.addEventListener("click", loadLearningReview);
+    learningReviewFilters.addEventListener("click", handleLearningReviewFilter);
+    learningReviewList.addEventListener("click", handleLearningReviewAction);
 
     async function init() {
       localStorage.setItem("hermas_setup_api", apiBase);
@@ -665,6 +898,7 @@
         renderSafety(ONBOARDING_TEMPLATE);
         renderForm(ONBOARDING_TEMPLATE);
         setButtons(true);
+        if (params.get("project_key")) await loadLearningReview();
       } catch (error) {
         setStatus("需要 Owner 登录", "bad");
         formHelp.textContent = "请先从 ReplyPilot Dashboard 登录 Owner / Admin 账号，再点左侧项目切换器里的「新项目」。";
@@ -791,6 +1025,7 @@
           metricHtml("Owner", "已验收"),
           metricHtml("自动发送 / Flow", "关闭 / 关闭")
         ].join("");
+        await loadLearningReview();
       } catch (error) {
         addLog("创建失败", error.message || String(error), true);
       } finally {
@@ -943,6 +1178,245 @@
           ]
         }
       };
+    }
+
+    function currentProjectKey() {
+      return String(
+        state.created?.project_key
+        || document.getElementById("project.project_key")?.value
+        || params.get("project_key")
+        || ""
+      ).trim();
+    }
+
+    async function loadLearningReview() {
+      const projectKey = currentProjectKey();
+      if (!projectKey) {
+        setLearningReviewStatus("需要项目代码", "bad");
+        learningReviewList.innerHTML = `<div class="review-empty">请先填写上方项目代码。</div>`;
+        return;
+      }
+      try {
+        setLearningReviewBusy(true);
+        setLearningReviewStatus("加载中", "");
+        const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review`);
+        state.learningReview = data;
+        renderLearningReview();
+      } catch (error) {
+        setLearningReviewStatus("加载失败", "bad");
+        learningReviewList.innerHTML = `<div class="review-empty error">${escapeHtml(error.message || String(error))}</div>`;
+      } finally {
+        setLearningReviewBusy(false);
+      }
+    }
+
+    function renderLearningReview() {
+      const data = state.learningReview || {};
+      const summary = data.summary || {};
+      const pending = Number(summary.pending_items || 0);
+      const sensitive = Number(summary.sensitive_pending_items || 0);
+      const high = Number(summary.high_pending_items || 0);
+      learningReviewMetrics.innerHTML = [
+        metricHtml("待审核", pending),
+        metricHtml("已批准", Number(summary.approved_items || 0)),
+        metricHtml("已退回", Number(summary.rejected_items || 0)),
+        metricHtml("敏感 / 高风险", `${sensitive} / ${high}`)
+      ].join("");
+      setLearningReviewStatus(pending ? `待审核 ${pending} 条` : "没有待审核", pending ? "" : "ok");
+
+      const items = (Array.isArray(data.items) ? data.items : []).filter((item) => {
+        if (state.learningReviewFilter === "pending") return item.pending === true;
+        if (state.learningReviewFilter === "sensitive") return item.pending === true && ["sensitive", "high"].includes(item.risk?.level);
+        return true;
+      });
+      learningReviewFilters.querySelectorAll("[data-review-filter]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.reviewFilter === state.learningReviewFilter);
+      });
+      learningReviewList.innerHTML = items.length
+        ? items.map((item) => learningReviewCardHtml(item)).join("")
+        : `<div class="review-empty">${state.learningReviewFilter === "pending" ? "当前没有待审核草稿。" : "这个筛选没有资料。"}</div>`;
+    }
+
+    function learningReviewCardHtml(item) {
+      const originalIndex = (state.learningReview?.items || []).findIndex((candidate) => candidate.id === item.id && candidate.asset_type === item.asset_type);
+      const riskLevel = item.risk?.level || "medium";
+      const pending = item.pending === true;
+      const riskLabel = learningRiskLabel(riskLevel);
+      const statusLabel = learningStatusLabel(item.status);
+      const source = item.source || {};
+      const sourceText = [
+        `来源：${source.title || "未标示来源"}`,
+        source.analysis_status ? `分析状态：${source.analysis_status}` : "",
+        source.summary ? `摘要：${source.summary}` : "",
+        source.excerpt ? `原文片段：${source.excerpt}` : ""
+      ].filter(Boolean).join("\n");
+      const fields = (item.editable_fields || []).map((field) => {
+        const value = item.fields?.[field] || "";
+        return `
+          <label>
+            <b>${escapeHtml(learningFieldLabel(field))}</b>
+            <textarea data-review-field="${escapeAttr(field)}" ${pending ? "" : "disabled"}>${escapeHtml(value)}</textarea>
+          </label>
+        `;
+      }).join("");
+      const reasonText = item.owner_review?.reason || "";
+      return `
+        <article class="review-card" data-review-index="${originalIndex}" data-risk="${escapeAttr(riskLevel)}" data-status="${escapeAttr(item.status || "")}">
+          <div class="review-card-head">
+            <div>
+              <div class="review-badges">
+                <span class="review-badge">${escapeHtml(item.type_label || item.asset_type)}</span>
+                <span class="review-badge">${escapeHtml(statusLabel)}</span>
+                <span class="review-badge risk-${escapeAttr(riskLevel)}">${escapeHtml(riskLabel)}</span>
+              </div>
+              <h3>${escapeHtml(item.title || "学习草稿")}</h3>
+            </div>
+            <div class="review-badge">v${escapeHtml(String(state.learningReview?.version_no || "-"))}</div>
+          </div>
+          <div class="review-source">${escapeHtml(sourceText)}</div>
+          <div class="review-fields">${fields}</div>
+          ${pending ? `
+            <label class="review-confirm ${riskLevel === "sensitive" ? "" : "optional"}">
+              <input type="checkbox" data-review-sensitive-confirm>
+              ${riskLevel === "sensitive"
+                ? "我已核对来源与风险，明确确认这条敏感资料可以进入项目草稿。"
+                : "若我把内容改成涉及健康、退款、法律或绝对承诺，我会先核对来源并明确确认。"}
+            </label>
+          ` : ""}
+          <div class="review-decision">
+            <label>
+              <b>${pending ? "退回原因（选择退回时必填）" : "Owner 记录"}</b>
+              <input data-review-reason value="${escapeAttr(reasonText)}" placeholder="${pending ? "例如：来源不足、范围不清、不能用于顾客回复" : "已完成审核"}" ${pending ? "" : "disabled"}>
+            </label>
+            <div class="actions">
+              ${pending ? `
+                <button class="btn small approve" type="button" data-review-action="approve" data-review-index="${originalIndex}">批准原文</button>
+                <button class="btn small" type="button" data-review-action="approve_with_edits" data-review-index="${originalIndex}">修改后批准</button>
+                <button class="btn small danger" type="button" data-review-action="reject" data-review-index="${originalIndex}">退回</button>
+              ` : `<span class="review-badge">${escapeHtml(item.owner_review?.reviewed_by || "Owner")} · ${escapeHtml(formatReviewTime(item.owner_review?.reviewed_at))}</span>`}
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function handleLearningReviewFilter(event) {
+      const button = event.target.closest("[data-review-filter]");
+      if (!button) return;
+      state.learningReviewFilter = button.dataset.reviewFilter || "pending";
+      renderLearningReview();
+    }
+
+    async function handleLearningReviewAction(event) {
+      const button = event.target.closest("[data-review-action]");
+      if (!button || state.learningReviewBusy) return;
+      const index = Number(button.dataset.reviewIndex);
+      const item = state.learningReview?.items?.[index];
+      const card = button.closest(".review-card");
+      if (!item || !card) return;
+      const decision = button.dataset.reviewAction;
+      const reason = card.querySelector("[data-review-reason]")?.value.trim() || "";
+      const editedAsset = {};
+      let changed = false;
+      card.querySelectorAll("[data-review-field]").forEach((field) => {
+        editedAsset[field.dataset.reviewField] = field.value.trim();
+        if (field.value.trim() !== String(item.fields?.[field.dataset.reviewField] || "")) changed = true;
+      });
+      if (decision === "approve" && changed) {
+        setLearningReviewStatus("你修改了内容", "bad");
+        return;
+      }
+      if (decision === "approve_with_edits" && !changed) {
+        setLearningReviewStatus("内容还没有修改", "bad");
+        return;
+      }
+      if (decision === "reject" && !reason) {
+        setLearningReviewStatus("请填写退回原因", "bad");
+        return;
+      }
+      const confirmSensitive = card.querySelector("[data-review-sensitive-confirm]")?.checked === true;
+      if (item.risk?.level === "sensitive" && decision !== "reject" && !confirmSensitive) {
+        setLearningReviewStatus("请确认敏感风险", "bad");
+        return;
+      }
+      try {
+        setLearningReviewBusy(true);
+        setLearningReviewStatus("保存决定中", "");
+        const payload = {
+          expected_version_no: state.learningReview.version_no,
+          asset_type: item.asset_type,
+          asset_id: item.id,
+          decision,
+          reason,
+          confirm_sensitive: confirmSensitive,
+          ...(decision === "approve_with_edits" ? { edited_asset: editedAsset } : {})
+        };
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/learning-review`, payload);
+        state.learningReview = data;
+        renderLearningReview();
+        setLearningReviewStatus(`已${decision === "reject" ? "退回" : "批准"}，剩余 ${data.summary?.pending_items || 0} 条`, "ok");
+      } catch (error) {
+        setLearningReviewStatus(error.message || "审核保存失败", "bad");
+      } finally {
+        setLearningReviewBusy(false);
+      }
+    }
+
+    function learningRiskLabel(level) {
+      return {
+        sensitive: "敏感，需明确确认",
+        high: "高风险",
+        medium: "中风险",
+        standard: "一般"
+      }[level] || level || "未分类";
+    }
+
+    function learningStatusLabel(status) {
+      return {
+        studied_draft: "待 Owner 审核",
+        draft: "草稿",
+        pending: "待审核",
+        pending_review: "待审核",
+        proposed: "建议",
+        approved: "已批准",
+        rejected: "已退回"
+      }[status] || status || "未知";
+    }
+
+    function learningFieldLabel(field) {
+      return {
+        title: "标题",
+        question: "顾客问题",
+        answer: "批准答案",
+        customer_pattern: "顾客表达 / 匹配方式",
+        rule: "SOP 规则",
+        purpose: "Flow 用途",
+        when_to_use: "什么时候使用",
+        do_not_use_when: "什么时候不能使用",
+        guidance: "成交指导",
+        proposed_rule: "建议规则",
+        better_reply: "更好回复"
+      }[field] || field;
+    }
+
+    function formatReviewTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("zh-MY");
+    }
+
+    function setLearningReviewStatus(text, tone) {
+      learningReviewStatus.textContent = text;
+      learningReviewStatus.className = `status ${tone || ""}`;
+      loadReviewButton.disabled = state.learningReviewBusy;
+    }
+
+    function setLearningReviewBusy(busy) {
+      state.learningReviewBusy = busy;
+      loadReviewButton.disabled = busy;
+      learningReviewList.querySelectorAll("button").forEach((button) => {
+        button.disabled = busy;
+      });
     }
 
     function renderPreview(data, title) {
