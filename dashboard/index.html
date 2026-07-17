@@ -12562,7 +12562,7 @@
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
-    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 5;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 6;
 
     function dashboardQueueSnapshotKey(project = "") {
       return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
@@ -13401,10 +13401,12 @@
 	}
 
     function dashboardQueueStatusForFilter(rawFilter = state.filter, role = state.role) {
-      if (role !== "staff") return "all";
-      // Keep one complete queue snapshot so filter changes are instant and all
-      // counters continue to describe the same data set.
-      return "all";
+      // The operational queue only needs open work. Historical AI/manual/Flow
+      // records are loaded through their own bounded requests below. Asking the
+      // primary endpoint for every closed case made a small pending queue wait
+      // on thousands of irrelevant rows and could leave a stale snapshot on
+      // screen after the 12-second safety timeout.
+      return "pending";
     }
 
     function dashboardQueueStatusParam(searchQuery = "") {
