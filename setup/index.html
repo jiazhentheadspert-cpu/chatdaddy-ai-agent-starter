@@ -135,6 +135,21 @@
       color: #ffffff;
     }
 
+    .side-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      margin-top: 12px;
+      padding: 0 13px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      color: #ffffff;
+      text-decoration: none;
+      background: rgba(21, 184, 215, 0.12);
+      font-weight: 900;
+    }
+
     .main {
       display: grid;
       gap: 18px;
@@ -565,6 +580,25 @@
       white-space: pre-wrap;
     }
 
+    .review-source details {
+      margin-top: 8px;
+    }
+
+    .review-source summary {
+      color: #08796f;
+      cursor: pointer;
+      font-weight: 950;
+    }
+
+    .review-source-evidence {
+      max-height: 320px;
+      margin-top: 10px;
+      padding-top: 10px;
+      overflow: auto;
+      border-top: 1px solid rgba(21, 184, 215, 0.2);
+      white-space: pre-wrap;
+    }
+
     .review-fields {
       display: grid;
       gap: 12px;
@@ -689,6 +723,7 @@
           <div class="side-row"><span>自动发送</span><strong>关闭</strong></div>
           <div class="side-row"><span>自主 Agent</span><strong>未接管</strong></div>
         </div>
+        <a class="side-link" href="#learningReviewPanel"><span>Owner 草稿审核</span><strong>→</strong></a>
       </div>
     </aside>
 
@@ -1244,12 +1279,14 @@
       const riskLabel = learningRiskLabel(riskLevel);
       const statusLabel = learningStatusLabel(item.status);
       const source = item.source || {};
-      const sourceText = [
+      const sourceHeadline = [
         `来源：${source.title || "未标示来源"}`,
-        source.analysis_status ? `分析状态：${source.analysis_status}` : "",
+        source.analysis_status ? `分析状态：${source.analysis_status}` : ""
+      ].filter(Boolean).join(" · ");
+      const sourceEvidence = [
         source.summary ? `摘要：${source.summary}` : "",
         source.excerpt ? `原文片段：${source.excerpt}` : ""
-      ].filter(Boolean).join("\n");
+      ].filter(Boolean).join("\n\n");
       const fields = (item.editable_fields || []).map((field) => {
         const value = item.fields?.[field] || "";
         return `
@@ -1273,7 +1310,15 @@
             </div>
             <div class="review-badge">v${escapeHtml(String(state.learningReview?.version_no || "-"))}</div>
           </div>
-          <div class="review-source">${escapeHtml(sourceText)}</div>
+          <div class="review-source">
+            ${escapeHtml(sourceHeadline)}
+            ${sourceEvidence ? `
+              <details>
+                <summary>查看来源摘要与原文依据</summary>
+                <div class="review-source-evidence">${escapeHtml(sourceEvidence)}</div>
+              </details>
+            ` : ""}
+          </div>
           <div class="review-fields">${fields}</div>
           ${pending ? `
             <label class="review-confirm ${riskLevel === "sensitive" ? "" : "optional"}">
