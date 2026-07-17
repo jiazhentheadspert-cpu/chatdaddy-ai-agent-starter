@@ -13858,8 +13858,10 @@
       const contactName = customerDisplayNameFromApproval(item, contactNames);
       const contextMessages = approvalRecentContextMessages(item);
       const latestContextCustomer = latestInboundContextMessage(contextMessages);
-      const displayInboundText = firstContextText(latestContextCustomer?.text, inbound.text);
-      const displayInboundAt = firstContextText(latestContextCustomer?.at, latestContextCustomer?.message_at, inbound.message_at, at);
+      const triggerContextCustomer = approvalTriggerContextMessage(item, contextMessages);
+      const displayContextCustomer = triggerContextCustomer || latestContextCustomer;
+      const displayInboundText = firstContextText(displayContextCustomer?.text, inbound.text);
+      const displayInboundAt = firstContextText(displayContextCustomer?.at, displayContextCustomer?.message_at, inbound.message_at, at);
       const history = [
         {
         type: status === "purchase_confirmed" ? "case_purchase_confirmed" : status === "manual_resolved" ? "manual_resolved" : status === "returned_to_ai" ? "returned_to_ai" : status === "external_flow_continued" ? "external_flow_continued" : status === "auto_sent" ? "auto_reply_sent" : status === "send_failed" ? "auto_reply_failed" : status === "sent" ? "reply_sent" : status === "handoff_done" ? "handoff_done" : status === "sending" ? "reply_sending" : "ai_decision",
@@ -14047,6 +14049,45 @@
         })
         .sort((a, b) => new Date(a.at || a.message_at || 0) - new Date(b.at || b.message_at || 0))
         .at(-1) || null;
+    }
+
+    function approvalTriggerContextMessage(item = {}, messages = []) {
+      const raw = item.raw || item.data?.raw || item.raw_approval?.raw || {};
+      const triggerIds = [
+        raw.trigger_provider_message_id,
+        raw.trigger_message_provider_id,
+        item.trigger_provider_message_id,
+        item.trigger_message_provider_id,
+      ].map((value) => String(value || "").trim()).filter(Boolean);
+      const triggerAt = firstContextText(
+        raw.trigger_message_at,
+        item.trigger_message_at,
+        item.data?.trigger_message_at,
+        item.raw_approval?.raw?.trigger_message_at
+      );
+      const customerMessages = [...(messages || [])].filter((message) => {
+        const direction = String(message.direction || message.role || "").toLowerCase();
+        if (["outbound", "agent", "assistant", "bot"].includes(direction)) return false;
+        return Boolean(firstContextText(message.text))
+          || dashboardContextAttachments(message).length > 0
+          || /attachment|image|photo|file|audio|voice|video/i.test(String(message.type || ""));
+      });
+      const exact = triggerIds.length
+        ? customerMessages.findLast((message) => triggerIds.includes(firstContextText(
+            message.provider_message_id,
+            message.message_id,
+            message.id,
+            message.event_id
+          )))
+        : null;
+      if (exact) return exact;
+      const triggerAtMs = messageTimeMs({ message_at: triggerAt });
+      if (!triggerAtMs) return null;
+      const closest = customerMessages
+        .map((message) => ({ message, distance: Math.abs(messageTimeMs(message) - triggerAtMs) }))
+        .filter((entry) => Number.isFinite(entry.distance) && entry.distance <= 5000)
+        .sort((left, right) => left.distance - right.distance)[0];
+      return closest?.message || null;
     }
 
 	    function externalHumanReplyReviewSignal(item = {}) {
