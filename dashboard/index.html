@@ -8684,6 +8684,7 @@
         </div>
         <div class="panel-top-actions">
           <span class="badge low" id="panelStatusPill">待处理</span>
+          <button class="btn ghost" id="openChatDaddyBtn" type="button" aria-label="在 ChatDaddy 打开同一顾客">打开 ChatDaddy</button>
           <button class="btn ghost" id="closePanel">关闭</button>
         </div>
       </div>
@@ -9748,6 +9749,7 @@
 
     $("gridView").addEventListener("click", () => setView("grid"));
     $("listView").addEventListener("click", () => setView("list"));
+    $("openChatDaddyBtn").addEventListener("click", openActiveCaseInChatDaddy);
     $("closePanel").addEventListener("click", closePanel);
     $("qualityEvalToggle").addEventListener("click", () => {
       const card = $("qualityEvalCard");
@@ -15573,6 +15575,30 @@
 	  syncWhatsappComposer();
     }
 
+    function chatDaddyConversationUrl(item = {}) {
+      const accountByProject = {
+        beyoute: "acc_e7dd6c9f-71ba-4072-98_7beb",
+      };
+      const project = String(item.project_key || projectKeyEl.value || "beyoute").trim().toLowerCase();
+      const accountId = accountByProject[project] || "";
+      const chatId = caseChatIdForSync(item);
+      if (!accountId || !chatId) return "";
+      const url = new URL(`https://app.chatdaddy.tech/root-inbox/inbox/${encodeURIComponent(accountId)}/${encodeURIComponent(chatId)}`);
+      const tail = customerIdentityTail(item);
+      if (tail) url.searchParams.set("q", tail);
+      return url.toString();
+    }
+
+    function openActiveCaseInChatDaddy() {
+      const url = chatDaddyConversationUrl(state.active || {});
+      if (!url) {
+        showToast("这条 Case 缺少 ChatDaddy Chat ID，暂时无法直接打开。");
+        return;
+      }
+      const nextWindow = window.open(url, "_blank", "noopener,noreferrer");
+      if (nextWindow) nextWindow.opener = null;
+    }
+
     function projectChannelProviderLabel(provider = "") {
       const value = String(provider || "").trim().toLowerCase();
       if (value === "chatdaddy") return "ChatDaddy";
@@ -21208,6 +21234,10 @@
       }
       $("panelStatusPill").className = `badge ${statusTone === "risk" ? "high" : statusTone === "warn" ? "medium" : statusTone === "blue" ? "order" : "low"}`;
 	      $("panelStatusPill").textContent = caseStatusLabel(item, decision.risk);
+      const chatDaddyUrl = chatDaddyConversationUrl(item);
+      $("openChatDaddyBtn").classList.toggle("hidden", !chatDaddyUrl);
+      $("openChatDaddyBtn").disabled = !chatDaddyUrl;
+      $("openChatDaddyBtn").title = chatDaddyUrl ? "在 ChatDaddy 打开这位顾客的完整对话" : "缺少 ChatDaddy Chat ID";
       $("approveBtn").classList.toggle("hidden", canManualSend);
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : item.status === "order" ? "确认已处理" : "批准并发送";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
@@ -22311,12 +22341,31 @@
 	  return hasPurchaseActionContext(item) && /(review[_\s-]?receipt|receipt|payment|paid|付款|已付|汇款|匯款|我汇款|我匯款|收据|收據)/i.test(combined);
 	}
 
+	function canPreselectPaymentFlowForCase(item = {}) {
+	  return item.status === "purchase_confirmed"
+	    || item.flow_trigger_retry_required === true
+	    || item.payment_flow_required === true
+	    || dashboardHasExplicitPaymentReceiptEvidence(item);
+	}
+
+	function isPaymentFlowEntry(flow = {}) {
+	  return /payment|after[_\s-]?payment|付款|收款/i.test([
+	    flow.flow_kind,
+	    flow.stage_key,
+	    flow.flow_key,
+	    flow.title,
+	  ].filter(Boolean).join(" "));
+	}
+
 	function recommendedFlowForCase(item = {}) {
-	  const packageMatch = inferPaidPackage(item);
-	  if (packageMatch) return flowCatalogEntry(packageMatch.flow_key);
 	  const decision = item.latest_decision || {};
 	  const explicitKey = firstContextText(decision.flow_key, decision.next_flow_key, item.flow_key, item.raw_approval?.data?.flow_key);
-	  if (explicitKey && flowCatalogEntry(explicitKey)) return flowCatalogEntry(explicitKey);
+	  const explicitFlow = explicitKey ? flowCatalogEntry(explicitKey) : null;
+	  const canUsePaymentFlow = canPreselectPaymentFlowForCase(item);
+	  if (explicitFlow && (!isPaymentFlowEntry(explicitFlow) || canUsePaymentFlow)) return explicitFlow;
+	  if (!canUsePaymentFlow) return null;
+	  const packageMatch = inferPaidPackage(item);
+	  if (packageMatch) return flowCatalogEntry(packageMatch.flow_key);
 	  return isPaymentConfirmationCase(item) ? flowCatalogEntry("after_payment_group") || flowCatalogEntry("payment") : null;
 	}
 
@@ -28653,6 +28702,13 @@
         complaint: "投诉风险",
         buy_intent: "下单意向",
         receipt: "付款审核",
+        payment_method_issue: "付款方式",
+        delivery_eta_question: "送货时效",
+        shipment_status_followup: "物流追踪",
+        payment_or_receipt_review: "付款审核",
+        top_up_amount_confirmation: "补款金额",
+        promo_gift_question: "优惠赠品",
+        faq_drink_usage: "饮用方法",
         faq: "常见问题",
         follow_up: "跟进提醒",
         refund: "退款条款",
