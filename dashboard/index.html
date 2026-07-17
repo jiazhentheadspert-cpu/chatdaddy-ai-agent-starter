@@ -5654,8 +5654,10 @@
 	    .reply-command-bar {
 	      position: relative;
 	      display: grid;
-	      grid-template-columns: 122px minmax(420px, 1fr) 112px;
-	      grid-template-areas: "channel reply pay";
+	      grid-template-columns: minmax(420px, 1fr) 122px;
+	      grid-template-areas:
+	        "reply channel"
+	        "reply pay";
 	      align-items: center;
 	      justify-content: stretch;
 	      gap: 5px;
@@ -6237,7 +6239,8 @@
     .payment-menu-panel {
       position: absolute;
       right: 0;
-      bottom: calc(100% + 10px);
+      /* Keep the Flow button visible above 收款 while this menu is open. */
+      bottom: calc(200% + 20px);
       z-index: 22;
       width: min(390px, calc(100vw - 36px));
       display: grid;
@@ -6320,7 +6323,7 @@
 	    .channel-action-picker {
       grid-area: channel;
       position: relative;
-	      align-self: center;
+	      align-self: stretch;
       display: flex;
 	      align-items: center;
     }
@@ -6343,6 +6346,8 @@
       cursor: pointer;
       user-select: none;
       white-space: nowrap;
+	      width: 100%;
+	      box-sizing: border-box;
     }
 
     .channel-action-picker > summary::-webkit-details-marker { display: none; }
@@ -6360,7 +6365,8 @@
 
     .channel-action-panel {
       position: absolute;
-      left: 0;
+	      left: auto;
+	      right: 0;
       bottom: calc(100% + 10px);
       z-index: 24;
       width: min(500px, calc(100vw - 42px));
@@ -7284,10 +7290,10 @@
       .reply-card { margin-top: 0; }
 	      .reply-command-bar {
 	        align-items: stretch;
-	        grid-template-columns: minmax(108px, 1.25fr) minmax(82px, .82fr);
+	        grid-template-columns: minmax(0, 1fr) minmax(92px, .38fr);
 	        grid-template-areas:
-	          "channel pay"
-	          "reply reply";
+	          "reply channel"
+	          "reply pay";
 	        gap: 6px;
         width: auto !important;
         bottom: auto !important;
@@ -20530,6 +20536,7 @@
     function openCase(caseId, options = {}) {
       const id = String(caseId || "").trim();
       const previousActiveId = String(state.active?.id || "");
+	  const purchasePanelWasOpen = previousActiveId === id && $("purchasePanel").open;
 	  if (voiceComposer.phase !== "idle" && previousActiveId !== id) resetVoiceComposer({ sync: false });
 	  closeComposerEmojiPanel();
       const openingNewCase = previousActiveId !== id || !$("panel").classList.contains("open");
@@ -20545,14 +20552,16 @@
         return;
       }
       if (item.raw_approval?.list_summary === true && options.allowSummary !== true) {
-        loadCaseDetailAndOpen(id);
+	    openCase(id, { ...options, allowSummary: true });
+	    showToast("Case 已打开；最新讯息正在后台同步。");
+	    loadCaseDetailAndOpen(id, { background: true, preserveReplyDraft: true });
         return;
       }
       state.active = item;
 	      if (openingNewCase) setQualityEvaluationExpanded(false);
 	      $("functionMenu").open = false;
 	      $("channelActionPicker").open = false;
-	      $("purchasePanel").open = false;
+	      if (openingNewCase) $("purchasePanel").open = false;
           if ($("caseIntelDetails")) $("caseIntelDetails").open = false;
           if ($("agentActionDetails")) $("agentActionDetails").open = false;
 
@@ -20674,7 +20683,7 @@
 	      $("purchaseAmountInput").value = existingPurchaseAmount ? String(existingPurchaseAmount) : "";
 	      $("replyActionGroup").classList.remove("hidden");
 	      renderChannelActions(item);
-	      $("purchasePanel").open = paymentConfirmationCase && !readOnly;
+	      $("purchasePanel").open = Boolean(!openingNewCase && purchasePanelWasOpen && showPurchasePanel);
 	      updatePurchaseNote(item);
 	      updateExternalFlowPanel(item, readOnly);
 	      $("markPurchaseBtn").disabled = state.actionBusy || !showPurchasePanel || purchaseActionComplete;
@@ -20759,7 +20768,7 @@
       }
     }
 
-    async function loadCaseDetailAndOpen(caseId) {
+    async function loadCaseDetailAndOpen(caseId, options = {}) {
       const id = String(caseId || "").trim();
       if (!id || state.loadingCaseDetailId === id) return;
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
@@ -20776,32 +20785,53 @@
       const summaryItem = (state.visibleCases || []).find((record) => String(record.id || "") === id)
         || state.cases.find((record) => String(record.id || "") === id)
         || null;
-      showToast("正在从 ChatDaddy 同步并打开 Case...");
+	  const background = options.background === true;
+	  if (!background) showToast("正在打开 Case...");
       try {
-        const syncResult = summaryItem
-          ? await syncOneCaseConversationFromChatDaddy(summaryItem)
-          : { ok: false, skipped: true };
         const detailUrl = `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(id)}`;
-        const data = await fetchJsonSafe(detailUrl, authRequestOptions(token));
-        const raw = data?.item || data?.case || null;
-        if (!data?.ok || !raw) throw new Error("case_not_found");
-        const loaded = approvalToCase(raw, state.contactNames || {});
-        const existingIndex = state.cases.findIndex((record) => String(record.id || "") === String(loaded.id || ""));
-        if (existingIndex >= 0) state.cases[existingIndex] = loaded;
-        else state.cases.unshift(loaded);
-        state.filter = state.role === "staff"
-          ? normalizeStaffQueueFilter(staffBusinessCategory(loaded))
-          : "all";
-        render();
-        requestAnimationFrame(() => openCase(loaded.id));
+	    const syncPromise = summaryItem
+	      ? syncOneCaseConversationFromChatDaddy(summaryItem)
+	      : Promise.resolve({ ok: false, skipped: true, imported: 0, fetched: 0 });
+	    const installDetail = (data, preserveReplyDraft = false) => {
+	      const raw = data?.item || data?.case || null;
+	      if (!data?.ok || !raw) throw new Error("case_not_found");
+	      const loaded = approvalToCase(raw, state.contactNames || {});
+	      const existingIndex = state.cases.findIndex((record) => String(record.id || "") === String(loaded.id || ""));
+	      if (existingIndex >= 0) state.cases[existingIndex] = loaded;
+	      else state.cases.unshift(loaded);
+	      if (!background) {
+	        state.filter = state.role === "staff"
+	          ? normalizeStaffQueueFilter(staffBusinessCategory(loaded))
+	          : "all";
+	      }
+	      const keepOpen = !background || String(state.active?.id || "") === id;
+	      render();
+	      if (keepOpen) {
+	        requestAnimationFrame(() => openCase(loaded.id, {
+	          preserveReplyDraft: preserveReplyDraft || options.preserveReplyDraft === true,
+	        }));
+	      }
+	      return loaded;
+	    };
+	    const data = await fetchJsonSafe(detailUrl, authRequestOptions(token));
+	    installDetail(data, background);
+	    const syncResult = await syncPromise;
+	    if (syncResult.ok && Number(syncResult.imported || 0) > 0) {
+	      const refreshedData = await fetchJsonSafe(detailUrl, authRequestOptions(token));
+	      installDetail(refreshedData, true);
+	    }
         if (!syncResult.ok && !syncResult.skipped) {
           showToast("Case 已打开；ChatDaddy 即时回查暂时失败，正在显示最后一次已入库资料。");
         }
       } catch (_error) {
-        state.query = id;
-        if (caseSearchEl) caseSearchEl.value = id;
-        render();
-        showToast("找不到这张 Case；已用编号帮你搜索。");
+	    if (background) {
+	      showToast("Case 已打开；后台同步暂时失败，先显示现有资料。");
+	    } else {
+	      state.query = id;
+	      if (caseSearchEl) caseSearchEl.value = id;
+	      render();
+	      showToast("找不到这张 Case；已用编号帮你搜索。");
+	    }
       } finally {
         state.loadingCaseDetailId = "";
       }
