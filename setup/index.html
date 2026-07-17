@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReplyPilot AI 项目设置</title>
+  <style>
+    :root {
+      --ink: #082f2d;
+      --muted: #647779;
+      --line: #d9e5e3;
+      --soft: #f5fbfa;
+      --panel: rgba(255, 255, 255, 0.94);
+      --teal: #0f9f92;
+      --cyan: #15b8d7;
+      --blue: #2f6fed;
+      --amber: #a56918;
+      --danger: #bd4944;
+      --shadow: 0 18px 54px rgba(8, 47, 45, 0.12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(15, 159, 146, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 159, 146, 0.045) 1px, transparent 1px),
+        linear-gradient(135deg, #f8fcfb 0%, #eef8f6 48%, #f9fbff 100%);
+      background-size: 34px 34px, 34px 34px, auto;
+      min-height: 100vh;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr);
+      gap: 26px;
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .side {
+      position: sticky;
+      top: 28px;
+      align-self: start;
+      min-height: calc(100vh - 56px);
+      padding: 24px;
+      color: #e8fffb;
+      background: linear-gradient(180deg, #031417 0%, #062b2d 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 52px;
+      height: 52px;
+      place-items: center;
+      border-radius: 8px;
+      color: white;
+      font-weight: 950;
+      background: linear-gradient(135deg, #0f9f92, #2f6fed);
+    }
+
+    .brand b {
+      display: block;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 4px;
+      color: rgba(232, 255, 251, 0.62);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .side-card {
+      margin-top: 22px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.055);
+    }
+
+    .side-card h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      line-height: 1.25;
+    }
+
+    .side-card p {
+      margin: 0;
+      color: rgba(232, 255, 251, 0.66);
+      font-weight: 750;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .side-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .side-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: rgba(232, 255, 251, 0.78);
+      font-weight: 850;
+      font-size: 13px;
+    }
+
+    .side-row strong {
+      color: #ffffff;
+    }
+
+    .main {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .hero,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 28px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid rgba(21, 184, 215, 0.3);
+      border-radius: 999px;
+      color: #075666;
+      background: #ecfbff;
+      font-weight: 900;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+    }
+
+    h1 {
+      margin: 18px 0 10px;
+      font-size: clamp(42px, 5vw, 78px);
+      line-height: 0.94;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 780px;
+      margin: 0;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.5;
+      font-size: 18px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 13px;
+      border: 1px solid rgba(15, 159, 146, 0.24);
+      border-radius: 999px;
+      color: #08796f;
+      background: #eefcf9;
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .chip.warn {
+      color: var(--amber);
+      border-color: rgba(165, 105, 24, 0.22);
+      background: #fff8ec;
+    }
+
+    .panel {
+      padding: 24px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .toolbar h2,
+    .section-title {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .toolbar p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: white;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .status.ok {
+      color: #08796f;
+      border-color: rgba(15, 159, 146, 0.28);
+      background: #effcf9;
+    }
+
+    .status.bad {
+      color: var(--danger);
+      border-color: rgba(189, 73, 68, 0.28);
+      background: #fff4f3;
+    }
+
+    .form {
+      display: grid;
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .section {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      overflow: hidden;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(15, 159, 146, 0.07), rgba(47, 111, 237, 0.05));
+    }
+
+    .section-head span {
+      color: var(--muted);
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      padding: 20px;
+    }
+
+    .field.full,
+    .field.textarea {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-weight: 950;
+      font-size: 13px;
+    }
+
+    label b {
+      color: var(--ink);
+      font-size: 15px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid #cfdcda;
+      border-radius: 8px;
+      color: var(--ink);
+      background: white;
+      outline: none;
+      font-weight: 850;
+    }
+
+    input {
+      min-height: 48px;
+      padding: 0 14px;
+    }
+
+    textarea {
+      min-height: 108px;
+      padding: 14px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: rgba(21, 184, 215, 0.85);
+      box-shadow: 0 0 0 3px rgba(21, 184, 215, 0.12);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 18px;
+      border: 1px solid #cad8d6;
+      border-radius: 8px;
+      color: var(--ink);
+      background: white;
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      color: white;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      min-width: 190px;
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .confirm {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-weight: 900;
+      line-height: 1.4;
+    }
+
+    .confirm input {
+      width: 18px;
+      height: 18px;
+      min-height: 0;
+      flex: 0 0 auto;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .metric {
+      min-height: 108px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .log {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .log-item {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--muted);
+      font-weight: 850;
+      line-height: 1.45;
+    }
+
+    .log-item b {
+      color: var(--ink);
+    }
+
+    .error {
+      color: var(--danger);
+    }
+
+    @media (max-width: 980px) {
+      .shell {
+        grid-template-columns: 1fr;
+        padding: 18px;
+      }
+
+      .side {
+        position: static;
+        min-height: auto;
+      }
+
+      .toolbar,
+      .fields,
+      .preview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="side">
+      <div class="brand">
+        <div class="brand-mark">RP</div>
+        <div>
+          <b>ReplyPilot AI</b>
+          <span>项目设置</span>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <h2>先训练业务大脑</h2>
+        <p>先回答 6 个业务问题，让 AI 理解产品、顾客、市场、成交和安全边界。ChatDaddy 与 Flow 会在 Owner 验收之后才连接。</p>
+      </div>
+
+      <div class="side-card">
+        <h2>上线模式</h2>
+        <div class="side-list">
+          <div class="side-row"><span>客服批准</span><strong>开启</strong></div>
+          <div class="side-row"><span>自动发送</span><strong>关闭</strong></div>
+          <div class="side-row"><span>自主 Agent</span><strong>未接管</strong></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="hero">
+        <div class="eyebrow">Owner / Admin Setup</div>
+        <h1>新公司项目设置</h1>
+        <p>新项目先完成 6 个业务理解问题，再由 Owner 核对 AI 的理解。这里只保存可审核的 Agent Brain 草稿；不会连接渠道、不会发送顾客讯息，也不会触发 Flow。</p>
+        <div class="chips" id="safetyChips">
+          <span class="chip">Approval-first</span>
+          <span class="chip">No send</span>
+          <span class="chip">No OpenAI call</span>
+          <span class="chip warn">No secrets</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>业务资料</h2>
+            <p id="formHelp">正在读取设置模板。</p>
+          </div>
+          <div class="status" id="connectionStatus">连接中</div>
+        </div>
+        <form class="form" id="setupForm"></form>
+        <label class="confirm">
+          <input id="createConfirm" type="checkbox">
+          我已核对上方 6 项业务资料，确认内容正确；批准保存为 Owner 已验收草稿。系统仍不连接渠道、不发送顾客讯息、不触发 Flow。
+        </label>
+        <div class="actions">
+          <button class="btn primary" type="button" id="previewButton">预览业务大脑</button>
+          <button class="btn" type="button" id="createButton">Owner 验收并创建草稿</button>
+          <a class="btn" href="../channel-setup/index.html" target="_blank" rel="noreferrer">验收后连接渠道</a>
+          <button class="btn" type="button" id="copyButton">复制摘要</button>
+        </div>
+      </section>
+
+      <section class="panel" id="previewPanel">
+        <h2 class="section-title">预览</h2>
+        <div class="preview-grid" id="previewMetrics">
+          <div class="metric"><span>项目</span><strong>-</strong></div>
+          <div class="metric"><span>状态</span><strong>-</strong></div>
+          <div class="metric"><span>测试</span><strong>-</strong></div>
+          <div class="metric"><span>风险</span><strong>-</strong></div>
+        </div>
+        <div class="log" id="resultLog">
+          <div class="log-item">填写业务资料后先点「预览业务大脑」。</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const apiBase = (params.get("api") || localStorage.getItem("agent_api_url") || localStorage.getItem("hermas_setup_api") || "https://ctg-chatdaddy-hermas-agents-runtime.jiazhen-theadspert.workers.dev").replace(/\/+$/, "");
+    const adminToken = hashParams.get("admin_token") || "";
+    const ONBOARDING_TEMPLATE = {
+      mode: {
+        auto_send_enabled_by_default: false,
+        auto_trigger_flows_enabled_by_default: false,
+        terminal_autonomous_agent_enabled: false
+      },
+      sections: [
+        {
+          key: "project",
+          title: "1. 建立训练项目",
+          fields: [
+            { key: "project_key", label: "项目代码", required: true, example: "acme_beauty" },
+            { key: "company_name", label: "公司 / 品牌名称", required: true, example: "Acme Beauty" },
+            { key: "industry", label: "行业", required: true, example: "电商 / 服务 / 课程 / 其他" },
+            { key: "agent_goal", label: "这个 AI Agent 最重要的目标", required: true, example: "先准确回答，再协助成交；高风险交人工" },
+            { key: "success_kpi", label: "成功指标", required: true, example: "首响时间、准确率、成交率、转人工率" }
+          ]
+        },
+        {
+          key: "business_training",
+          title: "2. 六问业务教学",
+          fields: [
+            {
+              key: "business_primary_offer",
+              label: "Step 1 · 业务主推",
+              required: true,
+              question: "你是什么生意？AI 先卖什么产品 / 服务 / 配套？",
+              reason: "AI 必须先知道自己替哪个岗位卖什么，才不会变成普通客服。",
+              example: "我们是【行业/业务】，卖给【主要客户】，现在先主推【产品/服务/配套】。"
+            },
+            {
+              key: "why_it_works",
+              label: "Step 2 · 为什么有效",
+              required: true,
+              question: "产品 / 服务为什么有效？机制、流程、成分、SOP 是什么？",
+              reason: "AI 要能解释价值，不能只背 FAQ 或乱承诺效果。",
+              example: "它通过【机制/流程/SOP】，解决【什么问题】，所以顾客可以得到【什么变化】。"
+            },
+            {
+              key: "why_customer_buys",
+              label: "Step 3 · 顾客为什么买",
+              required: true,
+              question: "顾客痛点、想要的结果、购买触发是什么？",
+              reason: "AI 要懂顾客为什么现在行动，才知道应该教育、补信任还是成交。",
+              example: "顾客现在痛的是【问题】，想要【结果】，购买触发是【场景/时机/担心】。"
+            },
+            {
+              key: "why_trust_us",
+              label: "Step 4 · 凭什么相信",
+              required: true,
+              question: "USP、Proof、Review、认证、市场对比是什么？",
+              reason: "AI 要知道什么时候用 USP、Proof，以及怎样处理比较和不信任。",
+              example: "我们赢在【差异】，证明是【Proof】；顾客拿我们和【替代品】比较时讲【价值差别】。"
+            },
+            {
+              key: "offer_to_order",
+              label: "Step 5 · Offer 怎么成交",
+              required: true,
+              question: "价格、配套、付款、COD、CTA、收单字段是什么？",
+              reason: "AI 要分辨看价前教育和看价后成交，避免乱接普通 Flow。",
+              example: "主推【价格/配套】，付款条件是【规则】，确认后收【名字/电话/地址/预约资料】。"
+            },
+            {
+              key: "safety_boundary",
+              label: "Step 6 · 什么不能讲",
+              required: true,
+              question: "不能承诺什么？什么情况必须转人工？",
+              reason: "AI 没有边界就不能上线，只能做草稿。",
+              example: "遇到【敏感/投诉/退款/健康法律/低信心】时，AI 不承诺，先【转人工/确认规则】。"
+            }
+          ]
+        },
+        {
+          key: "materials",
+          title: "3. 可选资料（先进入学习草稿，不会直接上线）",
+          fields: [
+            { key: "faq_google_doc_url", label: "FAQ Google Docs", required: false, example: "https://docs.google.com/document/d/..." },
+            { key: "source_notes", label: "其他资料说明", required: false, example: "产品页、价格表、Top closer 话术、Proof、禁区资料的位置" }
+          ]
+        }
+      ]
+    };
+    const state = {
+      template: null,
+      preview: null,
+      created: null
+    };
+
+    const setupForm = document.getElementById("setupForm");
+    const formHelp = document.getElementById("formHelp");
+    const connectionStatus = document.getElementById("connectionStatus");
+    const previewButton = document.getElementById("previewButton");
+    const createButton = document.getElementById("createButton");
+    const copyButton = document.getElementById("copyButton");
+    const createConfirm = document.getElementById("createConfirm");
+    const resultLog = document.getElementById("resultLog");
+    const previewMetrics = document.getElementById("previewMetrics");
+
+    document.addEventListener("DOMContentLoaded", init);
+    previewButton.addEventListener("click", previewPackage);
+    createButton.addEventListener("click", createProject);
+    copyButton.addEventListener("click", copySummary);
+
+    async function init() {
+      localStorage.setItem("hermas_setup_api", apiBase);
+      try {
+        setButtons(false);
+        await apiGet("/api/admin/projects");
+        state.template = ONBOARDING_TEMPLATE;
+        setStatus("已连接", "ok");
+        formHelp.textContent = "先完成 6 个业务问题。Flow ID、API token、webhook 和渠道资料都不在这一步填写。";
+        renderSafety(ONBOARDING_TEMPLATE);
+        renderForm(ONBOARDING_TEMPLATE);
+        setButtons(true);
+      } catch (error) {
+        setStatus("需要 Owner 登录", "bad");
+        formHelp.textContent = "请先从 ReplyPilot Dashboard 登录 Owner / Admin 账号，再点左侧项目切换器里的「新项目」。";
+        setupForm.innerHTML = emptyState(error.message || "无法验证 Owner / Admin 登录。");
+      }
+    }
+
+    function renderSafety(template) {
+      const chips = [
+        "Approval-first",
+        template?.mode?.auto_send_enabled_by_default === false ? "自动发送关" : "自动发送待确认",
+        template?.mode?.auto_trigger_flows_enabled_by_default === false ? "自动 Flow 关" : "自动 Flow 待确认",
+        template?.mode?.terminal_autonomous_agent_enabled === false ? "自主 Agent 关" : "自主 Agent 待确认",
+        "不收 secrets"
+      ];
+      document.getElementById("safetyChips").innerHTML = chips.map((chip, index) => `<span class="chip ${index === chips.length - 1 ? "warn" : ""}">${escapeHtml(chip)}</span>`).join("");
+    }
+
+    function renderForm(template) {
+      const sections = Array.isArray(template.sections) ? template.sections : [];
+      setupForm.innerHTML = sections.map((section) => {
+        const fields = Array.isArray(section.fields) ? section.fields : [];
+        return `
+          <section class="section">
+            <div class="section-head">
+              <h3 class="section-title">${escapeHtml(section.title || section.key)}</h3>
+              <span>${fields.length} 项</span>
+            </div>
+            <div class="fields">
+              ${fields.map((field) => fieldHtml(section, field)).join("")}
+            </div>
+          </section>
+        `;
+      }).join("");
+      applyDefaults();
+    }
+
+    function fieldHtml(section, field) {
+      const id = `${section.key}.${field.key}`;
+      const full = isLongField(field) ? "textarea" : "";
+      const required = field.required ? " *" : "";
+      const placeholder = field.example !== undefined ? String(field.example) : field.type === "list" ? "一行一个" : "";
+      const input = field.type === "list" || full
+        ? `<textarea id="${escapeAttr(id)}" data-section="${escapeAttr(section.key)}" data-key="${escapeAttr(field.key)}" data-type="${escapeAttr(field.type || "text")}" placeholder="${escapeAttr(placeholder)}"></textarea>`
+        : `<input id="${escapeAttr(id)}" data-section="${escapeAttr(section.key)}" data-key="${escapeAttr(field.key)}" data-type="${escapeAttr(field.type || "text")}" placeholder="${escapeAttr(placeholder)}">`;
+      return `
+        <div class="field ${full}">
+          <label for="${escapeAttr(id)}">
+            <b>${escapeHtml(field.label || field.key)}${required}</b>
+            ${field.question ? `<span>${escapeHtml(field.question)}</span>` : ""}
+            ${field.reason ? `<small>${escapeHtml(field.reason)}</small>` : ""}
+            ${input}
+          </label>
+        </div>
+      `;
+    }
+
+    function applyDefaults() {
+      setValue("project.project_key", params.get("project_key") || "");
+      setValue("project.industry", "ecommerce");
+      setValue("project.agent_goal", "先准确回答顾客问题，再推进成交；资料不足或高风险时转人工。");
+      setValue("project.success_kpi", "回复准确率、首响时间、成交率、转人工率、零严重错误");
+    }
+
+    async function previewPackage() {
+      try {
+        setButtons(false);
+        const setupIntake = collectSetupIntake();
+        const projectPackage = buildProjectPackage(setupIntake, false);
+        const data = buildPreview(projectPackage);
+        state.preview = data;
+        renderPreview(data, "预览完成");
+      } catch (error) {
+        addLog("预览失败", error.message || String(error), true);
+      } finally {
+        setButtons(true);
+      }
+    }
+
+    async function createProject() {
+      if (!createConfirm.checked) {
+        addLog("还没完成 Owner 验收", "请先预览业务大脑，核对六项资料，再勾选 Owner 验收确认。", true);
+        return;
+      }
+      try {
+        setButtons(false);
+        const setupIntake = collectSetupIntake();
+        const projectKey = setupIntake.project_key;
+        const existing = await apiGet(`/api/admin/projects/${encodeURIComponent(projectKey)}`);
+        if (Array.isArray(existing.projects) && existing.projects.length) {
+          throw new Error(`项目代码 ${projectKey} 已存在，请换一个新代码，避免覆盖旧项目。`);
+        }
+        await apiPost("/api/admin/projects", {
+          project_key: projectKey,
+          name: setupIntake.company_name,
+          status: "active",
+          automation_mode: "approval_first",
+          settings: {
+            auto_send_enabled: false,
+            auto_trigger_flows_enabled: false,
+            onboarding_status: "owner_approved_draft"
+          }
+        });
+        const projectPackage = buildProjectPackage(setupIntake, true);
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`, {
+          project_package: projectPackage,
+          note: "Owner approved six-question onboarding draft"
+        });
+        state.created = data;
+        addLog("Owner 已验收，项目草稿已创建", `Project: ${data.project_key || projectKey}。下一步先导入资料并跑 Mock Test；Runtime 发布通过后才连接渠道与 Flow。`);
+        previewMetrics.innerHTML = [
+          metricHtml("项目", projectKey),
+          metricHtml("业务六问", "6 / 6"),
+          metricHtml("Owner", "已验收"),
+          metricHtml("自动发送 / Flow", "关闭 / 关闭")
+        ].join("");
+      } catch (error) {
+        addLog("创建失败", error.message || String(error), true);
+      } finally {
+        setButtons(true);
+      }
+    }
+
+    function collectSetupIntake() {
+      const inputs = [...setupForm.querySelectorAll("[data-section][data-key]")];
+      const result = {};
+      for (const input of inputs) {
+        const key = input.dataset.key;
+        const type = input.dataset.type;
+        const raw = input.value.trim();
+        if (!raw) continue;
+        if (type === "list") {
+          result[key] = raw.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+        } else if (type === "number") {
+          const number = Number(raw);
+          if (Number.isFinite(number)) result[key] = number;
+        } else {
+          result[key] = raw;
+        }
+      }
+      validateRequired(result);
+      return result;
+    }
+
+    function validateRequired(result) {
+      const required = [];
+      for (const section of state.template?.sections || []) {
+        for (const field of section.fields || []) {
+          if (field.required && !result[field.key]) required.push(field.label || field.key);
+        }
+      }
+      if (required.length) {
+        throw new Error(`还有必填没填：${required.join("、")}`);
+      }
+      if (result.project_key && !/^[a-z0-9_-]+$/.test(result.project_key)) {
+        throw new Error("项目代码只能用小写英文、数字、_ 或 -");
+      }
+      if (result.faq_google_doc_url && !/^https:\/\/docs\.google\.com\/document\/d\//i.test(result.faq_google_doc_url)) {
+        throw new Error("FAQ 必须填 Google Docs 文件链接，例如 https://docs.google.com/document/d/...");
+      }
+    }
+
+    function buildProjectPackage(setupIntake, ownerApproved) {
+      const questionKeys = ONBOARDING_TEMPLATE.sections
+        .find((section) => section.key === "business_training")
+        .fields.map((field) => field.key);
+      const answers = Object.fromEntries(questionKeys.map((key) => [key, setupIntake[key]]));
+      const now = new Date().toISOString();
+      return {
+        schema_version: "replypilot.project_brain.v2",
+        project_key: setupIntake.project_key,
+        project_name: setupIntake.company_name,
+        company: {
+          name: setupIntake.company_name,
+          industry: setupIntake.industry,
+          agent_goal: setupIntake.agent_goal,
+          success_kpi: setupIntake.success_kpi
+        },
+        brand_brain: {
+          brand_name: setupIntake.company_name,
+          positioning: setupIntake.business_primary_offer,
+          audience: [setupIntake.why_customer_buys],
+          do: ["先回答顾客真正的问题", "资料不足就确认或转人工"],
+          dont: [setupIntake.safety_boundary]
+        },
+        business_onboarding: {
+          schema_version: "replypilot.business_onboarding.v1",
+          template_key: "first_layer_customer_onboard_default_v1",
+          status: ownerApproved ? "owner_approved" : "draft",
+          answers,
+          completed_question_keys: questionKeys,
+          owner_signoff: {
+            approved: ownerApproved === true,
+            status: ownerApproved ? "approved" : "pending",
+            approved_at: ownerApproved ? now : null,
+            statement: ownerApproved ? "Owner confirmed all six business answers are correct." : ""
+          },
+          source_materials: {
+            faq_google_doc_url: setupIntake.faq_google_doc_url || "",
+            notes: setupIntake.source_notes || ""
+          }
+        },
+        sales_process: {
+          channel_provider: "chatdaddy",
+          step_count: 1,
+          entry_stage_key: "step_1",
+          price_stage_key: "step_1",
+          stages: [{
+            stage_key: "step_1",
+            order: 1,
+            purpose: "业务训练草稿；尚未连接 Flow",
+            flow_key: "step_1",
+            next_stage_key: null,
+            language: "zh-MY",
+            contains_media: false,
+            active: true
+          }],
+          early_price_policy: "answer_now_and_enter_closer",
+          follow_up_policy: { owner: "channel", stop_on_customer_reply: true },
+          automation_level: 1
+        },
+        source_documents: setupIntake.faq_google_doc_url ? [{
+          id: "onboarding_faq_google_doc",
+          title: "FAQ Google Docs",
+          type: "google_doc",
+          url: setupIntake.faq_google_doc_url,
+          status: "studied_draft"
+        }] : [],
+        learning_assets: {
+          faq: [],
+          closer_scripts: [],
+          ops_sop: [],
+          safety_sop: [],
+          flow_context_rules: [],
+          reply_rules: [],
+          auto_reply_rules: [],
+          test_case_candidates: []
+        },
+        metadata: {
+          source: "owner_six_question_onboarding",
+          requires_business_onboarding: true,
+          approval_first: true,
+          auto_send_enabled: false,
+          auto_trigger_flows_enabled: false,
+          onboarding_updated_at: now
+        }
+      };
+    }
+
+    function buildPreview(projectPackage) {
+      return {
+        ok: true,
+        project_key: projectPackage.project_key,
+        package_preview: projectPackage,
+        quality: {
+          package_valid: true,
+          status: "owner_review_required",
+          approval_first: true,
+          completed_questions: 6,
+          missing_required: [],
+          warnings: [
+            "Owner 尚未验收",
+            "Mock Test 尚未执行",
+            "Runtime 尚未发布",
+            "渠道与 Flow 尚未连接"
+          ]
+        }
+      };
+    }
+
+    function renderPreview(data, title) {
+      const pkg = data.package_preview || {};
+      const quality = data.quality || {};
+      previewMetrics.innerHTML = [
+        metricHtml("项目", pkg.project_key || data.project_key || "-"),
+        metricHtml("业务六问", `${quality.completed_questions || 0} / 6`),
+        metricHtml("Owner", "待验收"),
+        metricHtml("自动发送 / Flow", "关闭 / 关闭")
+      ].join("");
+
+      const warnings = Array.isArray(quality.warnings) && quality.warnings.length
+        ? quality.warnings.join(", ")
+        : "无明显警告";
+      const missing = Array.isArray(quality.missing_required) && quality.missing_required.length
+        ? quality.missing_required.join(", ")
+        : "无";
+      resultLog.innerHTML = "";
+      addLog(title, "AI 已把 6 项业务资料整理成可审核草稿；请逐项核对后再勾选 Owner 验收。");
+      addLog("缺少必填", missing);
+      addLog("警告", warnings);
+      addLog("边界", "预览不发送、不触发 Flow、不连接渠道、不返回 secrets；资料只会保存成项目草稿。");
+    }
+
+    async function copySummary() {
+      const setupIntake = collectSetupIntake();
+      const summary = [
+        `Project: ${setupIntake.project_key || "-"}`,
+        `Company: ${setupIntake.company_name || "-"}`,
+        `Industry: ${setupIntake.industry || "-"}`,
+        `Business / offer: ${setupIntake.business_primary_offer || "-"}`,
+        `Why it works: ${setupIntake.why_it_works || "-"}`,
+        `Customer buying logic: ${setupIntake.why_customer_buys || "-"}`,
+        `Trust / proof: ${setupIntake.why_trust_us || "-"}`,
+        `Offer to order: ${setupIntake.offer_to_order || "-"}`,
+        `Safety boundary: ${setupIntake.safety_boundary || "-"}`,
+        `FAQ Google Docs: ${setupIntake.faq_google_doc_url || "-"}`,
+        `Mode: approval-first`,
+        "Auto-send: off",
+        "Auto-Flow: off"
+      ].join("\n");
+      await navigator.clipboard?.writeText(summary);
+      addLog("摘要已复制", summary);
+    }
+
+    async function apiGet(path) {
+      return apiFetch(path, { method: "GET" });
+    }
+
+    async function apiPost(path, body) {
+      return apiFetch(path, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body)
+      });
+    }
+
+    async function apiFetch(path, options) {
+      const response = await fetch(`${apiBase}${path}`, {
+        ...options,
+        credentials: "include",
+        headers: {
+          "accept": "application/json",
+          ...(adminToken ? { "x-admin-token": adminToken } : {}),
+          ...(options.headers || {})
+        }
+      });
+      const text = await response.text();
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
+      if (!response.ok || !data || data.ok === false) {
+        throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
+      }
+      return data;
+    }
+
+    function setButtons(enabled) {
+      previewButton.disabled = !enabled;
+      createButton.disabled = !enabled;
+      copyButton.disabled = !enabled;
+    }
+
+    function setStatus(text, tone) {
+      connectionStatus.textContent = text;
+      connectionStatus.className = `status ${tone || ""}`;
+    }
+
+    function addLog(title, body, isError) {
+      const item = document.createElement("div");
+      item.className = `log-item ${isError ? "error" : ""}`;
+      item.innerHTML = `<b>${escapeHtml(title)}</b><br>${escapeHtml(body)}`;
+      resultLog.prepend(item);
+    }
+
+    function metricHtml(label, value) {
+      return `<div class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`;
+    }
+
+    function emptyState(text) {
+      return `<div class="log-item error">${escapeHtml(text)}</div>`;
+    }
+
+    function setValue(id, value) {
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = value;
+    }
+
+    function isLongField(field) {
+      return field.type === "list" || /summary|audience|statement|answer|reply|approve|handoff|claim|auto_reply|business_|why_|offer_|safety_|source_notes|agent_goal|success_kpi/i.test(field.key || "");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value);
+    }
+  </script>
+</body>
+</html>
