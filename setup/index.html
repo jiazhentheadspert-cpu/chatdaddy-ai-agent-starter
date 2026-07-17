@@ -506,6 +506,42 @@
       background: white;
     }
 
+    .review-card > summary {
+      position: relative;
+      padding-right: 42px;
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .review-card > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .review-card > summary::after {
+      content: "＋";
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border-radius: 50%;
+      color: #08796f;
+      background: #eefcf9;
+      font-size: 22px;
+      font-weight: 950;
+    }
+
+    .review-card[open] > summary {
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .review-card[open] > summary::after {
+      content: "−";
+    }
+
     .review-card[data-risk="sensitive"] {
       border-left-color: var(--danger);
     }
@@ -1298,8 +1334,8 @@
       }).join("");
       const reasonText = item.owner_review?.reason || "";
       return `
-        <article class="review-card" data-review-index="${originalIndex}" data-risk="${escapeAttr(riskLevel)}" data-status="${escapeAttr(item.status || "")}">
-          <div class="review-card-head">
+        <details class="review-card" data-review-index="${originalIndex}" data-risk="${escapeAttr(riskLevel)}" data-status="${escapeAttr(item.status || "")}">
+          <summary class="review-card-head">
             <div>
               <div class="review-badges">
                 <span class="review-badge">${escapeHtml(item.type_label || item.asset_type)}</span>
@@ -1309,7 +1345,7 @@
               <h3>${escapeHtml(item.title || "学习草稿")}</h3>
             </div>
             <div class="review-badge">v${escapeHtml(String(state.learningReview?.version_no || "-"))}</div>
-          </div>
+          </summary>
           <div class="review-source">
             ${escapeHtml(sourceHeadline)}
             ${sourceEvidence ? `
@@ -1341,7 +1377,7 @@
               ` : `<span class="review-badge">${escapeHtml(item.owner_review?.reviewed_by || "Owner")} · ${escapeHtml(formatReviewTime(item.owner_review?.reviewed_at))}</span>`}
             </div>
           </div>
-        </article>
+        </details>
       `;
     }
 
