@@ -5628,6 +5628,11 @@
       font-weight: 850;
     }
 
+    .bubble-text {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
     .bubble-text + .bubble-media,
     .bubble-media + .bubble-state {
       margin-top: 8px;
@@ -22945,15 +22950,35 @@
 	      return "";
 	    }
 
+	    function messageDisplayRawText(value, depth = 0) {
+	      if (value === null || value === undefined || depth > 3) return "";
+	      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+	        return String(value).replace(/\r\n?/g, "\n").trim();
+	      }
+	      if (Array.isArray(value)) {
+	        return value.map((item) => messageDisplayRawText(item, depth + 1)).filter(Boolean).join("\n").trim();
+	      }
+	      if (typeof value !== "object") return "";
+	      return [
+	        value.text,
+	        value.body,
+	        value.caption,
+	        value.message,
+	        value.content,
+	        value.payload,
+	        value.data,
+	      ].map((item) => messageDisplayRawText(item, depth + 1)).find(Boolean) || "";
+	    }
+
 	    function messageDisplayText(message = {}) {
-	      const text = firstContextText(
+	      const text = [
 	        message.text,
 	        message.body,
 	        message.caption,
 	        message.content,
 	        message.message,
 	        message.payload
-	      );
+	      ].map((value) => messageDisplayRawText(value)).find(Boolean) || "";
 	      if (text && !dashboardIsAttachmentPlaceholderText(text)) return text;
 	      const mediaKind = dashboardMessageMediaKind(message);
 	      if (mediaKind) return `[${dashboardMediaDisplayLabel(mediaKind)}]`;
