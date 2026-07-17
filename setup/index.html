@@ -769,7 +769,7 @@
           await apiPost("/api/admin/projects", {
             project_key: projectKey,
             name: setupIntake.company_name,
-            status: "active",
+            status: "draft",
             automation_mode: "approval_first",
             settings: {
               auto_send_enabled: false,
