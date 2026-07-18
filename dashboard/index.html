@@ -9122,12 +9122,11 @@
       });
     };
 
-    // These modules already have backend/view foundations, but they are kept
-    // out of the operator UI while ReplyPilot focuses on automatic replies.
-    // Re-enable them per project only after the rollout gates in
-    // REPLYPILOT_REVIEW_SEGMENT_PLUGIN_PLAN.md have passed.
+    // Owner/Admin learning review is part of the unified onboarding and
+    // post-launch improvement loop. Staff still cannot see this module.
+    // Segmentation remains hidden until its separate rollout gates pass.
     const OPTIONAL_UI_MODULES = Object.freeze({
-      review: false,
+      review: true,
       segment: false,
     });
 
