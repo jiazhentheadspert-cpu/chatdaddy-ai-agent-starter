@@ -447,8 +447,157 @@
     .metric strong {
       display: block;
       margin-top: 10px;
+      min-width: 0;
+      overflow-wrap: anywhere;
       font-size: 28px;
       line-height: 1;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    :focus-visible {
+      outline: 3px solid rgba(47, 111, 237, 0.42);
+      outline-offset: 3px;
+    }
+
+    .onboarding-progress {
+      position: sticky;
+      top: 18px;
+      z-index: 20;
+      padding: 18px;
+    }
+
+    .progress-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .progress-head strong {
+      overflow-wrap: anywhere;
+      font-size: 18px;
+    }
+
+    .progress-track {
+      height: 9px;
+      margin: 13px 0;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e8f0ef;
+    }
+
+    .progress-track span {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--teal), var(--blue));
+      transition: width 180ms ease;
+    }
+
+    .progress-steps {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .progress-step {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: white;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .progress-step b {
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .progress-step.done {
+      color: #08796f;
+      border-color: rgba(15, 159, 146, 0.34);
+      background: #effcf9;
+    }
+
+    .progress-step.current {
+      border-color: rgba(47, 111, 237, 0.42);
+      box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.08);
+    }
+
+    .upload-grid,
+    .sales-controls,
+    .journey-grid,
+    .final-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .dropzone,
+    .journey-card,
+    .final-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .dropzone {
+      border-style: dashed;
+      border-width: 2px;
+      background: #f4fcfe;
+    }
+
+    .dropzone p,
+    .journey-card p,
+    .final-card p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .journey-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .journey-card label + label {
+      margin-top: 12px;
+    }
+
+    .journey-card textarea {
+      min-height: 92px;
+    }
+
+    .boundary-note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-left: 5px solid var(--cyan);
+      border-radius: 6px;
+      color: #075666;
+      background: #ecfbff;
+      font-weight: 850;
+      line-height: 1.5;
+    }
+
+    .auth-actions {
+      margin-top: 16px;
+    }
+
+    .queued-review {
+      border-left-color: var(--blue) !important;
+      background: #f6f8ff !important;
     }
 
     .log {
@@ -897,12 +1046,34 @@
         grid-template-columns: 1fr;
       }
 
+      .progress-steps,
+      .journey-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .upload-grid,
+      .sales-controls,
+      .final-grid {
+        grid-template-columns: 1fr;
+      }
+
       .contract-field.full {
         grid-column: auto;
       }
 
       .review-decision .actions {
         justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .progress-steps,
+      .journey-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .onboarding-progress {
+        position: static;
       }
     }
   </style>
@@ -930,8 +1101,14 @@
           <div class="side-row"><span>自动发送</span><strong>关闭</strong></div>
           <div class="side-row"><span>自主 Agent</span><strong>未接管</strong></div>
         </div>
-        <a class="side-link" href="#learningReviewPanel"><span>Owner 草稿审核</span><strong>→</strong></a>
-        <a class="side-link" href="#replyContractPanel"><span>Reply Contract</span><strong>→</strong></a>
+        <a class="side-link" href="#businessPanel"><span>1. 业务六问</span><strong>→</strong></a>
+        <a class="side-link" href="#materialsPanel"><span>2. 资料学习</span><strong>→</strong></a>
+        <a class="side-link" href="#learningReviewPanel"><span>3. Owner 审核</span><strong>→</strong></a>
+        <a class="side-link" href="#salesJourneyPanel"><span>4. 销售 Step</span><strong>→</strong></a>
+        <a class="side-link" href="#replyContractPanel"><span>5. Reply Contract</span><strong>→</strong></a>
+        <a class="side-link" href="#channelFlowPanel"><span>6. Channel / Flow</span><strong>→</strong></a>
+        <a class="side-link" href="#contentMockPanel"><span>7. Mock / 发布</span><strong>→</strong></a>
+        <a class="side-link" href="#learningLoopPanel"><span>8. 学习复盘</span><strong>→</strong></a>
       </div>
     </aside>
 
@@ -948,7 +1125,28 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel onboarding-progress" aria-label="Onboarding 进度">
+        <div class="progress-head">
+          <div>
+            <strong id="progressProjectName">未选择项目</strong>
+            <div id="progressSummary">0 / 8 步完成 · 可以关闭页面后继续</div>
+          </div>
+          <div class="status" id="progressStatus">草稿模式</div>
+        </div>
+        <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
+        <nav class="progress-steps" id="progressSteps">
+          <a class="progress-step current" href="#businessPanel" data-progress-step="business"><b>1 六问</b><span>项目与目标</span></a>
+          <a class="progress-step" href="#materialsPanel" data-progress-step="materials"><b>2 资料</b><span>PDF / PPTX / FAQ</span></a>
+          <a class="progress-step" href="#learningReviewPanel" data-progress-step="review"><b>3 审核</b><span>逐条决定</span></a>
+          <a class="progress-step" href="#salesJourneyPanel" data-progress-step="sales"><b>4 Step</b><span>销售旅程</span></a>
+          <a class="progress-step" href="#replyContractPanel" data-progress-step="contract"><b>5 回复</b><span>收尾与来源</span></a>
+          <a class="progress-step" href="#channelFlowPanel" data-progress-step="channel"><b>6 Channel</b><span>账号与 Flow</span></a>
+          <a class="progress-step" href="#contentMockPanel" data-progress-step="mock"><b>7 Mock</b><span>测试与发布</span></a>
+          <a class="progress-step" href="#learningLoopPanel" data-progress-step="learning"><b>8 复盘</b><span>持续学习</span></a>
+        </nav>
+      </section>
+
+      <section class="panel" id="businessPanel">
         <div class="toolbar">
           <div>
             <h2>业务资料</h2>
@@ -957,6 +1155,9 @@
           <div class="status" id="connectionStatus">连接中</div>
         </div>
         <form class="form" id="setupForm"></form>
+        <div class="actions auth-actions" id="authActions" hidden>
+          <a class="btn primary" id="ownerLoginLink" href="../login.html">Owner / Admin 登录后继续</a>
+        </div>
         <label class="confirm">
           <input id="createConfirm" type="checkbox">
           我已核对上方 6 项业务资料，确认内容正确；批准保存为 Owner 已验收草稿。系统仍不连接渠道、不发送顾客讯息、不触发 Flow。
@@ -964,7 +1165,7 @@
         <div class="actions">
           <button class="btn primary" type="button" id="previewButton">预览业务大脑</button>
           <button class="btn" type="button" id="createButton">Owner 验收并创建草稿</button>
-          <a class="btn" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">验收后连接渠道</a>
+          <a class="btn" href="#materialsPanel">继续上传资料</a>
           <button class="btn" type="button" id="copyButton">复制摘要</button>
         </div>
       </section>
@@ -982,16 +1183,48 @@
         </div>
       </section>
 
+      <section class="panel" id="materialsPanel">
+        <div class="toolbar">
+          <div>
+            <h2>2. 上传并学习项目资料</h2>
+            <p>把 FAQ、产品说明、价格与配套、客服 SOP、Top Closer 话术、Proof 和禁区资料上传。AI 只生成待审核草稿，不会直接进入正式回复。</p>
+          </div>
+          <div class="status" id="documentStatus">等待项目草稿</div>
+        </div>
+        <div class="upload-grid">
+          <label class="dropzone">
+            <b>选择项目资料</b>
+            <input id="projectDocumentFile" type="file" accept=".txt,.md,.pdf,.pptx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+            <p>支持 TXT、Markdown、PDF、PPTX。扫描版 PDF 先做 OCR；旧 .ppt 请另存为 .pptx。</p>
+          </label>
+          <div class="final-card">
+            <b>学习后会分成</b>
+            <p>FAQ、一般 SOP、敏感 / 转人工 SOP、Flow 用途建议和缺失资料。健康、退款、投诉、隐私、附件与凭证会进入更严格的 Owner 审核。</p>
+            <div class="actions">
+              <button class="btn primary" type="button" id="analyzeDocumentButton">提取文字并生成学习草稿</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-grid" id="documentMetrics">
+          <div class="metric"><span>资料文件</span><strong>-</strong></div>
+          <div class="metric"><span>FAQ 草稿</span><strong>-</strong></div>
+          <div class="metric"><span>一般 / 安全 SOP</span><strong>-</strong></div>
+          <div class="metric"><span>真实发送 / Flow</span><strong>0 / 0</strong></div>
+        </div>
+        <div class="boundary-note" id="documentResult">先完成第 1 步并保存项目草稿，再上传资料。每一条学习结果都要到第 3 步由 Owner 审核。</div>
+      </section>
+
       <section class="panel" id="learningReviewPanel">
         <div class="toolbar">
           <div>
-            <h2>4. Owner 学习草稿审核</h2>
-            <p>AI 学到的 FAQ、SOP 和 Flow 判断必须逐条审核。这里没有“全部批准”，任何决定都不会发送顾客讯息、触发 Flow 或发布 Runtime。</p>
+            <h2>3. Owner 学习草稿审核</h2>
+            <p>AI 学到的 FAQ、SOP 和 Flow 判断必须逐条决定；这里没有“全部批准”。可以先逐项标记，再一次提交本轮审核；敏感资料仍需明确确认。</p>
           </div>
           <div class="status" id="learningReviewStatus">尚未加载</div>
         </div>
         <div class="actions">
           <button class="btn primary" type="button" id="loadReviewButton">加载当前项目草稿</button>
+          <button class="btn" type="button" id="submitReviewBatchButton" disabled>提交本轮审核（0）</button>
         </div>
         <div class="preview-grid" id="learningReviewMetrics">
           <div class="metric"><span>待审核</span><strong>-</strong></div>
@@ -1007,6 +1240,46 @@
         <div class="review-list" id="learningReviewList">
           <div class="review-empty">先填写或打开项目代码，再点「加载当前项目草稿」。</div>
         </div>
+      </section>
+
+      <section class="panel" id="salesJourneyPanel">
+        <div class="toolbar">
+          <div>
+            <h2>4. 定义销售 Step 与接棒规则</h2>
+            <p>先定义顾客每一步为什么进入、AI 要完成什么、什么时候交人工。这里只保存销售旅程草稿；真正的 ChatDaddy Flow 在第 6 步绑定。</p>
+          </div>
+          <div class="status" id="salesJourneyStatus">尚未加载</div>
+        </div>
+        <div class="sales-controls">
+          <label>
+            <b>销售 Step 数量</b>
+            <select id="salesStepCount">
+              <option value="1">1 Step</option>
+              <option value="2">2 Steps</option>
+              <option value="3">3 Steps</option>
+              <option value="4" selected>4 Steps</option>
+            </select>
+          </label>
+          <label>
+            <b>价格 / 配套主要出现在哪一步</b>
+            <select id="salesPriceStage">
+              <option value="step_1">Step 1</option>
+              <option value="step_2">Step 2</option>
+              <option value="step_3" selected>Step 3</option>
+              <option value="step_4">Step 4</option>
+            </select>
+          </label>
+        </div>
+        <div class="journey-grid" id="salesJourneyGrid"></div>
+        <label class="confirm">
+          <input id="salesJourneyConfirm" type="checkbox">
+          我已核对每个 Step 的目标与人工接管条件；AI 必须先回答顾客当前问题，之后才可进入下一步，而且只能接已绑定的真实 Flow。
+        </label>
+        <div class="actions">
+          <button class="btn" type="button" id="loadSalesJourneyButton">加载当前销售旅程</button>
+          <button class="btn primary" type="button" id="saveSalesJourneyButton">保存销售 Step 草稿</button>
+        </div>
+        <div class="boundary-note">价格 Step 不固定写死；不同项目可以在 Step 1、2、3 或 4。付款、退款、投诉、健康、附件与低信心不会因为 Step 设置而自动跳到 Flow。</div>
       </section>
 
       <section class="panel" id="replyContractPanel">
@@ -1137,10 +1410,35 @@
         <div class="contract-mock" id="replyContractMock"></div>
       </section>
 
+      <section class="panel" id="channelFlowPanel">
+        <div class="toolbar">
+          <div>
+            <h2>6. 连接 Channel 与真实 Flow</h2>
+            <p>只从当前项目专属链接进入。连接页面会锁定 Project Key，不再使用上一次项目或默认 Beyoute；每个 Step 只能选择当前 ChatDaddy 实时清单里的 Flow。</p>
+          </div>
+          <div class="status" id="channelFlowStatus">尚未检查</div>
+        </div>
+        <div class="final-grid">
+          <div class="final-card">
+            <b>项目身份</b>
+            <p id="channelProjectIdentity">请先完成项目草稿。</p>
+          </div>
+          <div class="final-card">
+            <b>连接边界</b>
+            <p>贴 Token 只建立当前项目连接并同步 Flow 清单。不会发送测试讯息、触发 Flow 或开启自动回复。</p>
+          </div>
+        </div>
+        <div class="actions">
+          <a class="btn primary" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">打开当前项目 Channel / Flow 设置</a>
+          <button class="btn" type="button" id="refreshReadinessButton">刷新连接与发布阻塞</button>
+        </div>
+        <div class="boundary-note" id="readinessResult">尚未读取当前项目的连接状态。</div>
+      </section>
+
       <section class="panel" id="contentMockPanel">
         <div class="toolbar">
           <div>
-            <h2>6. Synthetic Mock：检查 AI 有没有学完整</h2>
+            <h2>7. Synthetic Mock 与发布检查</h2>
             <p>用 Owner 已批准资料组成合成顾客场景，检查来源、Step、附件、付款、风险与人工接管。不会调用真实顾客、不会发送讯息、不会触发 Flow。</p>
           </div>
           <div class="status" id="contentMockStatus">尚未运行</div>
@@ -1154,6 +1452,31 @@
         <div class="contract-preview" id="contentMockMigration" hidden></div>
         <div class="content-mock-list" id="contentMockList">
           <div class="review-empty">点击上方「运行完整 Synthetic Mock」，系统才会读取当前草稿并生成测试结果。</div>
+        </div>
+        <label class="confirm">
+          <input id="publishConfirm" type="checkbox">
+          我确认 Mock、Owner 审核、销售 Step、Reply Contract、Channel 与 Flow 全部通过；发布只会启用 Project Brain 版本，不会在这里发送顾客讯息或触发 Flow。
+        </label>
+        <div class="actions">
+          <button class="btn primary" type="button" id="publishProjectButton" disabled>明确发布当前 Project Brain</button>
+        </div>
+      </section>
+
+      <section class="panel" id="learningLoopPanel">
+        <div class="toolbar">
+          <div>
+            <h2>8. 上线后的学习、复盘与 FAQ</h2>
+            <p>客服真实回复、被退回的 AI 草稿、人工接管和失败原因都会成为候选学习；Owner 再决定是否写入当前项目，避免 AI 靠自己猜。</p>
+          </div>
+          <div class="status" id="learningLoopStatus">Owner / Admin 专用</div>
+        </div>
+        <div class="final-grid">
+          <div class="final-card"><b>每日</b><p>看待批准、人工接管、失败与重复追问；先修 FAQ / SOP / Flow 绑定，再考虑扩大自动回复。</p></div>
+          <div class="final-card"><b>每周</b><p>复盘准确率、成交推进、转人工原因、未覆盖问题、资料过期和敏感内容；所有学习保留 Case 来源。</p></div>
+        </div>
+        <div class="actions">
+          <a class="btn primary" id="learningDashboardLink" href="../dashboard/index.html?view=learning">打开当前项目复盘与学习</a>
+          <a class="btn" id="operationsDashboardLink" href="../dashboard/index.html?view=operations">回到项目设置 / 运营台</a>
         </div>
       </section>
     </main>
@@ -1253,8 +1576,14 @@
       learningReview: null,
       learningReviewFilter: "pending",
       learningReviewBusy: false,
+      learningReviewDrafts: new Map(),
       replyContract: null,
       replyContractBusy: false,
+      documentKnowledge: null,
+      salesPackageResponse: null,
+      connectionGuide: null,
+      mockResult: null,
+      published: false,
       existingProject: null,
       existingPackageResponse: null
     };
@@ -1286,6 +1615,23 @@
     const previewReplyContractButton = document.getElementById("previewReplyContractButton");
     const saveReplyContractButton = document.getElementById("saveReplyContractButton");
     const runReplyContractMockButton = document.getElementById("runReplyContractMockButton");
+    const projectDocumentFile = document.getElementById("projectDocumentFile");
+    const analyzeDocumentButton = document.getElementById("analyzeDocumentButton");
+    const documentStatus = document.getElementById("documentStatus");
+    const documentMetrics = document.getElementById("documentMetrics");
+    const documentResult = document.getElementById("documentResult");
+    const submitReviewBatchButton = document.getElementById("submitReviewBatchButton");
+    const salesStepCount = document.getElementById("salesStepCount");
+    const salesPriceStage = document.getElementById("salesPriceStage");
+    const salesJourneyGrid = document.getElementById("salesJourneyGrid");
+    const salesJourneyStatus = document.getElementById("salesJourneyStatus");
+    const loadSalesJourneyButton = document.getElementById("loadSalesJourneyButton");
+    const saveSalesJourneyButton = document.getElementById("saveSalesJourneyButton");
+    const refreshReadinessButton = document.getElementById("refreshReadinessButton");
+    const readinessResult = document.getElementById("readinessResult");
+    const channelFlowStatus = document.getElementById("channelFlowStatus");
+    const publishConfirm = document.getElementById("publishConfirm");
+    const publishProjectButton = document.getElementById("publishProjectButton");
 
     document.addEventListener("DOMContentLoaded", init);
     previewButton.addEventListener("click", previewPackage);
@@ -1300,9 +1646,20 @@
     runReplyContractMockButton.addEventListener("click", runReplyContractMock);
     replyContractForm.addEventListener("input", handleReplyContractInput);
     replyContractForm.addEventListener("change", handleReplyContractInput);
+    analyzeDocumentButton.addEventListener("click", analyzeProjectDocument);
+    submitReviewBatchButton.addEventListener("click", submitLearningReviewBatch);
+    salesStepCount.addEventListener("change", renderSalesJourneyDraft);
+    loadSalesJourneyButton.addEventListener("click", loadSalesJourney);
+    saveSalesJourneyButton.addEventListener("click", saveSalesJourney);
+    refreshReadinessButton.addEventListener("click", refreshConnectionReadiness);
+    publishConfirm.addEventListener("change", updatePublishButton);
+    publishProjectButton.addEventListener("click", publishCurrentProjectBrain);
 
     async function init() {
       localStorage.setItem("hermas_setup_api", apiBase);
+      updateProjectLinks();
+      renderSalesJourneyDraft();
+      updateOnboardingProgress();
       try {
         setButtons(false);
         await apiGet("/api/admin/projects");
@@ -1314,13 +1671,22 @@
         setButtons(true);
         if (params.get("project_key")) {
           await loadExistingProjectForOwnerMigration();
-          await loadLearningReview();
-          await loadReplyContract();
+          await Promise.all([
+            loadLearningReview(),
+            loadReplyContract(),
+            loadSalesJourney(),
+            refreshConnectionReadiness({ silent: true })
+          ]);
         }
       } catch (error) {
         setStatus("需要 Owner 登录", "bad");
         formHelp.textContent = "请先从 ReplyPilot Dashboard 登录 Owner / Admin 账号，再点左侧项目切换器里的「新项目」。";
         setupForm.innerHTML = emptyState(error.message || "无法验证 Owner / Admin 登录。");
+        document.getElementById("authActions").hidden = false;
+        const loginParams = new URLSearchParams({ api: apiBase, return_to: "setup" });
+        const projectKey = String(params.get("project_key") || "").trim();
+        if (projectKey) loginParams.set("project_key", projectKey);
+        document.getElementById("ownerLoginLink").href = `../login.html?${loginParams.toString()}`;
       }
     }
 
@@ -1379,6 +1745,70 @@
       setValue("project.industry", "ecommerce");
       setValue("project.agent_goal", "先准确回答顾客问题，再推进成交；资料不足或高风险时转人工。");
       setValue("project.success_kpi", "回复准确率、首响时间、成交率、转人工率、零严重错误");
+      lockProjectIdentity();
+      updateProjectLinks();
+    }
+
+    function lockProjectIdentity() {
+      const projectInput = document.getElementById("project.project_key");
+      if (!projectInput) return;
+      const lockedKey = String(params.get("project_key") || state.created?.project_key || "").trim();
+      if (lockedKey) {
+        projectInput.value = lockedKey;
+        projectInput.readOnly = true;
+        projectInput.title = "当前项目身份已锁定；请从项目切换器进入其他项目。";
+      }
+    }
+
+    function updateProjectLinks() {
+      const projectKey = currentProjectKey();
+      const common = new URLSearchParams({ api: apiBase });
+      if (projectKey) common.set("project_key", projectKey);
+      const channelLink = document.getElementById("channelSetupLink");
+      if (channelLink) channelLink.href = `../channel-setup/index.html?${common.toString()}`;
+      for (const [id, view] of [["learningDashboardLink", "learning"], ["operationsDashboardLink", "operations"]]) {
+        const link = document.getElementById(id);
+        if (!link) continue;
+        const query = new URLSearchParams(common);
+        query.set("view", view);
+        link.href = `../dashboard/index.html?${query.toString()}`;
+      }
+      const progressName = document.getElementById("progressProjectName");
+      if (progressName) progressName.textContent = projectKey ? `项目：${projectKey}` : "未选择项目";
+      const channelIdentity = document.getElementById("channelProjectIdentity");
+      if (channelIdentity) channelIdentity.textContent = projectKey
+        ? `${projectKey}（Channel 页面将锁定此 Project Key）`
+        : "请先完成项目草稿；没有项目代码时不会打开任何默认项目。";
+    }
+
+    function updateOnboardingProgress() {
+      const reviewSummary = state.learningReview?.summary || {};
+      const guideSummary = state.connectionGuide?.summary || {};
+      const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
+      const salesValidationReady = Array.isArray(packageData?.sales_process?.stages) && packageData.sales_process.stages.length > 0;
+      const contractErrors = Array.isArray(state.replyContract?.validation?.errors) ? state.replyContract.validation.errors.length : null;
+      const mockTests = state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || [];
+      const mockFailed = Number(state.mockResult?.suites?.owner_content?.failed_count ?? state.mockResult?.owner_content?.failed_count ?? 0);
+      const done = {
+        business: Boolean(state.created?.project_key || state.existingProject?.project_key),
+        materials: Number(state.documentKnowledge?.counts?.source_documents || packageData?.source_documents?.length || 0) > 0,
+        review: Number(reviewSummary.total_items || 0) > 0 && Number(reviewSummary.pending_items || 0) === 0,
+        sales: salesValidationReady,
+        contract: contractErrors === 0,
+        channel: guideSummary.connection_ready === true && Number(guideSummary.sales_steps_bound || 0) >= Number(guideSummary.sales_steps_total || 1),
+        mock: Array.isArray(mockTests) && mockTests.length > 0 && mockFailed === 0,
+        learning: state.published === true
+      };
+      const count = Object.values(done).filter(Boolean).length;
+      document.querySelectorAll("[data-progress-step]").forEach((item) => {
+        item.classList.toggle("done", done[item.dataset.progressStep] === true);
+      });
+      document.getElementById("progressBar").style.width = `${(count / 8) * 100}%`;
+      document.getElementById("progressSummary").textContent = `${count} / 8 步完成 · 每一步保存后都可以关闭页面再继续`;
+      document.getElementById("progressStatus").textContent = state.published ? "Project Brain 已发布" : "草稿 / Approval-first";
+      document.getElementById("progressStatus").className = `status ${state.published ? "ok" : ""}`;
+      updateProjectLinks();
+      updatePublishButton();
     }
 
     async function loadExistingProjectForOwnerMigration() {
@@ -1390,6 +1820,7 @@
       const packageResponse = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
       state.existingProject = existingProject;
       state.existingPackageResponse = packageResponse;
+      state.salesPackageResponse = packageResponse;
       applyExistingProjectOnboarding(packageResponse.project_package || {}, existingProject);
       document.getElementById("setupHeroTitle").textContent = `${existingProject.name || projectKey} Owner 业务验收`;
       document.getElementById("setupHeroDescription").textContent = "这是现有项目迁移，不会重建项目。请核对系统从原 Project Brain 预填的六问；保存只会新增草稿版本，不会发布、不发送顾客讯息，也不会触发 Flow。";
@@ -1401,6 +1832,7 @@
       formHelp.textContent = `正在迁移现有项目 ${projectKey}：系统已按原 Project Brain 预填六问。请逐项修正后再验收；保存只建立新草稿版本，不发布、不发讯息、不触发 Flow。`;
       setStatus("现有项目迁移", "ok");
       addLog("已载入现有项目", `${projectKey} 当前版本 ${packageResponse.version_no || "-"}。旧 FAQ、SOP、Flow 与自动化设置会保留；这里只补 Owner 六问验收。`);
+      updateOnboardingProgress();
     }
 
     function applyExistingProjectOnboarding(projectPackage, existingProject) {
@@ -1536,6 +1968,13 @@
         });
         state.created = data;
         state.existingPackageResponse = data;
+        state.salesPackageResponse = data;
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set("project_key", projectKey);
+        nextUrl.searchParams.set("api", apiBase);
+        window.history.replaceState({}, "", nextUrl);
+        lockProjectIdentity();
+        updateProjectLinks();
         addLog(
           existingProject ? "Owner 已验收，现有项目迁移草稿已保存" : "Owner 已验收，项目草稿已创建",
           `Project: ${data.project_key || projectKey}，草稿版本 ${data.version_no || "-"}。旧资料与自动化设置没有被覆盖；必须重新通过 Mock Test 才能发布。`
@@ -1546,7 +1985,8 @@
           metricHtml("Owner", "已验收"),
           metricHtml("自动发送 / Flow", "关闭 / 关闭")
         ].join("");
-        await loadLearningReview();
+        await Promise.all([loadLearningReview(), loadSalesJourney()]);
+        updateOnboardingProgress();
       } catch (error) {
         addLog("创建失败", error.message || String(error), true);
       } finally {
@@ -1754,6 +2194,150 @@
       ).trim();
     }
 
+    async function analyzeProjectDocument() {
+      const projectKey = currentProjectKey();
+      const file = projectDocumentFile.files?.[0];
+      if (!projectKey) {
+        setDocumentStatus("请先保存项目草稿", "bad");
+        return;
+      }
+      if (!file) {
+        setDocumentStatus("请选择资料文件", "bad");
+        return;
+      }
+      const previous = analyzeDocumentButton.textContent;
+      try {
+        analyzeDocumentButton.disabled = true;
+        analyzeDocumentButton.textContent = "正在提取与分析…";
+        setDocumentStatus("读取文件中", "");
+        const extractedText = await extractProjectDocumentText(file);
+        setDocumentStatus("生成学习草稿中", "");
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/analyze-document`, {
+          file_name: file.name,
+          file_type: file.type,
+          extracted_text: extractedText,
+          updated_by: "owner_onboarding"
+        });
+        state.documentKnowledge = data;
+        state.salesPackageResponse = {
+          project_package: {
+            ...(state.salesPackageResponse?.project_package || {}),
+            source_documents: data.source_documents || [],
+            learning_assets: data.learning_assets || state.salesPackageResponse?.project_package?.learning_assets
+          },
+          version_no: data.version_no
+        };
+        renderDocumentKnowledge(data, file.name);
+        await loadLearningReview();
+        updateOnboardingProgress();
+      } catch (error) {
+        setDocumentStatus("资料处理失败", "bad");
+        documentResult.textContent = error.message || String(error);
+      } finally {
+        analyzeDocumentButton.disabled = false;
+        analyzeDocumentButton.textContent = previous;
+      }
+    }
+
+    function renderDocumentKnowledge(data, fileName = "项目资料") {
+      const counts = data?.counts || {};
+      documentMetrics.innerHTML = [
+        metricHtml("资料文件", Number(counts.source_documents || 0)),
+        metricHtml("FAQ 草稿", Number(counts.faq || 0)),
+        metricHtml("一般 / 安全 SOP", `${Number(counts.ops_sop || 0)} / ${Number(counts.safety_sop || 0)}`),
+        metricHtml("真实发送 / Flow", "0 / 0")
+      ].join("");
+      const missing = Array.isArray(data?.analysis?.missing_information) ? data.analysis.missing_information : [];
+      documentResult.textContent = `${fileName} 已进入当前项目学习草稿。${missing.length ? `仍缺：${missing.join("；")}` : "下一步逐条完成 Owner 审核。"}`;
+      setDocumentStatus(data?.uses_openai ? "AI 已分析，待 Owner 审核" : "已提取文字，待补 AI 分析", data?.uses_openai ? "ok" : "");
+    }
+
+    function setDocumentStatus(text, tone) {
+      documentStatus.textContent = text;
+      documentStatus.className = `status ${tone || ""}`;
+    }
+
+    async function extractProjectDocumentText(file) {
+      const name = String(file?.name || "").toLowerCase();
+      if (name.endsWith(".txt") || name.endsWith(".md")) return file.text();
+      if (name.endsWith(".pdf") || String(file?.type || "").toLowerCase() === "application/pdf") {
+        return extractPdfDocumentText(file);
+      }
+      if (!name.endsWith(".pptx")) throw new Error("目前支持 PPTX、PDF、TXT 或 Markdown；旧 .ppt 请先另存为 .pptx。");
+      const JSZip = await ensureJsZip();
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      const slideNames = Object.keys(zip.files)
+        .filter((path) => /^ppt\/slides\/slide\d+\.xml$/i.test(path))
+        .sort((a, b) => Number(a.match(/slide(\d+)/i)?.[1] || 0) - Number(b.match(/slide(\d+)/i)?.[1] || 0));
+      const slides = [];
+      for (const path of slideNames) {
+        const xml = await zip.files[path].async("string");
+        const documentXml = new DOMParser().parseFromString(xml, "application/xml");
+        const textNodes = [...documentXml.getElementsByTagNameNS("http://schemas.openxmlformats.org/drawingml/2006/main", "t")];
+        const text = textNodes.map((node) => node.textContent || "").join(" ").replace(/\s+/g, " ").trim();
+        if (text) slides.push(`Slide ${slides.length + 1}\n${text}`);
+      }
+      const result = slides.join("\n\n");
+      if (result.length < 80) throw new Error("这个 PPTX 没有读到足够文字，可能主要是图片；请补可复制文字或上传 TXT 摘要。");
+      return result.slice(0, 120000);
+    }
+
+    async function extractPdfDocumentText(file) {
+      if (Number(file?.size || 0) > 25 * 1024 * 1024) throw new Error("PDF 超过 25MB，请压缩或拆分后再上传。");
+      const pdfjsLib = await ensurePdfJs();
+      let loadingTask = null;
+      try {
+        loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
+        const pdf = await loadingTask.promise;
+        const pages = [];
+        let characterCount = 0;
+        for (let pageNumber = 1; pageNumber <= Math.min(Number(pdf.numPages || 0), 120) && characterCount < 120000; pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber);
+          const content = await page.getTextContent();
+          const text = (content.items || []).map((item) => String(item?.str || "").trim()).filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+          if (!text) continue;
+          const pageText = `Page ${pageNumber}\n${text}`;
+          pages.push(pageText);
+          characterCount += pageText.length;
+        }
+        const result = pages.join("\n\n").slice(0, 120000);
+        if (result.length < 80) throw new Error("这个 PDF 没有读到足够文字，可能是扫描件或纯图片。请先做 OCR。");
+        return result;
+      } finally {
+        if (typeof loadingTask?.destroy === "function") await loadingTask.destroy().catch(() => {});
+      }
+    }
+
+    function ensurePdfJs() {
+      if (window.__replyPilotPdfJs) return Promise.resolve(window.__replyPilotPdfJs);
+      if (window.__replyPilotPdfJsPromise) return window.__replyPilotPdfJsPromise;
+      window.__replyPilotPdfJsPromise = import("https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.min.mjs")
+        .then((pdfjsLib) => {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.worker.min.mjs";
+          window.__replyPilotPdfJs = pdfjsLib;
+          return pdfjsLib;
+        })
+        .catch((error) => {
+          window.__replyPilotPdfJsPromise = null;
+          throw new Error(`PDF 读取组件载入失败，请检查网络后重试。${error?.message ? ` ${error.message}` : ""}`);
+        });
+      return window.__replyPilotPdfJsPromise;
+    }
+
+    function ensureJsZip() {
+      if (window.JSZip) return Promise.resolve(window.JSZip);
+      if (window.__replyPilotJsZipPromise) return window.__replyPilotJsZipPromise;
+      window.__replyPilotJsZipPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
+        script.crossOrigin = "anonymous";
+        script.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error("PPT 读取组件没有载入。"));
+        script.onerror = () => reject(new Error("PPT 读取组件载入失败，请检查网络后重试。"));
+        document.head.appendChild(script);
+      });
+      return window.__replyPilotJsZipPromise;
+    }
+
     async function loadLearningReview() {
       const projectKey = currentProjectKey();
       if (!projectKey) {
@@ -1766,7 +2350,10 @@
         setLearningReviewStatus("加载中", "");
         const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review`);
         state.learningReview = data;
+        state.learningReviewDrafts.clear();
         renderLearningReview();
+        updateReviewBatchButton();
+        updateOnboardingProgress();
       } catch (error) {
         setLearningReviewStatus("加载失败", "bad");
         learningReviewList.innerHTML = `<div class="review-empty error">${escapeHtml(error.message || String(error))}</div>`;
@@ -1804,6 +2391,8 @@
 
     function learningReviewCardHtml(item) {
       const originalIndex = (state.learningReview?.items || []).findIndex((candidate) => candidate.id === item.id && candidate.asset_type === item.asset_type);
+      const draftKey = `${item.asset_type}:${item.id}`;
+      const stagedDecision = state.learningReviewDrafts.get(draftKey) || null;
       const riskLevel = item.risk?.level || "medium";
       const pending = item.pending === true;
       const riskLabel = learningRiskLabel(riskLevel);
@@ -1828,13 +2417,14 @@
       }).join("");
       const reasonText = item.owner_review?.reason || "";
       return `
-        <details class="review-card" data-review-index="${originalIndex}" data-risk="${escapeAttr(riskLevel)}" data-status="${escapeAttr(item.status || "")}">
+        <details class="review-card ${stagedDecision ? "queued-review" : ""}" data-review-index="${originalIndex}" data-risk="${escapeAttr(riskLevel)}" data-status="${escapeAttr(item.status || "")}">
           <summary class="review-card-head">
             <div>
               <div class="review-badges">
                 <span class="review-badge">${escapeHtml(item.type_label || item.asset_type)}</span>
                 <span class="review-badge">${escapeHtml(statusLabel)}</span>
                 <span class="review-badge risk-${escapeAttr(riskLevel)}">${escapeHtml(riskLabel)}</span>
+                ${stagedDecision ? `<span class="review-badge">本轮：${escapeHtml(learningDecisionLabel(stagedDecision.decision))}</span>` : ""}
               </div>
               <h3>${escapeHtml(item.title || "学习草稿")}</h3>
             </div>
@@ -1882,7 +2472,7 @@
       renderLearningReview();
     }
 
-    async function handleLearningReviewAction(event) {
+    function handleLearningReviewAction(event) {
       const button = event.target.closest("[data-review-action]");
       if (!button || state.learningReviewBusy) return;
       const index = Number(button.dataset.reviewIndex);
@@ -1914,27 +2504,58 @@
         setLearningReviewStatus("请确认敏感风险", "bad");
         return;
       }
+      const payload = {
+        asset_type: item.asset_type,
+        asset_id: item.id,
+        decision,
+        reason,
+        confirm_sensitive: confirmSensitive,
+        ...(decision === "approve_with_edits" ? { edited_asset: editedAsset } : {})
+      };
+      state.learningReviewDrafts.set(`${item.asset_type}:${item.id}`, payload);
+      renderLearningReview();
+      updateReviewBatchButton();
+      setLearningReviewStatus(`已加入本轮：${state.learningReviewDrafts.size} 条；尚未写入项目`, "");
+    }
+
+    async function submitLearningReviewBatch() {
+      const decisions = [...state.learningReviewDrafts.values()];
+      if (!decisions.length || !state.learningReview?.version_no) {
+        setLearningReviewStatus("请先逐条选择审核决定", "bad");
+        return;
+      }
       try {
         setLearningReviewBusy(true);
-        setLearningReviewStatus("保存决定中", "");
-        const payload = {
+        setLearningReviewStatus(`一次保存 ${decisions.length} 条决定`, "");
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/learning-review/batch`, {
           expected_version_no: state.learningReview.version_no,
-          asset_type: item.asset_type,
-          asset_id: item.id,
-          decision,
-          reason,
-          confirm_sensitive: confirmSensitive,
-          ...(decision === "approve_with_edits" ? { edited_asset: editedAsset } : {})
-        };
-        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/learning-review`, payload);
+          decisions
+        });
         state.learningReview = data;
+        state.learningReviewDrafts.clear();
         renderLearningReview();
-        setLearningReviewStatus(`已${decision === "reject" ? "退回" : "批准"}，剩余 ${data.summary?.pending_items || 0} 条`, "ok");
+        updateReviewBatchButton();
+        setLearningReviewStatus(`本轮已保存 ${data.reviewed_count || decisions.length} 条，剩余 ${data.summary?.pending_items || 0} 条`, "ok");
+        updateOnboardingProgress();
       } catch (error) {
-        setLearningReviewStatus(error.message || "审核保存失败", "bad");
+        setLearningReviewStatus(error.message || "本轮审核保存失败；没有部分保存", "bad");
       } finally {
         setLearningReviewBusy(false);
       }
+    }
+
+    function updateReviewBatchButton() {
+      const count = state.learningReviewDrafts.size;
+      submitReviewBatchButton.textContent = `提交本轮审核（${count}）`;
+      submitReviewBatchButton.disabled = state.learningReviewBusy || count < 1;
+    }
+
+    function learningDecisionLabel(decision) {
+      return {
+        approve: "批准原文",
+        approve_with_edits: "修改后批准",
+        reject: "退回"
+      }[decision] || decision || "未选择";
     }
 
     function learningRiskLabel(level) {
@@ -1989,9 +2610,147 @@
     function setLearningReviewBusy(busy) {
       state.learningReviewBusy = busy;
       loadReviewButton.disabled = busy;
+      updateReviewBatchButton();
       learningReviewList.querySelectorAll("button").forEach((button) => {
         button.disabled = busy;
       });
+    }
+
+    async function loadSalesJourney() {
+      const projectKey = currentProjectKey();
+      if (!projectKey) {
+        setSalesJourneyStatus("需要项目代码", "bad");
+        return;
+      }
+      try {
+        setSalesJourneyStatus("加载中", "");
+        const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+        state.salesPackageResponse = data;
+        renderSalesJourneyDraft(data.project_package?.sales_process || {});
+        setSalesJourneyStatus(`草稿版本 v${data.version_no || "-"}`, "ok");
+        updateOnboardingProgress();
+      } catch (error) {
+        setSalesJourneyStatus(error.message || "加载失败", "bad");
+      }
+    }
+
+    function renderSalesJourneyDraft(process = state.salesPackageResponse?.project_package?.sales_process || {}) {
+      const count = Math.min(4, Math.max(1, Number(process.step_count || salesStepCount.value || 4)));
+      salesStepCount.value = String(count);
+      salesPriceStage.value = process.price_stage_key || `step_${Math.min(3, count)}`;
+      [...salesPriceStage.options].forEach((option, index) => { option.hidden = index + 1 > count; });
+      if (Number(salesPriceStage.value.replace("step_", "")) > count) salesPriceStage.value = `step_${count}`;
+      const existingByKey = new Map((Array.isArray(process.stages) ? process.stages : []).map((stage) => [stage.stage_key, stage]));
+      const defaultPurposes = [
+        "开场并理解顾客问题",
+        "教育价值、需求与信任",
+        "回答价格 / 配套并推进选择",
+        "确认订单资料或安全交人工"
+      ];
+      salesJourneyGrid.innerHTML = Array.from({ length: count }, (_, index) => {
+        const key = `step_${index + 1}`;
+        const stage = existingByKey.get(key) || {};
+        return `
+          <article class="journey-card" data-sales-stage="${key}">
+            <b>Step ${index + 1}</b>
+            <label>
+              <span>这一步要完成什么 *</span>
+              <textarea data-sales-field="purpose" placeholder="${escapeAttr(defaultPurposes[index])}">${escapeHtml(stage.purpose || defaultPurposes[index])}</textarea>
+            </label>
+            <label>
+              <span>顾客怎样进入这一步</span>
+              <textarea data-sales-field="entry_signal" placeholder="例：先回答当前问题后，顾客愿意继续了解">${escapeHtml(stage.entry_signal || "")}</textarea>
+            </label>
+            <label>
+              <span>何时交人工 / 停止 Flow</span>
+              <textarea data-sales-field="handoff_when" placeholder="例：健康、退款、投诉、附件、付款异常、低信心">${escapeHtml(stage.handoff_when || "")}</textarea>
+            </label>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function collectSalesJourney(currentPackage = {}) {
+      const currentProcess = currentPackage.sales_process || {};
+      const existingByKey = new Map((Array.isArray(currentProcess.stages) ? currentProcess.stages : []).map((stage) => [stage.stage_key, stage]));
+      const cards = [...salesJourneyGrid.querySelectorAll("[data-sales-stage]")];
+      const stages = cards.map((card, index) => {
+        const stageKey = card.dataset.salesStage;
+        const existing = existingByKey.get(stageKey) || {};
+        const fields = Object.fromEntries([...card.querySelectorAll("[data-sales-field]")].map((input) => [input.dataset.salesField, input.value.trim()]));
+        if (!fields.purpose) throw new Error(`Step ${index + 1} 还没有填写目标。`);
+        return {
+          ...existing,
+          stage_key: stageKey,
+          order: index + 1,
+          purpose: fields.purpose,
+          entry_signal: fields.entry_signal,
+          handoff_when: fields.handoff_when,
+          flow_key: existing.flow_key || stageKey,
+          next_stage_key: index + 1 < cards.length ? `step_${index + 2}` : null,
+          language: existing.language || "zh-MY",
+          contains_media: existing.contains_media === true,
+          active: true
+        };
+      });
+      return {
+        ...currentProcess,
+        channel_provider: currentProcess.channel_provider || "chatdaddy",
+        step_count: stages.length,
+        entry_stage_key: "step_1",
+        price_stage_key: salesPriceStage.value,
+        stages,
+        early_price_policy: currentProcess.early_price_policy || "answer_now_and_enter_closer",
+        post_price_policy: currentProcess.post_price_policy || "answer_new_question_without_repeating_proof_cta",
+        follow_up_policy: { ...(currentProcess.follow_up_policy || {}), owner: "channel", stop_on_customer_reply: true },
+        automation_level: Number(currentProcess.automation_level || 1)
+      };
+    }
+
+    async function saveSalesJourney() {
+      if (!document.getElementById("salesJourneyConfirm").checked) {
+        setSalesJourneyStatus("请先确认 Step 与接管规则", "bad");
+        return;
+      }
+      const projectKey = currentProjectKey();
+      if (!projectKey) {
+        setSalesJourneyStatus("请先保存项目草稿", "bad");
+        return;
+      }
+      try {
+        setSalesJourneyStatus("保存中", "");
+        const current = state.salesPackageResponse?.project_package
+          ? state.salesPackageResponse
+          : await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+        const projectPackage = {
+          ...current.project_package,
+          sales_process: collectSalesJourney(current.project_package || {}),
+          metadata: {
+            ...(current.project_package?.metadata || {}),
+            sales_journey_owner_reviewed_at: new Date().toISOString(),
+            approval_first: true,
+            auto_send_enabled: false,
+            auto_trigger_flows_enabled: false
+          }
+        };
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`, {
+          project_package: projectPackage,
+          expected_version_no: Number(current.version_no || 0),
+          note: "Owner approved onboarding sales journey draft"
+        });
+        state.salesPackageResponse = data;
+        state.existingPackageResponse = data;
+        renderSalesJourneyDraft(data.project_package?.sales_process || {});
+        setSalesJourneyStatus(`销售 Step 已保存 · v${data.version_no}`, "ok");
+        updateOnboardingProgress();
+      } catch (error) {
+        setSalesJourneyStatus(error.message || "保存失败", "bad");
+      }
+    }
+
+    function setSalesJourneyStatus(text, tone) {
+      salesJourneyStatus.textContent = text;
+      salesJourneyStatus.className = `status ${tone || ""}`;
     }
 
     async function loadReplyContract() {
@@ -2035,6 +2794,7 @@
       previewReplyContract();
       const errors = Array.isArray(data?.validation?.errors) ? data.validation.errors : [];
       setReplyContractStatus(errors.length ? `还差 ${errors.length} 项` : "Reply Contract 完整", errors.length ? "" : "ok");
+      updateOnboardingProgress();
     }
 
     function renderReplyContractSourceSelect(part, selectedValue) {
@@ -2053,6 +2813,26 @@
       updateReplyContractConditionalFields();
       updateReplyContractSourceEvidence();
       previewReplyContract();
+      const missing = validateReplyContractDraftLocal(collectReplyContract());
+      setReplyContractStatus(missing.length ? `当前输入还差 ${missing.length} 项 · 未保存` : "当前输入完整 · 待保存", missing.length ? "" : "ok");
+    }
+
+    function validateReplyContractDraftLocal(draft = {}) {
+      const missing = [];
+      if (!draft.confidence) missing.push("confidence");
+      if (!draft.cta) missing.push("cta");
+      if (!draft.package_choice) missing.push("package_choice");
+      for (const part of ["confidence", "cta", "package_choice"]) {
+        if (!draft.source_bindings?.[part]) missing.push(`${part}_source`);
+      }
+      if (draft.offer_mode === "active_offer") {
+        if (!draft.offer_title) missing.push("offer_title");
+        if (!draft.offer_valid_until) missing.push("offer_valid_until");
+        if (!draft.urgency) missing.push("urgency");
+        if (!draft.source_bindings?.urgency) missing.push("urgency_source");
+      }
+      if (draft.price_delivery_mode === "asset_required" && !draft.price_asset_key) missing.push("price_asset_key");
+      return missing;
     }
 
     function updateReplyContractConditionalFields() {
@@ -2133,6 +2913,7 @@
         renderReplyContract(data);
         setReplyContractStatus(`草稿已保存 · v${data.version_no}`, "ok");
         replyContractMock.innerHTML = `<div class="contract-mock-row"><strong>保存边界</strong><span class="ok">未发送 · 未触发 Flow · 未发布</span></div>`;
+        updateOnboardingProgress();
       } catch (error) {
         const details = Array.isArray(error.data?.errors) ? error.data.errors.map(replyContractErrorLabel).join("；") : "";
         setReplyContractStatus(details || error.message || "保存失败", "bad");
@@ -2168,6 +2949,7 @@
     }
 
     function renderReplyContractMock(data) {
+      state.mockResult = data;
       const blockers = Array.isArray(data?.blockers) ? data.blockers : [];
       const replyBlockers = blockers.filter((item) => String(item.code || "").startsWith("reply_contract_"));
       const externalBlockers = blockers.filter((item) => !String(item.code || "").startsWith("reply_contract_"));
@@ -2182,6 +2964,7 @@
       const contractReady = replyBlockers.length === 0;
       setReplyContractStatus(contractReady ? "Reply Contract Mock 通过" : "Reply Contract 仍有阻塞", contractReady ? "ok" : "bad");
       renderOwnerContentMock(data?.owner_content || {});
+      updateOnboardingProgress();
     }
 
     function contractMockRow(label, passed, detail) {
@@ -2290,6 +3073,76 @@
       if (!value) return "";
       const date = new Date(value);
       return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+    }
+
+    async function refreshConnectionReadiness(options = {}) {
+      const projectKey = currentProjectKey();
+      if (!projectKey) {
+        if (!options.silent) {
+          channelFlowStatus.textContent = "需要项目代码";
+          channelFlowStatus.className = "status bad";
+        }
+        return;
+      }
+      try {
+        if (!options.silent) {
+          channelFlowStatus.textContent = "读取中";
+          channelFlowStatus.className = "status";
+        }
+        const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/connection-guide`);
+        state.connectionGuide = data;
+        const summary = data.summary || {};
+        const blockers = Array.isArray(data.readiness?.blockers) ? data.readiness.blockers : [];
+        const steps = `${Number(summary.sales_steps_bound || 0)} / ${Number(summary.sales_steps_total || 0)}`;
+        readinessResult.textContent = blockers.length
+          ? `仍有 ${blockers.length} 项阻塞。销售 Step Flow：${steps}。下一步：${blockers.slice(0, 3).map((item) => item.message || item.code).join("；")}`
+          : `连接与 Flow Gate 已通过。销售 Step Flow：${steps}。现在可以运行完整 Synthetic Mock。`;
+        channelFlowStatus.textContent = blockers.length ? `仍有 ${blockers.length} 项` : "连接与 Flow 已通过";
+        channelFlowStatus.className = `status ${blockers.length ? "bad" : "ok"}`;
+        updateOnboardingProgress();
+      } catch (error) {
+        if (!options.silent) {
+          channelFlowStatus.textContent = "读取失败";
+          channelFlowStatus.className = "status bad";
+          readinessResult.textContent = error.message || String(error);
+        }
+      }
+    }
+
+    function updatePublishButton() {
+      if (!publishProjectButton || !publishConfirm) return;
+      const pending = Number(state.learningReview?.summary?.pending_items || 0);
+      const blockers = Array.isArray(state.connectionGuide?.readiness?.blockers) ? state.connectionGuide.readiness.blockers.length : 1;
+      const failed = Number(state.mockResult?.suites?.owner_content?.failed_count ?? state.mockResult?.owner_content?.failed_count ?? 1);
+      const hasTests = (state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || []).length > 0;
+      publishProjectButton.disabled = !(publishConfirm.checked && pending === 0 && blockers === 0 && hasTests && failed === 0 && !state.published);
+    }
+
+    async function publishCurrentProjectBrain() {
+      if (publishProjectButton.disabled || !publishConfirm.checked) return;
+      const projectKey = currentProjectKey();
+      try {
+        publishProjectButton.disabled = true;
+        publishProjectButton.textContent = "正在执行发布 Gate…";
+        const packageState = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package/publish`, {
+          mock_test_passed: true,
+          version_no: Number(packageState.version_no || 0),
+          mock_test_reference: `owner_onboarding_${new Date().toISOString()}`
+        });
+        if (data.sends_messages !== false || data.triggers_flows !== false) throw new Error("发布边界不完整，已停止显示成功状态。");
+        state.published = data.published === true;
+        publishProjectButton.textContent = state.published ? `已发布 v${data.version_no}` : "发布未完成";
+        document.getElementById("learningLoopStatus").textContent = state.published ? "已进入持续学习阶段" : "Owner / Admin 专用";
+        document.getElementById("learningLoopStatus").className = `status ${state.published ? "ok" : ""}`;
+        updateOnboardingProgress();
+      } catch (error) {
+        publishProjectButton.textContent = "发布受阻，请查看上方原因";
+        contentMockStatus.textContent = error.message || "发布失败";
+        contentMockStatus.className = "status bad";
+        publishConfirm.checked = false;
+        updatePublishButton();
+      }
     }
 
     function renderPreview(data, title) {
