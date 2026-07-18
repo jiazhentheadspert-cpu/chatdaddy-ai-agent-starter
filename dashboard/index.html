@@ -8644,7 +8644,6 @@
         <div class="toolbar">
           <div class="filters">
             <button class="pill active" data-filter="needs_attention">全部待处理</button>
-            <button class="pill" data-filter="all_cases" id="allCasesFilterBtn">所有 Case</button>
             <button class="pill" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_first">人工回复</button>
             <button class="pill" data-filter="auto" id="autoFilterBtn">无需介入</button>
@@ -10752,7 +10751,7 @@
     function normalizeStaffQueueFilter(filter = "") {
       const requested = String(filter || "").trim() || "needs_attention";
       if (state.role !== "staff") return requested;
-      return ["needs_attention", "all_cases", "approval_required", "human_first", "auto", "records"].includes(requested)
+      return ["needs_attention", "approval_required", "human_first", "auto", "records"].includes(requested)
         ? requested
         : "needs_attention";
     }
@@ -10760,7 +10759,6 @@
     function staffQueueFilterLabel(filter = "") {
       const normalized = normalizeStaffQueueFilter(filter);
       if (normalized === "needs_attention") return "全部待处理";
-      if (normalized === "all_cases") return "所有 Case";
       if (normalized === "human_first") return "人工回复";
       if (normalized === "auto") return "无需介入";
       if (normalized === "records") return "AI 自动回复记录";
@@ -10772,9 +10770,7 @@
       const unchanged = state.filter === nextFilter;
       const previousFilter = state.filter;
       state.filter = nextFilter;
-      if (nextFilter === "all_cases") {
-        state.queueDateScope = "all_history";
-      } else if (previousFilter === "all_cases" && state.queueDateScope === "all_history") {
+      if (previousFilter === "all_cases" && state.queueDateScope === "all_history") {
         state.queueDateScope = staffFilterSupportsOpenBacklog(nextFilter) ? "open_backlog" : "date";
       }
       // “全部未完成” only applies to work that still needs staff action.
@@ -13302,7 +13298,7 @@
     }
 
 	const CASE_CONVERSATION_SYNC_TTL_MS = 2 * 60 * 1000;
-	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 18;
+	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 3;
 
 	function scheduleAllCaseConversationSync(options = {}) {
 	  if (state.demoMode || state.role !== "staff" || document.hidden) return;
