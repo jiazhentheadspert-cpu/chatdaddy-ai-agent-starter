@@ -1475,7 +1475,8 @@
           <div class="final-card"><b>每周</b><p>复盘准确率、成交推进、转人工原因、未覆盖问题、资料过期和敏感内容；所有学习保留 Case 来源。</p></div>
         </div>
         <div class="actions">
-          <a class="btn primary" id="learningDashboardLink" href="../dashboard/index.html?view=learning">打开当前项目复盘与学习</a>
+          <a class="btn primary" id="aiReplyDashboardLink" href="../dashboard/index.html?view=cases" hidden>进入 AI Reply 工作台</a>
+          <a class="btn" id="learningDashboardLink" href="../dashboard/index.html?view=learning">打开当前项目复盘与学习</a>
           <a class="btn" id="operationsDashboardLink" href="../dashboard/index.html?view=operations">回到项目设置 / 运营台</a>
         </div>
       </section>
@@ -1584,6 +1585,7 @@
       connectionGuide: null,
       mockResult: null,
       published: false,
+      activation: null,
       existingProject: null,
       existingPackageResponse: null
     };
@@ -1766,13 +1768,16 @@
       if (projectKey) common.set("project_key", projectKey);
       const channelLink = document.getElementById("channelSetupLink");
       if (channelLink) channelLink.href = `../channel-setup/index.html?${common.toString()}`;
-      for (const [id, view] of [["learningDashboardLink", "learning"], ["operationsDashboardLink", "operations"]]) {
+      for (const [id, view] of [["aiReplyDashboardLink", "cases"], ["learningDashboardLink", "learning"], ["operationsDashboardLink", "operations"]]) {
         const link = document.getElementById(id);
         if (!link) continue;
         const query = new URLSearchParams(common);
         query.set("view", view);
+        if (id === "aiReplyDashboardLink" && state.activation?.ready_for_ai_reply === true) query.set("onboarding", "complete");
         link.href = `../dashboard/index.html?${query.toString()}`;
       }
+      const aiReplyLink = document.getElementById("aiReplyDashboardLink");
+      if (aiReplyLink) aiReplyLink.hidden = state.activation?.ready_for_ai_reply !== true;
       const progressName = document.getElementById("progressProjectName");
       if (progressName) progressName.textContent = projectKey ? `项目：${projectKey}` : "未选择项目";
       const channelIdentity = document.getElementById("channelProjectIdentity");
@@ -1807,7 +1812,9 @@
       });
       document.getElementById("progressBar").style.width = `${(count / 8) * 100}%`;
       document.getElementById("progressSummary").textContent = `${count} / 8 步完成 · 每一步保存后都可以关闭页面再继续`;
-      document.getElementById("progressStatus").textContent = state.published ? "Project Brain 已发布" : "草稿 / Approval-first";
+      document.getElementById("progressStatus").textContent = state.activation?.ready_for_ai_reply
+        ? "AI Reply 已可用 · Approval-first"
+        : state.published ? "Project Brain 已发布" : "草稿 / Approval-first";
       document.getElementById("progressStatus").className = `status ${state.published ? "ok" : ""}`;
       updateProjectLinks();
       updatePublishButton();
@@ -1823,6 +1830,8 @@
       state.existingProject = existingProject;
       state.existingPackageResponse = packageResponse;
       state.salesPackageResponse = packageResponse;
+      state.published = packageResponse.published === true && packageResponse.draft !== true;
+      state.activation = packageResponse.activation || null;
       applyExistingProjectOnboarding(packageResponse.project_package || {}, existingProject);
       document.getElementById("setupHeroTitle").textContent = `${existingProject.name || projectKey} Owner 业务验收`;
       document.getElementById("setupHeroDescription").textContent = "这是现有项目迁移，不会重建项目。请核对系统从原 Project Brain 预填的六问；保存只会新增草稿版本，不会发布、不发送顾客讯息，也不会触发 Flow。";
@@ -1835,6 +1844,12 @@
       setStatus("现有项目迁移", "ok");
       addLog("已载入现有项目", `${projectKey} 当前版本 ${packageResponse.version_no || "-"}。旧 FAQ、SOP、Flow 与自动化设置会保留；这里只补 Owner 六问验收。`);
       updateOnboardingProgress();
+    }
+
+    function markOnboardingDraft() {
+      state.published = false;
+      state.activation = null;
+      publishConfirm.checked = false;
     }
 
     function applyExistingProjectOnboarding(projectPackage, existingProject) {
@@ -1971,6 +1986,7 @@
         state.created = data;
         state.existingPackageResponse = data;
         state.salesPackageResponse = data;
+        markOnboardingDraft();
         const nextUrl = new URL(window.location.href);
         nextUrl.searchParams.set("project_key", projectKey);
         nextUrl.searchParams.set("api", apiBase);
@@ -2227,6 +2243,7 @@
         const canonicalPackage = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
         state.salesPackageResponse = canonicalPackage;
         state.existingPackageResponse = canonicalPackage;
+        markOnboardingDraft();
         renderDocumentKnowledge(data, file.name);
         await loadLearningReview();
         updateOnboardingProgress();
@@ -2351,6 +2368,7 @@
         const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review`);
         state.learningReview = data;
         state.learningReviewDrafts.clear();
+        markOnboardingDraft();
         renderLearningReview();
         updateReviewBatchButton();
         updateOnboardingProgress();
@@ -2740,6 +2758,7 @@
         });
         state.salesPackageResponse = data;
         state.existingPackageResponse = data;
+        markOnboardingDraft();
         renderSalesJourneyDraft(data.project_package?.sales_process || {});
         setSalesJourneyStatus(`销售 Step 已保存 · v${data.version_no}`, "ok");
         updateOnboardingProgress();
@@ -2910,6 +2929,7 @@
         setReplyContractStatus("保存草稿中", "");
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/reply-contract`, collectReplyContract());
         state.replyContract = data;
+        markOnboardingDraft();
         renderReplyContract(data);
         setReplyContractStatus(`草稿已保存 · v${data.version_no}`, "ok");
         replyContractMock.innerHTML = `<div class="contract-mock-row"><strong>保存边界</strong><span class="ok">未发送 · 未触发 Flow · 未发布</span></div>`;
@@ -3146,11 +3166,21 @@
           mock_test_reference: `owner_onboarding_${new Date().toISOString()}`
         });
         if (data.sends_messages !== false || data.triggers_flows !== false) throw new Error("发布边界不完整，已停止显示成功状态。");
+        if (data.ai_reply_ready !== true || data.activation?.ready_for_ai_reply !== true) {
+          throw new Error("Project Brain 已通过，但 AI Reply Runtime 尚未就绪；系统不会把未完成项目显示为上线。");
+        }
         state.published = data.published === true;
+        state.activation = data.activation;
         publishProjectButton.textContent = state.published ? `已发布 v${data.version_no}` : "发布未完成";
-        document.getElementById("learningLoopStatus").textContent = state.published ? "已进入持续学习阶段" : "Owner / Admin 专用";
+        document.getElementById("learningLoopStatus").textContent = state.published ? "AI Reply 已可用 · Approval-first" : "Owner / Admin 专用";
         document.getElementById("learningLoopStatus").className = `status ${state.published ? "ok" : ""}`;
         updateOnboardingProgress();
+        const aiReplyLink = document.getElementById("aiReplyDashboardLink");
+        if (state.published && aiReplyLink) {
+          contentMockStatus.textContent = "Onboarding 已完成，正在进入 AI Reply 工作台…";
+          contentMockStatus.className = "status ok";
+          window.setTimeout(() => window.location.assign(aiReplyLink.href), 900);
+        }
       } catch (error) {
         publishProjectButton.textContent = "发布受阻，请查看上方原因";
         contentMockStatus.textContent = error.message || "发布失败";
