@@ -369,6 +369,7 @@
 
   <script>
     const DEFAULT_API_URL = "https://ctg-chatdaddy-hermas-agents-runtime.jiazhen-theadspert.workers.dev";
+    const LOGIN_TIMEOUT_MS = 12000;
     const MASTER_ADMIN_LOGIN = "masteradmin";
     const MASTER_ADMIN_EMAIL = "masteradmin@ctg.local";
     const params = new URLSearchParams(window.location.search);
@@ -420,6 +421,7 @@
       const identifier = identifierInput.value.trim();
       const email = loginEmailFor(identifier);
       const password = passwordInput.value;
+      const requestedProject = params.get("project_key") || "beyoute";
 
       if (!identifier || !password) {
         setMessage("请输入邮箱或用户名和密码。", "error");
@@ -430,12 +432,15 @@
       button.textContent = "正在安全登录…";
       setMessage("");
 
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), LOGIN_TIMEOUT_MS);
       try {
         const response = await fetch(`${apiUrl}/api/auth/login`, {
           method: "POST",
           credentials: "include",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email, password, project_key: requestedProject }),
+          signal: controller.signal
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok || !data.authenticated) {
@@ -445,7 +450,6 @@
         }
 
         const projects = Array.isArray(data.projects) ? data.projects : [];
-        const requestedProject = params.get("project_key") || "beyoute";
         const selectedProject = projects.find((item) => item.project_key === requestedProject)
           || projects[0]
           || { project_key: requestedProject };
@@ -485,7 +489,9 @@
       } catch (error) {
         const code = String(error?.message || "");
         const status = Number(error?.status || 0);
-        if (code === "supabase_not_configured" || code === "session_create_failed" || status >= 500) {
+        if (error?.name === "AbortError") {
+          setMessage("登录服务响应太慢，已停止等待。请再试一次，系统不会重复登录。", "error");
+        } else if (code === "supabase_not_configured" || code === "session_create_failed" || status >= 500) {
           setMessage("账号系统暂时无法连接，请联系管理员。你的账号或密码不一定有问题。", "error");
         } else if (error instanceof TypeError) {
           setMessage("暂时无法连接系统，请检查网络后重试。", "error");
@@ -494,6 +500,7 @@
           passwordInput.select();
         }
       } finally {
+        window.clearTimeout(timeout);
         button.disabled = false;
         button.textContent = "安全登录";
       }
