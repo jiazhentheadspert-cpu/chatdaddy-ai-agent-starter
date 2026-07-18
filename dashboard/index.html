@@ -10836,19 +10836,18 @@
     function setFilter(filter, options = {}) {
       const nextFilter = normalizeStaffQueueFilter(filter);
       const unchanged = state.filter === nextFilter;
-      const previousFilter = state.filter;
       state.filter = nextFilter;
-      if (previousFilter === "all_cases" && state.queueDateScope === "all_history") {
-        state.queueDateScope = staffFilterSupportsOpenBacklog(nextFilter) ? "open_backlog" : "date";
+      // Queue category and date range are separate controls. Keep an explicit
+      // calendar date unchanged. When the operator is already in an “all”
+      // range, translate that range to the selected queue instead of silently
+      // falling back to today:
+      //   actionable queue -> all unfinished
+      //   read-only queue   -> all records
+      if (state.role === "staff" && state.queueDateScope !== "date") {
+        state.queueDateScope = staffFilterSupportsOpenBacklog(nextFilter)
+          ? "open_backlog"
+          : "all_history";
       }
-      // “全部未完成” only applies to work that still needs staff action.
-      // Read-only audit queues always honor the selected calendar date.
-      if (["auto", "records"].includes(nextFilter) && state.queueDateScope === "open_backlog") {
-        state.queueDateScope = "date";
-      }
-      // Queue category and date scope are independent controls. Once staff
-      // chooses today (or a specific date), switching categories must keep that
-      // date instead of silently reopening the full historical backlog.
       state.sidebarKey = sidebarKeyForFilter(state.filter);
       state.activeSetupStep = "4";
       syncDateControls();
@@ -10953,25 +10952,27 @@
       }
       if (caseOpenBacklogEl) {
         const openBacklog = useOpenBacklogDateScope();
-        caseOpenBacklogEl.textContent = "全部未完成";
-        caseOpenBacklogEl.title = openBacklog
-          ? "当前已合并显示所有日期的待批准和人工回复。"
-          : "显示所有日期的待批准和人工回复。";
+        const allHistory = state.queueDateScope === "all_history";
+        const readOnlyQueue = !staffFilterSupportsOpenBacklog();
+        const allScopeActive = openBacklog || allHistory;
+        caseOpenBacklogEl.textContent = readOnlyQueue ? "全部记录" : "全部未完成";
+        caseOpenBacklogEl.title = allScopeActive
+          ? `当前显示所有日期的${staffQueueFilterLabel(state.filter)}。`
+          : `显示所有日期的${staffQueueFilterLabel(state.filter)}。`;
         caseOpenBacklogEl.setAttribute("aria-label", caseOpenBacklogEl.title);
-        caseOpenBacklogEl.dataset.scope = openBacklog ? "open_backlog" : "date";
-        caseOpenBacklogEl.classList.toggle("active", openBacklog);
+        caseOpenBacklogEl.dataset.scope = allHistory ? "all_history" : openBacklog ? "open_backlog" : "date";
+        caseOpenBacklogEl.classList.toggle("active", allScopeActive);
       }
     }
 
     function setOpenBacklogDateScope(options = {}) {
       const previousCount = Array.isArray(state.visibleCases) ? state.visibleCases.length : null;
-      const alreadyOpen = useOpenBacklogDateScope() && state.filter === "needs_attention";
-      state.queueDateScope = "open_backlog";
+      const nextScope = staffFilterSupportsOpenBacklog() ? "open_backlog" : "all_history";
+      const alreadyOpen = state.queueDateScope === nextScope;
+      const rangeLabel = nextScope === "all_history" ? "全部记录" : "全部未完成";
+      const queueLabel = staffQueueFilterLabel(state.filter);
+      state.queueDateScope = nextScope;
       state.selectedDate = normalizeIsoDate(state.selectedDate) || todayISO;
-      // “全部未完成” is a merged work queue, not a date toggle for whichever
-      // category happened to be selected previously.
-      state.filter = "needs_attention";
-      state.sidebarKey = sidebarKeyForFilter(state.filter);
       state.selected.clear();
       syncDateControls();
       syncFilterControls();
@@ -10979,10 +10980,10 @@
       if (options.announce) {
         const nextCount = Array.isArray(state.visibleCases) ? state.visibleCases.length : 0;
         showToast(alreadyOpen
-          ? `当前已经显示全部未完成，共 ${nextCount} 条。`
+          ? `当前已经显示${rangeLabel}，${queueLabel}共 ${nextCount} 条。`
           : previousCount === nextCount
-            ? `已显示全部未完成（待批准 + 人工回复）；当前仍是 ${nextCount} 条，代表较早日期没有额外未完成。`
-            : `已显示全部日期的未完成（待批准 + 人工回复），共 ${nextCount} 条。`);
+            ? `已显示${rangeLabel}；${queueLabel}仍是 ${nextCount} 条，代表较早日期没有额外记录。`
+            : `已显示${rangeLabel}，${queueLabel}共 ${nextCount} 条。`);
       }
     }
 
@@ -15958,6 +15959,7 @@
         const rawHistorical = state.queueHistoryCounts?.[category];
         const historical = Number(rawHistorical);
         if (!state.queueHistoryLoaded || rawHistorical === null || rawHistorical === undefined || !Number.isFinite(historical)) return current;
+        if (state.queueDateScope === "all_history") return historical;
         if (useOpenBacklogDateScope()) return `历史 ${historical}`;
         const selected = normalizeIsoDate(state.selectedDate) || todayISO;
         return `${selected === todayISO ? "今" : "当日"} ${Number(current || 0)} · 历史 ${historical}`;
@@ -15979,7 +15981,11 @@
             : label;
         button.innerHTML = `${escapeHtml(displayLabel)}<span class="pill-count">${escapeHtml(value ?? 0)}</span>`;
         if (button.dataset.filter === "auto") {
-          button.title = "按当前选中日期显示无需介入记录；全部只读。";
+          button.title = state.queueDateScope === "all_history"
+            ? "显示所有日期的无需介入记录；全部只读。"
+            : useOpenBacklogDateScope()
+              ? "点击后保持“全部”范围，并显示所有日期的无需介入记录；全部只读。"
+              : "按当前选中日期显示无需介入记录；全部只读。";
           return;
         }
         const rawHistorical = state.queueHistoryCounts?.[button.dataset.filter];
