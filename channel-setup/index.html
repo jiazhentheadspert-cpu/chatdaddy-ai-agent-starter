@@ -201,6 +201,46 @@
       padding: 24px;
     }
 
+    :focus-visible {
+      outline: 3px solid rgba(47, 111, 237, 0.42);
+      outline-offset: 3px;
+    }
+
+    .project-identity {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      padding: 20px 24px;
+      border: 2px solid rgba(21, 184, 215, 0.34);
+      background: linear-gradient(135deg, #effcf9, #f3f7ff);
+    }
+
+    .project-identity strong {
+      display: block;
+      overflow-wrap: anywhere;
+      font-size: 24px;
+    }
+
+    .project-identity p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .project-identity.bad {
+      border-color: rgba(189, 73, 68, 0.34);
+      background: #fff4f3;
+    }
+
+    .project-confirm {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid rgba(21, 184, 215, 0.26);
+      border-radius: 8px;
+      background: #f4fcfe;
+    }
+
     .owner-tutorial {
       padding: 0;
       overflow: hidden;
@@ -695,6 +735,10 @@
         grid-template-columns: 1fr;
       }
 
+      .project-identity {
+        grid-template-columns: 1fr;
+      }
+
       .readiness-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -721,6 +765,7 @@
         <h2>当前阶段</h2>
         <p>连接后仍然由客服先批准。这个页面不会开启自动发送，也不会自动启动销售 Flow。</p>
       </div>
+      <a class="btn" id="backToSetupLink" href="../setup/index.html" style="width:100%; margin-top:16px;">← 返回 Onboarding</a>
     </aside>
 
     <main class="main">
@@ -734,6 +779,15 @@
           <span class="chip">客服批准后才发送</span>
           <span class="chip warn">不会发送顾客讯息</span>
         </div>
+      </section>
+
+      <section class="panel project-identity" id="projectIdentityPanel">
+        <div>
+          <span class="eyebrow">Project Identity Lock</span>
+          <strong id="projectIdentityName">正在确认项目</strong>
+          <p id="projectIdentityHelp">此页只允许连接 URL 中明确指定的项目，不会使用上一次项目或默认 Beyoute。</p>
+        </div>
+        <div class="status" id="projectIdentityStatus">检查中</div>
       </section>
 
       <details class="panel owner-tutorial" id="ownerTutorial" open>
@@ -854,6 +908,11 @@
           </label>
         </div>
 
+        <label class="check project-confirm">
+          <input id="projectIdentityConfirmed" type="checkbox">
+          <span>我确认上方显示的是我要连接的当前项目；不会把这个 ChatDaddy Account / Token 连接到其他项目。</span>
+        </label>
+
         <div class="actions">
           <button class="btn primary" type="button" id="saveButton">连接并同步 Flow</button>
           <button class="btn" type="button" id="loadButton">重新检查</button>
@@ -956,6 +1015,8 @@
     const flowBindingsEl = document.getElementById("flowBindings");
     const blockerListEl = document.getElementById("blockerList");
     const saveBindingsButtonEl = document.getElementById("saveBindingsButton");
+    const projectIdentityConfirmedEl = document.getElementById("projectIdentityConfirmed");
+    const requestedProjectKey = String(params.get("project_key") || "").trim();
 
     document.getElementById("saveButton").addEventListener("click", saveMetadata);
     document.getElementById("loadButton").addEventListener("click", loadConnections);
@@ -973,17 +1034,37 @@
 
     async function init() {
       localStorage.setItem("hermas_channel_api", apiBase);
-      projectKeyEl.value = params.get("project_key") || localStorage.getItem("hermas_channel_project_key") || "beyoute";
+      const validProjectKey = /^[a-z0-9_-]+$/.test(requestedProjectKey);
+      projectKeyEl.value = validProjectKey ? requestedProjectKey : "";
       projectKeyEl.readOnly = true;
       document.querySelectorAll("[data-owner-project-name]").forEach((element) => {
-        element.textContent = projectKeyEl.value;
+        element.textContent = projectKeyEl.value || "未选择项目";
       });
+      document.getElementById("projectIdentityName").textContent = projectKeyEl.value || "未选择项目";
+      document.getElementById("projectIdentityStatus").textContent = validProjectKey ? "已锁定" : "已阻止";
+      document.getElementById("projectIdentityStatus").className = `status ${validProjectKey ? "ok" : "bad"}`;
+      document.getElementById("projectIdentityPanel").classList.toggle("bad", !validProjectKey);
+      const setupParams = new URLSearchParams({ api: apiBase });
+      if (validProjectKey) setupParams.set("project_key", requestedProjectKey);
+      document.getElementById("backToSetupLink").href = `../setup/index.html?${setupParams.toString()}`;
       providerEl.value = params.get("provider") || "chatdaddy";
-      connectionLabelEl.value = `${projectKeyEl.value} ChatDaddy`;
+      connectionLabelEl.value = `${projectKeyEl.value || "Project"} ChatDaddy`;
       externalChannelEl.value = "whatsapp";
       document.getElementById("technicalPanel").hidden = !technicalMode;
       document.getElementById("copyCommandsButton").hidden = !technicalMode;
       renderCommands();
+      if (!validProjectKey) {
+        document.getElementById("projectIdentityHelp").textContent = "链接缺少有效 project_key。为了防止串项目，系统不会回退到上次项目，也不会默认连接 Beyoute。请从该项目的 Onboarding 页面重新进入。";
+        ["saveButton", "loadButton", "readinessButton", "copyWebhookButton"].forEach((id) => {
+          const button = document.getElementById(id);
+          if (button) button.disabled = true;
+        });
+        saveBindingsButtonEl.disabled = true;
+        projectIdentityConfirmedEl.disabled = true;
+        setStatus("缺少项目，已停止", "bad");
+        blockerListEl.innerHTML = `<div class="blocker-item"><b>没有明确项目代码</b>请返回 Onboarding，从当前项目专属链接进入。本页没有读取或修改任何项目连接。</div>`;
+        return;
+      }
       await loadConnections();
     }
 
@@ -992,6 +1073,7 @@
       const previousLabel = saveButton.textContent;
       try {
         if (!canManageConnection) throw new Error("只有项目负责人可以修改连接资料。");
+        if (!projectIdentityConfirmedEl.checked) throw new Error("请先确认当前项目身份，再连接 ChatDaddy。");
         saveButton.disabled = true;
         saveButton.textContent = "正在验证并同步...";
         const projectKey = cleanProjectKey();
@@ -1026,7 +1108,6 @@
     async function loadConnections() {
       try {
         const projectKey = cleanProjectKey();
-        localStorage.setItem("hermas_channel_project_key", projectKey);
         const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/connection-guide`);
         if (data.boundary?.secrets_returned !== false) {
           throw new Error("API boundary did not confirm secrets_returned=false");
@@ -1214,6 +1295,7 @@
       const previousLabel = saveBindingsButtonEl.textContent;
       try {
         if (!canManageConnection) throw new Error("只有项目负责人可以保存 Step Flow 绑定。");
+        if (!projectIdentityConfirmedEl.checked) throw new Error("请先确认当前项目身份，再保存 Step Flow 绑定。");
         if (!latestGuide?.flow_catalog?.live_catalog_connected) throw new Error("当前项目还没有实时 ChatDaddy Flow 清单。");
         const selections = [...document.querySelectorAll(".flow-binding-select")];
         const bindings = selections.map((select) => {
