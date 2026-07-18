@@ -1151,6 +1151,7 @@
           <div class="metric"><span>待补资料</span><strong>-</strong></div>
           <div class="metric"><span>真实发送 / Flow</span><strong>0 / 0</strong></div>
         </div>
+        <div class="contract-preview" id="contentMockMigration" hidden></div>
         <div class="content-mock-list" id="contentMockList">
           <div class="review-empty">点击上方「运行完整 Synthetic Mock」，系统才会读取当前草稿并生成测试结果。</div>
         </div>
@@ -1277,6 +1278,7 @@
     const replyContractMock = document.getElementById("replyContractMock");
     const contentMockStatus = document.getElementById("contentMockStatus");
     const contentMockMetrics = document.getElementById("contentMockMetrics");
+    const contentMockMigration = document.getElementById("contentMockMigration");
     const contentMockList = document.getElementById("contentMockList");
     const loadReplyContractButton = document.getElementById("loadReplyContractButton");
     const previewReplyContractButton = document.getElementById("previewReplyContractButton");
@@ -2050,6 +2052,11 @@
         ? (failedCount ? `还差 ${failedCount} 项资料 / SOP` : "内容覆盖通过")
         : "尚未运行";
       contentMockStatus.className = `status ${tests.length && !failedCount ? "ok" : tests.length ? "bad" : ""}`;
+      const legacyCount = Number(suite?.legacy_curated_source_count || 0);
+      contentMockMigration.hidden = legacyCount === 0;
+      contentMockMigration.textContent = legacyCount
+        ? `旧项目迁移提醒：找到 ${legacyCount} 条 legacy curated 资料，可用于覆盖测试，但还没有新的 Owner 审核状态。它们不会因此自动开启更高自动化等级；请由 Owner 完成一次迁移确认。`
+        : "";
       if (!tests.length) {
         contentMockList.innerHTML = `<div class="review-empty">没有收到内容测试结果。</div>`;
         return;
