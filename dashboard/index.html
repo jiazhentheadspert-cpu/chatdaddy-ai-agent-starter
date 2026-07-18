@@ -21443,7 +21443,7 @@
       const showPurchasePanel = shouldShowPurchasePanelForCase(item, readOnly, canResendPurchase);
       const purchaseActionComplete = purchaseActionCompleteForCase(item);
 	  const paymentConfirmationCase = isPaymentConfirmationCase(item) && !purchaseActionComplete;
-      const passiveReadOnly = readOnly && !canManualResolve && !canManualSend && !showPurchasePanel;
+      const passiveReadOnly = readOnly && !canManualResolve && !canManualSend && !paymentConfirmationCase;
       const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve && !showPurchasePanel;
 	  const hideReplyCardForMode = (hideReplyCard || passiveReadOnly) && !canManualSend;
       const externalFlowReadOnly = item.status === "external_flow_continued";
