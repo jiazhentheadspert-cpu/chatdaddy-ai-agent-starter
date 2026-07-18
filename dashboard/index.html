@@ -12666,7 +12666,7 @@
       const effectiveTimeoutMs = Math.max(1000, Number(timeoutMs || DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS));
       const timer = setTimeout(() => controller.abort(), effectiveTimeoutMs);
       try {
-        return await fetch(url, { ...options, signal: controller.signal });
+        return await fetch(url, { cache: "no-store", ...options, signal: controller.signal });
       } catch (error) {
         if (error?.name === "AbortError") {
           throw new Error(`服务器同步超过 ${Math.ceil(effectiveTimeoutMs / 1000)} 秒，已停止等待并保留上次资料`);
