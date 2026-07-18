@@ -5692,6 +5692,50 @@
       text-decoration: underline;
     }
 
+    .bubble-media-analysis {
+      display: grid;
+      gap: 6px;
+      margin-top: 9px;
+      border: 1px solid rgba(0, 183, 160, .24);
+      border-radius: 10px;
+      background: rgba(243, 255, 252, .92);
+      padding: 9px 10px;
+      color: var(--ink);
+    }
+
+    .bubble-media-analysis.warn {
+      border-color: rgba(183, 121, 31, .30);
+      background: rgba(255, 250, 239, .94);
+    }
+
+    .bubble-media-analysis-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      color: #066a64;
+      font-size: 12px;
+      font-weight: 920;
+    }
+
+    .bubble-media-analysis.warn .bubble-media-analysis-head {
+      color: #8c5a0c;
+    }
+
+    .bubble-media-analysis-body,
+    .bubble-media-analysis details {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .bubble-media-analysis summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 820;
+    }
+
     .bubble-file-link {
       display: inline-flex;
       align-items: center;
@@ -14866,8 +14910,56 @@
       return "内容";
     }
 
+    function dashboardItemMediaAnalysis(item = {}) {
+      const raw = item.raw_approval || {};
+      const direct = [
+        item.media_analysis,
+        item.latest_customer_message?.metadata?.media_analysis,
+        item.conversation_context?.latest_customer_message?.metadata?.media_analysis,
+        raw.media_analysis,
+        raw.data?.normalized?.metadata?.media_analysis,
+        raw.latest_customer_message?.metadata?.media_analysis,
+        raw.conversation_context?.latest_customer_message?.metadata?.media_analysis,
+      ].find((analysis) => analysis && typeof analysis === "object");
+      if (direct) return direct;
+      const lists = [
+        item.messages,
+        item.chat_preview,
+        item.conversation_context?.messages,
+        raw.messages,
+        raw.chat_preview,
+        raw.conversation_context?.messages,
+      ].filter(Array.isArray);
+      for (const list of lists) {
+        for (const message of [...list].reverse()) {
+          const analysis = dashboardMessageMediaAnalysis(message);
+          if (analysis) return analysis;
+        }
+      }
+      return null;
+    }
+
     function dashboardMediaReviewCopy(item = {}) {
       const kind = dashboardItemMediaKind(item);
+      const analysis = dashboardItemMediaAnalysis(item);
+      if (analysis?.status === "completed" && analysis?.usable_for_draft === true) {
+        const requiresHuman = analysis.requires_human === true;
+        return {
+          title: kind === "audio" ? "语音已转成文字" : "图片已识别",
+          body: firstContextText(
+            analysis.transcript,
+            analysis.summary,
+            analysis.extracted_text,
+            "AI 已取得可读内容。"
+          ),
+          flowPolicy: requiresHuman
+            ? "识别结果只供参考；人工核对后回复，不自动接 Flow"
+            : "先检查 AI 识别和草稿；批准后才发送",
+          nextAction: requiresHuman
+            ? "核对原始附件与识别结果，必要时修改，再由人工确认。"
+            : "检查识别结果和 AI 草稿，确认准确后一次批准。"
+        };
+      }
       if (kind === "audio") return {
         title: "语音无法识别，人工听原音",
         body: "这条语音没有可靠文字，AI 不生成回复，也不猜顾客说了什么。客服先播放原音，再直接输入回复；不自动接 Flow。",
@@ -23344,6 +23436,7 @@
 
 	    function messageBubbleContentHtml(message = {}) {
 	      const media = messageMediaHtml(message);
+	      const mediaAnalysis = messageMediaAnalysisHtml(message);
 	      const text = messageDisplayText(message);
 	      const mediaOnlyLabel = /^\[(?:图片|语音|视频|贴图|文件)/.test(text);
 	      const mediaKind = dashboardMessageMediaKind(message);
@@ -23353,7 +23446,44 @@
 	      const textHtml = text && !(media && mediaOnlyLabel)
 	        ? `<div class="bubble-text">${escapeHtml(text)}</div>`
 	        : "";
-	      return `${textHtml}${mediaLabelHtml}${media}` || `<div class="bubble-text">${escapeHtml(text || `[${dashboardMediaDisplayLabel(mediaKind || "file")}]`)}</div>`;
+	      return `${textHtml}${mediaLabelHtml}${media}${mediaAnalysis}` || `<div class="bubble-text">${escapeHtml(text || `[${dashboardMediaDisplayLabel(mediaKind || "file")}]`)}</div>`;
+	    }
+
+	    function dashboardMessageMediaAnalysis(message = {}) {
+	      const candidates = [
+	        message?.metadata?.media_analysis,
+	        message?.content?.media_analysis,
+	        message?.content?.metadata?.media_analysis,
+	        message?.media_analysis,
+	      ];
+	      return candidates.find((item) => item && typeof item === "object") || null;
+	    }
+
+	    function messageMediaAnalysisHtml(message = {}) {
+	      const analysis = dashboardMessageMediaAnalysis(message);
+	      if (!analysis) return "";
+	      const kind = firstContextText(analysis.media_kind, dashboardMessageMediaKind(message), "file");
+	      const completed = analysis.status === "completed" && analysis.usable_for_draft === true;
+	      const requiresHuman = analysis.requires_human === true || !completed;
+	      const title = completed
+	        ? kind === "audio" ? "AI 已转成文字" : "AI 已识别图片"
+	        : kind === "audio" ? "语音未能可靠识别" : "图片未能可靠识别";
+	      const confidence = Number(analysis.confidence);
+	      const confidenceText = Number.isFinite(confidence) && confidence > 0
+	        ? ` · ${Math.round(confidence * 100)}%`
+	        : "";
+	      const body = firstContextText(
+	        analysis.transcript,
+	        analysis.summary,
+	        analysis.extracted_text
+	      );
+	      const detail = firstContextText(analysis.extracted_text);
+	      const showDetail = detail && compactCompareText(detail) !== compactCompareText(body);
+	      return `<div class="bubble-media-analysis${requiresHuman ? " warn" : ""}">
+	        <div class="bubble-media-analysis-head">${escapeHtml(title + confidenceText)}${requiresHuman ? " · 需人工确认" : " · 待批准"}</div>
+	        ${body ? `<div class="bubble-media-analysis-body">${escapeHtml(body)}</div>` : ""}
+	        ${showDetail ? `<details><summary>查看识别文字</summary>${escapeHtml(detail)}</details>` : ""}
+	      </div>`;
 	    }
 
 	    function contextSnippet(value, limit = 132) {
