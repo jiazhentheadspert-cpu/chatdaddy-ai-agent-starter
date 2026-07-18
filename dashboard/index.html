@@ -8644,6 +8644,7 @@
         <div class="toolbar">
           <div class="filters">
             <button class="pill active" data-filter="needs_attention">全部待处理</button>
+            <button class="pill" data-filter="all_cases" id="allCasesFilterBtn">所有 Case</button>
             <button class="pill" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_first">人工回复</button>
             <button class="pill" data-filter="auto" id="autoFilterBtn">无需介入</button>
@@ -9107,6 +9108,8 @@
       queueHistoryItems: { auto: [], records: [] },
       queueHistoryCacheKey: "",
       queueHistoryFetchedAt: 0,
+      queueAllCasesTotal: 0,
+      queueAllCasesLoadedCount: 0,
       queueNoInterventionCases: [],
       queueNoInterventionCacheKey: "",
       queueNoInterventionFetchedAt: 0,
@@ -10749,7 +10752,7 @@
     function normalizeStaffQueueFilter(filter = "") {
       const requested = String(filter || "").trim() || "needs_attention";
       if (state.role !== "staff") return requested;
-      return ["needs_attention", "approval_required", "human_first", "auto", "records"].includes(requested)
+      return ["needs_attention", "all_cases", "approval_required", "human_first", "auto", "records"].includes(requested)
         ? requested
         : "needs_attention";
     }
@@ -10757,6 +10760,7 @@
     function staffQueueFilterLabel(filter = "") {
       const normalized = normalizeStaffQueueFilter(filter);
       if (normalized === "needs_attention") return "全部待处理";
+      if (normalized === "all_cases") return "所有 Case";
       if (normalized === "human_first") return "人工回复";
       if (normalized === "auto") return "无需介入";
       if (normalized === "records") return "AI 自动回复记录";
@@ -10766,7 +10770,13 @@
     function setFilter(filter, options = {}) {
       const nextFilter = normalizeStaffQueueFilter(filter);
       const unchanged = state.filter === nextFilter;
+      const previousFilter = state.filter;
       state.filter = nextFilter;
+      if (nextFilter === "all_cases") {
+        state.queueDateScope = "all_history";
+      } else if (previousFilter === "all_cases" && state.queueDateScope === "all_history") {
+        state.queueDateScope = staffFilterSupportsOpenBacklog(nextFilter) ? "open_backlog" : "date";
+      }
       // “全部未完成” only applies to work that still needs staff action.
       // Read-only audit queues always honor the selected calendar date.
       if (["auto", "records"].includes(nextFilter) && state.queueDateScope === "open_backlog") {
@@ -10841,6 +10851,7 @@
     }
 
     function queueDateScopeLabel() {
+      if (state.queueDateScope === "all_history") return "所有日期";
       return useOpenBacklogDateScope() ? "待处理全部" : selectedDateLabel();
     }
 
@@ -10850,7 +10861,9 @@
       if (caseDateFilterEl) {
         caseDateFilterEl.value = selected;
         caseDateFilterEl.max = todayISO;
-        caseDateFilterEl.title = useOpenBacklogDateScope()
+        caseDateFilterEl.title = state.queueDateScope === "all_history"
+          ? "当前显示所有日期的 Case；选择日期后只看指定日期。"
+          : useOpenBacklogDateScope()
           ? "当前显示全部未完成待处理；选择日期后只看指定日期。"
           : "当前只看这个日期的 Case。";
       }
@@ -10863,13 +10876,14 @@
       }
       if (caseTodayDateEl) {
         const openBacklog = useOpenBacklogDateScope();
+        const allHistory = state.queueDateScope === "all_history";
         caseTodayDateEl.textContent = "今天";
-        caseTodayDateEl.title = openBacklog || selected !== todayISO
+        caseTodayDateEl.title = openBacklog || allHistory || selected !== todayISO
           ? "点击后只看今天的 Case。"
           : "当前只看今天。";
         caseTodayDateEl.setAttribute("aria-label", caseTodayDateEl.title);
-        caseTodayDateEl.dataset.scope = openBacklog ? "open_backlog" : "date";
-        caseTodayDateEl.classList.toggle("active", !openBacklog && selected === todayISO);
+        caseTodayDateEl.dataset.scope = allHistory ? "all_history" : openBacklog ? "open_backlog" : "date";
+        caseTodayDateEl.classList.toggle("active", !openBacklog && !allHistory && selected === todayISO);
       }
       if (caseOpenBacklogEl) {
         const openBacklog = useOpenBacklogDateScope();
@@ -11004,6 +11018,7 @@
 
     function casesForCurrentQueueDateScope(cases = []) {
       if (String(state.query || "").trim()) return cases;
+      if (state.queueDateScope === "all_history") return cases;
       if (!useOpenBacklogDateScope()) return filterCasesBySelectedDate(cases);
       if (["auto", "records"].includes(state.filter)) return cases;
       return cases.filter(isOpenBacklogCase);
@@ -12956,6 +12971,10 @@
         state.loading = false;
         state.refreshing = false;
         state.queueSyncStatus = data.sync_status || null;
+        if (!searchQuery && requestedQueueStatus === "all_cases") {
+          const total = Number(data.count);
+          state.queueAllCasesTotal = Number.isFinite(total) && total >= 0 ? total : 0;
+        }
 	        const previousActiveId = String(state.active?.id || "");
 	        const previousActiveFingerprint = realtimeCaseFingerprint(state.active || {});
 	        const previousQueueFingerprint = realtimeQueueFingerprint(state.cases);
@@ -12964,6 +12983,9 @@
 	        const primaryItems = Array.isArray(data.items)
 	          ? data.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
 	          : [];
+        if (!searchQuery && requestedQueueStatus === "all_cases") {
+          state.queueAllCasesLoadedCount = primaryItems.length;
+        }
 	        let liveItems = mergeDashboardApprovalItems(
             primaryItems,
             state.queueHistoryItems.auto || [],
@@ -13401,16 +13423,14 @@
 	}
 
     function dashboardQueueStatusForFilter(rawFilter = state.filter, role = state.role) {
-      // The operational queue only needs open work. Historical AI/manual/Flow
-      // records are loaded through their own bounded requests below. Asking the
-      // primary endpoint for every closed case made a small pending queue wait
-      // on thousands of irrelevant rows and could leave a stale snapshot on
-      // screen after the 12-second safety timeout.
-      return "pending";
+      // Load the bounded Case index once so handled and historical Cases do not
+      // disappear when the operator switches filters. `all_cases` intentionally
+      // excludes Flow-event hydration; live no-intervention conversations are
+      // merged through their own request below.
+      return "all_cases";
     }
 
     function dashboardQueueStatusParam(searchQuery = "") {
-      if (String(searchQuery || "").trim()) return "all";
       return dashboardQueueStatusForFilter(state.filter, state.role);
     }
 
@@ -14954,16 +14974,19 @@
     function render() {
       syncDateControls();
       const allForRole = casesForRole(state.cases);
-      const countScopeCases = String(state.query || "").trim() || useOpenBacklogDateScope()
+      const countScopeCases = String(state.query || "").trim() || useOpenBacklogDateScope() || state.queueDateScope === "all_history"
         ? allForRole
         : filterCasesBySelectedDate(allForRole);
       const rawAll = casesForCurrentQueueDateScope(allForRole);
       state.contactStats = buildContactStats(countScopeCases);
-      const allForCounts = state.role === "staff" ? collapseStaffActionableCasesByCustomer(countScopeCases) : countScopeCases;
-      const all = state.role === "staff" ? collapseStaffActionableCasesByCustomer(rawAll) : rawAll;
+      const preserveIndividualCases = state.filter === "all_cases";
+      const allForCounts = state.role === "staff" && !preserveIndividualCases ? collapseStaffActionableCasesByCustomer(countScopeCases) : countScopeCases;
+      const all = state.role === "staff" && !preserveIndividualCases ? collapseStaffActionableCasesByCustomer(rawAll) : rawAll;
       const counts = countCases(allForCounts);
       const learned = countLearnedRules(allForCounts);
-      $("statAll").textContent = counts.total;
+      $("statAll").textContent = state.filter === "all_cases" && state.queueAllCasesTotal
+        ? state.queueAllCasesTotal
+        : counts.total;
       $("statApproval").textContent = counts.approval;
       $("statHuman").textContent = counts.human;
       $("statOrder").textContent = counts.orders;
@@ -15380,7 +15403,7 @@
     }
 
     function shouldUseStaffCaseSections() {
-      return state.role === "staff" && ["needs_attention", "approval_required", "human_first", "auto", "records"].includes(state.filter);
+      return state.role === "staff" && ["needs_attention", "all_cases", "approval_required", "human_first", "auto", "records"].includes(state.filter);
     }
 
     function caseActivityTimestamp(item = {}) {
@@ -15503,6 +15526,18 @@
           items: visible,
           countLabel: `${visible.length} 位 · ${Number(counts.needs || visible.length)} 条`,
           emptyText: "当前没有未完成的待处理顾客。",
+        });
+      }
+      if (filter === "all_cases") {
+        const total = Number(state.queueAllCasesTotal || visible.length);
+        return staffCaseSectionHtml({
+          title: "所有 Case",
+          body: total > visible.length
+            ? `先显示最近 ${visible.length} 条；后台共有 ${total} 条，搜索会检查完整 Case 记录。`
+            : "这里同时包括待处理、已处理和只读记录，不会因为日期或状态被隐藏。",
+          items: visible,
+          countLabel: `${visible.length}/${total} 条`,
+          emptyText: "目前还没有 Case 记录。",
         });
       }
       if (filter === "approval_required") {
@@ -15771,6 +15806,7 @@
       };
       const labels = {
         needs_attention: ["全部待处理", counts.needs],
+        all_cases: ["所有 Case", state.queueAllCasesTotal || counts.total],
         approval_required: ["待批准", counts.approval],
         human_first: ["人工回复", humanWork],
         auto: ["无需介入", historyBadge("auto", counts.auto)],
@@ -15969,7 +16005,7 @@
     }
 
     function filterCases(cases, filter) {
-      if (filter === "all") return cases;
+      if (filter === "all" || filter === "all_cases") return cases;
       if (filter === "auto") return cases.filter((item) => staffBusinessCategory(item) === "auto");
       if (filter === "records") return cases.filter((item) => staffBusinessCategory(item) === "records");
       if (filter === "human_first") return cases.filter((item) => staffBusinessCategory(item) === "human_first");
@@ -16053,6 +16089,12 @@
         : "";
       const realtimeText = state.role === "staff" ? " · 实时同步 ≤5秒" : "";
       const refreshText = state.refreshing ? " · 正在同步" : "";
+      if (state.filter === "all_cases") {
+        const serverTotal = Number(state.queueAllCasesTotal || filteredCount || totalCount || 0);
+        const searchScope = state.query ? " · 搜索会检查完整 Case 记录" : "";
+        $("queueSummary").textContent = `所有日期 · 显示 ${visibleCount}/${serverTotal} 条 Case${queryText}${searchScope} · ${sortText}${realtimeText}${refreshText}`;
+        return;
+      }
       $("queueSummary").textContent = `${queueDateScopeLabel()} · ${visibleCount}/${filteredCount} 位${queryText}${focusText} · ${sortText}${qaText}${staffGuide}${realtimeText}${refreshText}`;
     }
 
@@ -19934,6 +19976,10 @@
         all: {
           title: `${counts.total} 位顾客正在监控`,
           body: "先处理橙色和红色；绿色自动跑，蓝色进入订单。",
+        },
+        all_cases: {
+          title: `${state.queueAllCasesTotal || counts.total} 条 Case`,
+          body: "包括待处理、已处理和只读记录；搜索会检查完整 Case 记录。",
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
@@ -28810,6 +28856,8 @@
             ? noInterventionEmptyMessage()
             : state.filter === "records"
               ? aiRecordEmptyMessage()
+            : state.filter === "all_cases"
+              ? "后台目前没有 Case 记录；如果 ChatDaddy 已经有顾客讯息，请检查聊天工具链接与讯息入口。"
             : state.role === "staff"
               ? `${queueDateScopeLabel()}没有待处理顾客；有新讯息或需要人工的 Case 会显示在这里。`
               : "确认顾客讯息入口已经连接，然后用真实 WhatsApp 发一条测试消息。";
