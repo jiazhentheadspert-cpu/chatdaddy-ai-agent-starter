@@ -469,9 +469,13 @@
         localStorage.removeItem("agent_staff_token");
         setMessage("登录成功，正在进入工作台…", "success");
 
-        const next = new URLSearchParams({ project_key: session.projectKey });
-        const returnToDashboard = params.get("return_to") === "dashboard";
-        if (role === "staff" || returnToDashboard) {
+        const next = new URLSearchParams({ project_key: session.projectKey, api: apiUrl });
+        const returnTarget = String(params.get("return_to") || "").toLowerCase();
+        if (role !== "staff" && returnTarget === "setup") {
+          window.location.assign(`setup/?${next.toString()}`);
+        } else if (role !== "staff" && returnTarget === "channel-setup") {
+          window.location.assign(`channel-setup/?${next.toString()}`);
+        } else if (role === "staff" || returnTarget === "dashboard") {
           next.set("view", role === "staff" ? "inbox" : (params.get("view") || "operations"));
           if (params.get("setup")) next.set("setup", params.get("setup"));
           window.location.assign(`dashboard/?${next.toString()}`);
