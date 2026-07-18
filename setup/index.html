@@ -1254,7 +1254,9 @@
       learningReviewFilter: "pending",
       learningReviewBusy: false,
       replyContract: null,
-      replyContractBusy: false
+      replyContractBusy: false,
+      existingProject: null,
+      existingPackageResponse: null
     };
 
     const setupForm = document.getElementById("setupForm");
@@ -1311,6 +1313,7 @@
         renderForm(ONBOARDING_TEMPLATE);
         setButtons(true);
         if (params.get("project_key")) {
+          await loadExistingProjectForOwnerMigration();
           await loadLearningReview();
           await loadReplyContract();
         }
@@ -1378,6 +1381,90 @@
       setValue("project.success_kpi", "回复准确率、首响时间、成交率、转人工率、零严重错误");
     }
 
+    async function loadExistingProjectForOwnerMigration() {
+      const projectKey = String(params.get("project_key") || "").trim();
+      if (!projectKey) return;
+      const existing = await apiGet(`/api/admin/projects/${encodeURIComponent(projectKey)}`);
+      const existingProject = Array.isArray(existing.projects) ? existing.projects[0] : null;
+      if (!existingProject) return;
+      const packageResponse = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+      state.existingProject = existingProject;
+      state.existingPackageResponse = packageResponse;
+      applyExistingProjectOnboarding(packageResponse.project_package || {}, existingProject);
+      createButton.textContent = "Owner 验收并保存现有项目草稿";
+      formHelp.textContent = `正在迁移现有项目 ${projectKey}：系统已按原 Project Brain 预填六问。请逐项修正后再验收；保存只建立新草稿版本，不发布、不发讯息、不触发 Flow。`;
+      setStatus("现有项目迁移", "ok");
+      addLog("已载入现有项目", `${projectKey} 当前版本 ${packageResponse.version_no || "-"}。旧 FAQ、SOP、Flow 与自动化设置会保留；这里只补 Owner 六问验收。`);
+    }
+
+    function applyExistingProjectOnboarding(projectPackage, existingProject) {
+      const onboardingAnswers = projectPackage?.business_onboarding?.answers || {};
+      const brand = projectPackage?.brand_brain || {};
+      const company = projectPackage?.company || {};
+      const assets = projectPackage?.learning_assets || {};
+      const faqText = (...ids) => assetTextByIds(assets.faq, ids, ["answer", "guidance", "rule"]);
+      const sopText = (...ids) => assetTextByIds([...(assets.ops_sop || []), ...(assets.safety_sop || []), ...(assets.closer_scripts || [])], ids, ["rule", "guidance", "answer"]);
+      const audience = Array.isArray(brand.audience) ? brand.audience.join("；") : String(brand.audience || "");
+      const safetyRules = (assets.safety_sop || [])
+        .map((item) => String(item?.rule || "").trim())
+        .filter(Boolean)
+        .join("；");
+
+      setFormValue("project.project_key", projectPackage.project_key || existingProject.project_key || params.get("project_key"));
+      setFormValue("project.company_name", projectPackage.project_name || company.name || existingProject.name || "");
+      setFormValue("project.industry", company.industry || "ecommerce");
+      setFormValue("project.agent_goal", company.agent_goal || "先准确回答顾客问题，再推进成交；资料不足或高风险时转人工。");
+      setFormValue("project.success_kpi", company.success_kpi || "回复准确率、首响时间、成交率、转人工率、零严重错误");
+      setFormValue("business_training.business_primary_offer", firstNonEmpty(
+        onboardingAnswers.business_primary_offer,
+        brand.positioning,
+        faqText("faq_product", "faq_price")
+      ));
+      setFormValue("business_training.why_it_works", firstNonEmpty(
+        onboardingAnswers.why_it_works,
+        faqText("faq_ingredients", "faq_usage", "faq_results")
+      ));
+      setFormValue("business_training.why_customer_buys", firstNonEmpty(
+        onboardingAnswers.why_customer_buys,
+        audience,
+        brand.positioning
+      ));
+      setFormValue("business_training.why_trust_us", firstNonEmpty(
+        onboardingAnswers.why_trust_us,
+        faqText("faq_product"),
+        brand.positioning
+      ));
+      setFormValue("business_training.offer_to_order", firstNonEmpty(
+        onboardingAnswers.offer_to_order,
+        [faqText("faq_price", "faq_installment"), sopText("sop_payment", "closer_payment")].filter(Boolean).join("；")
+      ));
+      setFormValue("business_training.safety_boundary", firstNonEmpty(
+        onboardingAnswers.safety_boundary,
+        safetyRules,
+        sopText("safe_health", "safe_no_claim", "safe_payment", "safe_handoff")
+      ));
+      setFormValue("materials.faq_google_doc_url", projectPackage?.business_onboarding?.source_materials?.faq_google_doc_url || "");
+      setFormValue("materials.source_notes", projectPackage?.business_onboarding?.source_materials?.notes || "");
+    }
+
+    function assetTextByIds(items, ids, fields) {
+      const wanted = new Set(ids);
+      return (Array.isArray(items) ? items : [])
+        .filter((item) => wanted.has(String(item?.id || "")))
+        .map((item) => fields.map((field) => String(item?.[field] || "").trim()).find(Boolean) || "")
+        .filter(Boolean)
+        .join("；");
+    }
+
+    function firstNonEmpty(...values) {
+      return values.map((value) => String(value || "").trim()).find(Boolean) || "";
+    }
+
+    function setFormValue(id, value) {
+      const input = document.getElementById(id);
+      if (input && value !== undefined && value !== null) input.value = String(value);
+    }
+
     async function previewPackage() {
       try {
         setButtons(false);
@@ -1404,16 +1491,19 @@
         const projectKey = setupIntake.project_key;
         const existing = await apiGet(`/api/admin/projects/${encodeURIComponent(projectKey)}`);
         const existingProject = Array.isArray(existing.projects) ? existing.projects[0] : null;
+        let currentPackageResponse = null;
         if (existingProject) {
-          const retryable = existingProject.settings?.onboarding_status === "owner_approved_draft";
-          const currentPackage = retryable
-            ? await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`)
-            : null;
-          const alreadySaved = currentPackage?.project_package?.metadata?.source === "owner_six_question_onboarding";
-          if (!retryable || alreadySaved) {
-            throw new Error(`项目代码 ${projectKey} 已存在，请换一个新代码，避免覆盖旧项目。`);
+          const openedProjectKey = String(params.get("project_key") || "").trim();
+          if (openedProjectKey !== projectKey) {
+            throw new Error(`项目代码 ${projectKey} 已存在。请从该项目的设置入口打开，系统才允许安全迁移，避免覆盖错误项目。`);
           }
-          addLog("继续上次未完成的创建", `项目 ${projectKey} 已建立但业务草稿尚未写完；现在安全重试保存。`);
+          currentPackageResponse = state.existingProject?.project_key === projectKey
+            ? state.existingPackageResponse
+            : await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+          if (!currentPackageResponse?.project_package) {
+            throw new Error(`无法读取项目 ${projectKey} 的当前 Project Brain，已停止保存。`);
+          }
+          addLog("准备保存现有项目迁移草稿", `项目 ${projectKey} 的旧 FAQ、SOP、Flow 和自动化设置会原样保留。`);
         } else {
           await apiPost("/api/admin/projects", {
             project_key: projectKey,
@@ -1427,13 +1517,22 @@
             }
           });
         }
-        const projectPackage = buildProjectPackage(setupIntake, true);
+        const projectPackage = existingProject
+          ? buildExistingProjectMigrationPackage(currentPackageResponse.project_package, setupIntake)
+          : buildProjectPackage(setupIntake, true);
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`, {
           project_package: projectPackage,
-          note: "Owner approved six-question onboarding draft"
+          note: existingProject
+            ? "Owner approved existing-project six-question migration draft"
+            : "Owner approved six-question onboarding draft",
+          expected_version_no: existingProject ? Number(currentPackageResponse.version_no || 0) : 0
         });
         state.created = data;
-        addLog("Owner 已验收，项目草稿已创建", `Project: ${data.project_key || projectKey}。下一步先导入资料并跑 Mock Test；Runtime 发布通过后才连接渠道与 Flow。`);
+        state.existingPackageResponse = data;
+        addLog(
+          existingProject ? "Owner 已验收，现有项目迁移草稿已保存" : "Owner 已验收，项目草稿已创建",
+          `Project: ${data.project_key || projectKey}，草稿版本 ${data.version_no || "-"}。旧资料与自动化设置没有被覆盖；必须重新通过 Mock Test 才能发布。`
+        );
         previewMetrics.innerHTML = [
           metricHtml("项目", projectKey),
           metricHtml("业务六问", "6 / 6"),
@@ -1570,6 +1669,50 @@
           auto_send_enabled: false,
           auto_trigger_flows_enabled: false,
           onboarding_updated_at: now
+        }
+      };
+    }
+
+    function buildExistingProjectMigrationPackage(currentPackage, setupIntake) {
+      const ownerPackage = buildProjectPackage(setupIntake, true);
+      const now = new Date().toISOString();
+      return {
+        ...currentPackage,
+        project_key: setupIntake.project_key,
+        project_name: currentPackage.project_name || setupIntake.company_name,
+        company: {
+          ...(currentPackage.company || {}),
+          name: setupIntake.company_name,
+          industry: setupIntake.industry,
+          agent_goal: setupIntake.agent_goal,
+          success_kpi: setupIntake.success_kpi
+        },
+        brand_brain: {
+          ...(currentPackage.brand_brain || {}),
+          brand_name: currentPackage?.brand_brain?.brand_name || setupIntake.company_name,
+          positioning: currentPackage?.brand_brain?.positioning || setupIntake.business_primary_offer,
+          audience: Array.isArray(currentPackage?.brand_brain?.audience) && currentPackage.brand_brain.audience.length
+            ? currentPackage.brand_brain.audience
+            : [setupIntake.why_customer_buys]
+        },
+        business_onboarding: {
+          ...ownerPackage.business_onboarding,
+          source_materials: {
+            ...(currentPackage?.business_onboarding?.source_materials || {}),
+            ...ownerPackage.business_onboarding.source_materials
+          },
+          owner_signoff: {
+            ...ownerPackage.business_onboarding.owner_signoff,
+            statement: "Owner confirmed all six business answers for the existing project migration."
+          }
+        },
+        metadata: {
+          ...(currentPackage.metadata || {}),
+          requires_business_onboarding: true,
+          approval_first: true,
+          onboarding_updated_at: now,
+          owner_business_onboarding_migrated_at: now,
+          owner_business_onboarding_source: "existing_project_owner_migration"
         }
       };
     }
