@@ -821,6 +821,56 @@
       color: var(--danger);
     }
 
+    .content-mock-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .content-mock-card {
+      display: grid;
+      grid-template-columns: 180px minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--teal);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .content-mock-card.failed {
+      border-left-color: var(--danger);
+      background: #fffafa;
+    }
+
+    .content-mock-card h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .content-mock-card p {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .content-mock-card .mock-result {
+      color: #08796f;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .content-mock-card.failed .mock-result {
+      color: var(--danger);
+    }
+
+    .content-mock-fix {
+      color: var(--danger) !important;
+    }
+
     [hidden] {
       display: none !important;
     }
@@ -842,7 +892,8 @@
       .contract-lessons,
       .contract-grid,
       .review-card-head,
-      .review-decision {
+      .review-decision,
+      .content-mock-card {
         grid-template-columns: 1fr;
       }
 
@@ -1073,7 +1124,7 @@
           <button class="btn" type="button" id="loadReplyContractButton">加载当前设置</button>
           <button class="btn" type="button" id="previewReplyContractButton">预览回复结构</button>
           <button class="btn primary" type="button" id="saveReplyContractButton">保存为项目草稿</button>
-          <button class="btn" type="button" id="runReplyContractMockButton">运行 Mock Test</button>
+          <button class="btn" type="button" id="runReplyContractMockButton">运行完整 Synthetic Mock</button>
         </div>
 
         <div class="preview-grid" id="replyContractMetrics">
@@ -1084,6 +1135,25 @@
         </div>
         <div class="contract-preview" id="replyContractPreview">加载项目后，这里会显示“回答 → 信心 → CTA → 方案选择”的安全预览。</div>
         <div class="contract-mock" id="replyContractMock"></div>
+      </section>
+
+      <section class="panel" id="contentMockPanel">
+        <div class="toolbar">
+          <div>
+            <h2>6. Synthetic Mock：检查 AI 有没有学完整</h2>
+            <p>用 Owner 已批准资料组成合成顾客场景，检查来源、Step、附件、付款、风险与人工接管。不会调用真实顾客、不会发送讯息、不会触发 Flow。</p>
+          </div>
+          <div class="status" id="contentMockStatus">尚未运行</div>
+        </div>
+        <div class="preview-grid" id="contentMockMetrics">
+          <div class="metric"><span>测试场景</span><strong>-</strong></div>
+          <div class="metric"><span>通过</span><strong>-</strong></div>
+          <div class="metric"><span>待补资料</span><strong>-</strong></div>
+          <div class="metric"><span>真实发送 / Flow</span><strong>0 / 0</strong></div>
+        </div>
+        <div class="content-mock-list" id="contentMockList">
+          <div class="review-empty">点击上方「运行完整 Synthetic Mock」，系统才会读取当前草稿并生成测试结果。</div>
+        </div>
       </section>
     </main>
   </div>
@@ -1205,6 +1275,9 @@
     const replyContractMetrics = document.getElementById("replyContractMetrics");
     const replyContractPreview = document.getElementById("replyContractPreview");
     const replyContractMock = document.getElementById("replyContractMock");
+    const contentMockStatus = document.getElementById("contentMockStatus");
+    const contentMockMetrics = document.getElementById("contentMockMetrics");
+    const contentMockList = document.getElementById("contentMockList");
     const loadReplyContractButton = document.getElementById("loadReplyContractButton");
     const previewReplyContractButton = document.getElementById("previewReplyContractButton");
     const saveReplyContractButton = document.getElementById("saveReplyContractButton");
@@ -1925,6 +1998,8 @@
       try {
         setReplyContractBusy(true);
         setReplyContractStatus("运行 Mock Test", "");
+        contentMockStatus.textContent = "正在运行合成场景";
+        contentMockStatus.className = "status";
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/test-cases/run`, {});
         renderReplyContractMock(data);
       } catch (error) {
@@ -1932,6 +2007,8 @@
           renderReplyContractMock(error.data);
         } else {
           setReplyContractStatus(error.message || "Mock Test 失败", "bad");
+          contentMockStatus.textContent = error.message || "Mock Test 失败";
+          contentMockStatus.className = "status bad";
         }
       } finally {
         setReplyContractBusy(false);
@@ -1942,17 +2019,57 @@
       const blockers = Array.isArray(data?.blockers) ? data.blockers : [];
       const replyBlockers = blockers.filter((item) => String(item.code || "").startsWith("reply_contract_"));
       const externalBlockers = blockers.filter((item) => !String(item.code || "").startsWith("reply_contract_"));
+      const salesSuite = data?.suites?.sales_orchestration || {};
+      const contentSuite = data?.suites?.owner_content || {};
       replyContractMock.innerHTML = [
         contractMockRow("Reply Contract", replyBlockers.length === 0, replyBlockers.length ? replyBlockers.map((item) => item.message || item.code).join("；") : "通过：三个内容与来源已完整"),
-        contractMockRow("销售对话 Mock", Number(data?.failed_count || 0) === 0 || (data?.tests || []).filter((test) => !test.passed && !["channel_connection_exists", "project_connection_publish_gates"].includes(test.name)).length === 0, `${data?.passed_count || 0} 通过 / ${data?.failed_count || 0} 未通过`),
+        contractMockRow("销售编排 Mock", Number(salesSuite.failed_count || 0) === 0, `${salesSuite.passed_count || 0} 通过 / ${salesSuite.failed_count || 0} 未通过`),
+        contractMockRow("Owner 内容覆盖", Number(contentSuite.failed_count || 0) === 0, `${contentSuite.passed_count || 0} 通过 / ${contentSuite.failed_count || 0} 待补资料`),
         contractMockRow("外部上线 Gate", externalBlockers.length === 0, externalBlockers.length ? `仍有 ${externalBlockers.length} 项：渠道、Flow 或能力尚未完成` : "已通过")
       ].join("");
       const contractReady = replyBlockers.length === 0;
       setReplyContractStatus(contractReady ? "Reply Contract Mock 通过" : "Reply Contract 仍有阻塞", contractReady ? "ok" : "bad");
+      renderOwnerContentMock(data?.owner_content || {});
     }
 
     function contractMockRow(label, passed, detail) {
       return `<div class="contract-mock-row"><strong>${escapeHtml(label)}</strong><span class="${passed ? "ok" : "bad"}">${escapeHtml(detail)}</span></div>`;
+    }
+
+    function renderOwnerContentMock(suite) {
+      const tests = Array.isArray(suite?.tests) ? suite.tests : [];
+      const passedCount = Number(suite?.passed_count || 0);
+      const failedCount = Number(suite?.failed_count || 0);
+      contentMockMetrics.innerHTML = [
+        metricHtml("测试场景", String(tests.length || suite?.sample_count || 0)),
+        metricHtml("通过", String(passedCount)),
+        metricHtml("待补资料", String(failedCount)),
+        metricHtml("真实发送 / Flow", "0 / 0")
+      ].join("");
+      contentMockStatus.textContent = tests.length
+        ? (failedCount ? `还差 ${failedCount} 项资料 / SOP` : "内容覆盖通过")
+        : "尚未运行";
+      contentMockStatus.className = `status ${tests.length && !failedCount ? "ok" : tests.length ? "bad" : ""}`;
+      if (!tests.length) {
+        contentMockList.innerHTML = `<div class="review-empty">没有收到内容测试结果。</div>`;
+        return;
+      }
+      contentMockList.innerHTML = tests.map((test) => `
+        <article class="content-mock-card ${test.passed ? "" : "failed"}">
+          <div>
+            <h3>${escapeHtml(test.label || test.name)}</h3>
+            <p>${escapeHtml(test.category || "content")}</p>
+          </div>
+          <div>
+            <p><b>合成顾客：</b>${escapeHtml(test.fixture || "")}</p>
+            <p><b>应该做到：</b>${escapeHtml(test.expected_behavior || "")}</p>
+            <p><b>当前结果：</b>${escapeHtml(String(test.actual ?? ""))}</p>
+            ${test.source_refs?.length ? `<p><b>来源：</b>${escapeHtml(test.source_refs.join(" · "))}</p>` : ""}
+            ${test.fix ? `<p class="content-mock-fix"><b>下一步：</b>${escapeHtml(test.fix)}</p>` : ""}
+          </div>
+          <span class="mock-result">${test.passed ? "通过" : "待补资料"}</span>
+        </article>
+      `).join("");
     }
 
     function replyContractPartId(part) {
