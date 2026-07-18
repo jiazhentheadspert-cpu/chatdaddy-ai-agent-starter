@@ -14095,6 +14095,7 @@
       const customer = item.customer || {};
       const reply = item.reply || {};
       const executionPlan = item.execution_plan || item.decision?.execution_plan || null;
+      const salesContext = item.sales_context || item.decision?.sales_context || null;
       const previousAgentText = previousAgentTextFromApproval(item, signals);
       const risk = signals.risk_level || signals.risk || item.decision?.risk_level || item.decision?.risk || item.risk_level || "medium";
       const stage = reply.stage_after || signals.stage || signals.stage_key || item.decision?.stage || "CLOSING";
@@ -14223,9 +14224,11 @@
 	          ai_brain: item.ai_brain || item.decision?.ai_brain || null,
 	          source_refs: item.source_refs || item.decision?.source_refs || [],
 	          execution_plan: executionPlan,
+	          sales_context: salesContext,
 	          media_kind: mediaKind || "",
 	        },
         execution_plan: executionPlan,
+        sales_context: salesContext,
         messages,
         history,
         purchase: item.purchase || null,
@@ -22928,6 +22931,11 @@
 	      const workMode = caseWorkModeLine(item);
 	      const staffAction = staffCaseActionRecommendation(item);
 	      const externalReplySignal = externalHumanReplyReviewSignal(item);
+	      const priceEvidence = dashboardPriceEvidence(item);
+	      const cadenceLabel = salesCadenceLabel(item, priceEvidence);
+	      const priceEvidenceNote = priceEvidence.seen
+	        ? `${priceEvidence.ctaCount > 0 ? `聊天里已给过 ${priceEvidence.ctaCount} 次 CTA；` : ""}系统会按顾客新问题决定是否再 CTA，不会每轮重复催单。`
+	        : "没有可靠价格证据时，AI 可以回答问题，但不能自行假设顾客已进入成交阶段。";
 
 	      return `
 	        <div class="detail-tile">
@@ -22941,6 +22949,16 @@
         <div class="detail-tile">
           <span>下一步</span>
           <b>${escapeHtml(actionLabel(decision.action))}</b>
+        </div>
+        <div class="detail-tile">
+          <span>价格状态</span>
+          <b>${escapeHtml(priceEvidenceLabel(priceEvidence))}</b>
+          <small>${escapeHtml(priceEvidence.at ? `证据时间：${formatDate(priceEvidence.at)}` : priceEvidenceNote)}</small>
+        </div>
+        <div class="detail-tile">
+          <span>本轮成交动作</span>
+          <b>${escapeHtml(cadenceLabel)}</b>
+          <small>${escapeHtml(priceEvidenceNote)}</small>
         </div>
         <div class="detail-tile">
           <span>处理模式</span>
@@ -26703,6 +26721,82 @@
     function salesExecutionPlanForCase(item = {}) {
       const plan = item.execution_plan || item.latest_decision?.execution_plan || {};
       return plan && typeof plan === "object" ? { ...plan } : {};
+    }
+
+    function salesContextForCase(item = {}) {
+      const context = item.sales_context
+        || item.latest_decision?.sales_context
+        || item.decision?.sales_context
+        || {};
+      return context && typeof context === "object" ? { ...context } : {};
+    }
+
+    function dashboardPriceEvidence(item = {}) {
+      const context = salesContextForCase(item);
+      if (context.price_seen === true) {
+        return {
+          seen: true,
+          type: context.price_evidence_type || context.price_evidence_source || "saved_state",
+          at: context.price_evidence_at || "",
+          ctaCount: Number(context.delivered_cta_count || 0),
+          source: "runtime"
+        };
+      }
+      const messages = Array.isArray(item.messages)
+        ? item.messages
+        : Array.isArray(item.chat_preview)
+          ? item.chat_preview
+          : [];
+      const deliveredOutbound = messages
+        .filter((message) => {
+          const direction = String(message?.direction || message?.role || message?.sender_type || "").toLowerCase();
+          return /outbound|agent|assistant|bot|staff|operator/i.test(direction)
+            && !contextMessageWasCancelled(message || {});
+        })
+        .sort((left, right) => messageTimeMs(right) - messageTimeMs(left));
+      let evidence = null;
+      let ctaCount = 0;
+      for (const message of deliveredOutbound) {
+        const text = String(message?.text || message?.body || message?.content?.text || message?.content?.caption || "");
+        const hasMedia = Boolean(
+          message?.is_attachment
+          || (Array.isArray(message?.attachments) && message.attachments.length)
+          || /image|photo|picture|media|carousel|document|file/i.test(String(message?.type || message?.message_type || ""))
+        );
+        const hasCta = /(?:要我.*(?:安排|下单|保留)|想要哪个配套|选哪个配套|现在下单|今天下单|马上下单|点击.*(?:button|按钮)|(?:button|按钮).*(?:下单|领取|优惠|购买)|领取(?:优惠|配套)|需要我.*(?:安排|下单))/i.test(text);
+        if (hasCta) ctaCount += 1;
+        if (!evidence && /(?:rm\s*\d+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?\s*(?:令吉|块)|配套\s*[a-d].*rm)/i.test(text)) {
+          evidence = { type: "explicit_price_text", at: message?.at || message?.message_at || "" };
+        } else if (
+          !evidence
+          && hasMedia
+          && hasCta
+          && /(?:价格|价钱|配套|优惠|折扣|promotion|promo|offer|meta\s*day|大促|赠品|送|下单|付款|payment|cod|领取|button|按钮)/i.test(text)
+        ) {
+          evidence = { type: "price_offer_media", at: message?.at || message?.message_at || "" };
+        }
+      }
+      return evidence
+        ? { seen: true, type: evidence.type, at: evidence.at, ctaCount, source: "visible_history" }
+        : { seen: false, type: null, at: "", ctaCount, source: "unknown" };
+    }
+
+    function priceEvidenceLabel(evidence = {}) {
+      if (!evidence.seen) return "未确认看过价格";
+      if (evidence.type === "explicit_price_text") return "已看价格（聊天价格）";
+      if (evidence.type === "price_stage_flow") return "已看价格（价格 Flow）";
+      if (evidence.type === "price_offer_media") return "已看价格（优惠 / 价格图）";
+      if (evidence.type === "confirmed_stage") return "已看价格（渠道阶段）";
+      return "已看价格（已保存状态）";
+    }
+
+    function salesCadenceLabel(item = {}, evidence = {}) {
+      const plan = salesExecutionPlanForCase(item);
+      if (plan.cta_mode === "answer_only") return "只回答，不重复 CTA";
+      if (plan.cta_mode === "direct_cta") return "顾客要买，可直接 CTA";
+      if (plan.cta_mode === "soft_cta") return "一次轻 CTA";
+      if (!evidence.seen) return "价格前，不使用成交 CTA";
+      return "本轮不使用 CTA";
     }
 
     function executionPlanSummary(item = {}) {
