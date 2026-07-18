@@ -9122,11 +9122,11 @@
       });
     };
 
-    // Owner/Admin learning review is part of the unified onboarding and
-    // post-launch improvement loop. Staff still cannot see this module.
-    // Segmentation remains hidden until its separate rollout gates pass.
+    // Review and segmentation remain planned plug-ins. Keep the live support
+    // workspace focused on replying and resolving cases until their separate
+    // rollout gates pass.
     const OPTIONAL_UI_MODULES = Object.freeze({
-      review: true,
+      review: false,
       segment: false,
     });
 
@@ -12956,8 +12956,7 @@
       const token = adminTokenEl.value.trim();
       const requestSeq = ++state.queueRequestSeq;
       const hasAuth = Boolean(token || hasAccountSession());
-      const blockQueueUntilFresh = state.role === "staff"
-        && !options.silent
+      const blockQueueUntilFresh = !options.silent
         && !options.skipCaseSync
         && !state.caseConversationSyncInFlight;
 
@@ -13392,7 +13391,7 @@
 	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 3;
 
 	function scheduleAllCaseConversationSync(options = {}) {
-	  if (state.demoMode || state.role !== "staff" || document.hidden) {
+	  if (state.demoMode || document.hidden) {
 	    if (options.blockQueueUntilFresh) {
 	      state.queueClassificationRefreshing = false;
 	      render();
@@ -13527,7 +13526,7 @@
 
 	function realtimeRefreshReady() {
 	  if (document.hidden || state.demoMode || state.actionBusy || state.bulkBusy) return false;
-	  if (state.role !== "staff" || !apiUrlEl.value.trim()) return false;
+	  if (!apiUrlEl.value.trim()) return false;
 	  return Boolean(adminTokenEl.value.trim() || hasAccountSession());
 	}
 
@@ -14070,7 +14069,11 @@
         ? (reply.text || rawFinalReply || "")
         : (item.manual_reply_text || item.final_text) ? (reply.text || "") : "";
       const manualLearningCandidate = item.manual_learning_candidate || item.manualLearningCandidate || item.manual_resolution?.learning_candidate || null;
-      const sentLike = ["auto_sent", "sent", "send_failed", "manual_resolved"].includes(status);
+      // Only confirmed send states may be projected into the customer
+      // transcript. A manual_resolved Case often still contains the original
+      // AI draft in reply.text; that draft is learning/context data, not proof
+      // that the customer received it.
+      const transcriptReply = ["auto_sent", "sent"].includes(status) ? finalReply : "";
       const contactDigits = approvalContactDigits(item);
       const contactName = customerDisplayNameFromApproval(item, contactNames);
       const contextMessages = approvalRecentContextMessages(item);
@@ -14120,14 +14123,14 @@
         },
       ];
       const messages = contextMessages.length ? contextMessages : fallbackMessages;
-      const finalReplyAlreadyInMessages = finalReply && messages.some((message) => (
-        message.direction === "outbound" && compactCompareText(message.text || "") === compactCompareText(finalReply)
+      const finalReplyAlreadyInMessages = transcriptReply && messages.some((message) => (
+        message.direction === "outbound" && compactCompareText(message.text || "") === compactCompareText(transcriptReply)
       ));
-      if (sentLike && finalReply && !finalReplyAlreadyInMessages) {
+      if (transcriptReply && !finalReplyAlreadyInMessages) {
         messages.push({
           id: `${item.id}-out`,
           direction: "outbound",
-          text: finalReply,
+          text: transcriptReply,
           at: item.approved_at || item.updated_at || at,
         });
       }
@@ -21500,7 +21503,7 @@
 	  requestAnimationFrame(resizeReplyComposer);
       $("replyModeLabel").textContent = unrecognizedVoice ? "语音无法识别 · 人工回复" : manualConversationMode ? "人工连续对话" : paymentConfirmationCase ? "可回复 / 可确认 COD" : externalFlowReadOnly ? "外部已处理，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工回复，只读" : item.status === "returned_to_ai" ? "已让 AI 重写，只读" : readOnly ? "已记录，只读" : "可修改";
       $("replyTools").classList.toggle("hidden", readOnly && !canManualResolve && !canManualSend);
-      const canOptimizeCase = state.role !== "staff";
+      const canOptimizeCase = state.role !== "staff" && optionalUiModuleEnabled("review");
       $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
       $("caseOptimizerInput").value = "";
       const optimizerManualReply = caseOptimizerManualReplyText(item);
@@ -22706,10 +22709,43 @@
 	    .toLowerCase();
 	}
 
-	function filteredFlowCatalog() {
+	function projectMappedFlowCatalog(item = state.active) {
+	  const salesStages = Array.isArray(state.projectKnowledge?.sales_process?.stages)
+	    ? state.projectKnowledge.sales_process.stages
+	    : [];
+	  const mappedRefs = new Set(
+	    salesStages.flatMap((stage) => [
+	      stage?.flow_key,
+	      stage?.provider_bot_id,
+	      stage?.provider_flow_id,
+	    ]).map((value) => String(value || "").trim()).filter(Boolean)
+	  );
+	  const recommendedKey = String(recommendedFlowForCase(item || {})?.flow_key || "");
+	  const currentProject = String(projectKeyEl.value || "").trim().toLowerCase();
+	  return state.flowCatalog.filter((flow) => {
+	    if (flow.is_active === false) return false;
+	    const source = String(flow.catalog_source || "").toLowerCase();
+	    // Older project endpoints do not annotate catalog_source. Treat those
+	    // entries as project-scoped, while excluding explicitly account-wide
+	    // ChatDaddy catalog entries unless they are mapped below.
+	    const scopedBySource = !source || source.includes("project");
+	    const scopedByProject = String(flow.project_key || "").trim().toLowerCase() === currentProject;
+	    const scopedByMapping = [
+	      flow.flow_key,
+	      flow.provider_bot_id,
+	      flow.provider_flow_id,
+	    ].some((value) => mappedRefs.has(String(value || "").trim()));
+	    return scopedBySource
+	      || scopedByProject
+	      || scopedByMapping
+	      || String(flow.flow_key || "") === recommendedKey;
+	  });
+	}
+
+	function filteredFlowCatalog(item = state.active) {
 	  const query = String($("flowSearchInput")?.value || "").trim().toLowerCase();
-	  return state.flowCatalog
-	    .filter((flow) => flow.is_active !== false && (!query || flowSearchText(flow).includes(query)))
+	  return projectMappedFlowCatalog(item)
+	    .filter((flow) => !query || flowSearchText(flow).includes(query))
 	    .sort((left, right) => {
 	      const configuredOrder = Number(right.configured === true) - Number(left.configured === true);
 	      if (configuredOrder) return configuredOrder;
@@ -22734,7 +22770,8 @@
 	  }
 	  const recommended = recommendedFlowForCase(item);
 	  renderFlowPickerOptions(item, recommended?.configured ? recommended.flow_key : "");
-	  const paymentFlows = state.flowCatalog.filter((flow) => flow.is_active !== false && (flow.flow_kind === "payment" || String(flow.stage_key || "").startsWith("after_payment")));
+	  const paymentFlows = projectMappedFlowCatalog(item)
+	    .filter((flow) => flow.flow_kind === "payment" || String(flow.stage_key || "").startsWith("after_payment"));
 	  fillFlowSelect($("paymentFlowSelect"), paymentFlows, recommended?.configured ? recommended.flow_key : "");
 	  const packageMatch = inferPaidPackage(item);
 	  if (packageMatch && !$("purchaseAmountInput").value) $("purchaseAmountInput").value = String(packageMatch.amount_rm);
@@ -22744,14 +22781,14 @@
 	function renderFlowPickerOptions(item = state.active, preferredKey = "") {
 	  const select = $("flowSelect");
 	  const previousKey = String(select?.value || "");
-	  const flows = filteredFlowCatalog();
+	  const flows = filteredFlowCatalog(item);
 	  const selectedKey = flows.some((flow) => String(flow.flow_key || "") === previousKey)
 	    ? previousKey
 	    : preferredKey;
 	  fillFlowSelect(select, flows, selectedKey);
 	  const count = $("flowCatalogCount");
 	  if (count) {
-	    const total = state.flowCatalog.filter((flow) => flow.is_active !== false).length;
+	    const total = projectMappedFlowCatalog(item).length;
 	    const live = state.flowCatalogLiveCount;
 	    count.textContent = state.flowCatalogLiveConnected
 	      ? `${flows.length}/${total} 条 · ChatDaddy ${live} 条`
