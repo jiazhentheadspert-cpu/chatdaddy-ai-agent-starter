@@ -14068,9 +14068,10 @@
       state.agentPaused = Boolean(isPaused);
       const button = $("pauseAgentBtn");
       if (!button) return;
-      button.textContent = state.agentPaused ? "恢复接管" : "暂停接管";
+      button.textContent = state.agentPaused ? "自动回复未开启" : "暂停自动回复";
       button.classList.toggle("danger", !state.agentPaused);
       button.classList.toggle("primary", state.agentPaused);
+      button.disabled = state.agentPaused;
     }
 
     async function togglePauseAgent() {
@@ -14091,12 +14092,13 @@
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             project_key: project,
-            auto_send_enabled: !targetPaused,
+            auto_send_enabled: false,
             auto_trigger_flows_enabled: false,
-            allowed_auto_reply_tier: targetPaused ? "approval_first" : "approved_rules_only",
+            auto_flow_mode: "off",
+            allowed_auto_reply_tier: "approval_first",
             approved_allowlist_ids: [],
             auto_send_intents: [],
-            updated_by: targetPaused ? "dashboard_pause_agent" : "dashboard_resume_agent",
+            updated_by: "dashboard_pause_agent",
           }),
         }));
         const data = await res.json().catch(() => ({}));
@@ -14106,14 +14108,12 @@
         const approvedRules = Number(data.operational_state?.active_approved_rule_count || 0);
         showToast(targetPaused
           ? "已暂停 AI 自动回复；ChatDaddy 既有 Flow 不受影响。"
-          : effective
-            ? "已开启已批准同类自动回复；系统不会自动触发 Flow。"
-            : `已请求开启，但当前批准规则为 ${approvedRules} 条，尚未生效；系统不会自动触发 Flow。`
+          : `自动回复仍保持关闭。限量开启必须先通过发布检查并由项目负责人确认；当前批准规则 ${approvedRules} 条。`
         );
       } catch (error) {
         alert(`暂停接管失败：${error.message || error}`);
       } finally {
-        button.disabled = false;
+        button.disabled = state.agentPaused;
       }
     }
 
@@ -17213,6 +17213,15 @@
         const brand = knowledge.brand_brain || {};
         const projectLabel = String(knowledge.project_name || knowledge.project_key || "当前项目").trim() || "当前项目";
         const salesProcess = knowledge.sales_process || {};
+        const claimPolicy = knowledge.claim_policy && typeof knowledge.claim_policy === "object" ? knowledge.claim_policy : {};
+        const primaryClaimCard = Array.isArray(claimPolicy.claim_cards)
+          ? claimPolicy.claim_cards.find((item) => item && ["approved", "active", "owner_approved"].includes(String(item.status || "").toLowerCase()))
+            || claimPolicy.claim_cards[0]
+            || {}
+          : {};
+        const refundAssurance = claimPolicy.refund_assurance && typeof claimPolicy.refund_assurance === "object"
+          ? claimPolicy.refund_assurance
+          : {};
         const flows = Array.isArray(knowledge.flows) ? knowledge.flows : [];
         const documents = Array.isArray(knowledge.source_documents) ? knowledge.source_documents : [];
         const analyses = Array.isArray(knowledge.document_analyses) ? knowledge.document_analyses : [];
@@ -17358,6 +17367,21 @@
                 </details>
                 </fieldset>
                 ${canApproveProjectMedia ? `<div class="quick-actions"><button class="quick-action" data-dashboard-action="save-project-media-asset" type="button">批准并加入当前项目</button></div>` : ""}
+              </div>
+            </details>
+            <details class="settings-section">
+              <summary>证据与承诺</summary>
+              <div class="settings-section-body">
+                <p class="settings-section-copy">只保存项目负责人已批准的研究与退款条款。系统会在发送前检查。</p>
+                <div class="field-grid">
+                  <label>证据属于<select id="projectClaimScopeInput"><option value="ingredient" ${String(primaryClaimCard.evidence_scope || "ingredient") !== "finished_product" ? "selected" : ""}>产品成分</option><option value="finished_product" ${String(primaryClaimCard.evidence_scope || "") === "finished_product" ? "selected" : ""}>完整产品</option></select></label>
+                  <label>研究名称<input id="projectClaimTitleInput" value="${escapeHtml(primaryClaimCard.title || primaryClaimCard.subject || "")}" placeholder="例如：白芸豆人体研究"></label>
+                  <label>研究链接 / 资料编号<input id="projectClaimSourceInput" value="${escapeHtml(primaryClaimCard.source_url || primaryClaimCard.source_ref || "")}" placeholder="https://..."></label>
+                  <label>AI 可以怎么说（每行一句）<textarea id="projectClaimWordingInput">${escapeHtml(Array.isArray(primaryClaimCard.approved_wording) ? primaryClaimCard.approved_wording.join("\n") : "")}</textarea></label>
+                  <label>证据支持的数字（每行一个）<textarea id="projectClaimQuantifiedInput" placeholder="例如：12%">${escapeHtml(Array.isArray(primaryClaimCard.supported_quantified_claims) ? primaryClaimCard.supported_quantified_claims.join("\n") : "")}</textarea></label>
+                  <label class="settings-checkbox"><input type="checkbox" id="projectRefundAssuranceInput" ${refundAssurance.active === true ? "checked" : ""}> <span>有正式无效退款保障</span></label>
+                  <label>退款条款来源<input id="projectRefundTermsSourceInput" value="${escapeHtml(refundAssurance.terms_source_ref || "")}" placeholder="文件名 / Google Doc / 政策编号"></label>
+                </div>
               </div>
             </details>
             <details class="settings-section">
@@ -22492,6 +22516,27 @@
         const offerTitle = String($("salesOfferTitleInput")?.value || "").trim();
         const offerValidUntil = String($("salesOfferValidUntilInput")?.value || "").trim();
         const offerSource = String($("salesOfferSourceInput")?.value || "").trim();
+        const claimScope = String($("projectClaimScopeInput")?.value || "ingredient");
+        const claimTitle = String($("projectClaimTitleInput")?.value || "").trim();
+        const claimSource = String($("projectClaimSourceInput")?.value || "").trim();
+        const claimWording = String($("projectClaimWordingInput")?.value || "")
+          .split(/\n+/)
+          .map((value) => value.trim())
+          .filter(Boolean);
+        const claimQuantified = String($("projectClaimQuantifiedInput")?.value || "")
+          .split(/\n+/)
+          .map((value) => value.trim())
+          .filter(Boolean);
+        const refundActive = $("projectRefundAssuranceInput")?.checked === true;
+        const refundTermsSource = String($("projectRefundTermsSourceInput")?.value || "").trim();
+        if ((claimTitle || claimWording.length || claimQuantified.length) && !claimSource) {
+          showToast("研究证据必须填写来源链接或资料编号。");
+          return false;
+        }
+        if (refundActive && !refundTermsSource) {
+          showToast("开启退款保障前，必须填写正式条款来源。");
+          return false;
+        }
         const offers = offerMode === "active_offer" && (offerTitle || offerValidUntil || offerSource)
           ? [{
               title: offerTitle,
@@ -22525,7 +22570,7 @@
               first_question: "answer_with_one_relevant_proof_and_soft_cta",
               continued_questions: "answer_only",
               soft_cta_min_customer_turns_since_last_cta: 3,
-              max_cta_per_funnel: 3,
+              max_cta_per_funnel: postPriceRepeatMode === "answer_only" ? 1 : 2,
               proof_reuse_cooldown_turns: 3,
               new_objection_can_soft_cta_after_cooldown: postPriceRepeatMode === "gentle_retry_after_3",
               strong_buying_signal_can_cta_immediately: true,
@@ -22534,6 +22579,47 @@
           },
           follow_up_policy: { owner: "channel", stop_on_customer_reply: true },
           automation_level: Number(projectPackage.sales_process?.automation_level || 1),
+        };
+        const existingClaimPolicy = projectPackage.claim_policy && typeof projectPackage.claim_policy === "object"
+          ? projectPackage.claim_policy
+          : {};
+        const existingClaimCards = Array.isArray(existingClaimPolicy.claim_cards) ? existingClaimPolicy.claim_cards : [];
+        const existingPrimaryClaim = existingClaimCards.find((item) => item && ["approved", "active", "owner_approved"].includes(String(item.status || "").toLowerCase()))
+          || existingClaimCards[0]
+          || {};
+        const primaryClaimId = String(existingPrimaryClaim.id || "project_primary_evidence_v1");
+        const otherClaimCards = existingClaimCards.filter((item) => String(item?.id || "") !== primaryClaimId);
+        projectPackage.claim_policy = {
+          ...existingClaimPolicy,
+          schema_version: "replypilot.claim_policy.v1",
+          status: claimSource && claimWording.length ? "approved" : String(existingClaimPolicy.status || "draft"),
+          evidence_standard: "只可使用项目负责人批准且未过期的证据卡；成分研究不能写成完整产品临床证明，也不能承诺每位顾客固定结果。",
+          claim_cards: claimSource && claimWording.length
+            ? [{
+                ...existingPrimaryClaim,
+                id: primaryClaimId,
+                status: "approved",
+                title: claimTitle || "项目研究证据",
+                evidence_scope: claimScope === "finished_product" ? "finished_product" : "ingredient",
+                subject: claimTitle || existingPrimaryClaim.subject || "",
+                source_url: /^https?:\/\//i.test(claimSource) ? claimSource : "",
+                source_ref: claimSource,
+                approved_wording: claimWording,
+                supported_quantified_claims: claimQuantified,
+                approved_by: state.session?.user?.email || state.session?.email || "project_owner",
+                approved_at: new Date().toISOString(),
+              }, ...otherClaimCards]
+            : existingClaimCards,
+          refund_assurance: {
+            ...(existingClaimPolicy.refund_assurance || {}),
+            status: refundActive && refundTermsSource ? "approved" : "draft",
+            active: refundActive && Boolean(refundTermsSource),
+            title: refundActive ? "无效退款保障" : "",
+            terms_source_ref: refundTermsSource,
+            approved_by: refundActive ? state.session?.user?.email || state.session?.email || "project_owner" : "",
+            approved_at: refundActive ? new Date().toISOString() : "",
+            terms_required_before_order: true,
+          },
         };
         const savedRes = await fetch(packageEndpoint, authRequestOptions(token, {
           method: "POST",
@@ -23948,8 +24034,8 @@
           flowPolicy: "信心 + 当前价 + CTA",
           priority: 89,
           patterns: [/(真的有效|有效吗|有效嗎|会瘦|會瘦|效果|result|work|confidence)/i],
-          answer: "体重变化会跟喝法、饮食、喝水、活动量和个人体质有关，所以我不想直接跟你保证一定会瘦，或固定瘦几公斤。不过 Beyoute 确实有正式的「30天无效退款保障」；会按照正式条款审核，不是无条件退款。你下单前，我也可以先把完整条款给你看清楚。你现在最想改善的是肚腩、嘴馋、排便，还是体重？我可以先按你的目标帮你建议比较合适的疗程。",
-          mustInclude: ["不保证固定减重", "30天无效退款保障", "按正式条款审核"],
+          answer: "Beyoute 使用的 Phase 2® 白芸豆核心原料，有随机双盲、安慰剂对照的人体临床研究支持；研究观察到在配合碳水餐和饮食管理的情况下，体重管理相关指标有改善。个人变化仍会受喝法、饮食、喝水、活动量和体质影响，所以不会承诺固定瘦几公斤。Beyoute 有正式「30天无效退款保障」；符合正式条款后可以申请审核，下单前也可以先看完整条款。你现在最想改善肚腩、嘴馋、排便还是体重？我可以按目标帮你建议疗程。",
+          mustInclude: ["成分人体临床研究", "不承诺固定减重", "30天无效退款保障", "符合正式条款"],
           mustNotDo: ["保证瘦", "无条件退款", "零风险", "倒回教育 Flow"],
           nextAction: "价格后走信心 CTA；不再回 Step 1 教育。"
         },
