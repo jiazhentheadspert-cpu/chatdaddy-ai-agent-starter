@@ -1155,7 +1155,7 @@
       }
       if (!catalogConnected || liveFlowCount === 0) {
         const reason = data.flow_catalog?.live_catalog_error
-          ? `（${data.flow_catalog.live_catalog_error}）`
+          ? `（${flowCatalogErrorLabel(data.flow_catalog.live_catalog_error)}）`
           : "";
         flowBindingsEl.innerHTML = `
           <div class="log-item">
@@ -1256,6 +1256,14 @@
       if (message.includes("connection_guide_flow_not_in_live_catalog")) return "所选 Flow 已不在当前项目实时清单，请重新同步后再选。";
       if (message.includes("connection_guide_live_catalog_required")) return "请先连接当前项目 ChatDaddy 并同步真实 Flow。";
       return message;
+    }
+
+    function flowCatalogErrorLabel(error = "") {
+      if (String(error).includes("api_key_missing")) return "当前项目还没有完成 ChatDaddy Token 授权";
+      if (String(error).includes("account_id")) return "当前项目还没有填写 ChatDaddy Account ID";
+      if (String(error).includes("decrypt")) return "当前项目 Token 无法读取，请负责人重新授权";
+      if (String(error).includes("unauthorized") || String(error).includes("forbidden")) return "ChatDaddy Token 权限不足，请检查 TEMPLATES_READ";
+      return "当前项目暂时无法读取实时 Flow 清单";
     }
 
     function renderCommands() {
