@@ -21466,6 +21466,12 @@
 	  const originalProposedReply = externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
 	  const proposedReply = hideReplyCardForMode || isManualFollowUp || manualConversationMode ? "" : originalProposedReply;
 	  const misleadingPaymentDraft = paymentConfirmationCase && /(先帮你核对|先幫你核對|确认好后再回复|確認好後再回覆|稍后再回复|稍後再回覆|不会重复向你收款|不會重複向你收款)/i.test(originalProposedReply);
+	  const confirmedManualReply = Boolean(firstContextText(
+	    item.manual_reply_text,
+	    item.final_human_reply,
+	    item.raw_approval?.manual_reply_text,
+	    item.raw_approval?.final_human_reply
+	  ));
 	  const canRestoreReplyDraft = !readOnly || canManualResolve || canManualSend;
 	  const restoreReplyDraft = preserveReplyDraft && canRestoreReplyDraft;
 	  if (!composingSameCase) {
@@ -21574,7 +21580,7 @@
 	      $("caseDetails").innerHTML = caseDetailsHtml(item);
 
 	      $("chatBox").innerHTML = (item.messages || []).filter((msg) => messageHasRenderableContent(msg) && !contextMessageWasCancelled(msg)).filter((msg) => {
-	        if (!paymentConfirmationCase) return true;
+	        if (!paymentConfirmationCase || confirmedManualReply) return true;
 	        const outbound = msg.direction === "outbound" || msg.direction === "out" || msg.role === "agent";
 	        return !(outbound && compactCompareText(messageDisplayText(msg)) === compactCompareText(decision.reply_message || ""));
 	      }).map((msg) => {
@@ -28278,16 +28284,16 @@
         addAuditEvent(`case_${action}`, `真实顾客 ${caseId} 已执行 ${actionLabel(action)}。`);
         if (options.reload !== false) {
           const returnedCase = data.case || data.item;
-          if (returnedCase) upsertReturnedCase(returnedCase);
-          if (options.reopen !== false && returnedCase) openCase(returnedCase.id);
-	      if (action === "manual_send" && returnedCase) {
-	        clearRememberedReplyDraft(returnedCase.id);
+          const installedCase = returnedCase ? upsertReturnedCase(returnedCase) : null;
+          if (options.reopen !== false && installedCase) openCase(installedCase.id);
+	      if (action === "manual_send" && installedCase) {
+	        clearRememberedReplyDraft(installedCase.id);
 	        $("replyBox").value = "";
 	        state.replyDraftDirty = false;
 	        $("replyBox").placeholder = "输入下一条讯息，发送后还可以继续回复...";
 	        $("replyModeLabel").textContent = "人工连续对话";
 	        resizeReplyComposer();
-	        updateQualityEvaluationPanel(returnedCase);
+	        updateQualityEvaluationPanel(installedCase);
 	        $("replyBox").focus();
 	      }
           window.setTimeout(() => {
@@ -28309,14 +28315,74 @@
       }
     }
 
+	function mergeReturnedCaseMessages(...groups) {
+	  const merged = new Map();
+	  groups.flat().filter((message) => message && typeof message === "object").forEach((message, index) => {
+	    const key = messageMergeKey(message) || `message:${index}`;
+	    merged.set(key, {
+	      ...(merged.get(key) || {}),
+	      ...message,
+	    });
+	  });
+	  return [...merged.values()].sort((left, right) => messageTimeMs(left) - messageTimeMs(right));
+	}
+
+	function normalizeReturnedCase(record = {}, existing = null) {
+	  const alreadyNormalized = Array.isArray(record.messages)
+	    && record.latest_decision
+	    && typeof record.latest_decision === "object";
+	  const normalized = alreadyNormalized
+	    ? record
+	    : approvalToCase(record, state.contactNames || {});
+	  if (!existing) return normalized;
+
+	  const previousRaw = existing.raw_approval && typeof existing.raw_approval === "object"
+	    ? existing.raw_approval
+	    : {};
+	  const nextRaw = normalized.raw_approval && typeof normalized.raw_approval === "object"
+	    ? normalized.raw_approval
+	    : record;
+	  return {
+	    ...existing,
+	    ...normalized,
+	    contact: {
+	      ...(existing.contact || {}),
+	      ...(normalized.contact || {}),
+	    },
+	    latest_decision: {
+	      ...(existing.latest_decision || {}),
+	      ...(normalized.latest_decision || {}),
+	    },
+	    messages: mergeReturnedCaseMessages(existing.messages || [], normalized.messages || []),
+	    history: [
+	      ...(existing.history || []),
+	      ...(normalized.history || []),
+	    ].filter((event, index, rows) => {
+	      const key = `${event?.type || ""}|${event?.at || ""}|${event?.note || ""}`;
+	      return rows.findIndex((candidate) => `${candidate?.type || ""}|${candidate?.at || ""}|${candidate?.note || ""}` === key) === index;
+	    }),
+	    raw_approval: {
+	      ...previousRaw,
+	      ...nextRaw,
+	    },
+	  };
+	}
+
 	function upsertReturnedCase(record = {}) {
 	  const id = String(record.id || "").trim();
-	  if (!id) return;
+	  if (!id) return null;
 	  const caseIndex = state.cases.findIndex((item) => String(item.id || "") === id);
-	  if (caseIndex >= 0) state.cases[caseIndex] = record;
-	  else state.cases.push(record);
 	  const visibleIndex = state.visibleCases.findIndex((item) => String(item.id || "") === id);
-	  if (visibleIndex >= 0) state.visibleCases[visibleIndex] = record;
+	  const existing = caseIndex >= 0
+	    ? state.cases[caseIndex]
+	    : visibleIndex >= 0
+	      ? state.visibleCases[visibleIndex]
+	      : null;
+	  const installed = normalizeReturnedCase(record, existing);
+	  if (caseIndex >= 0) state.cases[caseIndex] = installed;
+	  else state.cases.push(installed);
+	  if (visibleIndex >= 0) state.visibleCases[visibleIndex] = installed;
+	  return installed;
 	}
 
     function showSaasConfirm(options = {}) {
