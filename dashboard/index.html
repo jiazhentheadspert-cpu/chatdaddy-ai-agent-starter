@@ -12577,7 +12577,7 @@
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
-    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 6;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 7;
 
     function dashboardQueueSnapshotKey(project = "") {
       return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
