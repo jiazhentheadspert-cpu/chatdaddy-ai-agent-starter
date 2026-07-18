@@ -919,8 +919,8 @@
       </div>
 
       <div class="side-card">
-        <h2>先训练业务大脑</h2>
-        <p>先回答 6 个业务问题，让 AI 理解产品、顾客、市场、成交和安全边界。ChatDaddy 与 Flow 会在 Owner 验收之后才连接。</p>
+        <h2 id="setupSideTitle">先训练业务大脑</h2>
+        <p id="setupSideDescription">先回答 6 个业务问题，让 AI 理解产品、顾客、市场、成交和安全边界。ChatDaddy 与 Flow 会在 Owner 验收之后才连接。</p>
       </div>
 
       <div class="side-card">
@@ -938,8 +938,8 @@
     <main class="main">
       <section class="hero">
         <div class="eyebrow">Owner / Admin Setup</div>
-        <h1>新公司项目设置</h1>
-        <p>新项目先完成 6 个业务理解问题，再由 Owner 核对 AI 的理解。这里只保存可审核的 Agent Brain 草稿；不会连接渠道、不会发送顾客讯息，也不会触发 Flow。</p>
+        <h1 id="setupHeroTitle">新公司项目设置</h1>
+        <p id="setupHeroDescription">新项目先完成 6 个业务理解问题，再由 Owner 核对 AI 的理解。这里只保存可审核的 Agent Brain 草稿；不会连接渠道、不会发送顾客讯息，也不会触发 Flow。</p>
         <div class="chips" id="safetyChips">
           <span class="chip">Approval-first</span>
           <span class="chip">No send</span>
@@ -964,7 +964,7 @@
         <div class="actions">
           <button class="btn primary" type="button" id="previewButton">预览业务大脑</button>
           <button class="btn" type="button" id="createButton">Owner 验收并创建草稿</button>
-          <a class="btn" href="../channel-setup/index.html" target="_blank" rel="noreferrer">验收后连接渠道</a>
+          <a class="btn" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">验收后连接渠道</a>
           <button class="btn" type="button" id="copyButton">复制摘要</button>
         </div>
       </section>
@@ -1391,6 +1391,12 @@
       state.existingProject = existingProject;
       state.existingPackageResponse = packageResponse;
       applyExistingProjectOnboarding(packageResponse.project_package || {}, existingProject);
+      document.getElementById("setupHeroTitle").textContent = `${existingProject.name || projectKey} Owner 业务验收`;
+      document.getElementById("setupHeroDescription").textContent = "这是现有项目迁移，不会重建项目。请核对系统从原 Project Brain 预填的六问；保存只会新增草稿版本，不会发布、不发送顾客讯息，也不会触发 Flow。";
+      document.getElementById("setupSideTitle").textContent = "确认现有业务大脑";
+      document.getElementById("setupSideDescription").textContent = "旧 FAQ、SOP、Flow 和自动化设置会保留；这里只补齐六问 Owner 验收，让现有项目通过完整学习检查。";
+      document.querySelector("#setupForm .section-title").textContent = "1. 确认现有项目";
+      document.getElementById("channelSetupLink").textContent = "查看渠道连接状态";
       createButton.textContent = "Owner 验收并保存现有项目草稿";
       formHelp.textContent = `正在迁移现有项目 ${projectKey}：系统已按原 Project Brain 预填六问。请逐项修正后再验收；保存只建立新草稿版本，不发布、不发讯息、不触发 Flow。`;
       setStatus("现有项目迁移", "ok");
