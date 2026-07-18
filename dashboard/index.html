@@ -10843,7 +10843,7 @@
       // falling back to today:
       //   actionable queue -> all unfinished
       //   read-only queue   -> all records
-      if (state.role === "staff" && state.queueDateScope !== "date") {
+      if (state.queueDateScope !== "date") {
         state.queueDateScope = staffFilterSupportsOpenBacklog(nextFilter)
           ? "open_backlog"
           : "all_history";
