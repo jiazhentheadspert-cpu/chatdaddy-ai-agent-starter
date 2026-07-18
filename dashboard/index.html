@@ -12996,8 +12996,8 @@
           real_only: visibility.realOnly ? "1" : "0",
           compact_conversations: "0",
           summary_only: "1",
-          limit: searchQuery ? "120" : "250",
-          scan_limit: "2000",
+          limit: searchQuery ? "80" : "120",
+          scan_limit: "500",
         });
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
         const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
@@ -13190,9 +13190,9 @@
           state.metaCapiStatus = null;
           state.usageSummary = null;
         }
-	    if (!options.skipCaseSync) {
+	    if (!options.skipCaseSync && !options.silent) {
 	      scheduleAllCaseConversationSync({
-	        immediate: !options.silent,
+	        immediate: true,
 	        force: blockQueueUntilFresh,
 	        blockQueueUntilFresh,
 	      });
@@ -13328,7 +13328,7 @@
         state.inboxError = liveContinuationState.retry
           ? "ChatDaddy 较早对话读取暂时失败；已保留原进度，可以重试。"
           : "";
-        if (!options.skipCaseSync) scheduleAllCaseConversationSync({ immediate: true, force: append });
+        if (!options.skipCaseSync && !options.silent) scheduleAllCaseConversationSync({ immediate: true, force: append });
       } catch (error) {
         if (requestSeq !== state.inboxRequestSeq) return;
         state.inboxError = `最新讯息读取失败：${error.message || error}`;
@@ -13386,9 +13386,10 @@
 
 	// Keep open Case classification close to ChatDaddy without continuously
 	// rereading finished history. New Case IDs sync immediately; existing open
-	// IDs are checked at most once per minute.
-	const CASE_CONVERSATION_SYNC_TTL_MS = 60 * 1000;
-	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 3;
+	// IDs are checked at most once every five minutes. Opening a Case still
+	// performs a direct refresh, so the operator sees current ChatDaddy state.
+	const CASE_CONVERSATION_SYNC_TTL_MS = 5 * 60 * 1000;
+	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 2;
 
 	function scheduleAllCaseConversationSync(options = {}) {
 	  if (state.demoMode || document.hidden) {
@@ -13460,8 +13461,8 @@
 	          headers: { "content-type": "application/json" },
 	          body: JSON.stringify({
 	            chat_ids: batch,
-	            count: 80,
-	            concurrency: 3,
+	            count: 40,
+	            concurrency: 2,
 	            fetch_from_platform: true,
 	            create_approval_cases: false,
 	          }),
@@ -13521,8 +13522,8 @@
 	  return state.caseConversationSyncSummary;
 	}
 
-	const REALTIME_QUEUE_POLL_MS = 5000;
-	const REALTIME_INBOX_POLL_MS = 10000;
+	const REALTIME_QUEUE_POLL_MS = 30000;
+	const REALTIME_INBOX_POLL_MS = 30000;
 
 	function realtimeRefreshReady() {
 	  if (document.hidden || state.demoMode || state.actionBusy || state.bulkBusy) return false;
