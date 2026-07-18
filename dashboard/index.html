@@ -13326,7 +13326,10 @@
       }
     }
 
-	const CASE_CONVERSATION_SYNC_TTL_MS = 2 * 60 * 1000;
+	// Keep open Case classification close to ChatDaddy without continuously
+	// rereading finished history. New Case IDs sync immediately; existing open
+	// IDs are checked at most once per minute.
+	const CASE_CONVERSATION_SYNC_TTL_MS = 60 * 1000;
 	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 3;
 
 	function scheduleAllCaseConversationSync(options = {}) {
