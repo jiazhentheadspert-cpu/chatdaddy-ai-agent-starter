@@ -14865,10 +14865,10 @@
     function dashboardMediaReviewCopy(item = {}) {
       const kind = dashboardItemMediaKind(item);
       if (kind === "audio") return {
-        title: "语音先人工听",
-        body: "顾客只发语音，Dashboard 不能凭空知道她问什么。客服先听完并补一句问题摘要；确认后再回复，不自动接 Flow。",
-        flowPolicy: "先听完语音并补摘要，不猜内容、不接销售 Flow",
-        nextAction: "转人工回复听取原始语音；处理完把最终人工回复补回 Dashboard。",
+        title: "语音无法识别，人工听原音",
+        body: "这条语音没有可靠文字，AI 不生成回复，也不猜顾客说了什么。客服先播放原音，再直接输入回复；不自动接 Flow。",
+        flowPolicy: "AI 留空；人工听原音后回复，不接销售 Flow",
+        nextAction: "人工播放原始语音并输入回复；无法播放时打开语音原档。",
       };
       if (kind === "image") return {
         title: "图片先人工看",
@@ -14937,7 +14937,7 @@
 
     function dashboardSafeAttachmentReply(item = {}) {
       const kind = dashboardItemMediaKind(item);
-      if (kind === "audio") return "亲，我先听完你发来的语音，确认内容后再回复你。";
+      if (kind === "audio") return "";
       if (kind === "image") return "亲，我先查看你发来的图片，确认内容后再回复你。";
       if (kind === "video") return "亲，我先查看你发来的视频，确认内容后再回复你。";
       if (kind === "file") return "亲，我先打开你发来的文件，确认内容后再回复你。";
@@ -21478,10 +21478,21 @@
 	  }
 	  state.replyDraftDirty = restoreReplyDraft || composingSameCase;
 	  renderAiBrainBadge(item);
-      $("replyBox").placeholder = externalFlowReadOnly ? "" : isManualFollowUp ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。" : manualConversationMode ? "输入下一条讯息，发送后还可以继续回复..." : "输入回复给顾客...";
+      const unrecognizedVoice = dashboardItemMediaKind(item) === "audio"
+        && dashboardIsUnverifiedAttachmentApproval(item)
+        && !dashboardHasExplicitPaymentReceiptEvidence(item);
+      $("replyBox").placeholder = externalFlowReadOnly
+        ? ""
+        : unrecognizedVoice
+          ? "语音没有可靠文字；请先播放原音，再由人工输入回复。"
+          : isManualFollowUp
+            ? "客服处理完后，把最后真正发给顾客的回复贴在这里，AI 才能学到正确答案。"
+            : manualConversationMode
+              ? "输入下一条讯息，发送后还可以继续回复..."
+              : "输入回复给顾客...";
       $("replyBox").readOnly = readOnly && !canManualResolve && !canManualSend;
 	  requestAnimationFrame(resizeReplyComposer);
-	  $("replyModeLabel").textContent = manualConversationMode ? "人工连续对话" : paymentConfirmationCase ? "可回复 / 可确认 COD" : externalFlowReadOnly ? "外部已处理，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工回复，只读" : item.status === "returned_to_ai" ? "已让 AI 重写，只读" : readOnly ? "已记录，只读" : "可修改";
+      $("replyModeLabel").textContent = unrecognizedVoice ? "语音无法识别 · 人工回复" : manualConversationMode ? "人工连续对话" : paymentConfirmationCase ? "可回复 / 可确认 COD" : externalFlowReadOnly ? "外部已处理，只读" : isManualFollowUp ? "补人工最终回复" : item.status === "handoff_done" ? "已转人工回复，只读" : item.status === "returned_to_ai" ? "已让 AI 重写，只读" : readOnly ? "已记录，只读" : "可修改";
       $("replyTools").classList.toggle("hidden", readOnly && !canManualResolve && !canManualSend);
       const canOptimizeCase = state.role !== "staff";
       $("caseOptimizerCard").classList.toggle("hidden", !canOptimizeCase);
@@ -21506,7 +21517,7 @@
         $("replyBox").placeholder = "在这里写客服要发给顾客的回复；发送成功后会留下学习候选；Owner 审核后，同类问题才会自动或少审核。";
       }
       if (canManualSend) {
-	        $("replyModeLabel").textContent = manualConversationMode || readOnly ? "人工连续对话" : "人工回复并发送";
+        $("replyModeLabel").textContent = unrecognizedVoice ? "语音无法识别 · 人工回复" : manualConversationMode || readOnly ? "人工连续对话" : "人工回复并发送";
 	        $("replyTools").classList.remove("hidden");
       }
       $("closerVerdictBox").className = `closer-verdict ${closer.tone}`;
@@ -23706,9 +23717,9 @@
           flowPolicy: "信心 + 当前价 + CTA",
           priority: 89,
           patterns: [/(真的有效|有效吗|有效嗎|会瘦|會瘦|效果|result|work|confidence)/i],
-          answer: "会不会适合你，主要看你的饮食习惯、排便和水肿情况。Beyoute Plus+ 不是普通代餐，它的重点是搭配餐前喝，帮助你比较好控制一餐的负担；我们也有真实反馈可以让你参考。很多顾客会先从 1 盒 RM150 试感觉，想认真做一轮就拿 2 盒 RM258 或 3 盒 RM378。你是想先试 1 盒，还是想我帮你选比较适合的配套？",
-          mustInclude: ["不保证效果", "真实反馈", "当前价 RM150/RM258/RM378"],
-          mustNotDo: ["保证瘦", "医疗承诺", "倒回教育 Flow"],
+          answer: "体重变化会跟喝法、饮食、喝水、活动量和个人体质有关，所以我不想直接跟你保证一定会瘦，或固定瘦几公斤。不过 Beyoute 确实有正式的「30天无效退款保障」；会按照正式条款审核，不是无条件退款。你下单前，我也可以先把完整条款给你看清楚。你现在最想改善的是肚腩、嘴馋、排便，还是体重？我可以先按你的目标帮你建议比较合适的疗程。",
+          mustInclude: ["不保证固定减重", "30天无效退款保障", "按正式条款审核"],
+          mustNotDo: ["保证瘦", "无条件退款", "零风险", "倒回教育 Flow"],
           nextAction: "价格后走信心 CTA；不再回 Step 1 教育。"
         },
         {
