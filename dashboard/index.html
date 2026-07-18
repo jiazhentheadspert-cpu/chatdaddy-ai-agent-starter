@@ -9166,11 +9166,10 @@
       });
     };
 
-    // Review and segmentation remain planned plug-ins. Keep the live support
-    // workspace focused on replying and resolving cases until their separate
-    // rollout gates pass.
+    // Owner review is part of the SaaS onboarding and learning loop. Staff stay
+    // inside Inbox / AI Reply and cannot open the protected review workspace.
     const OPTIONAL_UI_MODULES = Object.freeze({
-      review: false,
+      review: true,
       segment: false,
     });
 
@@ -9245,6 +9244,8 @@
         blockReasons: [],
         tier: "approval_first",
       },
+      saasActivation: null,
+      saasActivationError: "",
       auditEvents: [],
 	      projectVersions: null,
 	      qualityReview: null,
@@ -10540,6 +10541,37 @@
       }
     }
 
+    async function loadSaasActivationStatus() {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const projectKey = String(projectKeyEl.value || "").trim();
+      if (!api || !projectKey || !hasAccountSession()) return true;
+      try {
+        const res = await fetch(
+          `${api}/api/hermas/projects/${encodeURIComponent(projectKey)}/activation-status`,
+          authRequestOptions("", { method: "GET" })
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.message || data.error || "activation_status_unavailable");
+        state.saasActivation = data.activation || null;
+        state.saasActivationError = "";
+        if (data.ready_for_ai_reply === true) return true;
+
+        if (state.role !== "staff") {
+          state.workspaceView = "operations";
+          state.sidebarKey = "configure";
+          state.activeSetupStep = "1";
+          state.settingsExpanded = true;
+          showToast("这个项目还没完成 Onboarding；请完成发布 Gate 后再进入 AI Reply。");
+        } else {
+          showToast("AI Reply 尚未启用，请 Owner 先完成项目 Onboarding。");
+        }
+        return false;
+      } catch (error) {
+        state.saasActivationError = error.message || "activation_status_unavailable";
+        return true;
+      }
+    }
+
     async function syncCurrentProjectAvatarFromChannel(options = {}) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const projectKey = String(projectKeyEl.value || "").trim();
@@ -11199,8 +11231,9 @@
       $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
       document.body.classList.toggle("cases-view", isCases);
-      $("statusStrip").classList.toggle("hidden", true);
-      $("statusStrip").innerHTML = "";
+      const showStatusStrip = state.role !== "staff" && (isCases || isInbox);
+      $("statusStrip").classList.toggle("hidden", !showStatusStrip);
+      $("statusStrip").innerHTML = showStatusStrip ? statusStripHtml() : "";
       $("setupPanel").classList.toggle("hidden", true);
 
       $("demoBar").classList.toggle("hidden", !isCases || !canUseDemoMode());
@@ -11242,15 +11275,16 @@
     }
 
     function statusStripHtml() {
-      const connectionTone = state.demoMode ? "warn" : "";
-      const connectionText = state.demoMode ? "演示资料" : "真实顾客";
-      const maturity = state.demoMode ? "演示" : "客服工作台";
-      const maturityTone = state.demoMode ? "warn" : "";
+      const activationReady = state.saasActivation?.ready_for_ai_reply === true;
+      const activationLabel = state.saasActivationError
+        ? "AI Reply 状态待重试"
+        : activationReady ? "AI Reply 可用" : "Onboarding 未完成";
+      const activationTone = activationReady ? "" : "warn";
       return `
-        <span class="status-chip ${maturityTone}">${maturity}</span>
-        <span class="status-chip ${connectionTone}">${connectionText}</span>
-        <span class="status-chip">客服批准</span>
-        <span class="status-chip">记录只读</span>
+        <span class="status-chip ${activationTone}">${activationLabel}</span>
+        <span class="status-chip">Approval-first</span>
+        <span class="status-chip">自动发送关</span>
+        <span class="status-chip">自动 Flow 关</span>
       `;
     }
 
@@ -29600,9 +29634,17 @@
 	(async function bootDashboard() {
 	  const sessionReady = await bootstrapSaasSession();
 	  if (!sessionReady && apiUrlEl.value.trim()) return;
-	  if (state.workspaceView === "inbox") await loadInboxConversations();
-	  else await loadCases();
-	  startQueueAutoRefresh();
+	  const activationReady = await loadSaasActivationStatus();
+	  if (activationReady) {
+	    if (state.workspaceView === "inbox") await loadInboxConversations();
+	    else await loadCases();
+	    startQueueAutoRefresh();
+	  } else {
+	    render();
+	  }
+	  if (activationReady && new URLSearchParams(window.location.search).get("onboarding") === "complete") {
+	    showToast("Onboarding 已完成：AI Reply 可直接使用；自动发送和自动 Flow 仍关闭。");
+	  }
 	  Promise.allSettled([
 	    loadFlowCatalog(),
 	    loadProjectKnowledge({ silent: true }),
