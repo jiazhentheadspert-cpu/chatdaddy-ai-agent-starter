@@ -8817,7 +8817,7 @@
             <div class="case-optimizer-output" id="caseOptimizerOutput">打开已回复的 Case 后，系统会整理顾客触发问题、回答顺序、附件 / Flow 和自动边界。</div>
           </div>
         </div>
-        <aside class="action-stack">
+        <aside class="action-stack" id="caseActionStack">
           <details class="action-card action-card-details" id="agentActionDetails">
             <summary>
               <span>AI 建议<b id="actionTitle">按「批准发送」</b></span>
@@ -8854,7 +8854,7 @@
           </details>
         </aside>
       </div>
-	  <div class="quick-action-card reply-command-bar" aria-label="客服操作按钮">
+	  <div class="quick-action-card reply-command-bar" id="replyCommandBar" aria-label="客服操作按钮">
 	    <div class="quick-action-head">
 	      <span>客服操作</span>
 	      <small>常用动作集中在这里</small>
@@ -21443,8 +21443,9 @@
       const showPurchasePanel = shouldShowPurchasePanelForCase(item, readOnly, canResendPurchase);
       const purchaseActionComplete = purchaseActionCompleteForCase(item);
 	  const paymentConfirmationCase = isPaymentConfirmationCase(item) && !purchaseActionComplete;
+      const passiveReadOnly = readOnly && !canManualResolve && !canManualSend && !showPurchasePanel;
       const hideReplyCard = item.status === "handoff_done" && !hasOutbound && !canManualResolve && !showPurchasePanel;
-	  const hideReplyCardForMode = hideReplyCard && !canManualSend;
+	  const hideReplyCardForMode = (hideReplyCard || passiveReadOnly) && !canManualSend;
       const externalFlowReadOnly = item.status === "external_flow_continued";
       const baseDisplayName = customerDisplayLabel(item);
       const displayName = customerDisplayLabelWithTail(item, baseDisplayName);
@@ -21463,6 +21464,10 @@
 	      $("panelName").textContent = displayName;
 	      $("panelAvatar").textContent = initialsFor(baseDisplayName);
 	  $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · 对话更新 ${formatDate(conversationLatestAt)}`;
+      $("caseIntelDetails").classList.toggle("hidden", passiveReadOnly);
+      $("qualityEvalCard").classList.toggle("hidden", passiveReadOnly);
+      $("caseActionStack").classList.toggle("hidden", passiveReadOnly);
+      $("replyCommandBar").classList.toggle("hidden", passiveReadOnly);
 	  $("replyCard").classList.toggle("hidden", hideReplyCardForMode);
 	  const latestMessageOutbound = /outbound|agent|assistant|bot/i.test(String(latestMessage.direction || latestMessage.role || latestMessage.sender_type || ""));
 	  const manualConversationMode = canManualSend && (readOnly || paymentConfirmationCase || latestMessageOutbound);
