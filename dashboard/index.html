@@ -8494,6 +8494,12 @@
       .inbox-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .inbox-conversation-actions { justify-content: flex-start; }
     }
+
+    @media (min-width: 721px) {
+      body.cases-view .queue-tools {
+        grid-template-columns: minmax(390px, 1.25fr) minmax(180px, .9fr) minmax(120px, 150px);
+      }
+    }
   </style>
 </head>
 <body>
@@ -9115,7 +9121,7 @@
     // Re-enable them per project only after the rollout gates in
     // REPLYPILOT_REVIEW_SEGMENT_PLUGIN_PLAN.md have passed.
     const OPTIONAL_UI_MODULES = Object.freeze({
-      review: true,
+      review: false,
       segment: false,
     });
 
@@ -21315,9 +21321,10 @@
 	      const learningFollowup = caseLearningFollowup(item);
 	      const noInterventionProjection = item.status === "no_intervention";
 	      const preview = customerPreviewText(item);
-	      const previewLabel = "顾客最后一句";
-	      const tags = caseMiniTags(item, decision);
 	      const statusText = caseStatusLabel(item, decision.risk);
+	      const tags = caseMiniTags(item, decision)
+	        .filter((tag) => tag !== statusText)
+	        .slice(0, 2);
 	      const footPillText = learningFollowup ? learningFollowup.pill : item.seen_by_operator ? "已看" : sla.text;
 	      const footPillTone = learningFollowup ? learningFollowup.tone : sla.tone;
 
@@ -21338,7 +21345,6 @@
 	            <span class="badge ${riskClass}">${escapeHtml(statusText)}</span>
 	          </div>
           ${noInterventionProjection ? noInterventionSummaryHtml(item) : `<div class="case-word-block">
-            <span class="case-block-label">${escapeHtml(previewLabel)}</span>
             <strong>${escapeHtml(preview)}</strong>
             <div class="case-word-mini">
               ${tags.map((word) => `<span>${escapeHtml(word)}</span>`).join("")}
