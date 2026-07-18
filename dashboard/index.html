@@ -9069,7 +9069,7 @@
     // Re-enable them per project only after the rollout gates in
     // REPLYPILOT_REVIEW_SEGMENT_PLUGIN_PLAN.md have passed.
     const OPTIONAL_UI_MODULES = Object.freeze({
-      review: false,
+      review: true,
       segment: false,
     });
 
@@ -9079,7 +9079,9 @@
 
     function syncOptionalUiModules() {
       document.querySelectorAll("[data-optional-ui-module]").forEach((element) => {
-        const enabled = optionalUiModuleEnabled(element.dataset.optionalUiModule);
+        const moduleKey = String(element.dataset.optionalUiModule || "");
+        const roleAllowed = moduleKey !== "review" || state.role !== "staff";
+        const enabled = optionalUiModuleEnabled(moduleKey) && roleAllowed;
         element.classList.toggle("hidden", !enabled);
         element.setAttribute("aria-hidden", enabled ? "false" : "true");
         if ("disabled" in element) element.disabled = !enabled;
@@ -9154,15 +9156,24 @@
 	      qualityLiftRepairQueue: null,
 	      ownerDecisionDrafts: {},
 	      learningNotes: null,
-	      pendingCaseId: null,
+      pendingCaseId: null,
       deepLinkOpened: false,
       loadingCaseDetailId: "",
+      caseDetailTargetId: "",
+      caseDetailRequestSeq: 0,
       loading: false,
       refreshing: false,
       queueRefreshInFlight: false,
       inboxRefreshInFlight: false,
       queueAutoRefreshTimer: null,
       inboxAutoRefreshTimer: null,
+      queueClassificationRefreshing: false,
+      queueClassificationError: "",
+      caseConversationSyncByChat: {},
+      caseConversationSyncInFlight: false,
+      caseConversationSyncTimer: null,
+      caseConversationSyncProgress: null,
+      caseConversationSyncSummary: null,
       replyDraftDirty: false,
       replyDrafts: {},
       replyCompositionActive: false,
@@ -10801,7 +10812,9 @@
       if (state.workspaceView === "inbox" && !state.demoMode && !state.inboxLoading && !state.inboxConversations.length) {
         loadInboxConversations({ silent: true }).catch(() => null);
       } else if (state.workspaceView === "cases" && !state.demoMode && !state.loading && !state.cases.length) {
-        loadCases({ silent: true }).catch(() => null);
+        // Entering the Case workspace is a user-visible load. It must run the
+        // ChatDaddy classification preflight before any pending card appears.
+        loadCases().catch(() => null);
       }
     }
 
@@ -12884,6 +12897,10 @@
       const token = adminTokenEl.value.trim();
       const requestSeq = ++state.queueRequestSeq;
       const hasAuth = Boolean(token || hasAccountSession());
+      const blockQueueUntilFresh = state.role === "staff"
+        && !options.silent
+        && !options.skipCaseSync
+        && !state.caseConversationSyncInFlight;
 
       if (!api || !hasAuth) {
         if (canUseDemoMode()) {
@@ -12900,6 +12917,11 @@
           : "当前账号没有工作台权限。";
         setRealQueueEmpty(missingMessage);
         return;
+      }
+
+      if (blockQueueUntilFresh) {
+        state.queueClassificationRefreshing = true;
+        state.queueClassificationError = "";
       }
 
 	      try {
@@ -13110,9 +13132,16 @@
           state.metaCapiStatus = null;
           state.usageSummary = null;
         }
-	    if (!options.skipCaseSync) scheduleAllCaseConversationSync({ immediate: !options.silent });
+	    if (!options.skipCaseSync) {
+	      scheduleAllCaseConversationSync({
+	        immediate: !options.silent,
+	        force: blockQueueUntilFresh,
+	        blockQueueUntilFresh,
+	      });
+	    }
       } catch (error) {
         if (requestSeq !== state.queueRequestSeq) return;
+        if (blockQueueUntilFresh) state.queueClassificationRefreshing = false;
         const message = `同步失败：${error.message}`;
         if (state.cases.length) {
           state.loading = false;
@@ -13301,7 +13330,13 @@
 	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 3;
 
 	function scheduleAllCaseConversationSync(options = {}) {
-	  if (state.demoMode || state.role !== "staff" || document.hidden) return;
+	  if (state.demoMode || state.role !== "staff" || document.hidden) {
+	    if (options.blockQueueUntilFresh) {
+	      state.queueClassificationRefreshing = false;
+	      render();
+	    }
+	    return;
+	  }
 	  if (state.caseConversationSyncTimer) clearTimeout(state.caseConversationSyncTimer);
 	  state.caseConversationSyncTimer = setTimeout(() => {
 	    syncAllLoadedCaseConversations(options).catch(() => null);
@@ -13312,18 +13347,47 @@
 	  const api = apiUrlEl.value.trim().replace(/\/$/, "");
 	  const project = projectKeyEl.value.trim() || "beyoute";
 	  const token = adminTokenEl.value.trim();
-	  if (!api || (!token && !hasAccountSession()) || state.demoMode || state.caseConversationSyncInFlight) return null;
-	  if (!options.force && Date.now() - Number(state.caseConversationSyncAt || 0) < CASE_CONVERSATION_SYNC_TTL_MS) return null;
+	  const finishBlockedQueue = (errorMessage = "") => {
+	    if (!options.blockQueueUntilFresh) return;
+	    state.queueClassificationRefreshing = false;
+	    state.queueClassificationError = String(errorMessage || "");
+	    if (state.queueClassificationError) {
+	      errorEl.textContent = `ChatDaddy 最新聊天核对失败：${state.queueClassificationError}。以下状态可能不是最新，请重新读取。`;
+	    }
+	    render();
+	  };
+	  if (!api || (!token && !hasAccountSession()) || state.demoMode) {
+	    finishBlockedQueue("账号连接不可用");
+	    return null;
+	  }
+	  if (state.caseConversationSyncInFlight) return state.caseConversationSyncSummary;
 
-	  const chatIds = [...new Set([
-	    ...(state.cases || []),
-	    ...(state.inboxConversations || []),
-	  ].map(caseChatIdForSync).filter(Boolean))];
-	  if (!chatIds.length) return null;
+	  // Only open/actionable Case cards need this classification preflight.
+	  // Historical and read-only records can be loaded on demand; syncing them
+	  // here would make a staff queue wait behind hundreds of finished Cases.
+	  const allChatIds = [...new Set(
+	    (state.cases || [])
+	      .filter((item) => !isCaseReadOnly(item))
+	      .map(caseChatIdForSync)
+	      .filter(Boolean)
+	  )];
+	  const now = Date.now();
+	  const syncedByChat = state.caseConversationSyncByChat && typeof state.caseConversationSyncByChat === "object"
+	    ? state.caseConversationSyncByChat
+	    : {};
+	  state.caseConversationSyncByChat = syncedByChat;
+	  const chatIds = options.force
+	    ? allChatIds
+	    : allChatIds.filter((chatId) => now - Number(syncedByChat[chatId] || 0) >= CASE_CONVERSATION_SYNC_TTL_MS);
+	  if (!chatIds.length) {
+	    finishBlockedQueue("");
+	    return state.caseConversationSyncSummary;
+	  }
 	  const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/conversation-history/sync-chatdaddy-batch`;
 	  state.caseConversationSyncInFlight = true;
 	  state.caseConversationSyncProgress = { done: 0, total: chatIds.length, imported: 0, failed: 0 };
 	  let shouldRefresh = false;
+	  let successfulCount = 0;
 	  try {
 	    for (let index = 0; index < chatIds.length; index += CASE_CONVERSATION_SYNC_BATCH_SIZE) {
 	      if (project !== (projectKeyEl.value.trim() || "beyoute")) break;
@@ -13348,9 +13412,25 @@
 	        const data = await response.json().catch(() => ({}));
 	        const imported = Number(data?.imported_count || 0);
 	        const failed = Number(data?.failed_count || 0);
+	        const successfulChatIds = response.ok && data?.ok === true
+	          ? batch
+	          : batch.filter((chatId) => (
+	              Array.isArray(data?.results)
+	              && data.results.some((result) => result?.ok === true && String(chatId).endsWith(String(result.chat_id_suffix || "")))
+	            ));
 	        state.caseConversationSyncProgress.imported += imported;
 	        state.caseConversationSyncProgress.failed += failed;
-	        if (imported > 0) shouldRefresh = true;
+	        if (!successfulChatIds.length && failed === 0) {
+	          state.caseConversationSyncProgress.failed += batch.length;
+	        }
+	        successfulChatIds.forEach((chatId) => {
+	          syncedByChat[chatId] = Date.now();
+	        });
+	        successfulCount += successfulChatIds.length;
+	        // A successful sync can reconcile a pending Case to manual_resolved
+	        // even when every provider message already existed, so imported_count
+	        // is not a valid signal for whether the queue must be re-read.
+	        if (successfulChatIds.length > 0) shouldRefresh = true;
 	      } catch (_error) {
 	        state.caseConversationSyncProgress.failed += batch.length;
 	      }
@@ -13370,6 +13450,13 @@
 	      skipCaseSync: true,
 	    });
 	  }
+	  finishBlockedQueue(
+	    state.caseConversationSyncProgress.failed > 0
+	      ? `${state.caseConversationSyncProgress.failed} 个对话未能同步`
+	      : successfulCount > 0
+	        ? ""
+	        : "没有可确认的同步结果"
+	  );
 	  return state.caseConversationSyncSummary;
 	}
 
@@ -15010,7 +15097,16 @@
       renderChannelOutageAlert(all, counts);
       const useStaffSections = shouldUseStaffCaseSections();
       casesEl.classList.toggle("staff-sectioned", useStaffSections);
-      casesEl.innerHTML = useStaffSections ? staffCaseSectionsHtml(visible, counts) : visible.map(cardHtml).join("") || emptyHtml();
+      const queueClassificationRefreshing = state.role === "staff"
+        && state.workspaceView === "cases"
+        && state.queueClassificationRefreshing === true;
+      if (queueClassificationRefreshing) state.visibleCases = [];
+      casesEl.setAttribute("aria-busy", queueClassificationRefreshing ? "true" : "false");
+      casesEl.innerHTML = queueClassificationRefreshing
+        ? `<div class="box"><h3>正在核对 ChatDaddy 最新聊天</h3><p class="subtitle">核对完成前不会显示旧的待处理判断，也不需要逐张点开 Case。</p></div>`
+        : useStaffSections
+          ? staffCaseSectionsHtml(visible, counts)
+          : visible.map(cardHtml).join("") || emptyHtml();
       renderSelectionTools();
       renderBulkBar();
 
@@ -15033,7 +15129,7 @@
         checkbox.addEventListener("change", () => toggleCaseSelection(checkbox.dataset.selectCaseId, checkbox.checked));
       });
 
-      if (state.pendingCaseId && !state.deepLinkOpened) {
+      if (state.pendingCaseId && !state.deepLinkOpened && !queueClassificationRefreshing) {
         state.deepLinkOpened = true;
         requestAnimationFrame(() => openCase(state.pendingCaseId));
       }
@@ -15650,6 +15746,11 @@
       if (state.active && (state.replyDraftDirty || state.replyCompositionActive)) {
         rememberReplyDraftForCase(state.active.id);
       }
+      // Invalidate any older detail request so a late response cannot reopen
+      // the drawer or replace the next customer's Case.
+      state.caseDetailRequestSeq += 1;
+      state.caseDetailTargetId = "";
+      state.loadingCaseDetailId = "";
       state.replyCompositionActive = false;
 	  resetVoiceComposer({ sync: false });
 	  closeComposerEmojiPanel();
@@ -21215,6 +21316,16 @@
 
     function openCase(caseId, options = {}) {
       const id = String(caseId || "").trim();
+      if (!id) return;
+      if (String(state.caseDetailTargetId || "") !== id) {
+        // Selecting another Case invalidates every in-flight detail response
+        // for the previously selected customer.
+        state.caseDetailRequestSeq += 1;
+        state.caseDetailTargetId = id;
+        if (state.loadingCaseDetailId && state.loadingCaseDetailId !== id) {
+          state.loadingCaseDetailId = "";
+        }
+      }
       const previousActiveId = String(state.active?.id || "");
       const panelIsOpen = $("panel").classList.contains("open");
       const replyBox = $("replyBox");
@@ -21476,7 +21587,7 @@
 
     async function loadCaseDetailAndOpen(caseId, options = {}) {
       const id = String(caseId || "").trim();
-      if (!id || state.loadingCaseDetailId === id) return;
+      if (!id || (state.loadingCaseDetailId === id && state.caseDetailTargetId === id)) return;
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "beyoute";
       const token = adminTokenEl.value.trim();
@@ -21487,7 +21598,13 @@
         showToast(state.role === "staff" ? "公司 Portal 尚未提供工作台权限。" : "当前账号没有工作台权限。");
         return;
       }
+      const requestSeq = ++state.caseDetailRequestSeq;
+      state.caseDetailTargetId = id;
       state.loadingCaseDetailId = id;
+      const requestIsCurrent = () => (
+        requestSeq === state.caseDetailRequestSeq
+        && String(state.caseDetailTargetId || "") === id
+      );
       const summaryItem = (state.visibleCases || []).find((record) => String(record.id || "") === id)
         || state.cases.find((record) => String(record.id || "") === id)
         || null;
@@ -21499,9 +21616,13 @@
 	      ? syncOneCaseConversationFromChatDaddy(summaryItem)
 	      : Promise.resolve({ ok: false, skipped: true, imported: 0, fetched: 0 });
 	    const installDetail = (data, preserveReplyDraft = false) => {
+	      if (!requestIsCurrent()) return null;
 	      const raw = data?.item || data?.case || null;
 	      if (!data?.ok || !raw) throw new Error("case_not_found");
+	      const returnedId = String(raw.id || "").trim();
+	      if (!returnedId || returnedId !== id) throw new Error("case_identity_mismatch");
 	      const loaded = approvalToCase(raw, state.contactNames || {});
+	      if (String(loaded.id || "") !== id) throw new Error("case_identity_mismatch");
 	      const existingIndex = state.cases.findIndex((record) => String(record.id || "") === String(loaded.id || ""));
 	      if (existingIndex >= 0) state.cases[existingIndex] = loaded;
 	      else state.cases.unshift(loaded);
@@ -21520,9 +21641,13 @@
 	      return loaded;
 	    };
 	    const data = await fetchJsonSafe(detailUrl, authRequestOptions(token));
-	    installDetail(data, background);
+	    const initialDetail = installDetail(data, background);
+	    if (!initialDetail || !requestIsCurrent()) return;
 	    const syncResult = await syncPromise;
-	    if (syncResult.ok && Number(syncResult.imported || 0) > 0) {
+	    if (!requestIsCurrent()) return;
+	    // A successful ChatDaddy read can change Case reconciliation even when
+	    // imported_count is zero, so always fetch the post-sync Case truth.
+	    if (syncResult.ok) {
 	      const refreshedData = await fetchJsonSafe(detailUrl, authRequestOptions(token));
 	      installDetail(refreshedData, true);
 	    }
@@ -21530,6 +21655,7 @@
           showToast("Case 已打开；ChatDaddy 即时回查暂时失败，正在显示最后一次已入库资料。");
         }
       } catch (_error) {
+	    if (!requestIsCurrent()) return;
 	    if (background) {
 	      showToast("Case 已打开；后台同步暂时失败，先显示现有资料。");
 	    } else {
@@ -21539,7 +21665,7 @@
 	      showToast("找不到这张 Case；已用编号帮你搜索。");
 	    }
       } finally {
-        state.loadingCaseDetailId = "";
+        if (requestSeq === state.caseDetailRequestSeq) state.loadingCaseDetailId = "";
       }
     }
 
