@@ -26452,7 +26452,6 @@
 	        reply_message: manualReplyText,
 	        manualReplyText,
 	        final_human_reply: manualReplyText,
-	        client_message_id: createClientMessageId(),
 	        ...learning,
 	        note: learning.note,
 	        source: "dashboard_manual_reply_send",
@@ -26469,6 +26468,130 @@
 	        return globalThis.crypto.randomUUID();
 	      }
 	      return `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+	    }
+
+	    const SEND_ATTEMPT_TTL_MS = 10 * 60 * 1000;
+
+	    function actionNeedsSendAttempt(action = "") {
+	      return ["approve_execute", "manual_send", "trigger_flow"].includes(String(action || ""));
+	    }
+
+	    function actionAttemptFingerprint(action = "", body = {}) {
+	      const stable = JSON.stringify({
+	        action,
+	        text: String(body.reply_message || body.manualReplyText || body.text || "").trim(),
+	        flow_key: String(body.flow_key || body.flowKey || body.execution_plan?.flow_key || ""),
+	        execution_action: String(body.execution_plan?.action || ""),
+	        media_asset_ids: Array.isArray(body.execution_plan?.media_asset_ids)
+	          ? [...body.execution_plan.media_asset_ids].map(String).sort()
+	          : [],
+	        amount_rm: body.amount_rm === undefined || body.amount_rm === null ? "" : String(body.amount_rm),
+	        order_id: String(body.order_id || ""),
+	      });
+	      let hash = 2166136261;
+	      for (let index = 0; index < stable.length; index += 1) {
+	        hash ^= stable.charCodeAt(index);
+	        hash = Math.imul(hash, 16777619);
+	      }
+	      return `${stable.length}-${(hash >>> 0).toString(16)}`;
+	    }
+
+	    function sendAttemptStorageKey(project, caseId, action) {
+	      return `replypilot_send_attempt_v1:${String(project || "").toLowerCase()}:${caseId}:${action}`;
+	    }
+
+	    function readSendAttempt(project, caseId, action, body = {}) {
+	      try {
+	        const key = sendAttemptStorageKey(project, caseId, action);
+	        const value = JSON.parse(sessionStorage.getItem(key) || "null");
+	        if (!value?.id || value.fingerprint !== actionAttemptFingerprint(action, body)) return null;
+	        if (Date.now() - Number(value.created_at || 0) >= SEND_ATTEMPT_TTL_MS) {
+	          sessionStorage.removeItem(key);
+	          return null;
+	        }
+	        return { ...value, key, existing: true };
+	      } catch {
+	        return null;
+	      }
+	    }
+
+	    function getOrCreateSendAttempt(project, caseId, action, body = {}) {
+	      const existing = readSendAttempt(project, caseId, action, body);
+	      if (existing) return existing;
+	      const key = sendAttemptStorageKey(project, caseId, action);
+	      const value = {
+	        id: createClientMessageId(),
+	        fingerprint: actionAttemptFingerprint(action, body),
+	        created_at: Date.now(),
+	        status: "created",
+	      };
+	      try {
+	        sessionStorage.setItem(key, JSON.stringify(value));
+	      } catch {
+	        // The backend ledger still provides the final duplicate-send guard.
+	      }
+	      return { ...value, key, existing: false };
+	    }
+
+	    function updateSendAttempt(attempt, patch = {}) {
+	      if (!attempt?.key) return;
+	      try {
+	        const next = { ...attempt, ...patch };
+	        delete next.key;
+	        delete next.existing;
+	        sessionStorage.setItem(attempt.key, JSON.stringify(next));
+	      } catch {}
+	    }
+
+	    function clearSendAttempt(attempt) {
+	      if (!attempt?.key) return;
+	      try {
+	        sessionStorage.removeItem(attempt.key);
+	      } catch {}
+	    }
+
+	    function actionExecutionLookupKey(project, caseId, action, attemptId) {
+	      if (action === "manual_send") return `replypilot:${project}:${caseId}:conversation-reply:${attemptId}`;
+	      if (action === "trigger_flow") return `replypilot:${project}:${caseId}:trigger-flow:${attemptId}`;
+	      return attemptId;
+	    }
+
+	    async function readSendAttemptStatus(api, token, project, caseId, action, attempt) {
+	      const idempotencyKey = actionExecutionLookupKey(project, caseId, action, attempt.id);
+	      const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/action-execution?idempotency_key=${encodeURIComponent(idempotencyKey)}`;
+	      const response = await fetch(endpoint, authRequestOptions(token, { method: "GET" }));
+	      if (response.status === 404) return { ok: false, missing: true };
+	      const data = await response.json().catch(() => ({}));
+	      if (!response.ok || !data.ok) return { ok: false, status: response.status, data };
+	      return data;
+	    }
+
+	    async function waitForSendAttempt(api, token, project, caseId, action, attempt) {
+	      setPanelBusy(true, action === "trigger_flow" ? "Flow 已提交，等待 ChatDaddy..." : "已提交，等待 ChatDaddy...");
+	      updateSendAttempt(attempt, { status: "confirming" });
+	      for (let index = 0; index < 40; index += 1) {
+	        await new Promise((resolve) => setTimeout(resolve, index === 0 ? 1200 : 3000));
+	        try {
+	          const status = await readSendAttemptStatus(api, token, project, caseId, action, attempt);
+	          if (status.completed) {
+	            clearSendAttempt(attempt);
+	            setPanelBusy(false);
+	            showToast(action === "trigger_flow" ? "ChatDaddy 已确认 Flow；不会重复触发。" : "ChatDaddy 已确认发送；不会重复发送。");
+	            loadCases().catch(() => {});
+	            return status;
+	          }
+	          if (status.retryable) {
+	            updateSendAttempt(attempt, { status: "retryable" });
+	            setPanelBusy(false);
+	            showToast("ChatDaddy 没有确认成功；可以重试，系统会沿用同一个防重编号。");
+	            return status;
+	          }
+	        } catch {}
+	      }
+	      updateSendAttempt(attempt, { status: "confirmation_timeout" });
+	      setPanelBusy(false);
+	      showToast("仍在等 ChatDaddy 同步。请先到 ChatDaddy 查看，系统会继续拦截重复发送。");
+	      return { ok: false, confirmation_timeout: true };
 	    }
 
 	    function manualSendLearningPayload(item = state.active, closer = null) {
@@ -27846,12 +27969,37 @@
       const token = adminTokenEl.value.trim();
       const active = state.cases.find((item) => item.id === caseId);
       const shouldLock = options.lock !== false;
+      const requestBody = { ...(body || {}) };
+      const sendAttempt = actionNeedsSendAttempt(action)
+        ? getOrCreateSendAttempt(project, caseId, action, requestBody)
+        : null;
+      if (sendAttempt) {
+        if (action === "manual_send") requestBody.client_message_id = sendAttempt.id;
+        else requestBody.idempotency_key = sendAttempt.id;
+      }
+      let keepConfirmationLock = false;
 
       try {
         if (shouldLock) {
           if (state.actionBusy) return;
 	          setPanelBusy(true, action === "handoff" ? "转人工中..." : action === "return_ai" ? "AI 重写中..." : action === "mark_seen" ? "标记中..." : action === "trigger_flow" ? "正在接 Flow..." : action === "approve_execute" ? approveExecuteBusyLabel(active) : action === "mark_purchase" ? "记录付款中..." : action === "manual_resolve" ? "记录人工回复中..." : action === "manual_send" ? "回复发送中..." : action === "channel_reply_resolved" || action === "record_no_reply" ? "记录中..." : action === "external_flow_continued" ? "记录自动 Flow 中..." : "发送中...");
 	        }
+        if (sendAttempt?.existing) {
+          const previous = await readSendAttemptStatus(api, token, project, caseId, action, sendAttempt).catch(() => null);
+          if (previous?.completed) {
+            clearSendAttempt(sendAttempt);
+            showToast(action === "trigger_flow" ? "这个 Flow 已经完成，不会重复触发。" : "这条消息已经发出，不会重复发送。");
+            loadCases().catch(() => {});
+            return previous;
+          }
+          if (previous?.in_progress) {
+            keepConfirmationLock = true;
+            showToast("上一笔动作仍在 ChatDaddy 处理中；系统没有再次发送。");
+            waitForSendAttempt(api, token, project, caseId, action, sendAttempt).catch(() => {});
+            return previous;
+          }
+        }
+        if (sendAttempt) updateSendAttempt(sendAttempt, { status: "submitting" });
         const isApproval = active?.source === "approval";
 	    const endpoint = action === "approve_execute"
           ? `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/approve-execute`
@@ -27870,7 +28018,7 @@
           : isApproval
           ? approvalActionEndpoint(api, caseId, action, project)
           : `${api}/api/cases/${encodeURIComponent(caseId)}/${action}?project_key=${encodeURIComponent(project)}`;
-	    const payload = isApproval || action === "manual_send" || action === "trigger_flow" || action === "approve_execute" ? approvalActionPayload(action, body) : body;
+	    const payload = isApproval || action === "manual_send" || action === "trigger_flow" || action === "approve_execute" ? approvalActionPayload(action, requestBody) : requestBody;
         const res = await fetch(endpoint, authRequestOptions(token, {
           method: "POST",
           headers: {
@@ -27885,9 +28033,16 @@
           error.data = data;
           throw error;
         }
+        if (data.in_progress || data.accepted) {
+          keepConfirmationLock = true;
+          updateSendAttempt(sendAttempt, { status: "confirming" });
+          showToast("动作已受理，正在等待 ChatDaddy 同步；系统不会重复发送。");
+          waitForSendAttempt(api, token, project, caseId, action, sendAttempt).catch(() => {});
+          return data;
+        }
+        if (sendAttempt) clearSendAttempt(sendAttempt);
         addAuditEvent(`case_${action}`, `真实顾客 ${caseId} 已执行 ${actionLabel(action)}。`);
         if (options.reload !== false) {
-          await loadCases();
           const returnedCase = data.case || data.item;
           if (returnedCase) upsertReturnedCase(returnedCase);
           if (options.reopen !== false && returnedCase) openCase(returnedCase.id);
@@ -27901,13 +28056,22 @@
 	        updateQualityEvaluationPanel(returnedCase);
 	        $("replyBox").focus();
 	      }
+          window.setTimeout(() => {
+            if (!state.actionBusy) loadCases().catch(() => {});
+          }, 250);
         }
         return data;
       } catch (error) {
-        if (!options.silent) alert(`操作失败：${error.message}`);
+        if (sendAttempt) updateSendAttempt(sendAttempt, { status: Number(error.status || 0) >= 500 ? "confirmation_unknown" : "retryable" });
+        if (!options.silent) {
+          const uncertain = sendAttempt && (!error.status || Number(error.status) >= 500);
+          alert(uncertain
+            ? `ChatDaddy 的确认暂时没有回来：${error.message}\n\n请先不要重新建立另一条发送。再次重试时系统会沿用同一个防重编号。`
+            : `操作失败：${error.message}`);
+        }
         throw error;
       } finally {
-        if (shouldLock) setPanelBusy(false);
+        if (shouldLock && !keepConfirmationLock) setPanelBusy(false);
       }
     }
 
@@ -28270,6 +28434,7 @@
 	      confirmFlowTrigger: body.confirmFlowTrigger === true,
 	      confirmMetaSend: body.confirmMetaSend !== false,
 	      manualPurchaseOverride: body.manualPurchaseOverride === true,
+	      idempotency_key: body.idempotency_key || "",
 	      confirmedBy: body.confirmedBy || state.session.displayName || roleName(state.role),
 	      source: body.source || "staff_dashboard_trigger_flow",
 	    };
