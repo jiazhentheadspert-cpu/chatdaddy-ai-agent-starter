@@ -421,7 +421,7 @@
       const identifier = identifierInput.value.trim();
       const email = loginEmailFor(identifier);
       const password = passwordInput.value;
-      const requestedProject = params.get("project_key") || "beyoute";
+      const requestedProject = String(params.get("project_key") || "").trim();
 
       if (!identifier || !password) {
         setMessage("请输入邮箱或用户名和密码。", "error");
@@ -439,7 +439,11 @@
           method: "POST",
           credentials: "include",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ email, password, project_key: requestedProject }),
+          body: JSON.stringify({
+            email,
+            password,
+            ...(requestedProject ? { project_key: requestedProject } : {})
+          }),
           signal: controller.signal
         });
         const data = await response.json().catch(() => ({}));
@@ -451,15 +455,22 @@
 
         const projects = Array.isArray(data.projects) ? data.projects : [];
         const selectedProject = projects.find((item) => item.project_key === requestedProject)
-          || projects[0]
-          || { project_key: requestedProject };
-        const role = dashboardRoleForAccountRole(data.user?.role);
+          || projects[0];
+        if (!selectedProject?.project_key) {
+          const projectError = new Error("no_project_access");
+          projectError.status = 403;
+          throw projectError;
+        }
+        const membershipRole = selectedProject.role || data.user?.role;
+        const role = dashboardRoleForAccountRole(membershipRole);
         const session = {
           authMode: "account",
           workspace: selectedProject.project_key || requestedProject,
           projectKey: selectedProject.project_key || requestedProject,
           role,
           accountRole: data.user?.role || role,
+          membershipRole: selectedProject.role || null,
+          capabilities: Array.isArray(selectedProject.capabilities) ? selectedProject.capabilities : [],
           displayName: data.user?.name || data.user?.full_name || (role === "admin" ? "Master Admin" : "Support Team"),
           email: data.user?.email || email,
           apiUrl,
@@ -493,6 +504,8 @@
           setMessage("登录服务响应太慢，已停止等待。请再试一次，系统不会重复登录。", "error");
         } else if (code === "supabase_not_configured" || code === "session_create_failed" || status >= 500) {
           setMessage("账号系统暂时无法连接，请联系管理员。你的账号或密码不一定有问题。", "error");
+        } else if (code === "no_project_access" || status === 403) {
+          setMessage("这个账号还没有任何项目权限。请让管理员先把你加入正确项目，系统不会自动进入其他品牌。", "error");
         } else if (error instanceof TypeError) {
           setMessage("暂时无法连接系统，请检查网络后重试。", "error");
         } else {
