@@ -1785,7 +1785,9 @@
       const reviewSummary = state.learningReview?.summary || {};
       const guideSummary = state.connectionGuide?.summary || {};
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
-      const salesValidationReady = Array.isArray(packageData?.sales_process?.stages) && packageData.sales_process.stages.length > 0;
+      const salesValidationReady = Boolean(packageData?.metadata?.sales_journey_owner_reviewed_at)
+        && Array.isArray(packageData?.sales_process?.stages)
+        && packageData.sales_process.stages.length > 0;
       const contractErrors = Array.isArray(state.replyContract?.validation?.errors) ? state.replyContract.validation.errors.length : null;
       const mockTests = state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || [];
       const mockFailed = Number(state.mockResult?.suites?.owner_content?.failed_count ?? state.mockResult?.owner_content?.failed_count ?? 0);
@@ -2219,14 +2221,12 @@
           updated_by: "owner_onboarding"
         });
         state.documentKnowledge = data;
-        state.salesPackageResponse = {
-          project_package: {
-            ...(state.salesPackageResponse?.project_package || {}),
-            source_documents: data.source_documents || [],
-            learning_assets: data.learning_assets || state.salesPackageResponse?.project_package?.learning_assets
-          },
-          version_no: data.version_no
-        };
+        // The analyze endpoint returns a learning-focused projection rather than the
+        // full project package. Reload the canonical package before later saves so
+        // sales, brand, metadata and existing SOP sections can never be overwritten.
+        const canonicalPackage = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+        state.salesPackageResponse = canonicalPackage;
+        state.existingPackageResponse = canonicalPackage;
         renderDocumentKnowledge(data, file.name);
         await loadLearningReview();
         updateOnboardingProgress();
@@ -3115,7 +3115,22 @@
       const blockers = Array.isArray(state.connectionGuide?.readiness?.blockers) ? state.connectionGuide.readiness.blockers.length : 1;
       const failed = Number(state.mockResult?.suites?.owner_content?.failed_count ?? state.mockResult?.owner_content?.failed_count ?? 1);
       const hasTests = (state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || []).length > 0;
-      publishProjectButton.disabled = !(publishConfirm.checked && pending === 0 && blockers === 0 && hasTests && failed === 0 && !state.published);
+      const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
+      const salesReviewed = Boolean(packageData?.metadata?.sales_journey_owner_reviewed_at)
+        && Array.isArray(packageData?.sales_process?.stages)
+        && packageData.sales_process.stages.length > 0;
+      const contractReady = Array.isArray(state.replyContract?.validation?.errors)
+        && state.replyContract.validation.errors.length === 0;
+      publishProjectButton.disabled = !(
+        publishConfirm.checked
+        && pending === 0
+        && salesReviewed
+        && contractReady
+        && blockers === 0
+        && hasTests
+        && failed === 0
+        && !state.published
+      );
     }
 
     async function publishCurrentProjectBrain() {
