@@ -1423,8 +1423,7 @@
       setFormValue("project.success_kpi", company.success_kpi || "回复准确率、首响时间、成交率、转人工率、零严重错误");
       setFormValue("business_training.business_primary_offer", firstNonEmpty(
         onboardingAnswers.business_primary_offer,
-        brand.positioning,
-        faqText("faq_product", "faq_price")
+        [brand.positioning, faqText("faq_product", "faq_price")].filter(Boolean).join("；")
       ));
       setFormValue("business_training.why_it_works", firstNonEmpty(
         onboardingAnswers.why_it_works,
@@ -1437,8 +1436,10 @@
       ));
       setFormValue("business_training.why_trust_us", firstNonEmpty(
         onboardingAnswers.why_trust_us,
-        faqText("faq_product"),
-        brand.positioning
+        [
+          faqText("faq_product", "faq_offline"),
+          "请 Owner 在这里补充并核对可公开使用的认证、证书、见证、公司与门店来源；没有正式来源的内容不得由 AI 自行扩写。"
+        ].filter(Boolean).join("；")
       ));
       setFormValue("business_training.offer_to_order", firstNonEmpty(
         onboardingAnswers.offer_to_order,
