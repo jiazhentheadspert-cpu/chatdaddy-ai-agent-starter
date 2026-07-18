@@ -535,6 +535,146 @@
       font-weight: 850;
     }
 
+    .readiness-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .metric-card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .metric-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .metric-card span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.35;
+    }
+
+    .capability-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .capability-card,
+    .flow-binding-card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .capability-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .capability-card h3,
+    .flow-binding-card h3 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .capability-card p,
+    .flow-binding-card p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .capability-state {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      color: var(--danger);
+      background: #fff4f3;
+      border: 1px solid rgba(189, 73, 68, 0.25);
+      font-size: 12px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .capability-state.configured {
+      color: var(--amber);
+      background: #fff8ec;
+      border-color: rgba(165, 105, 24, 0.25);
+    }
+
+    .capability-state.verified {
+      color: #08796f;
+      background: #effcf9;
+      border-color: rgba(15, 159, 146, 0.28);
+    }
+
+    .flow-bindings {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .flow-binding-card {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.8fr) minmax(300px, 1.2fr);
+      gap: 18px;
+      align-items: center;
+    }
+
+    .flow-binding-card select {
+      margin-top: 8px;
+    }
+
+    .safety-note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid rgba(47, 111, 237, 0.18);
+      border-radius: 8px;
+      color: #244d9b;
+      background: #f3f7ff;
+      font-weight: 850;
+      line-height: 1.5;
+    }
+
+    .blocker-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .blocker-item {
+      padding: 13px 14px;
+      border-left: 4px solid var(--amber);
+      border-radius: 6px;
+      color: #704814;
+      background: #fff8ec;
+      font-weight: 850;
+      line-height: 1.45;
+    }
+
+    .blocker-item b {
+      display: block;
+      color: var(--ink);
+    }
+
     @media (max-width: 980px) {
       .shell {
         grid-template-columns: 1fr;
@@ -549,8 +689,14 @@
       .toolbar,
       .grid,
       .owner-steps,
-      .connection-card {
+      .connection-card,
+      .capability-grid,
+      .flow-binding-card {
         grid-template-columns: 1fr;
+      }
+
+      .readiness-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
   </style>
@@ -620,7 +766,7 @@
               <div class="owner-step-number">4</div>
               <div>
                 <h3>连接并同步</h3>
-                <p>点击 <b>连接并同步 Flow</b>。看到“ChatDaddy 已连接”后回 Dashboard，每个销售 Step 就能选择真实 Flow。</p>
+                <p>点击 <b>连接并同步 Flow</b>。看到“ChatDaddy 已连接”后，直接在本页第 4 步为每个销售 Step 选择真实 Flow。</p>
               </div>
             </article>
           </div>
@@ -717,7 +863,7 @@
 
       <section class="panel">
         <h2 class="section-title">第 2 步：接收顾客讯息</h2>
-        <p>把下面网址放进 ChatDaddy Webhook。完成后从 WhatsApp 发一条测试讯息，系统收到后会自动打勾。</p>
+        <p>把下面网址放进 ChatDaddy Webhook。系统会等待下一条真实顾客讯息并自动验证，不需要为了检查另外发送测试讯息。</p>
         <div class="codebox" id="webhookBox">连接项目后会显示 Webhook URL</div>
         <div class="actions">
           <button class="btn" type="button" id="copyWebhookButton">复制 Webhook URL</button>
@@ -725,8 +871,40 @@
       </section>
 
       <section class="panel">
-        <h2 class="section-title">第 3 步：回 Dashboard 选择 Flow</h2>
-        <p>连接成功后回到「回复与成交」，为 Step 1–4 选择刚同步到的真实 Flow，再运行 Mock Test 和发布检查。</p>
+        <div class="toolbar">
+          <div>
+            <h2>第 3 步：检查渠道能力</h2>
+            <p>把“已配置”和“有历史成功证据”分开看；这里的重新检查只读取记录。</p>
+          </div>
+          <button class="btn" type="button" id="readinessButton">运行只读检查</button>
+        </div>
+        <div class="readiness-summary" id="readinessSummary">
+          <div class="metric-card"><strong>—</strong><span>正在读取连接状态</span></div>
+        </div>
+        <div class="capability-grid" id="capabilityGrid">
+          <div class="log-item">正在读取当前项目的渠道能力。</div>
+        </div>
+        <div class="safety-note">安全边界：检查不会发送测试讯息、不会触发 Flow、不会打开自动回复，也不会显示 API Token。</div>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">第 4 步：绑定每个销售 Step 的真实 Flow</h2>
+        <p>只能从当前项目实时同步到的 ChatDaddy Flow 中选择；手写或猜测的 Bot ID 会被后端拒绝。</p>
+        <div class="flow-bindings" id="flowBindings">
+          <div class="log-item">先完成 ChatDaddy 连接，系统才会显示真实 Flow。</div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="saveBindingsButton" disabled>保存 Step Flow 绑定</button>
+        </div>
+        <div class="safety-note">保存只会建立新的 Project Brain 草稿版本并修改 Step Flow 绑定；不会发布、不会发送讯息、不会触发 Flow，也不会改变自动化等级。</div>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">尚未完成的项目</h2>
+        <p>这里会把发布阻塞翻译成下一步动作；完成后再运行 Mock Test 和发布检查。</p>
+        <div class="blocker-list" id="blockerList">
+          <div class="log-item">正在读取。</div>
+        </div>
       </section>
 
       <section class="panel" id="technicalPanel" hidden>
@@ -753,6 +931,9 @@
     const technicalMode = params.get("technical") === "1" && Boolean(adminToken);
     let canManageConnection = false;
     let latestSetup = null;
+    let latestGuide = null;
+    let latestFlowCatalog = [];
+    let currentGuideVersion = 0;
 
     const projectKeyEl = document.getElementById("projectKey");
     const providerEl = document.getElementById("provider");
@@ -770,9 +951,16 @@
     const connectionListEl = document.getElementById("connectionList");
     const resultLogEl = document.getElementById("resultLog");
     const webhookBoxEl = document.getElementById("webhookBox");
+    const readinessSummaryEl = document.getElementById("readinessSummary");
+    const capabilityGridEl = document.getElementById("capabilityGrid");
+    const flowBindingsEl = document.getElementById("flowBindings");
+    const blockerListEl = document.getElementById("blockerList");
+    const saveBindingsButtonEl = document.getElementById("saveBindingsButton");
 
     document.getElementById("saveButton").addEventListener("click", saveMetadata);
     document.getElementById("loadButton").addEventListener("click", loadConnections);
+    document.getElementById("readinessButton").addEventListener("click", loadConnections);
+    saveBindingsButtonEl.addEventListener("click", saveFlowBindings);
     document.getElementById("copyCommandsButton").addEventListener("click", copyCommands);
     document.getElementById("copyWebhookButton").addEventListener("click", copyWebhook);
     document.getElementById("copyOwnerTutorialButton").addEventListener("click", copyOwnerTutorial);
@@ -825,8 +1013,8 @@
         }
         apiTokenEl.value = "";
         addLog("ChatDaddy 已连接", data.next || payload.connection_label);
-        renderConnections(data);
         notifyDashboardConnectionChanged(projectKey, data.live_flow_count);
+        await loadConnections();
       } catch (error) {
         addLog("保存失败", error.message || String(error), true);
       } finally {
@@ -839,15 +1027,28 @@
       try {
         const projectKey = cleanProjectKey();
         localStorage.setItem("hermas_channel_project_key", projectKey);
-        const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/channels?provider=${encodeURIComponent(providerEl.value || "chatdaddy")}`);
+        const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/connection-guide`);
         if (data.boundary?.secrets_returned !== false) {
           throw new Error("API boundary did not confirm secrets_returned=false");
         }
-        renderConnections(data);
+        if (data.boundary?.test_message_sent !== false || data.boundary?.triggers_flows !== false) {
+          throw new Error("只读检查边界不完整，已停止显示结果。");
+        }
+        renderGuide(data);
       } catch (error) {
         setStatus("读取失败", "bad");
         addLog("读取失败", error.message || "请重新登录当前项目。", true);
       }
+    }
+
+    function renderGuide(data) {
+      latestGuide = data;
+      currentGuideVersion = Number(data.version_no || 0);
+      latestFlowCatalog = Array.isArray(data.flow_catalog?.flows) ? data.flow_catalog.flows : [];
+      renderConnections(data.channels || {});
+      renderReadiness(data);
+      renderFlowBindings(data);
+      renderBlockers(data);
     }
 
     function renderConnections(data) {
@@ -856,7 +1057,7 @@
       const selected = data.primary_connection
         || connections.find((item) => String(item.provider || "") === requestedProvider)
         || null;
-      canManageConnection = data.can_manage === true;
+      canManageConnection = data.can_manage === true || latestGuide?.can_manage === true;
       latestSetup = data.setup || null;
       if (selected) {
         providerEl.value = selected.provider || providerEl.value;
@@ -909,6 +1110,154 @@
       `).join("");
     }
 
+    function renderReadiness(data) {
+      const summary = data.summary || {};
+      const capabilities = Array.isArray(data.readiness?.capabilities) ? data.readiness.capabilities : [];
+      const connectionValue = summary.connection_ready ? "1 / 1" : "0 / 1";
+      readinessSummaryEl.innerHTML = [
+        [connectionValue, "当前项目渠道已连接"],
+        [`${Number(summary.required_capabilities_configured || 0)} / ${Number(summary.required_capabilities_total || 0)}`, "必需能力已配置"],
+        [`${Number(summary.required_capabilities_verified || 0)} / ${Number(summary.required_capabilities_total || 0)}`, "必需能力有历史证据"],
+        [`${Number(summary.sales_steps_bound || 0)} / ${Number(summary.sales_steps_total || 0)}`, "销售 Step 已绑定真实 Flow"]
+      ].map(([value, label]) => `
+        <div class="metric-card">
+          <strong>${escapeHtml(value)}</strong>
+          <span>${escapeHtml(label)}</span>
+        </div>
+      `).join("");
+      if (!capabilities.length) {
+        capabilityGridEl.innerHTML = `<div class="log-item">还没有读取到能力清单。</div>`;
+        return;
+      }
+      capabilityGridEl.innerHTML = capabilities.map((capability) => {
+        const status = capability.verified ? "verified" : capability.available ? "configured" : "unavailable";
+        const label = capability.verified ? "已验证" : capability.available ? "已配置，等证据" : "未配置";
+        return `
+          <article class="capability-card">
+            <div>
+              <h3>${escapeHtml(capability.label || capability.key)}${capability.required ? " · 必需" : " · 可选"}</h3>
+              <p>${escapeHtml(capability.next_action || capability.note || "")}</p>
+            </div>
+            <span class="capability-state ${escapeHtml(status)}">${escapeHtml(label)}</span>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderFlowBindings(data) {
+      const steps = Array.isArray(data.sales_steps) ? data.sales_steps : [];
+      const catalogConnected = data.flow_catalog?.live_catalog_connected === true;
+      const liveFlowCount = Number(data.flow_catalog?.live_flow_count || 0);
+      if (!steps.length) {
+        flowBindingsEl.innerHTML = `<div class="log-item">项目还没有销售 Step。请先完成「回复与成交」设置。</div>`;
+        saveBindingsButtonEl.disabled = true;
+        return;
+      }
+      if (!catalogConnected || liveFlowCount === 0) {
+        const reason = data.flow_catalog?.live_catalog_error
+          ? `（${data.flow_catalog.live_catalog_error}）`
+          : "";
+        flowBindingsEl.innerHTML = `
+          <div class="log-item">
+            <b>还不能选择 Flow</b><br>
+            请先完成第 1 步，系统只接受当前项目实时 ChatDaddy 清单里的 Flow ${escapeHtml(reason)}。
+          </div>
+        `;
+        saveBindingsButtonEl.disabled = true;
+        return;
+      }
+      flowBindingsEl.innerHTML = steps.map((step) => {
+        const selectedIndex = latestFlowCatalog.findIndex((flow) => (
+          step.provider_bot_id && flow.provider_bot_id === step.provider_bot_id
+        ) || (
+          step.provider_flow_id && flow.provider_flow_id === step.provider_flow_id
+        ));
+        const options = latestFlowCatalog.map((flow, index) => `
+          <option value="${index}" ${selectedIndex === index ? "selected" : ""}>
+            ${escapeHtml(flow.title || flow.flow_key || `Flow ${index + 1}`)}${flow.folder_name ? ` · ${escapeHtml(flow.folder_name)}` : ""}
+          </option>
+        `).join("");
+        return `
+          <article class="flow-binding-card">
+            <div>
+              <h3>Step ${escapeHtml(step.order || "")} · ${escapeHtml(step.purpose || step.stage_key)}</h3>
+              <p>${escapeHtml(step.stage_key)} · ${step.configured ? "已有绑定，仍会用实时清单复核" : "尚未绑定"}</p>
+            </div>
+            <label>
+              <b>选择真实 ChatDaddy Flow</b>
+              <select class="flow-binding-select" data-stage-key="${escapeHtml(step.stage_key)}">
+                <option value="">请选择</option>
+                ${options}
+              </select>
+            </label>
+          </article>
+        `;
+      }).join("");
+      saveBindingsButtonEl.disabled = !canManageConnection;
+    }
+
+    function renderBlockers(data) {
+      const blockers = Array.isArray(data.readiness?.blockers) ? data.readiness.blockers : [];
+      if (!blockers.length) {
+        blockerListEl.innerHTML = `<div class="log-item"><b>连接与 Flow 阻塞已清空</b><br>下一步运行 Mock Test；通过后仍要由负责人明确发布。</div>`;
+        return;
+      }
+      blockerListEl.innerHTML = blockers.map((blocker) => `
+        <div class="blocker-item">
+          <b>${escapeHtml(blocker.message || blocker.code)}</b>
+          ${escapeHtml(blocker.next_action || "")}
+        </div>
+      `).join("");
+    }
+
+    async function saveFlowBindings() {
+      const previousLabel = saveBindingsButtonEl.textContent;
+      try {
+        if (!canManageConnection) throw new Error("只有项目负责人可以保存 Step Flow 绑定。");
+        if (!latestGuide?.flow_catalog?.live_catalog_connected) throw new Error("当前项目还没有实时 ChatDaddy Flow 清单。");
+        const selections = [...document.querySelectorAll(".flow-binding-select")];
+        const bindings = selections.map((select) => {
+          if (select.value === "") return null;
+          const flow = latestFlowCatalog[Number(select.value)];
+          if (!flow) return null;
+          return {
+            stage_key: select.dataset.stageKey,
+            provider_bot_id: flow.provider_bot_id || null,
+            provider_flow_id: flow.provider_flow_id || null
+          };
+        }).filter(Boolean);
+        if (bindings.length !== selections.length) throw new Error("请为每个销售 Step 选择一个真实 Flow。");
+        saveBindingsButtonEl.disabled = true;
+        saveBindingsButtonEl.textContent = "正在保存绑定...";
+        const projectKey = cleanProjectKey();
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/connection-guide`, {
+          expected_version_no: currentGuideVersion,
+          bindings
+        });
+        if (data.boundary?.sends_messages !== false || data.boundary?.triggers_flows !== false || data.boundary?.automation_enabled !== false) {
+          throw new Error("保存边界不完整，已停止处理。");
+        }
+        addLog("Step Flow 绑定已保存", `Project Brain 草稿版本 ${data.version_no}；没有发布、发送或触发 Flow。`);
+        renderGuide(data);
+        notifyDashboardConnectionChanged(projectKey, data.flow_catalog?.live_flow_count);
+      } catch (error) {
+        addLog("Flow 绑定保存失败", humanizeGuideError(error.message || String(error)), true);
+        await loadConnections();
+      } finally {
+        saveBindingsButtonEl.textContent = previousLabel;
+        if (latestGuide?.flow_catalog?.live_catalog_connected) {
+          saveBindingsButtonEl.disabled = !canManageConnection;
+        }
+      }
+    }
+
+    function humanizeGuideError(message = "") {
+      if (message.includes("project_package_version_conflict")) return "资料刚被其他页面更新，请重新选择后再保存。";
+      if (message.includes("connection_guide_flow_not_in_live_catalog")) return "所选 Flow 已不在当前项目实时清单，请重新同步后再选。";
+      if (message.includes("connection_guide_live_catalog_required")) return "请先连接当前项目 ChatDaddy 并同步真实 Flow。";
+      return message;
+    }
+
     function renderCommands() {
       const projectKey = projectKeyEl.value.trim() || "PROJECT_KEY";
       const provider = providerEl.value || "chatdaddy";
@@ -941,7 +1290,7 @@
         return;
       }
       await navigator.clipboard?.writeText(value);
-      addLog("Webhook URL 已复制", "把它贴进 ChatDaddy Webhook 设置，然后发一条测试讯息。");
+      addLog("Webhook URL 已复制", "把它贴进 ChatDaddy Webhook 设置；系统会等待下一条真实顾客讯息自动验证。");
     }
 
     async function copyOwnerTutorial() {
@@ -953,7 +1302,8 @@
         `2. Token 名称填 ReplyPilot-${projectKey}，只勾选 TEMPLATES_READ 和 MESSAGES_SEND_TO_ALL，保存后复制 Token。`,
         "3. ChatDaddy 右上角账号菜单 → Manage Channels → 找到本项目 WhatsApp Channel → 复制 Account ID。",
         "4. 回 ReplyPilot 的「连接 ChatDaddy」页面，把 Account ID 和 API Token 分别贴进对应空格。",
-        "5. 点击「连接并同步 Flow」。成功后回 Dashboard，为每个销售 Step 选择真实 Flow。",
+        "5. 点击「连接并同步 Flow」。成功后在本页第 4 步，为每个销售 Step 选择真实 Flow。",
+        "6. 点击「保存 Step Flow 绑定」。这只保存草稿，不会发讯息、触发 Flow 或开启自动回复。",
         "",
         "安全提醒：不要把 API Token 发进 WhatsApp 群、Google Docs 或 FAQ；请由项目负责人亲自在 ReplyPilot 页面填写。",
         "图文 PDF 教程：从 ReplyPilot 连接页面点击「下载图文教程 PDF」。",
