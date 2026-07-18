@@ -15533,7 +15533,7 @@
         return staffCaseSectionHtml({
           title: "所有 Case",
           body: total > visible.length
-            ? `先显示最近 ${visible.length} 条；后台共有 ${total} 条，搜索会检查完整 Case 记录。`
+            ? `先保证全部未完成都显示，再列最近记录；当前载入 ${visible.length} 条，后台共有 ${total} 条，搜索会检查完整 Case 记录。`
             : "这里同时包括待处理、已处理和只读记录，不会因为日期或状态被隐藏。",
           items: visible,
           countLabel: `${visible.length}/${total} 条`,
