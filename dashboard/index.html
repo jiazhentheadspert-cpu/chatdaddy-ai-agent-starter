@@ -22933,36 +22933,11 @@
 	}
 
 	function projectMappedFlowCatalog(item = state.active) {
-	  const salesStages = Array.isArray(state.projectKnowledge?.sales_process?.stages)
-	    ? state.projectKnowledge.sales_process.stages
-	    : [];
-	  const mappedRefs = new Set(
-	    salesStages.flatMap((stage) => [
-	      stage?.flow_key,
-	      stage?.provider_bot_id,
-	      stage?.provider_flow_id,
-	    ]).map((value) => String(value || "").trim()).filter(Boolean)
-	  );
-	  const recommendedKey = String(recommendedFlowForCase(item || {})?.flow_key || "");
-	  const currentProject = String(projectKeyEl.value || "").trim().toLowerCase();
-	  return state.flowCatalog.filter((flow) => {
-	    if (flow.is_active === false) return false;
-	    const source = String(flow.catalog_source || "").toLowerCase();
-	    // Older project endpoints do not annotate catalog_source. Treat those
-	    // entries as project-scoped, while excluding explicitly account-wide
-	    // ChatDaddy catalog entries unless they are mapped below.
-	    const scopedBySource = !source || source.includes("project");
-	    const scopedByProject = String(flow.project_key || "").trim().toLowerCase() === currentProject;
-	    const scopedByMapping = [
-	      flow.flow_key,
-	      flow.provider_bot_id,
-	      flow.provider_flow_id,
-	    ].some((value) => mappedRefs.has(String(value || "").trim()));
-	    return scopedBySource
-	      || scopedByProject
-	      || scopedByMapping
-	      || String(flow.flow_key || "") === recommendedKey;
-	  });
+	  // The backend catalog endpoint is already scoped through this project's
+	  // own ChatDaddy connection. Keep every active live Flow searchable here;
+	  // filtering the account-wide rows again made the header show 66 while the
+	  // picker exposed only the four manually mapped Steps.
+	  return state.flowCatalog.filter((flow) => flow.is_active !== false);
 	}
 
 	function filteredFlowCatalog(item = state.active) {
