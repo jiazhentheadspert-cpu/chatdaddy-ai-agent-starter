@@ -2238,7 +2238,7 @@
         <div class="toolbar">
           <div>
             <h2>3. 确认 AI 理解</h2>
-            <p>确认 AI 读懂卖什么、为什么买、怎么卖；异常会单独列出。</p>
+            <p>FAQ 和 ChatDaddy 原话会自动锁定；这里只处理真正异常。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status" id="learningReviewStatus">尚未加载</div>
@@ -2271,15 +2271,15 @@
             <p id="protectedSourceCopySummary">AI 会列出 CTA、效果、公斤数、疗程、价格、赠品与配套原话。</p>
             <div class="protected-copy-list" id="protectedSourceCopyList"></div>
           </article>
-          <label class="confirm" id="protectedSourceCopyConfirmLabel">
-            <input id="protectedSourceCopyConfirm" type="checkbox" disabled>
-            我确认这些原话不能被弱化、改数字或偷换意思；加强只能组合其他已批准原话。
-          </label>
+          <input id="protectedSourceCopyConfirm" type="checkbox" checked hidden>
+          <div class="boundary-note ok" id="protectedSourceCopyConfirmLabel">
+            原话已自动锁定，不用重复确认。AI 不能弱化、改数字或偷换意思；加强只能组合其他已批准原话。
+          </div>
         </div>
         <div class="actions">
-          <button class="btn primary" type="button" id="beginnerConfirmButton" hidden>确认 AI 理解</button>
+          <button class="btn primary" type="button" id="beginnerConfirmButton" hidden>完成检查，进入第 4 步</button>
         </div>
-        <div class="boundary-note" id="flowConfirmationResult">只需要确认 AI 的理解；不会修改 ChatDaddy，也不会联系顾客。</div>
+        <div class="boundary-note" id="flowConfirmationResult">没有真正异常时可直接进入第 4 步；不会修改 ChatDaddy，也不会联系顾客。</div>
         <div class="actions">
           <button class="btn expert-only" type="button" id="loadReviewButton">重新加载</button>
           <button class="btn primary" type="button" id="submitReviewBatchButton" disabled hidden>提交确认</button>
@@ -3656,8 +3656,7 @@
       const flowReady = technicalDone.channel && semanticReady && flowLearningNextGateState().ready;
       const teachReady = flowReady && understandingReady;
       const reviewReady = teachReady
-        && state.flowLearning?.owner_approved === true
-        && Number(reviewSummary.pending_items || 0) === 0;
+        && state.flowLearning?.owner_approved === true;
       const revisionState = currentBrainRevisionState();
       const currentRevisionActive = state.activation?.ready_for_ai_reply === true
         && state.published === true
@@ -4289,10 +4288,10 @@
 
       const revision = String(state.flowLearning?.raw?.source_revision || "");
       if (revision && state.protectedSourceRevision !== revision) {
-        protectedSourceCopyConfirm.checked = false;
         state.protectedSourceRevision = revision;
       }
-      protectedSourceCopyConfirm.disabled = !locks.length || alerts.length > 0 || !flowLearningNextGateState().ready;
+      protectedSourceCopyConfirm.checked = locks.length > 0;
+      protectedSourceCopyConfirm.disabled = true;
       updateBeginnerConfirmAvailability();
     }
 
@@ -4303,12 +4302,11 @@
         && flowLearningUnderstandingReady()
         && flowLearningNextGateState().ready
         && locks.length > 0
-        && protectedSourceCopyConfirm.checked
         && protectedFlowAlerts().length === 0;
       beginnerConfirmButton.disabled = !ready;
       beginnerConfirmButton.title = ready
-        ? "确认 AI 的理解"
-        : "请先完成价格、Follow Up、示范回复与不可改原话确认";
+        ? "完成检查并进入第 4 步"
+        : "请先完成价格、Follow Up、示范回复与真正异常处理";
     }
 
     function flowLearningObjectiveTags(item = {}) {
@@ -4899,9 +4897,6 @@
         if (!state.flowLearning?.source_copy_locks?.length) {
           throw new Error("尚未找到 ChatDaddy 不可改原话，不能确认。");
         }
-        if (!protectedSourceCopyConfirm.checked) {
-          throw new Error("请先确认 ChatDaddy 不可改原话。");
-        }
         if (protectedFlowAlerts().length) {
           throw new Error("还有品牌冲突或原话弱化问题，必须先处理。");
         }
@@ -4926,16 +4921,8 @@
           hydrateBrainVersionStatus(latest);
           hydrateFlowLearning(confirmed);
         }
-        let adopted = 0;
-        try {
-          adopted = await approveBeginnerStandardDrafts();
-        } catch (_error) {
-          adopted = 0;
-        }
         beginnerConfirmButton.hidden = true;
-        flowConfirmationResult.textContent = adopted
-          ? `已确认 AI 理解，并通过 ${adopted} 条一般学习草稿。`
-          : "已确认 AI 理解。没有异常，可以继续开始使用。";
+        flowConfirmationResult.textContent = "检查完成。FAQ 与 ChatDaddy 原话已自动锁定，正在进入第 4 步。";
         updateOnboardingProgress();
       } catch (error) {
         flowConfirmationResult.textContent = `还不能确认：${error.message || error}`;
