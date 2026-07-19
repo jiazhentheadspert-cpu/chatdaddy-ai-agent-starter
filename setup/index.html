@@ -2044,8 +2044,8 @@
       <section class="panel onboarding-step-panel" id="channelFlowPanel" data-onboarding-panel data-onboarding-phase="flow">
         <div class="toolbar">
           <div>
-            <h2>1. 连接 ChatDaddy</h2>
-            <p>AI 会读取真实 Flow，不需要你重新填写路线。</p>
+            <h2>1. 选择 AI 要学习的 Flow</h2>
+            <p>系统先读取 ChatDaddy；你只核对 Flow 名称和内容，再选择销售 Step、价格 Step、Payment 与 Follow Up。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status expert-only" id="channelFlowStatus">尚未检查</div>
@@ -2127,10 +2127,10 @@
           </label>
         </div>
         <div class="actions">
-          <button class="btn primary" type="button" id="learnChatdaddyFlowsButton">读取并学习 Flow</button>
+          <a class="btn primary" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">选择 ChatDaddy Flow</a>
+          <button class="btn" type="button" id="learnChatdaddyFlowsButton" disabled>尚未确认 Flow</button>
           <button class="btn primary" type="button" id="acceptDetectedPriceStageButton" hidden>使用 AI 识别的价格 Step</button>
           <button class="btn expert-only" type="button" id="startReonboardingButton">手动确认路线</button>
-          <a class="btn expert-only" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">查看 / 选择当前项目真实 Flow</a>
           <button class="btn expert-only" type="button" id="refreshReadinessButton">刷新真实 Flow 状态</button>
         </div>
         <div class="boundary-note" id="flowLearningSafety">只读取，不修改 ChatDaddy。不会发送顾客讯息，也不会触发 Flow。</div>
@@ -3647,7 +3647,13 @@
         review: Number(reviewSummary.total_items || 0) > 0 && Number(reviewSummary.pending_items || 0) === 0,
         sales: salesValidationReady,
         contract: contractErrors === 0,
-        channel: guideSummary.connection_ready === true && Number(guideSummary.sales_steps_bound || 0) >= Number(guideSummary.sales_steps_total || 1),
+        channel: guideSummary.flow_selection_confirmed === true
+          && Number(guideSummary.sales_steps_total || 0) > 0
+          && Number(guideSummary.sales_steps_bound || 0) >= Number(guideSummary.sales_steps_total || 0)
+          && Number(guideSummary.payment_bound || 0) === 1
+          && Number(guideSummary.follow_ups_total || 0) >= 1
+          && Number(guideSummary.follow_ups_total || 0) <= 10
+          && Number(guideSummary.follow_ups_bound || 0) === Number(guideSummary.follow_ups_total || 0),
         mock: Array.isArray(mockTests) && mockTests.length > 0 && mockFailed === 0,
         learning: state.published === true
       };
@@ -4120,6 +4126,17 @@
       return learning;
     }
 
+    function flowSelectionConfirmed() {
+      const summary = state.connectionGuide?.summary || {};
+      return summary.flow_selection_confirmed === true
+        && Number(summary.sales_steps_total || 0) > 0
+        && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0)
+        && Number(summary.payment_bound || 0) === 1
+        && Number(summary.follow_ups_total || 0) >= 1
+        && Number(summary.follow_ups_total || 0) <= 10
+        && Number(summary.follow_ups_bound || 0) === Number(summary.follow_ups_total || 0);
+    }
+
     function flowLearningSemanticReady() {
       const mediaCounts = state.flowLearning?.media_counts || {};
       const unreadMedia = ["text", "image", "audio", "video"]
@@ -4325,6 +4342,8 @@
         sales_steps_missing: "没有找到 Step 1 到价格 Step 的销售 Flow。",
         price_stage_missing: "还无法从真实 Flow 确认价格出现在哪一个 Step。",
         follow_ups_missing: "没有找到价格后的 Follow Up；每个项目需要 1–10 个。",
+        payment_flow_missing: "还没有选择 Payment Flow。",
+        flow_selection_owner_confirmation_required: "尚未确认 AI 要学习的 Flow。",
         provider_id_missing: `${targetLabel || "这个 Flow"} 未绑定真实 ChatDaddy Flow。`,
         content_not_read: `${targetLabel || "这个 Flow"} 的文字与按钮内容尚未读取。`,
         media_content_not_read: `${targetLabel || "这个 Flow"} 的图片、语音或视频尚未理解。`,
@@ -4659,6 +4678,8 @@
       const missingFollowUps = issueCodes.has("follow_ups_missing") || issueCodes.has("follow_up_sequence_missing");
       const needsFlowSelection = missingFollowUps
         || issueCodes.has("sales_steps_missing")
+        || issueCodes.has("payment_flow_missing")
+        || issueCodes.has("flow_selection_owner_confirmation_required")
         || issueCodes.has("provider_id_missing")
         || issueCodes.has("content_not_read");
       flowLearningFixLink.hidden = !needsFlowSelection;
@@ -4666,10 +4687,12 @@
       const technical = { ...learning.raw };
       delete technical._response;
       flowLearningTechnical.textContent = JSON.stringify(technical, null, 2);
-      learnChatdaddyFlowsButton.disabled = state.flowLearningBusy;
+      const selectionConfirmed = flowSelectionConfirmed();
+      learnChatdaddyFlowsButton.disabled = state.flowLearningBusy || !selectionConfirmed;
       learnChatdaddyFlowsButton.textContent = state.flowLearningBusy
         ? "AI 正在学习…"
-        : ready ? "重新读取 Flow" : "读取并学习 Flow";
+        : !selectionConfirmed ? "尚未确认 Flow"
+          : ready ? "重新学习已选择 Flow" : "学习已选择 Flow";
       const priceMismatch = flowLearningPriceMismatch();
       acceptDetectedPriceStageButton.hidden = !priceMismatch;
       acceptDetectedPriceStageButton.disabled = state.flowLearningBusy;
@@ -4687,6 +4710,13 @@
       if (state.authVerified !== true || !projectKey) {
         flowLearningHeadline.textContent = "请先登录并选择项目";
         flowLearningStatus.textContent = "未连接";
+        flowLearningStatus.className = "status bad";
+        return null;
+      }
+      if (!flowSelectionConfirmed()) {
+        flowLearningHeadline.textContent = "请先选择 AI 要学习的 Flow";
+        flowLearningSubline.textContent = "销售 Step、价格 Step、Payment 与 Follow Up 尚未确认；系统不会开始学习。";
+        flowLearningStatus.textContent = "尚未确认";
         flowLearningStatus.className = "status bad";
         return null;
       }
@@ -6670,6 +6700,7 @@
         const summary = data.summary || {};
         const blockers = Array.isArray(data.readiness?.blockers) ? data.readiness.blockers : [];
         const steps = `${Number(summary.sales_steps_bound || 0)} / ${Number(summary.sales_steps_total || 0)}`;
+        const selectionConfirmed = summary.flow_selection_confirmed === true;
         const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
         const topologyMismatch = topologyMismatchMessage(packageData);
         if (topologyMismatch) {
@@ -6677,16 +6708,23 @@
           channelFlowStatus.textContent = "真实 Flow 路线未对齐";
           channelFlowStatus.className = "status bad";
         } else {
-          readinessResult.textContent = blockers.length
-            ? `仍有 ${blockers.length} 项阻塞。销售 Step Flow：${steps}。下一步：${blockers.slice(0, 3).map((item) => item.message || item.code).join("；")}`
-            : `连接与 Flow Gate 已通过。销售 Step Flow：${steps}。现在可以继续教 AI。`;
-          channelFlowStatus.textContent = blockers.length ? `仍有 ${blockers.length} 项` : "连接与 Flow 已通过";
-          channelFlowStatus.className = `status ${blockers.length ? "bad" : "ok"}`;
+          readinessResult.textContent = !selectionConfirmed
+            ? "尚未确认 AI 要学习的 Flow。请核对销售 Step、价格 Step、Payment 与 Follow Up 后保存；系统不会根据旧绑定自动学习。"
+            : blockers.length
+              ? `仍有 ${blockers.length} 项阻塞。销售 Step Flow：${steps}。下一步：${blockers.slice(0, 3).map((item) => item.message || item.code).join("；")}`
+              : `学习 Flow 已确认。销售 Step：${steps}；Payment：1 / 1；Follow Up：${Number(summary.follow_ups_bound || 0)} / ${Number(summary.follow_ups_total || 0)}。`;
+          channelFlowStatus.textContent = !selectionConfirmed
+            ? "尚未确认 Flow"
+            : blockers.length ? `仍有 ${blockers.length} 项` : "学习 Flow 已确认";
+          channelFlowStatus.className = `status ${selectionConfirmed && !blockers.length ? "ok" : "bad"}`;
         }
         updateOnboardingProgress();
-        const connectionReady = summary.connection_ready === true
+        const connectionReady = selectionConfirmed
           && Number(summary.sales_steps_total || 0) > 0
-          && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0);
+          && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0)
+          && Number(summary.payment_bound || 0) === 1
+          && Number(summary.follow_ups_total || 0) >= 1
+          && Number(summary.follow_ups_bound || 0) === Number(summary.follow_ups_total || 0);
         if (
           connectionReady
           && !flowLearningSemanticReady()
