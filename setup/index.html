@@ -1689,7 +1689,9 @@
       } catch (error) {
         state.authVerified = false;
         setStatus("需要 Owner 登录", "bad");
-        formHelp.textContent = "请先从 ReplyPilot Dashboard 登录 Owner / Admin 账号，再点左侧项目切换器里的「新项目」。";
+        formHelp.textContent = params.get("project_key")
+          ? `请登录 Owner / Admin 账号；登录后会回到当前 ${params.get("project_key")} 项目并继续未完成步骤。`
+          : "请先从 ReplyPilot Dashboard 登录 Owner / Admin 账号，再从项目切换器选择「新增项目」。";
         setupForm.innerHTML = emptyState(error.message || "无法验证 Owner / Admin 登录。");
         document.getElementById("authActions").hidden = false;
         const loginParams = new URLSearchParams({ api: apiBase, return_to: "setup" });
@@ -1704,7 +1706,8 @@
       const continuingExistingProject = Boolean(projectKey);
       document.getElementById("existingProjectActions").hidden = !continuingExistingProject;
       if (!continuingExistingProject) return;
-      document.getElementById("setupHeroTitle").textContent = `继续 ${projectKey} Onboarding`;
+      const projectLabel = projectKey.toLowerCase() === "beyoute" ? "Beyoute" : projectKey;
+      document.getElementById("setupHeroTitle").textContent = `继续 ${projectLabel} Onboarding`;
       document.getElementById("setupHeroDescription").textContent = "正在读取当前项目的 8 步真实进度。你可以从未完成处继续；所有修改先保存为可审核草稿，不会覆盖已发布的 AI Reply，也不会发送顾客讯息或触发 Flow。";
       document.getElementById("setupSideTitle").textContent = "继续当前项目验收";
       document.getElementById("setupSideDescription").textContent = "现有已发布版本继续服务；只有通过 Owner 审核、Mock 与发布 Gate 的新版本才会进入 AI Reply。";
