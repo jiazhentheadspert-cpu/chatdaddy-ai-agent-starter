@@ -1077,35 +1077,26 @@
     }
 
     .flow-learning-route {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 10px;
       align-items: stretch;
       padding: 4px 2px 8px;
-      overflow-x: auto;
-      scroll-snap-type: x proximity;
+    }
+
+    .flow-learning-route > .review-empty {
+      grid-column: 1 / -1;
     }
 
     .flow-learning-node {
       position: relative;
-      flex: 0 0 min(220px, 72vw);
+      min-width: 0;
       min-height: 128px;
-      padding: 16px;
+      padding: 14px;
       border: 1px solid var(--line);
       border-top: 4px solid var(--teal);
       border-radius: 8px;
       background: white;
-      scroll-snap-align: start;
-    }
-
-    .flow-learning-node + .flow-learning-node::before {
-      content: "→";
-      position: absolute;
-      left: -18px;
-      top: 48px;
-      width: 26px;
-      color: var(--muted);
-      text-align: center;
-      font-weight: 950;
     }
 
     .flow-learning-node.price {
@@ -1223,6 +1214,29 @@
 
     .flow-learning-exception + .flow-learning-exception {
       margin-top: 10px;
+    }
+
+    .flow-learning-notice {
+      padding: 14px 16px;
+      border: 1px solid rgba(47, 111, 237, 0.2);
+      border-left: 5px solid var(--blue);
+      border-radius: 8px;
+      color: #2057a6;
+      background: #f2f7ff;
+      font-weight: 800;
+      line-height: 1.5;
+    }
+
+    .flow-learning-notice + .flow-learning-notice,
+    .flow-learning-notice + .flow-learning-exception,
+    .flow-learning-exception + .flow-learning-notice {
+      margin-top: 10px;
+    }
+
+    .flow-learning-notice b {
+      display: block;
+      margin-bottom: 3px;
+      color: #174887;
     }
 
     .flow-technical-details {
@@ -1787,6 +1801,12 @@
       display: none !important;
     }
 
+    @media (max-width: 1280px) {
+      .flow-learning-route {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
     @media (max-width: 980px) {
       .shell {
         grid-template-columns: 1fr;
@@ -1847,6 +1867,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .flow-learning-route {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .beginner-intro {
         grid-template-columns: 1fr;
       }
@@ -1863,6 +1887,10 @@
     @media (max-width: 620px) {
       .progress-steps,
       .journey-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-learning-route {
         grid-template-columns: 1fr;
       }
 
@@ -3880,6 +3908,10 @@
       const exceptions = Array.isArray(source.exceptions)
         ? source.exceptions
         : Array.isArray(source.blockers) ? source.blockers : [];
+      const nonBlockingWarnings = [
+        ...(Array.isArray(source.source_brand_warnings) ? source.source_brand_warnings : []),
+        ...(Array.isArray(source.non_blocking_warnings) ? source.non_blocking_warnings : [])
+      ].filter((warning) => warning?.blocking !== true);
       const mediaSource = source.media_counts || summary.media_counts || source.content_counts || summary.content_counts || {};
       const sourceFlows = [
         ...(Array.isArray(source.source_flows?.sales_steps) ? source.source_flows.sales_steps : []),
@@ -4060,6 +4092,7 @@
           audio: videoPartCounter("audio")
         },
         exceptions,
+        non_blocking_warnings: nonBlockingWarnings,
         raw: source
       };
     }
@@ -4432,6 +4465,33 @@
       return String(raw || "").split(":")[0];
     }
 
+    function flowLearningNonBlockingWarningLabel(item = {}) {
+      const confirmedBrand = firstNonEmpty(
+        item?.confirmed_brand,
+        item?.project_brand,
+        item?.expected_brand,
+        item?.brand_confirmed_by_image,
+        state.salesPackageResponse?.project_package?.brand_brain?.brand_name,
+        state.existingPackageResponse?.project_package?.brand_brain?.brand_name,
+        currentProjectKey()
+      );
+      const mediaKind = firstNonEmpty(item?.media_kind, item?.source_kind, item?.kind).toLowerCase();
+      const sourceLabel = mediaKind === "video"
+        ? "视频声音"
+        : mediaKind === "audio" || mediaKind === "voice" ? "语音" : "媒体转写";
+      return `${sourceLabel}可能把品牌听错；同一 Flow 的图片或其他资料已确认是 ${confirmedBrand || "当前项目品牌"}。原转写已保留供你查看，不会阻止继续。`;
+    }
+
+    function flowLearningNonBlockingWarnings(learning = {}) {
+      const warnings = Array.isArray(learning.non_blocking_warnings)
+        ? learning.non_blocking_warnings
+        : [];
+      return [...new Set(warnings
+        .filter((warning) => warning?.blocking !== true)
+        .map(flowLearningNonBlockingWarningLabel)
+        .filter(Boolean))];
+    }
+
     function flowLearningDisplayIssues(learning = {}, exceptions = []) {
       const videoVisualSpecific = new Set();
       const videoAudioSpecific = new Set();
@@ -4519,6 +4579,7 @@
       const summary = learning.summary || {};
       const exceptions = Array.isArray(learning.exceptions) ? learning.exceptions : [];
       const issueMessages = flowLearningDisplayIssues(learning, exceptions);
+      const warningMessages = flowLearningNonBlockingWarnings(learning);
       const ready = flowLearningSemanticReady();
       const statusText = ready
         ? "已读懂"
@@ -4555,13 +4616,20 @@
       ].map(([label, text]) => `<div class="flow-understanding-card"><b>${escapeHtml(label)}</b><p>${escapeHtml(text)}</p></div>`).join("");
       flowUnderstandingGrid.innerHTML = understandingHtml;
       flowReviewUnderstandingGrid.innerHTML = understandingHtml;
-      flowLearningExceptions.innerHTML = issueMessages.length
+      const warningMarkup = warningMessages.map((message) => `
+        <div class="flow-learning-notice">
+          <b>提醒，不影响继续</b>
+          ${escapeHtml(message)}
+        </div>
+      `).join("");
+      const issueMarkup = issueMessages.length
         ? issueMessages.map((message) => `
             <div class="flow-learning-exception">
               ${escapeHtml(message)}
             </div>
           `).join("")
         : '<div class="review-empty">没有需要确认的异常。AI 已按真实 Flow 整理。</div>';
+      flowLearningExceptions.innerHTML = `${warningMarkup}${issueMarkup}`;
       flowLearningIssueSummary.hidden = issueMessages.length === 0;
       flowLearningIssueHeadline.textContent = issueMessages.length === 1
         ? "还有 1 项需要处理"
