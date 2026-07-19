@@ -698,6 +698,152 @@
       width: 100%;
     }
 
+    .brain-version-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: stretch;
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .brain-version-card {
+      display: grid;
+      gap: 5px;
+      padding: 14px 16px;
+      border: 1px solid rgba(15, 159, 146, 0.3);
+      border-radius: 8px;
+      background: #f2fcf9;
+    }
+
+    .brain-version-card.draft {
+      border-color: rgba(47, 111, 237, 0.3);
+      background: #f5f8ff;
+    }
+
+    .brain-version-card small,
+    .brain-version-card span {
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .brain-version-card b {
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .brain-version-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      font-size: 20px;
+      font-weight: 950;
+    }
+
+    .setup-module-notice {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+      padding: 14px 16px;
+      border: 1px solid rgba(219, 77, 91, 0.28);
+      border-left: 5px solid var(--danger);
+      border-radius: 8px;
+      color: var(--ink);
+      background: #fff6f7;
+    }
+
+    .setup-module-notice span {
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .beginner-next-gate,
+    .beginner-review-contract {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+      padding: 16px;
+      border: 1px solid rgba(47, 111, 237, 0.24);
+      border-radius: 8px;
+      background: #f6f9ff;
+    }
+
+    .beginner-next-gate.ready {
+      border-color: rgba(15, 159, 146, 0.34);
+      background: #f0fcf9;
+    }
+
+    .beginner-gate-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .beginner-gate-check {
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: white;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .beginner-gate-check.ok {
+      color: #08796f;
+      border-color: rgba(15, 159, 146, 0.34);
+      background: #effcf9;
+    }
+
+    .beginner-review-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      gap: 12px;
+    }
+
+    .beginner-review-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .beginner-review-card p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .sample-reply-list,
+    .protected-copy-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .sample-reply,
+    .protected-copy {
+      padding: 9px 11px;
+      border-left: 3px solid var(--cyan);
+      border-radius: 6px;
+      color: var(--muted);
+      background: #f7fbfc;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    .protected-copy {
+      border-left-color: var(--blue);
+      background: #f7f9ff;
+    }
+
     .onboarding-panel-controls {
       display: flex;
       align-items: center;
@@ -1683,6 +1829,20 @@
         grid-template-columns: 1fr;
       }
 
+      .brain-version-strip,
+      .beginner-review-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .brain-version-arrow {
+        transform: rotate(90deg);
+      }
+
+      .setup-module-notice {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
       .flow-media-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -1836,6 +1996,21 @@
             <a class="btn primary" id="ownerLoginLink" href="../login.html">登录</a>
           </div>
         </div>
+        <div class="actions auth-actions" id="setupLoadErrorActions" hidden>
+          <div class="onboarding-login-card">
+            <b id="setupLoadErrorTitle">暂时无法读取项目</b>
+            <p id="setupLoadErrorText">这不是登录问题，请稍后重试。</p>
+            <div class="actions">
+              <button class="btn primary" id="retrySetupLoadButton" type="button">重新读取</button>
+              <a class="btn" id="setupSwitchAccountLink" href="../login.html" hidden>切换账号</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="setup-module-notice" id="setupModuleNotice" aria-live="polite" hidden>
+        <span id="setupModuleNoticeText">部分资料暂时没有读取，不影响已成功载入的步骤。</span>
+        <button class="btn" id="retrySetupModulesButton" type="button">重试未读取资料</button>
       </section>
 
       <section class="panel onboarding-step-panel" id="channelFlowPanel" data-onboarding-panel data-onboarding-phase="flow">
@@ -1860,6 +2035,19 @@
             <p>AI 只读取 ChatDaddy，不修改 Flow、Button、Trigger 或 Follow Up。自动发送与自动触发 Flow 继续关闭。</p>
           </div>
         </div>
+        <div class="brain-version-strip" id="brainVersionStrip" aria-live="polite">
+          <article class="brain-version-card">
+            <small>当前线上 AI</small>
+            <b id="activeBrainVersion">读取中</b>
+            <span id="activeBrainVersionNote">继续使用已发布版本，不受本次学习影响。</span>
+          </article>
+          <div class="brain-version-arrow" aria-hidden="true">→</div>
+          <article class="brain-version-card draft">
+            <small>本次重新学习</small>
+            <b id="draftBrainVersion">读取中</b>
+            <span id="draftBrainVersionNote">只建立新草稿，完成验收后才会替换线上版本。</span>
+          </article>
+        </div>
         <div class="flow-learning-overview" aria-live="polite">
           <div class="flow-learning-head">
             <div>
@@ -1879,6 +2067,14 @@
             <a class="btn primary" id="flowLearningFixLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer" hidden>选择缺少的 Flow</a>
           </div>
           <div class="flow-learning-issue-list" id="flowLearningIssueList" hidden></div>
+        </div>
+        <div class="beginner-next-gate" id="beginnerNextGate" aria-live="polite">
+          <b id="beginnerNextGateTitle">下一步前，AI 要先读完整成交路线</b>
+          <div class="beginner-gate-checks">
+            <span class="beginner-gate-check" id="priceEvidenceGate">价格证据：等待读取</span>
+            <span class="beginner-gate-check" id="followUpGate">真实 Follow Up：等待读取</span>
+          </div>
+          <span id="beginnerNextGateText">两项都完成后，才会进入 AI 自动学习。</span>
         </div>
         <div class="sales-controls expert-only" aria-label="高级手动路线确认">
           <label>
@@ -2026,6 +2222,31 @@
           <div class="flow-understanding-card"><b>顾客为什么买</b><p>等待 AI 学习。</p></div>
           <div class="flow-understanding-card"><b>项目怎么卖</b><p>等待 AI 学习。</p></div>
           <div class="flow-understanding-card"><b>价格后怎么成交</b><p>等待 AI 学习。</p></div>
+        </div>
+        <div class="beginner-review-contract" id="beginnerReviewContract" aria-live="polite">
+          <div class="beginner-review-grid">
+            <article class="beginner-review-card">
+              <b>客服人设</b>
+              <p id="beginnerPersonaSummary">等待 AI 从项目资料整理。</p>
+            </article>
+            <article class="beginner-review-card">
+              <b>3 条示范回复</b>
+              <div class="sample-reply-list" id="beginnerSampleReplies">
+                <div class="sample-reply">等待本轮学习结果。</div>
+                <div class="sample-reply">等待本轮学习结果。</div>
+                <div class="sample-reply">等待本轮学习结果。</div>
+              </div>
+            </article>
+          </div>
+          <article class="beginner-review-card">
+            <b>ChatDaddy 不可改原话</b>
+            <p id="protectedSourceCopySummary">AI 会列出 CTA、效果、公斤数、疗程、价格、赠品与配套原话。</p>
+            <div class="protected-copy-list" id="protectedSourceCopyList"></div>
+          </article>
+          <label class="confirm" id="protectedSourceCopyConfirmLabel">
+            <input id="protectedSourceCopyConfirm" type="checkbox" disabled>
+            我确认这些原话不能被弱化、改数字或偷换意思；加强只能组合其他已批准原话。
+          </label>
         </div>
         <div class="actions">
           <button class="btn primary" type="button" id="beginnerConfirmButton" hidden>确认 AI 理解</button>
@@ -2373,15 +2594,20 @@
       salesPackageResponse: null,
       connectionGuide: null,
       mockResult: null,
+      mockAttestedVersionNo: null,
       published: false,
       activation: null,
       authVerified: false,
+      authState: "loading",
+      brainVersions: { published: null, draft: null },
+      moduleErrors: [],
       existingProject: null,
       existingPackageResponse: null,
       reonboardingBusy: false,
       flowLearning: null,
       flowLearningBusy: false,
       flowLearningAutoRequested: false,
+      protectedSourceRevision: "",
       onboardingHydrated: false,
       onboardingPhaseDone: { flow: false, teach: false, review: false, use: false },
       onboardingCurrentPhase: "",
@@ -2459,6 +2685,18 @@
     const flowLearningExceptions = document.getElementById("flowLearningExceptions");
     const flowLearningTechnical = document.getElementById("flowLearningTechnical");
     const flowConfirmationResult = document.getElementById("flowConfirmationResult");
+    const beginnerNextGate = document.getElementById("beginnerNextGate");
+    const priceEvidenceGate = document.getElementById("priceEvidenceGate");
+    const followUpGate = document.getElementById("followUpGate");
+    const beginnerNextGateTitle = document.getElementById("beginnerNextGateTitle");
+    const beginnerNextGateText = document.getElementById("beginnerNextGateText");
+    const beginnerPersonaSummary = document.getElementById("beginnerPersonaSummary");
+    const beginnerSampleReplies = document.getElementById("beginnerSampleReplies");
+    const protectedSourceCopySummary = document.getElementById("protectedSourceCopySummary");
+    const protectedSourceCopyList = document.getElementById("protectedSourceCopyList");
+    const protectedSourceCopyConfirm = document.getElementById("protectedSourceCopyConfirm");
+    const setupModuleNotice = document.getElementById("setupModuleNotice");
+    const setupModuleNoticeText = document.getElementById("setupModuleNoticeText");
     const publishConfirm = document.getElementById("publishConfirm");
     const publishProjectButton = document.getElementById("publishProjectButton");
 
@@ -2466,6 +2704,7 @@
     document.addEventListener("DOMContentLoaded", init);
     beginnerLearnButton.addEventListener("click", runBeginnerLearning);
     beginnerConfirmButton.addEventListener("click", confirmBeginnerUnderstanding);
+    protectedSourceCopyConfirm.addEventListener("change", updateBeginnerConfirmAvailability);
     advancedModeButton.addEventListener("click", toggleAdvancedMode);
     previewButton.addEventListener("click", previewPackage);
     createButton.addEventListener("click", createProject);
@@ -2494,6 +2733,8 @@
     refreshReadinessButton.addEventListener("click", refreshConnectionReadiness);
     publishConfirm.addEventListener("change", updatePublishButton);
     publishProjectButton.addEventListener("click", publishCurrentProjectBrain);
+    document.getElementById("retrySetupLoadButton").addEventListener("click", init);
+    document.getElementById("retrySetupModulesButton").addEventListener("click", init);
     document.getElementById("onboardingRail").addEventListener("click", handleOnboardingPhaseNavigation);
     document.getElementById("progressSteps").addEventListener("click", handleOnboardingPhaseNavigation);
     document.querySelectorAll("[data-onboarding-toggle]").forEach((button) => {
@@ -2503,8 +2744,17 @@
     async function init() {
       document.body.classList.remove("show-advanced");
       localStorage.setItem("hermas_setup_api", apiBase);
+      state.authVerified = false;
+      state.authState = "loading";
+      state.moduleErrors = [];
+      state.onboardingHydrated = false;
+      setupModuleNotice.hidden = true;
+      document.getElementById("authActions").hidden = true;
+      document.getElementById("setupLoadErrorActions").hidden = true;
+      document.getElementById("loginLoadingCard").hidden = false;
       applySetupModeCopy();
       applyExpectedTopologyDefaults();
+      renderBrainVersionStatus();
       renderFlowLearning();
       updateProjectLinks();
       renderSalesJourneyDraft();
@@ -2512,46 +2762,168 @@
       try {
         setButtons(false);
         await apiGet("/api/admin/projects");
-        state.authVerified = true;
-        state.template = ONBOARDING_TEMPLATE;
-        setStatus("已连接", "ok");
-        formHelp.textContent = "AI 会先读完整销售 Flow；FAQ、PPT 和说明只是补充。";
-        renderSafety(ONBOARDING_TEMPLATE);
-        renderForm(ONBOARDING_TEMPLATE);
-        beginnerUpload.hidden = false;
-        beginnerSourceActions.hidden = false;
-        beginnerLearningResult.hidden = false;
-        beginnerLearnButton.hidden = false;
-        setButtons(true);
-        if (params.get("project_key")) {
-          await loadExistingProjectForOwnerMigration();
-          await Promise.all([
-            loadLearningReview(),
-            loadReplyContract(),
-            loadSalesJourney(),
-            refreshConnectionReadiness({ silent: true })
-          ]);
-        }
-        state.onboardingHydrated = true;
-        updateOnboardingProgress();
       } catch (error) {
-        state.authVerified = false;
         state.onboardingHydrated = true;
-        setStatus("请先登录", "bad");
-        formHelp.textContent = "";
-        setupForm.innerHTML = "";
-        learningReviewStatus.textContent = "等待学习";
-        document.getElementById("authActions").hidden = false;
-        beginnerUpload.hidden = true;
-        beginnerSourceActions.hidden = true;
-        beginnerLearningResult.hidden = true;
-        beginnerLearnButton.hidden = true;
-        const loginParams = new URLSearchParams({ api: apiBase, return_to: "setup" });
-        const projectKey = String(params.get("project_key") || "").trim();
-        if (projectKey) loginParams.set("project_key", projectKey);
-        document.getElementById("ownerLoginLink").href = `../login.html?${loginParams.toString()}`;
+        if (isAuthenticationError(error)) {
+          showAuthenticationRequired();
+        } else {
+          showInitialSetupLoadError(error);
+        }
         updateOnboardingProgress();
+        return;
       }
+
+      state.authVerified = true;
+      state.authState = "authenticated";
+      state.template = ONBOARDING_TEMPLATE;
+      setStatus("已连接", "ok");
+      formHelp.textContent = "AI 会先读完整销售 Flow；FAQ、PPT 和说明只是补充。";
+      renderSafety(ONBOARDING_TEMPLATE);
+      renderForm(ONBOARDING_TEMPLATE);
+      beginnerUpload.hidden = false;
+      beginnerSourceActions.hidden = false;
+      beginnerLearningResult.hidden = false;
+      beginnerLearnButton.hidden = false;
+      setButtons(true);
+
+      if (params.get("project_key")) {
+        try {
+          await loadExistingProjectForOwnerMigration();
+        } catch (error) {
+          if (isAuthenticationError(error)) {
+            state.authVerified = false;
+            state.authState = "required";
+            state.onboardingHydrated = true;
+            showAuthenticationRequired();
+            updateOnboardingProgress();
+            return;
+          }
+          if (isProjectAccessError(error)) {
+            state.authVerified = false;
+            state.onboardingHydrated = true;
+            showInitialSetupLoadError(error);
+            updateOnboardingProgress();
+            return;
+          }
+          state.moduleErrors.push(`项目版本：${error.message || error}`);
+        }
+
+        const moduleResults = await Promise.allSettled([
+          loadLearningReview(),
+          loadReplyContract(),
+          loadSalesJourney(),
+          refreshConnectionReadiness({ silent: true })
+        ]);
+        const accessFailure = moduleResults.find((result) => (
+          result.status === "rejected" && isProjectAccessError(result.reason)
+        ));
+        if (accessFailure) {
+          state.authVerified = false;
+          state.onboardingHydrated = true;
+          showInitialSetupLoadError(accessFailure.reason);
+          updateOnboardingProgress();
+          return;
+        }
+        moduleResults.forEach((result, index) => {
+          if (result.status !== "rejected") return;
+          const labels = ["学习审核", "回复规则", "销售路线", "ChatDaddy 连接"];
+          state.moduleErrors.push(`${labels[index]}：${result.reason?.message || result.reason || "读取失败"}`);
+        });
+      }
+
+      state.onboardingHydrated = true;
+      showSetupModuleErrors();
+      updateOnboardingProgress();
+    }
+
+    function isAuthenticationError(error) {
+      const status = Number(error?.status || 0);
+      if (status === 401) return true;
+      const structuredCode = String(error?.data?.code || error?.data?.error || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
+      const explicitAuthCodes = new Set([
+        "unauthorized",
+        "auth_required",
+        "authentication_required",
+        "login_required",
+        "invalid_session",
+        "session_expired",
+        "admin_auth_required",
+        "admin_token_required",
+        "admin_required",
+        "owner_auth_required"
+      ]);
+      if (explicitAuthCodes.has(structuredCode)) return true;
+      if (status === 403) return false;
+      const message = String(error?.message || error || "").toLowerCase();
+      return /(auth_required|authentication_required|login_required|invalid_session|session_expired)/.test(message);
+    }
+
+    function isProjectAccessError(error) {
+      const structuredCode = String(error?.data?.code || error?.data?.error || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
+      return new Set([
+        "project_permission_required",
+        "project_permission_denied",
+        "project_access_denied",
+        "insufficient_project_permission"
+      ]).has(structuredCode);
+    }
+
+    function ownerLoginUrl(options = {}) {
+      const loginParams = new URLSearchParams({ api: apiBase, return_to: "setup" });
+      const projectKey = String(params.get("project_key") || "").trim();
+      if (projectKey) loginParams.set("project_key", projectKey);
+      if (options.switchAccount === true) loginParams.set("switch_account", "1");
+      return `../login.html?${loginParams.toString()}`;
+    }
+
+    function showAuthenticationRequired() {
+      state.authState = "required";
+      setStatus("请先登录", "bad");
+      formHelp.textContent = "";
+      setupForm.innerHTML = "";
+      learningReviewStatus.textContent = "等待学习";
+      document.getElementById("loginLoadingCard").hidden = true;
+      document.getElementById("setupLoadErrorActions").hidden = true;
+      document.getElementById("authActions").hidden = false;
+      document.getElementById("ownerLoginLink").href = ownerLoginUrl();
+      document.getElementById("setupSwitchAccountLink").hidden = true;
+      beginnerUpload.hidden = true;
+      beginnerSourceActions.hidden = true;
+      beginnerLearningResult.hidden = true;
+      beginnerLearnButton.hidden = true;
+    }
+
+    function showInitialSetupLoadError(error) {
+      const accessError = isProjectAccessError(error);
+      state.authState = accessError ? "access_error" : "load_error";
+      setStatus(accessError ? "没有项目权限" : "读取失败", "bad");
+      document.getElementById("loginLoadingCard").hidden = true;
+      document.getElementById("authActions").hidden = true;
+      document.getElementById("setupLoadErrorActions").hidden = false;
+      document.getElementById("setupLoadErrorTitle").textContent = accessError
+        ? "这个账号没有项目访问权限"
+        : "暂时无法读取项目";
+      document.getElementById("setupLoadErrorText").textContent = accessError
+        ? "你已经登录，但这个账号不能打开当前项目。请切换到有权限的账号，或请管理员加入项目。"
+        : `这不是登录问题：${error?.message || error || "服务暂时不可用"}。`;
+      const switchAccountLink = document.getElementById("setupSwitchAccountLink");
+      switchAccountLink.hidden = !accessError;
+      switchAccountLink.href = ownerLoginUrl({ switchAccount: true });
+    }
+
+    function showSetupModuleErrors() {
+      if (!state.moduleErrors.length) {
+        setupModuleNotice.hidden = true;
+        return;
+      }
+      setupModuleNoticeText.textContent = `已登录，但有 ${state.moduleErrors.length} 个模块暂时未读取：${state.moduleErrors.join("；")}`;
+      setupModuleNotice.hidden = false;
     }
 
     function applySetupModeCopy() {
@@ -2923,6 +3295,7 @@
         });
         state.existingPackageResponse = data;
         state.salesPackageResponse = data;
+        hydrateBrainVersionStatus(data, { draft: true });
         state.connectionGuide = null;
         state.published = publishedBefore;
         state.activation = activationBefore;
@@ -3182,18 +3555,29 @@
         const phaseDone = { flow: false, teach: false, review: false, use: false };
         const currentPhase = "";
         const hydrated = state.onboardingHydrated === true;
+        const authRequired = state.authState === "required";
+        const loadError = state.authState === "load_error";
+        const accessError = state.authState === "access_error";
+        const gateLabel = accessError ? "无项目权限" : loadError ? "读取失败" : authRequired ? "登录后读取" : "读取中";
         document.body.classList.add("login-required");
         document.getElementById("loginGatePanel").hidden = false;
         document.getElementById("loginLoadingCard").hidden = hydrated;
-        if (!hydrated) document.getElementById("authActions").hidden = true;
+        if (!hydrated) {
+          document.getElementById("authActions").hidden = true;
+          document.getElementById("setupLoadErrorActions").hidden = true;
+        }
         syncOnboardingPanels(phaseDone, currentPhase);
         document.getElementById("progressBar").style.width = "0%";
-        document.getElementById("progressSummary").textContent = hydrated ? "登录后读取" : "读取中";
-        document.getElementById("railProgressSummary").textContent = hydrated ? "登录后读取" : "读取中";
-        document.getElementById("progressStatus").textContent = hydrated ? "请先登录" : "正在读取";
+        document.getElementById("progressSummary").textContent = gateLabel;
+        document.getElementById("railProgressSummary").textContent = gateLabel;
+        document.getElementById("progressStatus").textContent = accessError
+          ? "请切换账号"
+          : loadError
+            ? "请重试"
+            : authRequired ? "请先登录" : "正在读取";
         document.getElementById("progressStatus").className = "status";
         document.querySelectorAll("#onboardingRail [data-phase-label]").forEach((label) => {
-          label.textContent = hydrated ? "登录后" : "读取中";
+          label.textContent = accessError ? "需要项目权限" : loadError ? "稍后重试" : authRequired ? "登录后" : "读取中";
         });
         updateProjectLinks();
         updatePublishButton();
@@ -3224,16 +3608,23 @@
       };
       const semanticReady = flowLearningSemanticReady();
       const understandingReady = flowLearningUnderstandingReady();
-      const flowReady = technicalDone.channel && semanticReady;
+      const flowReady = technicalDone.channel && semanticReady && flowLearningNextGateState().ready;
       const teachReady = flowReady && understandingReady;
       const reviewReady = teachReady
         && state.flowLearning?.owner_approved === true
         && Number(reviewSummary.pending_items || 0) === 0;
+      const revisionState = currentBrainRevisionState();
+      const currentRevisionActive = state.activation?.ready_for_ai_reply === true
+        && state.published === true
+        && revisionState.publishedVersion > 0
+        && revisionState.currentVersion === revisionState.publishedVersion;
+      const mockVerifiedOrNoDraft = revisionState.mockBoundToCurrent
+        || revisionState.draftDiffersFromPublished === false;
       const phaseDone = {
         flow: flowReady,
         teach: teachReady,
         review: reviewReady,
-        use: reviewReady && state.activation?.ready_for_ai_reply === true
+        use: reviewReady && currentRevisionActive && mockVerifiedOrNoDraft
       };
       const count = Object.values(phaseDone).filter(Boolean).length;
       const currentPhase = ONBOARDING_PHASE_ORDER.find((phase, index) => (
@@ -3249,8 +3640,10 @@
       document.getElementById("progressBar").style.width = `${(count / 4) * 100}%`;
       document.getElementById("progressSummary").textContent = `${count} / 4 完成`;
       document.getElementById("railProgressSummary").textContent = `${count} / 4`;
-      document.getElementById("progressStatus").textContent = state.activation?.ready_for_ai_reply
+      document.getElementById("progressStatus").textContent = phaseDone.use
           ? "可以开始使用"
+          : reviewReady && revisionState.draftDiffersFromPublished
+            ? "新草稿待测试与发布"
           : !technicalDone.channel
             ? "等待 ChatDaddy 连接"
             : !semanticReady
@@ -3258,7 +3651,7 @@
               : !state.flowLearning?.owner_approved
                 ? "等待确认 AI 理解"
                 : state.published ? "资料已保存" : "设置中";
-      document.getElementById("progressStatus").className = `status ${state.activation?.ready_for_ai_reply || state.published ? "ok" : ""}`;
+      document.getElementById("progressStatus").className = `status ${phaseDone.use ? "ok" : ""}`;
       updateProjectLinks();
       updatePublishButton();
     }
@@ -3275,6 +3668,7 @@
       state.salesPackageResponse = packageResponse;
       state.published = packageResponse.published === true && packageResponse.draft !== true;
       state.activation = packageResponse.activation || null;
+      hydrateBrainVersionStatus(packageResponse);
       hydrateFlowLearning(packageResponse);
       applyExistingProjectOnboarding(packageResponse.project_package || {}, existingProject);
       renderReonboardingTopology(packageResponse);
@@ -3289,6 +3683,55 @@
       setStatus("等待重新 Onboard", "");
       addLog("已载入现有项目", `${projectKey} 当前编辑版本 ${packageResponse.version_no || "-"}。本轮只建立新草稿，不会覆盖已发布 Runtime。`);
       updateOnboardingProgress();
+    }
+
+    function hydrateBrainVersionStatus(data = {}, options = {}) {
+      const version = Number(data?.version_no || 0);
+      const published = Number(data?.published_version_no || 0)
+        || (data?.published === true && data?.draft !== true ? version : 0);
+      if (published > 0) state.brainVersions.published = published;
+      const versionIsUnpublished = version > 0
+        && (published === 0 || version !== published);
+      if (data?.draft === true || options.draft === true || versionIsUnpublished) {
+        state.brainVersions.draft = version > 0 ? version : state.brainVersions.draft;
+      } else if (data?.source_mode === "published" && version === published) {
+        state.brainVersions.draft = null;
+      }
+      renderBrainVersionStatus();
+    }
+
+    function currentBrainRevisionState() {
+      const publishedVersion = Number(state.brainVersions?.published || 0);
+      const currentVersion = Math.max(
+        Number(state.brainVersions?.draft || 0),
+        Number(state.salesPackageResponse?.version_no || 0),
+        Number(state.existingPackageResponse?.version_no || 0),
+        Number(state.learningReview?.version_no || 0),
+        Number(state.replyContract?.version_no || 0),
+        publishedVersion
+      );
+      const draftDiffersFromPublished = currentVersion > 0
+        && currentVersion !== publishedVersion;
+      return {
+        publishedVersion,
+        currentVersion,
+        draftDiffersFromPublished,
+        mockBoundToCurrent: currentVersion > 0
+          && Number(state.mockAttestedVersionNo || 0) === currentVersion
+      };
+    }
+
+    function renderBrainVersionStatus() {
+      const published = Number(state.brainVersions?.published || 0);
+      const draft = Number(state.brainVersions?.draft || 0);
+      document.getElementById("activeBrainVersion").textContent = published ? `线上 v${published}` : "尚未发布";
+      document.getElementById("activeBrainVersionNote").textContent = published
+        ? "顾客回复继续使用这个版本，本次学习不会改动它。"
+        : "目前没有线上版本；本次学习仍不会自动发送。";
+      document.getElementById("draftBrainVersion").textContent = draft ? `重学草稿 v${draft}` : "尚未建立重学草稿";
+      document.getElementById("draftBrainVersionNote").textContent = draft
+        ? "所有学习和验收都写进这个草稿；发布后才会替换线上版本。"
+        : "读取真实 Flow 后建立；不会覆盖线上 AI。";
     }
 
     function markOnboardingDraft() {
@@ -3554,6 +3997,12 @@
         content_status: firstNonEmpty(source.content_status, summary.content_status, "content_unavailable"),
         configured_price_stage_key: firstNonEmpty(source.configured_price_stage_key, summary.configured_price_stage_key),
         detected_price_stage_key: firstNonEmpty(source.detected_price_stage_key, source.price_evidence?.stage_key, summary.detected_price_stage_key),
+        price_evidence: source.price_evidence && typeof source.price_evidence === "object"
+          ? source.price_evidence
+          : {},
+        source_copy_locks: (Array.isArray(source.source_copy_locks) ? source.source_copy_locks : [])
+          .filter((lock) => String(lock?.exact_text || "").trim())
+          .slice(0, 36),
         owner_approved: source.owner_approved === true
           || source._response?.owner_approved === true
           || source.owner_review?.approved === true
@@ -3644,6 +4093,174 @@
       return ["sell", "why", "how", "close"].every((key) => Boolean(String(understanding[key] || "").trim()));
     }
 
+    function flowLearningNextGateState() {
+      const learning = state.flowLearning || {};
+      const priceEvidence = learning.price_evidence || {};
+      const priceStageKey = firstNonEmpty(
+        priceEvidence.stage_key,
+        learning.detected_price_stage_key,
+        learning.summary?.price_stage_key
+      );
+      const hasPriceEvidence = Boolean(priceStageKey) && Boolean(firstNonEmpty(
+        priceEvidence.summary,
+        ...(Array.isArray(priceEvidence.evidence_texts) ? priceEvidence.evidence_texts : []),
+        ...(Array.isArray(priceEvidence.evidence_refs) ? priceEvidence.evidence_refs : [])
+      ));
+      const followUps = Array.isArray(learning.follow_ups) ? learning.follow_ups : [];
+      const sourceFollowUps = Array.isArray(learning.raw?.source_flows?.follow_ups)
+        ? learning.raw.source_flows.follow_ups
+        : [];
+      const realFollowUps = followUps.length >= 1
+        && followUps.length <= 10
+        && sourceFollowUps.length >= followUps.length
+        && sourceFollowUps.slice(0, followUps.length).every((item) => (
+          Boolean(firstNonEmpty(item?.provider_flow_id, item?.provider_bot_id, item?.flow_key))
+          && (
+            item?.content_snapshot?.readable_text === true
+            || item?.content_snapshot?.has_media === true
+            || Number(item?.content_snapshot?.evidence_count || 0) > 0
+          )
+        ));
+      return {
+        hasPriceEvidence,
+        priceStageKey,
+        realFollowUps,
+        followUpCount: followUps.length,
+        ready: hasPriceEvidence && realFollowUps
+      };
+    }
+
+    function renderBeginnerNextGate() {
+      const gate = flowLearningNextGateState();
+      beginnerNextGate.classList.toggle("ready", gate.ready);
+      priceEvidenceGate.classList.toggle("ok", gate.hasPriceEvidence);
+      followUpGate.classList.toggle("ok", gate.realFollowUps);
+      priceEvidenceGate.textContent = gate.hasPriceEvidence
+        ? `✓ 价格证据：${String(gate.priceStageKey).replace(/^step_(\d+)$/i, "Step $1")}`
+        : "价格证据：尚未找到";
+      followUpGate.textContent = gate.realFollowUps
+        ? `✓ 真实 Follow Up：${gate.followUpCount} 个`
+        : "真实 Follow Up：尚未读完整";
+      beginnerNextGateTitle.textContent = gate.ready
+        ? "成交路线已完整，可以继续学习"
+        : "下一步前，AI 要先读完整成交路线";
+      beginnerNextGateText.textContent = gate.ready
+        ? "价格和看价后的跟进都来自真实 ChatDaddy Flow。"
+        : "请先补齐价格证据与 1–10 个真实 Follow Up；AI 不会用猜的继续。";
+      beginnerLearnButton.disabled = !gate.ready;
+      beginnerLearnButton.title = gate.ready ? "" : "请先完成价格证据与真实 Follow Up";
+    }
+
+    function flowLearningSampleReplyTexts() {
+      const learning = state.flowLearning || {};
+      const raw = learning.raw || {};
+      const explicit = [
+        raw.sample_replies,
+        raw.reply_samples,
+        raw.example_replies,
+        raw.owner_review?.sample_replies
+      ].find(Array.isArray) || [];
+      const reviewItems = Array.isArray(state.learningReview?.items) ? state.learningReview.items : [];
+      const reviewReplies = reviewItems.flatMap((item) => [
+        item?.fields?.better_reply,
+        item?.fields?.answer,
+        item?.better_reply,
+        item?.answer
+      ]);
+      const sourceTexts = [
+        ...(Array.isArray(raw.source_flows?.sales_steps) ? raw.source_flows.sales_steps : []),
+        ...(Array.isArray(raw.source_flows?.follow_ups) ? raw.source_flows.follow_ups : [])
+      ].flatMap((item) => item?.content_snapshot?.texts || []);
+      return [...explicit, ...reviewReplies, ...sourceTexts]
+        .map((item) => typeof item === "string"
+          ? item
+          : firstNonEmpty(item?.reply, item?.text, item?.answer, item?.better_reply))
+        .map((item) => String(item || "").trim())
+        .filter((item, index, all) => item && all.indexOf(item) === index)
+        .slice(0, 3);
+    }
+
+    function protectedFlowAlerts() {
+      const alerts = [];
+      const exceptions = Array.isArray(state.flowLearning?.exceptions) ? state.flowLearning.exceptions : [];
+      for (const item of exceptions) {
+        const code = flowLearningExceptionCode(item);
+        if (code === "source_brand_conflict") {
+          alerts.push("已阻止 · 品牌冲突：资料与当前项目来源不一致，必须由 Owner 确认。");
+        }
+        if (["source_copy_weakening_forbidden", "protected_claim_weakening", "protected_claim_weakened"].includes(code)) {
+          alerts.push("已阻止 · 原话被弱化：效果、CTA 或配套强度不能被降低。");
+        }
+      }
+      for (const item of (Array.isArray(state.learningReview?.items) ? state.learningReview.items : [])) {
+        if (item?.pending !== true) continue;
+        const codeText = JSON.stringify({
+          code: item?.code,
+          reason: item?.risk?.reason,
+          source: item?.source?.analysis_status,
+          fields: item?.fields
+        }).toLowerCase();
+        if (codeText.includes("source_brand_conflict")) {
+          alerts.push("已阻止 · 品牌冲突：资料与当前项目来源不一致，必须由 Owner 确认。");
+        }
+        if (/source_copy_weakening_forbidden|protected_claim_weakening|protected_claim_weakened/.test(codeText)) {
+          alerts.push("已阻止 · 原话被弱化：效果、CTA 或配套强度不能被降低。");
+        }
+      }
+      return [...new Set(alerts)];
+    }
+
+    function renderBeginnerReviewContract() {
+      const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
+      const voice = firstNonEmpty(
+        state.flowLearning?.raw?.persona,
+        state.flowLearning?.raw?.reply_persona,
+        state.flowLearning?.raw?.reply_style,
+        packageData?.brand_brain?.voice,
+        "亲切、简洁、先回答顾客问题；只使用项目来源，不乱加事实。"
+      );
+      beginnerPersonaSummary.textContent = voice;
+
+      const samples = flowLearningSampleReplyTexts();
+      beginnerSampleReplies.innerHTML = Array.from({ length: 3 }, (_, index) => (
+        `<div class="sample-reply">${escapeHtml(samples[index] || `示范 ${index + 1}：等待本轮学习 / Mock Test 生成。`)}</div>`
+      )).join("");
+
+      const locks = Array.isArray(state.flowLearning?.source_copy_locks) ? state.flowLearning.source_copy_locks : [];
+      const alerts = protectedFlowAlerts();
+      protectedSourceCopySummary.textContent = locks.length
+        ? `已找到 ${locks.length} 条不可改原话；下方先显示重点。`
+        : "尚未找到可追溯原话，不能完成确认。";
+      protectedSourceCopyList.innerHTML = [
+        ...alerts.map((text) => `<div class="protected-copy error">${escapeHtml(text)}</div>`),
+        ...locks.slice(0, 3).map((lock) => `<div class="protected-copy">${escapeHtml(firstNonEmpty(lock?.exact_text, lock?.text))}</div>`),
+        ...(locks.length > 3 ? [`<div class="protected-copy">另外 ${locks.length - 3} 条已锁定在本轮来源中。</div>`] : [])
+      ].join("");
+
+      const revision = String(state.flowLearning?.raw?.source_revision || "");
+      if (revision && state.protectedSourceRevision !== revision) {
+        protectedSourceCopyConfirm.checked = false;
+        state.protectedSourceRevision = revision;
+      }
+      protectedSourceCopyConfirm.disabled = !locks.length || alerts.length > 0 || !flowLearningNextGateState().ready;
+      updateBeginnerConfirmAvailability();
+    }
+
+    function updateBeginnerConfirmAvailability() {
+      const learning = state.flowLearning;
+      const locks = Array.isArray(learning?.source_copy_locks) ? learning.source_copy_locks : [];
+      const ready = flowLearningSemanticReady()
+        && flowLearningUnderstandingReady()
+        && flowLearningNextGateState().ready
+        && locks.length > 0
+        && protectedSourceCopyConfirm.checked
+        && protectedFlowAlerts().length === 0;
+      beginnerConfirmButton.disabled = !ready;
+      beginnerConfirmButton.title = ready
+        ? "确认 AI 的理解"
+        : "请先完成价格、Follow Up、示范回复与不可改原话确认";
+    }
+
     function flowLearningObjectiveTags(item = {}) {
       const value = item.objective_tags || item.objectives || item.tags || [];
       if (Array.isArray(value)) return value.map((tag) => String(tag || "").trim()).filter(Boolean).slice(0, 6);
@@ -3674,6 +4291,11 @@
         provider_content_error: `${targetLabel || "这个 Flow"} 无法读取：${detail || "ChatDaddy 内容暂不可用"}。`,
         source_content_incomplete: "真实 Flow 内容还没有读取完整。",
         price_evidence_not_detected: "还没有从真实 Flow 找到价格内容。",
+        source_copy_locks_missing: "还没有找到可追溯的 CTA、效果、价格或配套原话。",
+        source_brand_conflict: "已阻止品牌冲突：这份资料可能属于另一个项目，请 Owner 确认。",
+        source_copy_weakening_forbidden: "已阻止原话弱化：不能降低 Flow 中效果、CTA 或配套的表达强度。",
+        protected_claim_weakening: "已阻止原话弱化：不能降低 Flow 中效果、CTA 或配套的表达强度。",
+        protected_claim_weakened: "已阻止原话弱化：不能降低 Flow 中效果、CTA 或配套的表达强度。",
         openai_api_key_missing: "AI 分析服务尚未连接。",
         openai_analysis_incomplete: "AI 没有完整覆盖全部销售 Step 与 Follow Up。",
         openai_invalid_json: "AI 学习结果格式不完整，请重新读取。",
@@ -3890,6 +4512,8 @@
         flowLearningTechnical.textContent = "尚未读取。";
         learnChatdaddyFlowsButton.disabled = state.flowLearningBusy;
         acceptDetectedPriceStageButton.hidden = true;
+        renderBeginnerNextGate();
+        renderBeginnerReviewContract();
         return;
       }
       const summary = learning.summary || {};
@@ -3970,10 +4594,8 @@
         ? `用 ${priceMismatch.detected.replace(/^step_(\d+)$/i, "Step $1")} 继续`
         : "使用 AI 识别的价格 Step";
       beginnerConfirmButton.hidden = !ready || learning.owner_approved === true;
-      beginnerConfirmButton.disabled = !ready || !flowLearningUnderstandingReady();
-      beginnerConfirmButton.title = beginnerConfirmButton.disabled
-        ? "AI 必须先完成卖什么、为什么买、怎么卖和价格后成交的理解"
-        : "确认 AI 的理解";
+      renderBeginnerNextGate();
+      renderBeginnerReviewContract();
     }
 
     async function requestChatdaddyFlowLearning(options = {}) {
@@ -3999,10 +4621,12 @@
         if (data?.project_package) {
           state.existingPackageResponse = data;
           state.salesPackageResponse = data;
+          hydrateBrainVersionStatus(data, { draft: true });
         } else {
           const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
           state.existingPackageResponse = latest;
           state.salesPackageResponse = latest;
+          hydrateBrainVersionStatus(latest);
           hydrateFlowLearning(data);
         }
         updateOnboardingProgress();
@@ -4081,6 +4705,13 @@
       }
       const previous = beginnerLearnButton.textContent;
       try {
+        const gate = flowLearningNextGateState();
+        if (!gate.hasPriceEvidence) {
+          throw new Error("请先从真实 ChatDaddy Flow 找到价格证据。");
+        }
+        if (!gate.realFollowUps) {
+          throw new Error("请先读取价格后的 1–10 个真实 Follow Up。");
+        }
         beginnerLearnButton.disabled = true;
         beginnerLearnButton.textContent = "AI 正在整理…";
         beginnerLearningResult.textContent = "正在整理资料…";
@@ -4129,6 +4760,7 @@
         const canonicalPackage = await apiGet(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/package`);
         state.salesPackageResponse = canonicalPackage;
         state.existingPackageResponse = canonicalPackage;
+        hydrateBrainVersionStatus(canonicalPackage);
         renderReonboardingTopology(canonicalPackage);
         applyExistingProjectOnboarding(canonicalPackage.project_package || {}, state.existingProject || {
           project_key: currentProjectKey(),
@@ -4175,6 +4807,18 @@
         if (!flowLearningUnderstandingReady()) {
           throw new Error("AI 还没有完整说明项目卖什么、为什么买、怎么卖和价格后怎么成交。");
         }
+        if (!flowLearningNextGateState().ready) {
+          throw new Error("价格证据或真实 Follow Up 尚未完成，不能确认。");
+        }
+        if (!state.flowLearning?.source_copy_locks?.length) {
+          throw new Error("尚未找到 ChatDaddy 不可改原话，不能确认。");
+        }
+        if (!protectedSourceCopyConfirm.checked) {
+          throw new Error("请先确认 ChatDaddy 不可改原话。");
+        }
+        if (protectedFlowAlerts().length) {
+          throw new Error("还有品牌冲突或原话弱化问题，必须先处理。");
+        }
         const projectKey = currentProjectKey();
         const confirmed = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/learn-chatdaddy-flows`, {
           read_only: true,
@@ -4188,10 +4832,12 @@
         if (confirmed?.project_package) {
           state.existingPackageResponse = confirmed;
           state.salesPackageResponse = confirmed;
+          hydrateBrainVersionStatus(confirmed, { draft: true });
         } else {
           const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
           state.existingPackageResponse = latest;
           state.salesPackageResponse = latest;
+          hydrateBrainVersionStatus(latest);
           hydrateFlowLearning(confirmed);
         }
         let adopted = 0;
@@ -4273,6 +4919,7 @@
         updated_by: "owner_beginner_onboarding"
       });
       state.documentKnowledge = data;
+      hydrateBrainVersionStatus(data, { draft: true });
       markOnboardingDraft();
       renderDocumentKnowledge(data, "你提供的项目说明");
       return data;
@@ -4367,6 +5014,7 @@
         state.created = data;
         state.existingPackageResponse = data;
         state.salesPackageResponse = data;
+        hydrateBrainVersionStatus(data, { draft: true });
         markOnboardingDraft();
         const nextUrl = new URL(window.location.href);
         nextUrl.searchParams.set("project_key", projectKey);
@@ -4678,12 +5326,14 @@
         analyzeDocumentButton.disabled = true;
         analyzeDocumentButton.textContent = "正在提取与分析…";
         setDocumentStatus("读取文件中", "");
-        const extractedText = await extractProjectDocumentText(file);
+        const extracted = await extractProjectDocumentContent(file);
         setDocumentStatus("生成学习草稿中", "");
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/analyze-document`, {
           file_name: file.name,
           file_type: file.type,
-          extracted_text: extractedText,
+          extracted_text: extracted.extracted_text,
+          document_media: extracted.document_media,
+          document_page_count: Number(extracted.document_page_count || 0),
           updated_by: "owner_onboarding"
         });
         state.documentKnowledge = data;
@@ -4693,14 +5343,15 @@
         const canonicalPackage = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
         state.salesPackageResponse = canonicalPackage;
         state.existingPackageResponse = canonicalPackage;
+        hydrateBrainVersionStatus(canonicalPackage);
         markOnboardingDraft();
-        renderDocumentKnowledge(data, file.name);
+        renderDocumentKnowledge(data, file.name, extracted);
         await loadLearningReview();
         updateOnboardingProgress();
         return data;
       } catch (error) {
         setDocumentStatus("资料处理失败", "bad");
-        documentResult.textContent = error.message || String(error);
+        documentResult.textContent = ownerFacingLearningError(error);
         return null;
       } finally {
         analyzeDocumentButton.disabled = false;
@@ -4708,17 +5359,34 @@
       }
     }
 
-    function renderDocumentKnowledge(data, fileName = "项目资料") {
+    function renderDocumentKnowledge(data, fileName = "项目资料", extracted = {}) {
       const counts = data?.counts || {};
+      const localCoverage = extracted?.coverage || {};
+      const serverCoverage = data?.media_coverage || data?.analysis?.media_coverage || {};
+      const mediaFound = Number(serverCoverage.total || serverCoverage.received || localCoverage.media_found || 0);
+      const mediaRead = Number(serverCoverage.analyzed || serverCoverage.understood || serverCoverage.received || localCoverage.media_sent || 0);
+      const failures = [
+        ...(Array.isArray(localCoverage.failures) ? localCoverage.failures : []),
+        ...(Array.isArray(serverCoverage.failures) ? serverCoverage.failures : [])
+      ];
+      const mediaTruncated = localCoverage.media_truncated === true;
       documentMetrics.innerHTML = [
         metricHtml("资料文件", Number(counts.source_documents || 0)),
-        metricHtml("FAQ 草稿", Number(counts.faq || 0)),
-        metricHtml("一般 / 安全 SOP", `${Number(counts.ops_sop || 0)} / ${Number(counts.safety_sop || 0)}`),
-        metricHtml("真实发送 / Flow", "0 / 0")
+        metricHtml("读取文字", `${Number(localCoverage.text_characters || 0)} 字`),
+        metricHtml("读取图片", `${mediaRead} / ${mediaFound}`),
+        metricHtml("图片失败", failures.length)
       ].join("");
       const missing = Array.isArray(data?.analysis?.missing_information) ? data.analysis.missing_information : [];
-      documentResult.textContent = `${fileName} 已进入当前项目学习草稿。${missing.length ? `仍缺：${missing.join("；")}` : "下一步逐条完成 Owner 审核。"}`;
-      setDocumentStatus(data?.uses_openai ? "AI 已分析，待 Owner 审核" : "已提取文字，待补 AI 分析", data?.uses_openai ? "ok" : "");
+      const coverageText = mediaFound
+        ? `图片 ${mediaRead}/${mediaFound}${mediaTruncated ? "，长文件已做视觉抽样" : ""}${failures.length ? `，${failures.length} 项失败` : ""}。`
+        : "没有检测到图片。";
+      documentResult.textContent = `${fileName} 已进入当前项目学习草稿；文字 ${Number(localCoverage.text_characters || 0)} 字，${coverageText}${missing.length ? `仍缺：${missing.join("；")}` : "下一步确认 AI 理解。"}`;
+      setDocumentStatus(
+        failures.length || mediaTruncated
+          ? "部分图片需确认"
+          : data?.uses_openai ? "文字与图片已分析" : "已提取，待补 AI 分析",
+        failures.length || mediaTruncated ? "bad" : data?.uses_openai ? "ok" : ""
+      );
     }
 
     function setDocumentStatus(text, tone) {
@@ -4726,52 +5394,350 @@
       documentStatus.className = `status ${tone || ""}`;
     }
 
-    async function extractProjectDocumentText(file) {
+    function ownerFacingLearningError(error) {
+      const code = String(error?.data?.error || error?.data?.code || error?.message || error || "");
+      if (code.includes("source_brand_conflict")) {
+        return "已阻止 · 品牌冲突：这份资料可能属于另一个项目，请确认来源后再学习。";
+      }
+      if (/source_copy_weakening_forbidden|protected_claim_weakening|protected_claim_weakened/.test(code)) {
+        return "已阻止 · 原话被弱化：效果、CTA、价格或配套原话不能被降低强度或改写。";
+      }
+      return error?.message || String(error);
+    }
+
+    const DOCUMENT_MEDIA_MAX_ITEMS = 20;
+    const DOCUMENT_MEDIA_MAX_ITEM_BYTES = 450 * 1024;
+    const DOCUMENT_MEDIA_MAX_TOTAL_BYTES = 12 * 1024 * 1024;
+
+    async function extractProjectDocumentContent(file) {
       const name = String(file?.name || "").toLowerCase();
-      if (name.endsWith(".txt") || name.endsWith(".md")) return file.text();
+      if (name.endsWith(".txt") || name.endsWith(".md")) {
+        const text = (await file.text()).slice(0, 120000);
+        return {
+          extracted_text: text,
+          document_media: [],
+          document_page_count: 0,
+          coverage: { text_characters: text.length, media_found: 0, media_sent: 0, failures: [] }
+        };
+      }
       if (name.endsWith(".pdf") || String(file?.type || "").toLowerCase() === "application/pdf") {
-        return extractPdfDocumentText(file);
+        return extractPdfDocumentContent(file);
       }
       if (!name.endsWith(".pptx")) throw new Error("目前支持 PPTX、PDF、TXT 或 Markdown；旧 .ppt 请先另存为 .pptx。");
+      return extractPptxDocumentContent(file);
+    }
+
+    function boundedDocumentPageNumbers(total, limit = DOCUMENT_MEDIA_MAX_ITEMS) {
+      const count = Math.max(0, Number(total || 0));
+      if (count <= limit) return Array.from({ length: count }, (_, index) => index + 1);
+      const selected = new Set();
+      for (let index = 0; index < limit; index += 1) {
+        selected.add(Math.round(index * (count - 1) / (limit - 1)) + 1);
+      }
+      return [...selected].sort((a, b) => a - b);
+    }
+
+    function dataUrlBytes(dataUrl = "") {
+      const base64 = String(dataUrl).split(",")[1] || "";
+      return Math.ceil(base64.length * 3 / 4);
+    }
+
+    function canvasCopy(source, scale) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(source.width * scale));
+      canvas.height = Math.max(1, Math.round(source.height * scale));
+      const context = canvas.getContext("2d", { alpha: false });
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(source, 0, 0, canvas.width, canvas.height);
+      return canvas;
+    }
+
+    function boundedCanvasJpeg(source) {
+      let canvas = source;
+      for (const quality of [0.82, 0.72, 0.62, 0.52]) {
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        if (dataUrlBytes(dataUrl) <= DOCUMENT_MEDIA_MAX_ITEM_BYTES) return dataUrl;
+      }
+      for (const scale of [0.8, 0.65, 0.5]) {
+        canvas = canvasCopy(canvas, scale);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
+        if (dataUrlBytes(dataUrl) <= DOCUMENT_MEDIA_MAX_ITEM_BYTES) return dataUrl;
+      }
+      return "";
+    }
+
+    async function imageBlobToDocumentMedia(blob, label, pageNo = null) {
+      let bitmap = null;
+      try {
+        bitmap = await createImageBitmap(blob);
+        const maxDimension = 1600;
+        const scale = Math.min(1, maxDimension / Math.max(bitmap.width || 1, bitmap.height || 1));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        const context = canvas.getContext("2d", { alpha: false });
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        const dataUrl = boundedCanvasJpeg(canvas);
+        if (!dataUrl) return null;
+        return {
+          ...(pageNo ? { page_no: pageNo } : {}),
+          kind: "page_image",
+          source_label: label,
+          label,
+          mime_type: "image/jpeg",
+          data_url: dataUrl
+        };
+      } finally {
+        if (typeof bitmap?.close === "function") bitmap.close();
+      }
+    }
+
+    function pptMediaMime(path) {
+      const extension = String(path || "").split(".").pop().toLowerCase();
+      return {
+        png: "image/png",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        webp: "image/webp",
+        gif: "image/gif",
+        bmp: "image/bmp",
+        svg: "image/svg+xml"
+      }[extension] || "application/octet-stream";
+    }
+
+    async function composePptSlideDocumentMedia(zip, paths, slideNo, pageNo, failures) {
+      const bitmaps = [];
+      try {
+        for (const path of paths) {
+          try {
+            const bytes = await zip.files[path].async("uint8array");
+            const bitmap = await createImageBitmap(new Blob([bytes], { type: pptMediaMime(path) }));
+            bitmaps.push({ bitmap, path });
+          } catch (error) {
+            failures.push(`Slide ${slideNo} 的 ${path.split("/").pop()}：${error?.message || "图片无法读取"}`);
+          }
+        }
+        if (!bitmaps.length) return null;
+        const canvas = document.createElement("canvas");
+        canvas.width = 1600;
+        canvas.height = 900;
+        const context = canvas.getContext("2d", { alpha: false });
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        const columns = Math.max(1, Math.min(3, Math.ceil(Math.sqrt(bitmaps.length))));
+        const rows = Math.max(1, Math.ceil(bitmaps.length / columns));
+        const gap = 20;
+        const cellWidth = (canvas.width - gap * (columns + 1)) / columns;
+        const cellHeight = (canvas.height - gap * (rows + 1)) / rows;
+        bitmaps.forEach(({ bitmap }, index) => {
+          const column = index % columns;
+          const row = Math.floor(index / columns);
+          const scale = Math.min(
+            cellWidth / Math.max(1, bitmap.width),
+            cellHeight / Math.max(1, bitmap.height)
+          );
+          const width = Math.max(1, bitmap.width * scale);
+          const height = Math.max(1, bitmap.height * scale);
+          const x = gap + column * (cellWidth + gap) + (cellWidth - width) / 2;
+          const y = gap + row * (cellHeight + gap) + (cellHeight - height) / 2;
+          context.drawImage(bitmap, x, y, width, height);
+        });
+        const dataUrl = boundedCanvasJpeg(canvas);
+        if (!dataUrl) return null;
+        return {
+          page_no: pageNo,
+          kind: "page_image",
+          source_label: `PPT Slide ${slideNo}`,
+          label: `PPT Slide ${slideNo}`,
+          mime_type: "image/jpeg",
+          data_url: dataUrl
+        };
+      } finally {
+        bitmaps.forEach(({ bitmap }) => {
+          if (typeof bitmap?.close === "function") bitmap.close();
+        });
+      }
+    }
+
+    async function extractPptxDocumentContent(file) {
       const JSZip = await ensureJsZip();
       const zip = await JSZip.loadAsync(await file.arrayBuffer());
       const slideNames = Object.keys(zip.files)
         .filter((path) => /^ppt\/slides\/slide\d+\.xml$/i.test(path))
         .sort((a, b) => Number(a.match(/slide(\d+)/i)?.[1] || 0) - Number(b.match(/slide(\d+)/i)?.[1] || 0));
       const slides = [];
+      const mediaSlideMap = new Map();
       for (const path of slideNames) {
+        const slideNo = Number(path.match(/slide(\d+)/i)?.[1] || 0);
         const xml = await zip.files[path].async("string");
         const documentXml = new DOMParser().parseFromString(xml, "application/xml");
         const textNodes = [...documentXml.getElementsByTagNameNS("http://schemas.openxmlformats.org/drawingml/2006/main", "t")];
         const text = textNodes.map((node) => node.textContent || "").join(" ").replace(/\s+/g, " ").trim();
-        if (text) slides.push(`Slide ${slides.length + 1}\n${text}`);
+        if (text) slides.push(`Slide ${slideNo}\n${text}`);
+        const relationshipPath = `ppt/slides/_rels/slide${slideNo}.xml.rels`;
+        if (!zip.files[relationshipPath]) continue;
+        const relationships = new DOMParser().parseFromString(
+          await zip.files[relationshipPath].async("string"),
+          "application/xml"
+        );
+        [...relationships.getElementsByTagName("Relationship")].forEach((node) => {
+          const target = String(node.getAttribute("Target") || "");
+          const match = target.match(/(?:\.\.\/)?media\/([^/]+)$/i);
+          if (match) {
+            const mediaPath = `ppt/media/${match[1]}`;
+            if (!mediaSlideMap.has(mediaPath)) mediaSlideMap.set(mediaPath, new Set());
+            mediaSlideMap.get(mediaPath).add(slideNo);
+          }
+        });
       }
-      const result = slides.join("\n\n");
-      if (result.length < 80) throw new Error("这个 PPTX 没有读到足够文字，可能主要是图片；请补可复制文字或上传 TXT 摘要。");
-      return result.slice(0, 120000);
+      const extractedText = slides.join("\n\n").slice(0, 120000);
+      const mediaPaths = Object.keys(zip.files)
+        .filter((path) => /^ppt\/media\/[^/]+\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(path))
+        .sort((a, b) => (Math.min(...(mediaSlideMap.get(a) || [9999]))) - (Math.min(...(mediaSlideMap.get(b) || [9999]))));
+      const documentMedia = [];
+      const failures = [];
+      let totalBytes = 0;
+      const mediaBySlide = new Map();
+      mediaPaths.forEach((path) => {
+        const slideNos = mediaSlideMap.get(path);
+        if (!slideNos?.size) {
+          failures.push(`${path.split("/").pop()}：未关联到真实 Slide，不会作为已学习内容`);
+          return;
+        }
+        slideNos.forEach((slideNo) => {
+          if (!mediaBySlide.has(slideNo)) mediaBySlide.set(slideNo, []);
+          mediaBySlide.get(slideNo).push(path);
+        });
+      });
+      const visualSlideNos = [...mediaBySlide.keys()].sort((a, b) => a - b);
+      if (visualSlideNos.length > DOCUMENT_MEDIA_MAX_ITEMS) {
+        throw new Error(`这个 PPT 有 ${visualSlideNos.length} 个视觉页面。为了让 AI 每一页都看完整，请拆成每份最多 ${DOCUMENT_MEDIA_MAX_ITEMS} 个视觉页面后再上传。`);
+      }
+      for (let index = 0; index < visualSlideNos.length; index += 1) {
+        const slideNo = visualSlideNos[index];
+        const media = await composePptSlideDocumentMedia(
+          zip,
+          mediaBySlide.get(slideNo),
+          slideNo,
+          index + 1,
+          failures
+        );
+        if (!media) {
+          failures.push(`Slide ${slideNo}：这个页面的图片没有读取成功`);
+          continue;
+        }
+        const size = dataUrlBytes(media.data_url);
+        if (totalBytes + size > DOCUMENT_MEDIA_MAX_TOTAL_BYTES) {
+          failures.push(`Slide ${slideNo}：文件总大小超过学习限制`);
+          continue;
+        }
+        totalBytes += size;
+        documentMedia.push(media);
+      }
+      if (documentMedia.length < visualSlideNos.length) {
+        const missingCount = visualSlideNos.length - documentMedia.length;
+        throw new Error(`PPT 还有 ${missingCount} 个视觉页面没有读取完整，请压缩图片或重新导出后再试。${failures.slice(0, 2).join("；")}`);
+      }
+      if (extractedText.length < 80 && !documentMedia.length) {
+        throw new Error("这个 PPTX 的文字和图片都没有读取成功，请确认文件没有损坏。");
+      }
+      return {
+        extracted_text: extractedText,
+        document_media: documentMedia,
+        document_page_count: visualSlideNos.length,
+        coverage: {
+          text_characters: extractedText.length,
+          text_sections: slideNames.length,
+          media_found: visualSlideNos.length,
+          media_sent: documentMedia.length,
+          media_assets_found: mediaPaths.length,
+          media_truncated: false,
+          failures
+        }
+      };
     }
 
-    async function extractPdfDocumentText(file) {
+    async function extractPdfDocumentContent(file) {
       if (Number(file?.size || 0) > 25 * 1024 * 1024) throw new Error("PDF 超过 25MB，请压缩或拆分后再上传。");
       const pdfjsLib = await ensurePdfJs();
       let loadingTask = null;
       try {
         loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
         const pdf = await loadingTask.promise;
-        const pages = [];
-        let characterCount = 0;
-        for (let pageNumber = 1; pageNumber <= Math.min(Number(pdf.numPages || 0), 120) && characterCount < 120000; pageNumber += 1) {
-          const page = await pdf.getPage(pageNumber);
-          const content = await page.getTextContent();
-          const text = (content.items || []).map((item) => String(item?.str || "").trim()).filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
-          if (!text) continue;
-          const pageText = `Page ${pageNumber}\n${text}`;
-          pages.push(pageText);
-          characterCount += pageText.length;
+        if (Number(pdf.numPages || 0) > DOCUMENT_MEDIA_MAX_ITEMS) {
+          throw new Error(`这个 PDF 有 ${pdf.numPages} 页。为了让 AI 每一页都看完整，请拆成每份最多 ${DOCUMENT_MEDIA_MAX_ITEMS} 页后再上传。`);
         }
-        const result = pages.join("\n\n").slice(0, 120000);
-        if (result.length < 80) throw new Error("这个 PDF 没有读到足够文字，可能是扫描件或纯图片。请先做 OCR。");
-        return result;
+        const pages = [];
+        const documentMedia = [];
+        const failures = [];
+        const selectedPages = new Set(boundedDocumentPageNumbers(pdf.numPages));
+        let characterCount = 0;
+        let totalBytes = 0;
+        for (let pageNumber = 1; pageNumber <= Math.min(Number(pdf.numPages || 0), 120); pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber);
+          if (characterCount < 120000) {
+            const content = await page.getTextContent();
+            const text = (content.items || []).map((item) => String(item?.str || "").trim()).filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+            if (text) {
+              const pageText = `Page ${pageNumber}\n${text}`;
+              pages.push(pageText);
+              characterCount += pageText.length;
+            }
+          }
+          if (selectedPages.has(pageNumber) && documentMedia.length < DOCUMENT_MEDIA_MAX_ITEMS && totalBytes < DOCUMENT_MEDIA_MAX_TOTAL_BYTES) {
+            try {
+              const baseViewport = page.getViewport({ scale: 1 });
+              const scale = Math.min(2, 1500 / Math.max(1, baseViewport.width));
+              const viewport = page.getViewport({ scale });
+              const canvas = document.createElement("canvas");
+              canvas.width = Math.max(1, Math.round(viewport.width));
+              canvas.height = Math.max(1, Math.round(viewport.height));
+              const context = canvas.getContext("2d", { alpha: false });
+              context.fillStyle = "#ffffff";
+              context.fillRect(0, 0, canvas.width, canvas.height);
+              await page.render({ canvasContext: context, viewport }).promise;
+              const dataUrl = boundedCanvasJpeg(canvas);
+              const size = dataUrlBytes(dataUrl);
+              if (!dataUrl || totalBytes + size > DOCUMENT_MEDIA_MAX_TOTAL_BYTES) {
+                failures.push(`Page ${pageNumber} 图片超过大小限制`);
+              } else {
+                totalBytes += size;
+                documentMedia.push({
+                  page_no: pageNumber,
+                  kind: "page_image",
+                  source_label: `PDF Page ${pageNumber}`,
+                  label: `PDF Page ${pageNumber}`,
+                  mime_type: "image/jpeg",
+                  data_url: dataUrl
+                });
+              }
+            } catch (error) {
+              failures.push(`Page ${pageNumber}：${error?.message || "图片无法读取"}`);
+            }
+          }
+          if (typeof page.cleanup === "function") page.cleanup();
+        }
+        const extractedText = pages.join("\n\n").slice(0, 120000);
+        if (extractedText.length < 80 && !documentMedia.length) {
+          throw new Error("这个 PDF 的文字和页面图片都没有读取成功，请确认文件没有损坏。");
+        }
+        return {
+          extracted_text: extractedText,
+          document_media: documentMedia,
+          document_page_count: Number(pdf.numPages || 0),
+          coverage: {
+            text_characters: extractedText.length,
+            text_sections: pages.length,
+            media_found: selectedPages.size,
+            media_sent: documentMedia.length,
+            document_pages_total: Number(pdf.numPages || 0),
+            media_truncated: false,
+            failures
+          }
+        };
       } finally {
         if (typeof loadingTask?.destroy === "function") await loadingTask.destroy().catch(() => {});
       }
@@ -4861,6 +5827,7 @@
       learningReviewList.innerHTML = items.length
         ? items.map((item) => learningReviewCardHtml(item)).join("")
         : `<div class="review-empty">${state.learningReviewFilter === "pending" ? "当前没有待审核草稿。" : "这个筛选没有资料。"}</div>`;
+      renderBeginnerReviewContract();
     }
 
     function learningReviewCardHtml(item) {
@@ -5007,6 +5974,7 @@
         });
         state.learningReview = data;
         state.learningReviewDrafts.clear();
+        hydrateBrainVersionStatus(data, { draft: true });
         renderLearningReview();
         updateReviewBatchButton();
         submitReviewBatchButton.hidden = Number(data?.summary?.pending_items || 0) < 1;
@@ -5245,6 +6213,7 @@
         });
         state.salesPackageResponse = data;
         state.existingPackageResponse = data;
+        hydrateBrainVersionStatus(data, { draft: true });
         markOnboardingDraft();
         renderSalesJourneyDraft(data.project_package?.sales_process || {});
         setSalesJourneyStatus(`销售 Step 已保存 · v${data.version_no}`, "ok");
@@ -5416,6 +6385,7 @@
         setReplyContractStatus("保存草稿中", "");
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/reply-contract`, collectReplyContract());
         state.replyContract = data;
+        hydrateBrainVersionStatus(data, { draft: true });
         markOnboardingDraft();
         renderReplyContract(data);
         setReplyContractStatus(`草稿已保存 · v${data.version_no}`, "ok");
@@ -5441,6 +6411,18 @@
         contentMockStatus.textContent = "正在运行合成场景";
         contentMockStatus.className = "status";
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/test-cases/run`, {});
+        const attestedVersionNo = Number(data?.version_no || data?.package_version_no || 0);
+        if (!attestedVersionNo) {
+          throw new Error("Mock Test 没有返回本轮草稿版本，不能沿用旧成绩。");
+        }
+        state.mockAttestedVersionNo = attestedVersionNo;
+        const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+        if (Number(latest?.version_no || 0) !== attestedVersionNo) {
+          throw new Error("Mock Test 成绩与当前草稿版本不一致，请重新测试。");
+        }
+        state.salesPackageResponse = latest;
+        state.existingPackageResponse = latest;
+        hydrateBrainVersionStatus(latest);
         renderReplyContractMock(data);
       } catch (error) {
         if (error.data?.tests || error.data?.blockers) {
@@ -5642,6 +6624,14 @@
       const failed = Number(state.mockResult?.suites?.owner_content?.failed_count ?? state.mockResult?.owner_content?.failed_count ?? 1);
       const hasTests = (state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || []).length > 0;
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
+      const currentVersionNo = Math.max(
+        Number(state.salesPackageResponse?.version_no || 0),
+        Number(state.existingPackageResponse?.version_no || 0),
+        Number(state.learningReview?.version_no || 0),
+        Number(state.replyContract?.version_no || 0)
+      );
+      const mockBoundToCurrentVersion = currentVersionNo > 0
+        && Number(state.mockAttestedVersionNo || 0) === currentVersionNo;
       const salesReviewed = Boolean(packageData?.metadata?.sales_journey_owner_reviewed_at)
         && Array.isArray(packageData?.sales_process?.stages)
         && packageData.sales_process.stages.length > 0;
@@ -5655,6 +6645,7 @@
         && blockers === 0
         && hasTests
         && failed === 0
+        && mockBoundToCurrentVersion
         && !state.published
       );
     }
@@ -5666,10 +6657,11 @@
         publishProjectButton.disabled = true;
         publishProjectButton.textContent = "正在执行发布 Gate…";
         const packageState = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+        if (!state.mockAttestedVersionNo || Number(packageState.version_no || 0) !== Number(state.mockAttestedVersionNo)) {
+          throw new Error("当前草稿不是刚通过 Mock Test 的版本，请重新测试后再发布。");
+        }
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package/publish`, {
-          mock_test_passed: true,
-          version_no: Number(packageState.version_no || 0),
-          mock_test_reference: `owner_onboarding_${new Date().toISOString()}`
+          version_no: Number(state.mockAttestedVersionNo)
         });
         if (data.sends_messages !== false || data.triggers_flows !== false) throw new Error("发布边界不完整，已停止显示成功状态。");
         if (data.ai_reply_ready !== true || data.activation?.ready_for_ai_reply !== true) {
@@ -5677,6 +6669,13 @@
         }
         state.published = data.published === true;
         state.activation = data.activation;
+        if (state.published) {
+          hydrateBrainVersionStatus({
+            version_no: Number(data.version_no || state.mockAttestedVersionNo),
+            published_version_no: Number(data.version_no || state.mockAttestedVersionNo),
+            source_mode: "published"
+          });
+        }
         publishProjectButton.textContent = state.published ? `已发布 v${data.version_no}` : "发布未完成";
         document.getElementById("learningLoopStatus").textContent = state.published ? "AI Reply 已可用 · Approval-first" : "Owner / Admin 专用";
         document.getElementById("learningLoopStatus").className = `status ${state.published ? "ok" : ""}`;
