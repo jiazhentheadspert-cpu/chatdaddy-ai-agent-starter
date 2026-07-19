@@ -1120,7 +1120,7 @@
         <div class="chips" id="safetyChips">
           <span class="chip">Approval-first</span>
           <span class="chip">No send</span>
-          <span class="chip">No OpenAI call</span>
+          <span class="chip">AI 分析需 Owner 操作</span>
           <span class="chip warn">No secrets</span>
         </div>
       </section>
@@ -1129,9 +1129,9 @@
         <div class="progress-head">
           <div>
             <strong id="progressProjectName">未选择项目</strong>
-            <div id="progressSummary">0 / 8 步完成 · 可以关闭页面后继续</div>
+            <div id="progressSummary">Owner 登录后读取 8 步真实进度</div>
           </div>
-          <div class="status" id="progressStatus">草稿模式</div>
+          <div class="status" id="progressStatus">等待 Owner 登录</div>
         </div>
         <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
         <nav class="progress-steps" id="progressSteps">
@@ -1586,6 +1586,7 @@
       mockResult: null,
       published: false,
       activation: null,
+      authVerified: false,
       existingProject: null,
       existingPackageResponse: null
     };
@@ -1665,6 +1666,7 @@
       try {
         setButtons(false);
         await apiGet("/api/admin/projects");
+        state.authVerified = true;
         state.template = ONBOARDING_TEMPLATE;
         setStatus("已连接", "ok");
         formHelp.textContent = "先完成 6 个业务问题。Flow ID、API token、webhook 和渠道资料都不在这一步填写。";
@@ -1681,6 +1683,7 @@
           ]);
         }
       } catch (error) {
+        state.authVerified = false;
         setStatus("需要 Owner 登录", "bad");
         formHelp.textContent = "请先从 ReplyPilot Dashboard 登录 Owner / Admin 账号，再点左侧项目切换器里的「新项目」。";
         setupForm.innerHTML = emptyState(error.message || "无法验证 Owner / Admin 登录。");
@@ -1787,6 +1790,18 @@
     }
 
     function updateOnboardingProgress() {
+      if (state.authVerified !== true) {
+        document.querySelectorAll("[data-progress-step]").forEach((item) => {
+          item.classList.remove("done", "current");
+        });
+        document.getElementById("progressBar").style.width = "0%";
+        document.getElementById("progressSummary").textContent = "Owner 登录后读取 8 步真实进度";
+        document.getElementById("progressStatus").textContent = "等待 Owner 登录";
+        document.getElementById("progressStatus").className = "status";
+        updateProjectLinks();
+        updatePublishButton();
+        return;
+      }
       const reviewSummary = state.learningReview?.summary || {};
       const guideSummary = state.connectionGuide?.summary || {};
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
