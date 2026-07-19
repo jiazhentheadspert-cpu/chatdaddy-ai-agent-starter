@@ -783,6 +783,327 @@
       line-height: 1.5;
     }
 
+    .flow-learning-overview {
+      display: grid;
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .flow-learning-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border: 1px solid rgba(15, 159, 146, 0.24);
+      border-radius: 8px;
+      background: #effcf9;
+    }
+
+    .flow-learning-head strong {
+      display: block;
+      font-size: 19px;
+    }
+
+    .flow-learning-head span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .flow-media-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .flow-media-card {
+      min-width: 0;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .flow-media-card > span,
+    .flow-media-card > b,
+    .flow-media-card > small {
+      display: block;
+    }
+
+    .flow-media-card > span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .flow-media-card > b {
+      margin-top: 4px;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .flow-media-card > small {
+      margin-top: 4px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .flow-media-card.ok {
+      border-color: rgba(15, 159, 146, 0.28);
+      background: #effcf9;
+    }
+
+    .flow-media-card.ok > b {
+      color: #08796f;
+    }
+
+    .flow-media-card.working {
+      border-color: rgba(47, 111, 237, 0.24);
+      background: #f6f8ff;
+    }
+
+    .flow-media-card.working > b {
+      color: var(--blue);
+    }
+
+    .flow-media-card.attention {
+      border-color: rgba(165, 105, 24, 0.28);
+      background: #fff8ec;
+    }
+
+    .flow-media-card.attention > b {
+      color: var(--amber);
+    }
+
+    .flow-video-parts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.3;
+    }
+
+    .flow-learning-issue-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(165, 105, 24, 0.25);
+      border-left: 5px solid var(--amber);
+      border-radius: 8px;
+      color: var(--amber);
+      background: #fff8ec;
+      font-weight: 900;
+    }
+
+    .flow-learning-issue-summary .btn {
+      min-height: 38px;
+      padding: 0 14px;
+      flex: 0 0 auto;
+    }
+
+    .flow-learning-issue-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .flow-learning-issue-list[hidden],
+    .flow-learning-issue-summary[hidden] {
+      display: none;
+    }
+
+    .flow-learning-issue-item {
+      padding: 11px 14px;
+      border: 1px solid rgba(165, 105, 24, 0.2);
+      border-radius: 8px;
+      color: var(--ink);
+      background: white;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .flow-learning-route {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+      padding: 4px 2px 8px;
+      overflow-x: auto;
+      scroll-snap-type: x proximity;
+    }
+
+    .flow-learning-node {
+      position: relative;
+      flex: 0 0 min(220px, 72vw);
+      min-height: 128px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--teal);
+      border-radius: 8px;
+      background: white;
+      scroll-snap-align: start;
+    }
+
+    .flow-learning-node + .flow-learning-node::before {
+      content: "→";
+      position: absolute;
+      left: -18px;
+      top: 48px;
+      width: 26px;
+      color: var(--muted);
+      text-align: center;
+      font-weight: 950;
+    }
+
+    .flow-learning-node.price {
+      border-top-color: var(--blue);
+      background: #f6f8ff;
+    }
+
+    .flow-learning-node.follow-up {
+      border-top-color: var(--amber);
+      background: #fffaf1;
+    }
+
+    .flow-learning-node b,
+    .flow-learning-node small {
+      display: block;
+    }
+
+    .flow-learning-node b {
+      margin-top: 7px;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .flow-learning-node small {
+      margin-top: 8px;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .flow-learning-kicker {
+      color: #08796f;
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+
+    .flow-learning-node.price .flow-learning-kicker {
+      color: var(--blue);
+    }
+
+    .flow-learning-node.follow-up .flow-learning-kicker {
+      color: var(--amber);
+    }
+
+    .flow-objective-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .flow-objective-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 9px;
+      border: 1px solid rgba(15, 159, 146, 0.22);
+      border-radius: 999px;
+      color: #08796f;
+      background: #f0fcf9;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .flow-understanding-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .flow-understanding-card {
+      padding: 17px 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .flow-understanding-card b {
+      display: block;
+      color: #08796f;
+      font-size: 13px;
+    }
+
+    .flow-understanding-card p {
+      margin: 8px 0 0;
+      color: var(--ink);
+      font-weight: 850;
+      line-height: 1.5;
+    }
+
+    .flow-learning-exceptions {
+      margin-top: 16px;
+    }
+
+    .flow-learning-exceptions .review-empty {
+      padding: 18px;
+      color: #08796f;
+      border-color: rgba(15, 159, 146, 0.3);
+      background: #effcf9;
+    }
+
+    .flow-learning-exception {
+      padding: 14px 16px;
+      border: 1px solid rgba(165, 105, 24, 0.25);
+      border-left: 5px solid var(--amber);
+      border-radius: 8px;
+      color: var(--amber);
+      background: #fff8ec;
+      font-weight: 850;
+      line-height: 1.45;
+    }
+
+    .flow-learning-exception + .flow-learning-exception {
+      margin-top: 10px;
+    }
+
+    .flow-technical-details {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+    }
+
+    .flow-technical-details summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .flow-technical-details pre {
+      max-height: 280px;
+      margin: 12px 0 0;
+      overflow: auto;
+      color: var(--muted);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
     .beginner-intro {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -1362,6 +1683,10 @@
         grid-template-columns: 1fr;
       }
 
+      .flow-media-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .beginner-intro {
         grid-template-columns: 1fr;
       }
@@ -1397,6 +1722,15 @@
       .beginner-source-actions .boundary {
         margin-left: 0;
       }
+
+      .flow-learning-issue-summary {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .flow-learning-issue-summary .btn {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -1419,15 +1753,15 @@
         <nav class="onboarding-rail" id="onboardingRail" aria-label="Onboarding 四步路线">
           <a class="onboarding-rail-step" href="#channelFlowPanel" data-progress-phase="flow">
             <span class="rail-marker">1</span>
-            <span><b>确认路线</b><small data-phase-label>读取中</small></span>
+            <span><b>连接 ChatDaddy</b><small data-phase-label>读取中</small></span>
           </a>
           <a class="onboarding-rail-step" href="#businessPanel" data-progress-phase="teach">
             <span class="rail-marker">2</span>
-            <span><b>给资料</b><small data-phase-label>等待</small></span>
+            <span><b>AI 自动学习</b><small data-phase-label>等待</small></span>
           </a>
           <a class="onboarding-rail-step" href="#learningReviewPanel" data-progress-phase="review">
             <span class="rail-marker">3</span>
-            <span><b>确认异常</b><small data-phase-label>等待</small></span>
+            <span><b>确认 AI 理解</b><small data-phase-label>等待</small></span>
           </a>
           <a class="onboarding-rail-step" href="#learningLoopPanel" data-progress-phase="use">
             <span class="rail-marker">4</span>
@@ -1438,7 +1772,7 @@
 
       <div class="side-card expert-only">
         <h2 id="setupSideTitle">4 步完成</h2>
-        <p id="setupSideDescription">确认路线 → 给资料 → 确认异常 → 开始使用</p>
+        <p id="setupSideDescription">连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 开始使用</p>
       </div>
 
       <div class="side-card">
@@ -1449,9 +1783,9 @@
             <div class="side-row"><span>自动发送</span><strong>关闭</strong></div>
             <div class="side-row"><span>自主 Agent</span><strong>未接管</strong></div>
           </div>
-          <a class="side-link" href="#channelFlowPanel"><span>1. 路线与 Flow</span><strong>→</strong></a>
-          <a class="side-link" href="#businessPanel"><span>2. 资料与学习</span><strong>→</strong></a>
-          <a class="side-link" href="#learningReviewPanel"><span>3. Owner 审核</span><strong>→</strong></a>
+          <a class="side-link" href="#channelFlowPanel"><span>1. 连接 ChatDaddy</span><strong>→</strong></a>
+          <a class="side-link" href="#businessPanel"><span>2. AI 自动学习</span><strong>→</strong></a>
+          <a class="side-link" href="#learningReviewPanel"><span>3. 确认 AI 理解</span><strong>→</strong></a>
           <a class="side-link" href="#learningLoopPanel"><span>4. 发布与复盘</span><strong>→</strong></a>
         </div>
         <button class="side-link" id="advancedModeButton" type="button" aria-expanded="false"><span>高级设置</span><strong>＋</strong></button>
@@ -1483,9 +1817,9 @@
         </div>
         <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
         <nav class="progress-steps progress-steps-hidden" id="progressSteps" aria-hidden="true">
-          <a class="progress-step current" href="#channelFlowPanel" data-progress-phase="flow"><b>1 确认路线</b><span class="expert-only">Step 数 + 价格 Step</span></a>
-          <a class="progress-step" href="#businessPanel" data-progress-phase="teach"><b>2 给资料</b><span class="expert-only">FAQ、文件或说明</span></a>
-          <a class="progress-step" href="#learningReviewPanel" data-progress-phase="review"><b>3 确认异常</b><span class="expert-only">只看不确定内容</span></a>
+          <a class="progress-step current" href="#channelFlowPanel" data-progress-phase="flow"><b>1 连接 ChatDaddy</b><span class="expert-only">读取真实 Flow 内容</span></a>
+          <a class="progress-step" href="#businessPanel" data-progress-phase="teach"><b>2 AI 自动学习</b><span class="expert-only">理解卖什么与怎么卖</span></a>
+          <a class="progress-step" href="#learningReviewPanel" data-progress-phase="review"><b>3 确认 AI 理解</b><span class="expert-only">只看异常与不确定内容</span></a>
           <a class="progress-step" href="#learningLoopPanel" data-progress-phase="use"><b>4 开始使用</b><span class="expert-only">进入 AI Reply</span></a>
         </nav>
       </section>
@@ -1507,8 +1841,8 @@
       <section class="panel onboarding-step-panel" id="channelFlowPanel" data-onboarding-panel data-onboarding-phase="flow">
         <div class="toolbar">
           <div>
-            <h2>1. 确认路线</h2>
-            <p>选择 Step 数和价格所在 Step。</p>
+            <h2>1. 连接 ChatDaddy</h2>
+            <p>AI 会读取真实 Flow，不需要你重新填写路线。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status expert-only" id="channelFlowStatus">尚未检查</div>
@@ -1523,10 +1857,29 @@
           </div>
           <div class="final-card">
             <b>安全边界</b>
-            <p>重新 Onboard 只创建新草稿；已发布 Runtime、旧 FAQ、SOP、Flow ID 和 Provider ID 全部保留。自动发送与自动触发 Flow 继续关闭。</p>
+            <p>AI 只读取 ChatDaddy，不修改 Flow、Button、Trigger 或 Follow Up。自动发送与自动触发 Flow 继续关闭。</p>
           </div>
         </div>
-        <div class="sales-controls" aria-label="重新 Onboard 路线确认">
+        <div class="flow-learning-overview" aria-live="polite">
+          <div class="flow-learning-head">
+            <div>
+              <strong id="flowLearningHeadline">正在读取 ChatDaddy 销售路线</strong>
+              <span id="flowLearningSubline">从 Step 1 读到实际价格 Step，再读取价格后的 Follow Up。</span>
+              <span id="flowLearningMediaLine">四类内容会分别确认。</span>
+            </div>
+            <span class="status" id="flowLearningStatus">等待连接</span>
+          </div>
+          <div class="flow-media-grid" id="flowLearningMediaGrid" aria-label="Flow 内容学习状态"></div>
+          <div class="flow-learning-route" id="flowLearningRoute">
+            <div class="review-empty">连接后会自动显示完整成交路线。</div>
+          </div>
+          <div class="flow-learning-issue-summary" id="flowLearningIssueSummary" hidden>
+            <span id="flowLearningIssueHeadline">还有内容需要处理</span>
+            <button class="btn" type="button" id="showFlowLearningIssuesButton" aria-expanded="false" aria-controls="flowLearningIssueList">查看缺什么</button>
+          </div>
+          <div class="flow-learning-issue-list" id="flowLearningIssueList" hidden></div>
+        </div>
+        <div class="sales-controls expert-only" aria-label="高级手动路线确认">
           <label>
             <b>成交 Step 数</b>
             <select id="expectedStepCount">
@@ -1549,46 +1902,57 @@
           </label>
         </div>
         <div class="actions">
-          <button class="btn primary" type="button" id="startReonboardingButton">确认路线</button>
+          <button class="btn primary" type="button" id="learnChatdaddyFlowsButton">读取并学习 Flow</button>
+          <button class="btn primary" type="button" id="acceptDetectedPriceStageButton" hidden>使用 AI 识别的价格 Step</button>
+          <button class="btn expert-only" type="button" id="startReonboardingButton">手动确认路线</button>
           <a class="btn expert-only" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">查看 / 选择当前项目真实 Flow</a>
           <button class="btn expert-only" type="button" id="refreshReadinessButton">刷新真实 Flow 状态</button>
         </div>
-        <div class="boundary-note" id="reonboardingResult">只建立草稿，不影响当前回复。</div>
+        <div class="boundary-note" id="flowLearningSafety">只读取，不修改 ChatDaddy。不会发送顾客讯息，也不会触发 Flow。</div>
+        <div class="boundary-note expert-only" id="reonboardingResult">高级手动路线只建立草稿，不影响当前回复。</div>
         <div class="boundary-note expert-only" id="readinessResult">尚未读取当前项目的连接状态。</div>
+        <details class="flow-technical-details expert-only">
+          <summary>查看技术资料</summary>
+          <pre id="flowLearningTechnical">尚未读取。</pre>
+        </details>
       </section>
 
       <section class="panel onboarding-step-panel is-collapsed" id="businessPanel" data-onboarding-panel data-onboarding-phase="teach">
         <div class="toolbar">
           <div>
-            <h2>2. 给资料</h2>
-            <p id="formHelp">正在读取设置模板。</p>
+            <h2>2. AI 自动学习</h2>
+            <p id="formHelp">AI 会从真实 Flow 理解项目卖什么、为什么买、怎么成交。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status expert-only" id="connectionStatus">连接中</div>
             <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="businessPanelBody" aria-expanded="false">稍后</button>
           </div>
         </div>
-        <div class="beginner-intro expert-only">
-          <div>
-            <strong>有资料就直接放；没有完整资料，也可以只写你现在知道的</strong>
-            <span>AI 会从 FAQ、项目文件和你的说明中整理答案。价格、付款、退款、健康、投诉、隐私和绝对承诺会继续要求明确确认。</span>
+        <div class="flow-understanding-grid" id="flowUnderstandingGrid">
+          <div class="flow-understanding-card"><b>项目卖什么</b><p>完成 Flow 学习后自动显示。</p></div>
+          <div class="flow-understanding-card"><b>顾客为什么买</b><p>完成 Flow 学习后自动显示。</p></div>
+          <div class="flow-understanding-card"><b>项目怎么卖</b><p>完成 Flow 学习后自动显示。</p></div>
+          <div class="flow-understanding-card"><b>价格后怎么成交</b><p>完成 Flow 学习后自动显示。</p></div>
+        </div>
+        <div class="flow-learning-exceptions" id="flowLearningExceptions">
+          <div class="review-empty">AI 学习完成后，只会列出需要你确认的异常。</div>
+        </div>
+        <details class="section beginner-optional">
+          <summary>补充 FAQ、PPT 或项目资料（可选）</summary>
+          <div style="padding: 0 20px 20px;">
+            <form class="form" id="setupForm"></form>
+            <label class="dropzone" id="beginnerUpload" hidden>
+              <b>上传项目文件（可选）</b>
+              <input id="projectDocumentFile" type="file" accept=".txt,.md,.pdf,.pptx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+              <p>支持 PDF、PPTX、TXT、Markdown。</p>
+            </label>
+            <div class="beginner-source-actions" id="beginnerSourceActions" hidden>
+              <button class="btn primary" type="button" id="beginnerLearnButton">补充给 AI 学习</button>
+              <span class="boundary">只生成草稿，不会联系顾客。</span>
+            </div>
+            <div class="boundary-note" id="beginnerLearningResult" hidden>没有补充资料也可以继续。</div>
           </div>
-          <span class="status">只确认异常</span>
-        </div>
-        <form class="form" id="setupForm"></form>
-        <label class="dropzone" id="beginnerUpload" hidden>
-          <b>上传项目文件（可选）</b>
-          <input id="projectDocumentFile" type="file" accept=".txt,.md,.pdf,.pptx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation">
-          <p>支持 PDF、PPTX、TXT、Markdown。</p>
-        </label>
-        <div class="beginner-source-actions" id="beginnerSourceActions" hidden>
-          <button class="btn primary" type="button" id="beginnerLearnButton">让 AI 学习</button>
-          <span class="boundary">只生成草稿，不会联系顾客。</span>
-        </div>
-        <div class="boundary-note" id="beginnerLearningResult" hidden>加入资料后，按一次「让 AI 学习」。</div>
-        <div class="actions">
-          <button class="btn primary" type="button" id="beginnerConfirmButton" hidden>确认理解</button>
-        </div>
+        </details>
         <div class="advanced-wrap expert-only">
           <label class="confirm">
             <input id="createConfirm" type="checkbox">
@@ -1648,14 +2012,24 @@
       <section class="panel onboarding-step-panel is-collapsed" id="learningReviewPanel" data-onboarding-panel data-onboarding-phase="review">
         <div class="toolbar">
           <div>
-            <h2>3. 确认异常</h2>
-            <p>只确认冲突、缺来源或敏感内容。</p>
+            <h2>3. 确认 AI 理解</h2>
+            <p>确认 AI 读懂卖什么、为什么买、怎么卖；异常会单独列出。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status" id="learningReviewStatus">尚未加载</div>
             <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="learningReviewPanelBody" aria-expanded="false">稍后</button>
           </div>
         </div>
+        <div class="flow-understanding-grid" id="flowReviewUnderstandingGrid">
+          <div class="flow-understanding-card"><b>项目卖什么</b><p>等待 AI 学习。</p></div>
+          <div class="flow-understanding-card"><b>顾客为什么买</b><p>等待 AI 学习。</p></div>
+          <div class="flow-understanding-card"><b>项目怎么卖</b><p>等待 AI 学习。</p></div>
+          <div class="flow-understanding-card"><b>价格后怎么成交</b><p>等待 AI 学习。</p></div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="beginnerConfirmButton" hidden>确认 AI 理解</button>
+        </div>
+        <div class="boundary-note" id="flowConfirmationResult">只需要确认 AI 的理解；不会修改 ChatDaddy，也不会联系顾客。</div>
         <div class="actions">
           <button class="btn expert-only" type="button" id="loadReviewButton">重新加载</button>
           <button class="btn primary" type="button" id="submitReviewBatchButton" disabled hidden>提交确认</button>
@@ -2004,6 +2378,9 @@
       existingProject: null,
       existingPackageResponse: null,
       reonboardingBusy: false,
+      flowLearning: null,
+      flowLearningBusy: false,
+      flowLearningAutoRequested: false,
       onboardingHydrated: false,
       onboardingPhaseDone: { flow: false, teach: false, review: false, use: false },
       onboardingCurrentPhase: "",
@@ -2064,6 +2441,23 @@
     const startReonboardingButton = document.getElementById("startReonboardingButton");
     const reonboardingResult = document.getElementById("reonboardingResult");
     const currentFlowTopology = document.getElementById("currentFlowTopology");
+    const learnChatdaddyFlowsButton = document.getElementById("learnChatdaddyFlowsButton");
+    const acceptDetectedPriceStageButton = document.getElementById("acceptDetectedPriceStageButton");
+    const flowLearningHeadline = document.getElementById("flowLearningHeadline");
+    const flowLearningSubline = document.getElementById("flowLearningSubline");
+    const flowLearningMediaLine = document.getElementById("flowLearningMediaLine");
+    const flowLearningMediaGrid = document.getElementById("flowLearningMediaGrid");
+    const flowLearningStatus = document.getElementById("flowLearningStatus");
+    const flowLearningRoute = document.getElementById("flowLearningRoute");
+    const flowLearningIssueSummary = document.getElementById("flowLearningIssueSummary");
+    const flowLearningIssueHeadline = document.getElementById("flowLearningIssueHeadline");
+    const showFlowLearningIssuesButton = document.getElementById("showFlowLearningIssuesButton");
+    const flowLearningIssueList = document.getElementById("flowLearningIssueList");
+    const flowUnderstandingGrid = document.getElementById("flowUnderstandingGrid");
+    const flowReviewUnderstandingGrid = document.getElementById("flowReviewUnderstandingGrid");
+    const flowLearningExceptions = document.getElementById("flowLearningExceptions");
+    const flowLearningTechnical = document.getElementById("flowLearningTechnical");
+    const flowConfirmationResult = document.getElementById("flowConfirmationResult");
     const publishConfirm = document.getElementById("publishConfirm");
     const publishProjectButton = document.getElementById("publishProjectButton");
 
@@ -2093,6 +2487,9 @@
     expectedStepCount.addEventListener("change", handleExpectedTopologyChange);
     expectedPriceStage.addEventListener("change", handleExpectedTopologyChange);
     startReonboardingButton.addEventListener("click", startReonboardingDraft);
+    learnChatdaddyFlowsButton.addEventListener("click", () => requestChatdaddyFlowLearning({ force: true }));
+    showFlowLearningIssuesButton.addEventListener("click", toggleFlowLearningIssues);
+    acceptDetectedPriceStageButton.addEventListener("click", acceptDetectedPriceStage);
     refreshReadinessButton.addEventListener("click", refreshConnectionReadiness);
     publishConfirm.addEventListener("change", updatePublishButton);
     publishProjectButton.addEventListener("click", publishCurrentProjectBrain);
@@ -2107,6 +2504,7 @@
       localStorage.setItem("hermas_setup_api", apiBase);
       applySetupModeCopy();
       applyExpectedTopologyDefaults();
+      renderFlowLearning();
       updateProjectLinks();
       renderSalesJourneyDraft();
       updateOnboardingProgress();
@@ -2116,7 +2514,7 @@
         state.authVerified = true;
         state.template = ONBOARDING_TEMPLATE;
         setStatus("已连接", "ok");
-        formHelp.textContent = "贴 FAQ、上传文件，或直接写说明。";
+        formHelp.textContent = "AI 会先读完整销售 Flow；FAQ、PPT 和说明只是补充。";
         renderSafety(ONBOARDING_TEMPLATE);
         renderForm(ONBOARDING_TEMPLATE);
         beginnerUpload.hidden = false;
@@ -2164,7 +2562,7 @@
       document.getElementById("setupHeroTitle").textContent = `重新设置 ${projectLabel}`;
       document.getElementById("setupHeroDescription").textContent = "给资料，AI 整理；你只确认异常。";
       document.getElementById("setupSideTitle").textContent = "4 步完成";
-      document.getElementById("setupSideDescription").textContent = "确认路线 → 给资料 → 确认异常 → 开始使用";
+      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 开始使用";
     }
 
     function applyExpectedTopologyDefaults() {
@@ -2359,6 +2757,7 @@
     }
 
     function renderReonboardingTopology(packageResponse = state.existingPackageResponse || state.salesPackageResponse || {}) {
+      hydrateFlowLearning(packageResponse);
       const projectPackage = packageResponse?.project_package || {};
       const reonboarding = projectPackage?.metadata?.reonboarding || {};
       const canonical = canonicalTopology(projectPackage);
@@ -2397,10 +2796,13 @@
       const expected = selectedExpectedTopology();
       const selectionMessage = topologySelectionMessage(expected);
       const mismatch = topologyMismatchMessage(projectPackage, expected);
-      beginnerConfirmButton.disabled = Boolean(mismatch);
-      beginnerConfirmButton.title = mismatch
-        ? "请先确认路线"
-        : "确认 AI 的理解";
+      const semanticFlowReady = flowLearningSemanticReady();
+      beginnerConfirmButton.disabled = semanticFlowReady
+        ? !flowLearningUnderstandingReady()
+        : true;
+      beginnerConfirmButton.title = semanticFlowReady
+        ? (beginnerConfirmButton.disabled ? "AI 的理解尚未完整" : "确认 AI 的理解")
+        : "请先让 AI 读取完整 Flow 内容";
       if (selectionMessage) {
         reonboardingResult.textContent = `${selectionMessage}。`;
       } else if (reonboarding.status === "in_progress" && !mismatch) {
@@ -2801,9 +3203,6 @@
       const reviewSummary = state.learningReview?.summary || {};
       const guideSummary = state.connectionGuide?.summary || {};
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
-      const expectedTopology = selectedExpectedTopology();
-      const topologyMismatch = topologyMismatchMessage(packageData, expectedTopology);
-      const topologyMatches = canonicalTopology(packageData).step_count > 0 && !topologyMismatch;
       const salesValidationReady = Boolean(packageData?.metadata?.sales_journey_owner_reviewed_at)
         && Array.isArray(packageData?.sales_process?.stages)
         && packageData.sales_process.stages.length > 0;
@@ -2820,11 +3219,12 @@
         mock: Array.isArray(mockTests) && mockTests.length > 0 && mockFailed === 0,
         learning: state.published === true
       };
-      const flowReady = topologyMatches && technicalDone.channel;
-      const teachReady = flowReady && technicalDone.business && technicalDone.materials;
+      const semanticReady = flowLearningSemanticReady();
+      const understandingReady = flowLearningUnderstandingReady();
+      const flowReady = technicalDone.channel && semanticReady;
+      const teachReady = flowReady && understandingReady;
       const reviewReady = teachReady
-        && packageData?.business_onboarding?.owner_signoff?.approved === true
-        && state.learningReview !== null
+        && state.flowLearning?.owner_approved === true
         && Number(reviewSummary.pending_items || 0) === 0;
       const phaseDone = {
         flow: flowReady,
@@ -2846,12 +3246,16 @@
       document.getElementById("progressBar").style.width = `${(count / 4) * 100}%`;
       document.getElementById("progressSummary").textContent = `${count} / 4 完成`;
       document.getElementById("railProgressSummary").textContent = `${count} / 4`;
-      document.getElementById("progressStatus").textContent = topologyMismatch
-        ? "路线待确认"
-        : state.activation?.ready_for_ai_reply
+      document.getElementById("progressStatus").textContent = state.activation?.ready_for_ai_reply
           ? "可以开始使用"
-          : state.published ? "资料已保存" : "设置中";
-      document.getElementById("progressStatus").className = `status ${topologyMismatch ? "bad" : state.published ? "ok" : ""}`;
+          : !technicalDone.channel
+            ? "等待 ChatDaddy 连接"
+            : !semanticReady
+              ? "AI 正在读取 Flow"
+              : !state.flowLearning?.owner_approved
+                ? "等待确认 AI 理解"
+                : state.published ? "资料已保存" : "设置中";
+      document.getElementById("progressStatus").className = `status ${state.activation?.ready_for_ai_reply || state.published ? "ok" : ""}`;
       updateProjectLinks();
       updatePublishButton();
     }
@@ -2868,16 +3272,17 @@
       state.salesPackageResponse = packageResponse;
       state.published = packageResponse.published === true && packageResponse.draft !== true;
       state.activation = packageResponse.activation || null;
+      hydrateFlowLearning(packageResponse);
       applyExistingProjectOnboarding(packageResponse.project_package || {}, existingProject);
       renderReonboardingTopology(packageResponse);
       document.getElementById("setupHeroTitle").textContent = `重新设置 ${existingProject.name || projectKey}`;
-      document.getElementById("setupHeroDescription").textContent = "给资料，AI 整理；你只确认异常。";
+      document.getElementById("setupHeroDescription").textContent = "AI 先读完整 Flow；你只确认异常。";
       document.getElementById("setupSideTitle").textContent = "4 步完成";
-      document.getElementById("setupSideDescription").textContent = "确认路线 → 给资料 → 确认异常 → 开始使用";
+      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 开始使用";
       document.querySelector("#setupForm .section-title").textContent = "项目资料";
       document.getElementById("channelSetupLink").textContent = "查看 / 选择当前项目真实 Flow";
       createButton.textContent = "Owner 验收并保存重新 Onboard 草稿";
-      formHelp.textContent = "贴 FAQ、上传文件，或直接写说明。";
+      formHelp.textContent = "AI 会先读完整销售 Flow；FAQ、PPT 和说明只是补充。";
       setStatus("等待重新 Onboard", "");
       addLog("已载入现有项目", `${projectKey} 当前编辑版本 ${packageResponse.version_no || "-"}。本轮只建立新草稿，不会覆盖已发布 Runtime。`);
       updateOnboardingProgress();
@@ -2958,6 +3363,690 @@
 
     function firstNonEmpty(...values) {
       return values.map((value) => String(value || "").trim()).find(Boolean) || "";
+    }
+
+    function flowLearningText(...values) {
+      for (const value of values) {
+        if (typeof value === "string" && value.trim()) return value.trim();
+        if (typeof value === "number" && Number.isFinite(value)) return String(value);
+        if (Array.isArray(value)) {
+          const joined = value.map((item) => typeof item === "string" ? item.trim() : "").filter(Boolean).join("；");
+          if (joined) return joined;
+        }
+        if (value && typeof value === "object") {
+          const nested = [
+            value.summary,
+            value.content_summary,
+            value.text,
+            value.description,
+            value.title
+          ].find((item) => typeof item === "string" && item.trim());
+          if (nested) return nested.trim();
+        }
+      }
+      return "";
+    }
+
+    function flowLearningPayload(data = {}) {
+      const candidates = [
+        data?.flow_learning,
+        data?.sales_flow_learning,
+        data?.chatdaddy_flow_learning,
+        data?.learning,
+        data?.project_package?.flow_learning,
+        data?.project_package?.sales_flow_learning,
+        data?.project_package?.chatdaddy_flow_learning,
+        data?.project_package?.sales_brain?.flow_learning,
+        data?.project_package?.sales_brain?.sales_flow_learning,
+        data?.project_package?.sales_brain?.chatdaddy_flow_learning,
+        data?.project_package?.metadata?.flow_learning,
+        data?.project_package?.metadata?.chatdaddy_flow_learning
+      ];
+      const nested = candidates.find((candidate) => candidate && typeof candidate === "object" && !Array.isArray(candidate));
+      if (nested) return { ...nested, _response: data };
+      const looksLikeLearning = data && typeof data === "object" && (
+        "content_status" in data
+        || Array.isArray(data.sales_steps)
+        || Array.isArray(data.follow_ups)
+        || data.understanding
+      );
+      return looksLikeLearning ? { ...data, _response: data } : null;
+    }
+
+    function normalizeFlowLearning(data = {}) {
+      const source = flowLearningPayload(data);
+      if (!source) return null;
+      const summary = source.summary && typeof source.summary === "object" ? source.summary : {};
+      const salesSteps = [
+        source.sales_steps,
+        source.sales_journey?.steps,
+        source.journey?.sales_steps
+      ].find(Array.isArray) || [];
+      const followUps = [
+        source.follow_ups,
+        source.follow_up_steps,
+        source.sales_journey?.follow_ups,
+        source.journey?.follow_ups
+      ].find(Array.isArray) || [];
+      const understanding = source.understanding && typeof source.understanding === "object"
+        ? source.understanding
+        : {};
+      const exceptions = Array.isArray(source.exceptions)
+        ? source.exceptions
+        : Array.isArray(source.blockers) ? source.blockers : [];
+      const mediaSource = source.media_counts || summary.media_counts || source.content_counts || summary.content_counts || {};
+      const sourceFlows = [
+        ...(Array.isArray(source.source_flows?.sales_steps) ? source.source_flows.sales_steps : []),
+        ...(Array.isArray(source.source_flows?.follow_ups) ? source.source_flows.follow_ups : [])
+      ];
+      const derivedMediaCounts = {
+        text: { read: 0, unread: 0, total: 0 },
+        image: { read: 0, unread: 0, total: 0 },
+        audio: { read: 0, unread: 0, total: 0 },
+        video: { read: 0, unread: 0, total: 0 }
+      };
+      const derivedVideoParts = {
+        visual: { read: 0, unread: 0, total: 0 },
+        audio: { read: 0, unread: 0, total: 0 }
+      };
+      for (const flow of sourceFlows) {
+        const texts = Array.isArray(flow?.content_snapshot?.texts) ? flow.content_snapshot.texts : [];
+        derivedMediaCounts.text.read += texts.length;
+        derivedMediaCounts.text.total += texts.length;
+        const mediaItems = Array.isArray(flow?.content_snapshot?.media_items) ? flow.content_snapshot.media_items : [];
+        const analyses = Array.isArray(flow?.media_analyses) ? flow.media_analyses.slice() : [];
+        for (const mediaItem of mediaItems) {
+          const kind = ["image", "audio", "video"].includes(String(mediaItem?.kind || "").toLowerCase())
+            ? String(mediaItem.kind).toLowerCase()
+            : "";
+          if (!kind) continue;
+          derivedMediaCounts[kind].total += 1;
+          const analysisIndex = analyses.findIndex((analysis) => String(analysis?.media_kind || "").toLowerCase() === kind);
+          const analysis = analysisIndex >= 0 ? analyses[analysisIndex] : null;
+          if (analysis?.usable_for_learning === true) {
+            derivedMediaCounts[kind].read += 1;
+          } else {
+            derivedMediaCounts[kind].unread += 1;
+          }
+          if (kind === "video") {
+            const analysisStatus = String(analysis?.status || "").toLowerCase();
+            const visualStatus = String(analysis?.visual_status || analysis?.visual_analysis?.status || analysis?.frame_analysis?.status || "").toLowerCase();
+            const audioStatus = String(analysis?.audio_status || analysis?.audio_analysis?.status || analysisStatus).toLowerCase();
+            const workingStatuses = ["queued", "pending", "processing", "in_progress", "running"];
+            const visualUnderstood = analysis?.visual_understood === true
+              || analysis?.visual_usable_for_learning === true
+              || analysis?.visual_analysis?.usable_for_learning === true
+              || analysis?.frame_analysis?.usable_for_learning === true
+              || (visualStatus === "completed" && Boolean(firstNonEmpty(analysis?.visual_summary, analysis?.visual_analysis?.summary, analysis?.frame_analysis?.summary)));
+            const audioUnderstood = analysis?.audio_understood === true
+              || analysis?.audio_usable_for_learning === true
+              || analysis?.audio_analysis?.usable_for_learning === true
+              || (audioStatus === "completed" && Boolean(firstNonEmpty(analysis?.transcript, analysis?.extracted_text, analysis?.audio_summary, analysis?.audio_analysis?.summary)));
+            for (const [part, understood, status] of [
+              ["visual", visualUnderstood, visualStatus],
+              ["audio", audioUnderstood, audioStatus]
+            ]) {
+              derivedVideoParts[part].total += 1;
+              if (understood) derivedVideoParts[part].read += 1;
+              else if (!workingStatuses.includes(status)) derivedVideoParts[part].unread += 1;
+            }
+          }
+          if (analysisIndex >= 0) analyses.splice(analysisIndex, 1);
+        }
+      }
+      const derivedFollowUpClose = followUps
+        .map((item) => flowLearningText(item?.content_summary, item?.purpose, item?.title))
+        .filter(Boolean)
+        .join("；");
+      const mediaCounter = (kind) => {
+        const derived = derivedMediaCounts[kind] || { read: 0, unread: 0, total: 0 };
+        const value = mediaSource?.[kind] ?? mediaSource?.[`${kind}s`] ?? summary?.[`${kind}_count`] ?? source?.[`${kind}_count`] ?? derived;
+        const details = value && typeof value === "object" ? value : {};
+        const read = Number(
+          details.read
+          ?? details.read_count
+          ?? details.understood
+          ?? details.understood_count
+          ?? summary?.[`${kind}_read_count`]
+          ?? source?.[`${kind}_read_count`]
+          ?? (typeof value === "number" ? value : 0)
+          ?? 0
+        );
+        const unread = Number(
+          details.unread
+          ?? details.unread_count
+          ?? details.failed
+          ?? details.failed_count
+          ?? summary?.[`${kind}_unread_count`]
+          ?? source?.[`${kind}_unread_count`]
+          ?? 0
+        );
+        const total = Number(
+          details.total
+          ?? details.total_count
+          ?? summary?.[`${kind}_total_count`]
+          ?? source?.[`${kind}_total_count`]
+          ?? read + unread
+        );
+        return {
+          read: Number.isFinite(read) ? read : 0,
+          unread: Number.isFinite(unread) ? unread : 0,
+          total: Number.isFinite(total) ? total : read + unread
+        };
+      };
+      const videoPartCounter = (part) => {
+        const derived = derivedVideoParts[part] || { read: 0, unread: 0, total: 0 };
+        const videoParts = source.video_parts || source.video_components || mediaSource?.video?.parts || summary.video_parts || {};
+        const value = videoParts?.[part] || derived;
+        const read = Number(value?.read ?? value?.understood ?? value?.understood_count ?? derived.read ?? 0);
+        const unread = Number(value?.unread ?? value?.failed ?? value?.failed_count ?? derived.unread ?? 0);
+        const total = Number(value?.total ?? value?.total_count ?? derived.total ?? read + unread);
+        return {
+          read: Number.isFinite(read) ? read : 0,
+          unread: Number.isFinite(unread) ? unread : 0,
+          total: Number.isFinite(total) ? total : read + unread
+        };
+      };
+      return {
+        content_status: firstNonEmpty(source.content_status, summary.content_status, "content_unavailable"),
+        configured_price_stage_key: firstNonEmpty(source.configured_price_stage_key, summary.configured_price_stage_key),
+        detected_price_stage_key: firstNonEmpty(source.detected_price_stage_key, source.price_evidence?.stage_key, summary.detected_price_stage_key),
+        owner_approved: source.owner_approved === true
+          || source._response?.owner_approved === true
+          || source.owner_review?.approved === true
+          || source.confirmed_understanding === true,
+        summary: {
+          sales_step_count: Number(summary.sales_step_count || source.sales_step_count || salesSteps.length || 0),
+          price_stage_key: firstNonEmpty(summary.price_stage_key, source.price_stage_key, source.price_evidence?.stage_key),
+          follow_up_count: Number(summary.follow_up_count || source.follow_up_count || followUps.length || 0)
+        },
+        sales_steps: salesSteps
+          .slice()
+          .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0)),
+        follow_ups: followUps
+          .slice(0, 10)
+          .sort((a, b) => Number(a?.sequence_no || a?.order || 0) - Number(b?.sequence_no || b?.order || 0)),
+        understanding: {
+          sell: flowLearningText(
+            understanding.sell,
+            understanding.what_is_sold,
+            source.project_sells,
+            source.sell
+          ),
+          why: flowLearningText(
+            understanding.why,
+            understanding.why_customer_buys,
+            source.why_customers_buy,
+            source.why
+          ),
+          how: flowLearningText(
+            understanding.how,
+            understanding.how_to_sell,
+            source.sales_progression_summary,
+            source.how
+          ),
+          close: flowLearningText(
+            understanding.close,
+            understanding.post_price_close,
+            source.post_price_summary,
+            source.post_price_close_summary,
+            source.follow_up_summary,
+            source.closing_strategy,
+            source.price_evidence,
+            source.close,
+            derivedFollowUpClose
+          )
+        },
+        media_counts: {
+          text: mediaCounter("text"),
+          image: mediaCounter("image"),
+          audio: mediaCounter("audio"),
+          video: mediaCounter("video")
+        },
+        video_parts: {
+          visual: videoPartCounter("visual"),
+          audio: videoPartCounter("audio")
+        },
+        exceptions,
+        raw: source
+      };
+    }
+
+    function hydrateFlowLearning(data = {}) {
+      const learning = normalizeFlowLearning(data);
+      if (learning) state.flowLearning = learning;
+      renderFlowLearning();
+      return learning;
+    }
+
+    function flowLearningSemanticReady() {
+      const mediaCounts = state.flowLearning?.media_counts || {};
+      const unreadMedia = ["text", "image", "audio", "video"]
+        .reduce((total, kind) => total + Number(mediaCounts?.[kind]?.unread || 0), 0);
+      const videoTotal = Number(mediaCounts?.video?.total || 0);
+      const videoPartsReady = videoTotal === 0 || ["visual", "audio"].every((part) => {
+        const counter = state.flowLearning?.video_parts?.[part] || {};
+        return Number(counter.total || 0) >= videoTotal
+          && Number(counter.read || 0) >= videoTotal
+          && Number(counter.unread || 0) === 0;
+      });
+      return state.flowLearning?.content_status === "semantic_ready"
+        && (state.flowLearning?.exceptions || []).length === 0
+        && unreadMedia === 0
+        && videoPartsReady;
+    }
+
+    function flowLearningUnderstandingReady() {
+      const understanding = state.flowLearning?.understanding || {};
+      return ["sell", "why", "how", "close"].every((key) => Boolean(String(understanding[key] || "").trim()));
+    }
+
+    function flowLearningObjectiveTags(item = {}) {
+      const value = item.objective_tags || item.objectives || item.tags || [];
+      if (Array.isArray(value)) return value.map((tag) => String(tag || "").trim()).filter(Boolean).slice(0, 6);
+      return String(value || "").split(/[,，、|]/).map((tag) => tag.trim()).filter(Boolean).slice(0, 6);
+    }
+
+    function flowLearningExceptionLabel(item) {
+      const raw = firstNonEmpty(item?.message, item?.code, typeof item === "string" ? item : "");
+      const [code, target, detail] = raw.split(":");
+      const targetLabel = target
+        ? target.replace(/^step_(\d+)$/i, "Step $1").replace(/^follow_up_(\d+)$/i, "Follow Up $1")
+        : "";
+      const labels = {
+        sales_steps_missing: "没有找到 Step 1 到价格 Step 的销售 Flow。",
+        price_stage_missing: "还无法从真实 Flow 确认价格出现在哪一个 Step。",
+        follow_ups_missing: "没有找到价格后的 Follow Up；每个项目需要 1–10 个。",
+        provider_id_missing: `${targetLabel || "这个 Flow"} 未绑定真实 ChatDaddy Flow。`,
+        content_not_read: `${targetLabel || "这个 Flow"} 的文字与按钮内容尚未读取。`,
+        media_content_not_read: `${targetLabel || "这个 Flow"} 的图片、语音或视频尚未理解。`,
+        media_content_not_understood: `${targetLabel || "这个 Flow"} 的第 ${detail || "一"} 个媒体内容尚未理解。`,
+        video_visual_analysis_unavailable: `${targetLabel || "这个 Flow"} 的第 ${detail || "一"} 个视频尚未完成画面理解。`,
+        video_audio_analysis_unavailable: `${targetLabel || "这个 Flow"} 的第 ${detail || "一"} 个视频尚未完成声音理解。`,
+        video_audio_transcript_unavailable: `${targetLabel || "这个 Flow"} 的第 ${detail || "一"} 个视频尚未完成声音理解。`,
+        image_analysis_unavailable: `${targetLabel || "这个 Flow"} 的第 ${detail || "一"} 张图片尚未理解。`,
+        audio_transcript_unavailable: `${targetLabel || "这个 Flow"} 的第 ${detail || "一"} 段语音尚未理解。`,
+        follow_up_sequence_missing: `价格后的 Follow Up ${target || ""} 缺失。`,
+        flow_graph_not_normalized: `${targetLabel || "这个 Flow"} 的顺序尚未读取完整。`,
+        provider_content_error: `${targetLabel || "这个 Flow"} 无法读取：${detail || "ChatDaddy 内容暂不可用"}。`,
+        source_content_incomplete: "真实 Flow 内容还没有读取完整。",
+        price_evidence_not_detected: "还没有从真实 Flow 找到价格内容。",
+        openai_api_key_missing: "AI 分析服务尚未连接。",
+        openai_analysis_incomplete: "AI 没有完整覆盖全部销售 Step 与 Follow Up。",
+        openai_invalid_json: "AI 学习结果格式不完整，请重新读取。",
+        openai_analysis_failed: "AI 暂时无法完成 Flow 理解，请重新读取。"
+      };
+      if (code === "price_stage_owner_confirmation_required") {
+        const configured = String(target || "").replace(/^configured=/, "").replace(/^step_(\d+)$/i, "Step $1");
+        const detected = String(detail || "").replace(/^detected=/, "").replace(/^step_(\d+)$/i, "Step $1");
+        return `AI 从价格内容判断价格在 ${detected || "另一个 Step"}；当前设置是 ${configured || "未确认"}。请确认用 AI 读到的结果继续。`;
+      }
+      if (code === "semantic_analysis_failed") {
+        return labels[target] || `AI 语义理解未完成：${target || "请重新读取"}。`;
+      }
+      return labels[code] || raw || "这段 Flow 需要你确认。";
+    }
+
+    function flowLearningPriceMismatch() {
+      const exceptions = Array.isArray(state.flowLearning?.exceptions) ? state.flowLearning.exceptions : [];
+      if (exceptions.length !== 1) return null;
+      const raw = typeof exceptions[0] === "string"
+        ? exceptions[0]
+        : firstNonEmpty(exceptions[0]?.code, exceptions[0]?.message);
+      if (!raw.startsWith("price_stage_owner_confirmation_required:")) return null;
+      const configured = firstNonEmpty(
+        state.flowLearning?.configured_price_stage_key,
+        raw.match(/configured=([^:]+)/)?.[1]
+      );
+      const detected = firstNonEmpty(
+        state.flowLearning?.detected_price_stage_key,
+        raw.match(/detected=([^:]+)/)?.[1]
+      );
+      return configured && detected ? { configured, detected } : null;
+    }
+
+    function flowLearningNodeHtml(item, kind, priceStageKey = "") {
+      const isFollowUp = kind === "follow_up";
+      const order = Number(isFollowUp ? (item?.sequence_no || item?.order || 0) : (item?.order || 0));
+      const stageKey = String(item?.stage_key || (order ? `step_${order}` : ""));
+      const isPrice = !isFollowUp && (
+        item?.is_price_step === true
+        || (priceStageKey && stageKey === priceStageKey)
+      );
+      const title = firstNonEmpty(
+        item?.title,
+        item?.objective,
+        item?.purpose,
+        isFollowUp ? `Follow Up ${order || ""}` : `Step ${order || ""}`
+      );
+      const detail = firstNonEmpty(
+        item?.content_summary,
+        item?.transition_logic,
+        item?.role_in_sequence,
+        item?.progression_goal,
+        item?.why_customer_should_care,
+        item?.purpose
+      );
+      const tags = flowLearningObjectiveTags(item);
+      return `
+        <article class="flow-learning-node ${isFollowUp ? "follow-up" : isPrice ? "price" : ""}">
+          <span class="flow-learning-kicker">${escapeHtml(isFollowUp ? `价格后 Follow Up ${order || ""}` : isPrice ? `Step ${order || ""} · 价格` : `Step ${order || ""}`)}</span>
+          <b>${escapeHtml(title)}</b>
+          ${detail && detail !== title ? `<small>${escapeHtml(detail)}</small>` : ""}
+          ${tags.length ? `<div class="flow-objective-tags">${tags.map((tag) => `<span class="flow-objective-tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
+        </article>
+      `;
+    }
+
+    function flowLearningMediaState(counter = {}, options = {}) {
+      const total = Math.max(0, Number(counter.total || 0));
+      const read = Math.max(0, Number(counter.read || 0));
+      const unread = Math.max(0, Number(counter.unread || 0));
+      const waiting = Math.max(0, total - read - unread);
+      if (!total) return options.busy ? { label: "处理中", tone: "working" } : { label: "未发现", tone: "idle" };
+      if (unread > 0) return { label: "需处理", tone: "attention" };
+      if (read >= total) return { label: "已理解", tone: "ok" };
+      if (waiting > 0 || options.busy) return { label: "处理中", tone: "working" };
+      return { label: "需处理", tone: "attention" };
+    }
+
+    function flowLearningVideoPartState(counter = {}, videoCounter = {}) {
+      const videoTotal = Math.max(0, Number(videoCounter.total || 0));
+      const partTotal = Math.max(0, Number(counter.total || 0));
+      if (videoTotal > 0 && partTotal === 0) return { label: "需处理", tone: "attention" };
+      return flowLearningMediaState(counter, { busy: state.flowLearningBusy });
+    }
+
+    function flowLearningMediaGridHtml(learning = null) {
+      const labels = { text: "文字", image: "图片", audio: "语音", video: "视频" };
+      const emptyCounter = { read: 0, unread: 0, total: 0 };
+      return ["text", "image", "audio", "video"].map((kind) => {
+        const counter = learning?.media_counts?.[kind] || emptyCounter;
+        let status = learning
+          ? flowLearningMediaState(counter, { busy: state.flowLearningBusy })
+          : state.flowLearningBusy ? { label: "处理中", tone: "working" } : { label: "等待读取", tone: "idle" };
+        let parts = "";
+        if (kind === "text" && status.tone === "ok") {
+          const textIntegrated = learning?.raw?.semantic_analysis_complete === true
+            || ["semantic_ready", "needs_owner_confirmation"].includes(String(learning?.content_status || ""));
+          const semanticNeedsAction = (learning?.exceptions || []).some((item) => [
+            "openai_api_key_missing",
+            "openai_analysis_incomplete",
+            "openai_invalid_json",
+            "openai_analysis_failed",
+            "semantic_analysis_failed"
+          ].includes(flowLearningExceptionCode(item)));
+          if (!textIntegrated) status = semanticNeedsAction
+            ? { label: "需处理", tone: "attention" }
+            : { label: "处理中", tone: "working" };
+        }
+        if (kind === "video" && Number(counter.total || 0) > 0) {
+          const visual = flowLearningVideoPartState(learning?.video_parts?.visual, counter);
+          const audio = flowLearningVideoPartState(learning?.video_parts?.audio, counter);
+          status = visual.tone === "attention" || audio.tone === "attention"
+            ? { label: "需处理", tone: "attention" }
+            : visual.tone === "ok" && audio.tone === "ok"
+              ? { label: "已理解", tone: "ok" }
+              : { label: "处理中", tone: "working" };
+          parts = `<div class="flow-video-parts"><span>画面 ${escapeHtml(visual.label)}</span><span>声音 ${escapeHtml(audio.label)}</span></div>`;
+        }
+        const total = Math.max(0, Number(counter.total || 0));
+        const read = Math.max(0, Number(counter.read || 0));
+        const countText = learning ? (total ? `${Math.min(read, total)}/${total} 项` : "0 项") : "—";
+        return `<article class="flow-media-card ${status.tone}" data-media-kind="${kind}">
+          <span>${labels[kind]}</span>
+          <b>${escapeHtml(status.label)}</b>
+          <small>${escapeHtml(countText)}</small>
+          ${parts}
+        </article>`;
+      }).join("");
+    }
+
+    function flowLearningExceptionCode(item) {
+      const raw = firstNonEmpty(item?.code, item?.message, typeof item === "string" ? item : "");
+      return String(raw || "").split(":")[0];
+    }
+
+    function flowLearningDisplayIssues(learning = {}, exceptions = []) {
+      const videoVisualSpecific = new Set();
+      const videoAudioSpecific = new Set();
+      for (const item of exceptions) {
+        const raw = firstNonEmpty(item?.code, item?.message, typeof item === "string" ? item : "");
+        const [code, target, detail] = String(raw || "").split(":");
+        const key = `${target || ""}:${detail || ""}`;
+        if (code === "video_visual_analysis_unavailable") videoVisualSpecific.add(key);
+        if (["video_audio_analysis_unavailable", "video_audio_transcript_unavailable"].includes(code)) videoAudioSpecific.add(key);
+      }
+      const filtered = exceptions.filter((item) => {
+        const raw = firstNonEmpty(item?.code, item?.message, typeof item === "string" ? item : "");
+        const [code, target, detail] = String(raw || "").split(":");
+        if (code !== "media_content_not_understood") return true;
+        const key = `${target || ""}:${detail || ""}`;
+        return !videoVisualSpecific.has(key) && !videoAudioSpecific.has(key);
+      });
+      const labels = filtered.map(flowLearningExceptionLabel).filter(Boolean);
+      const coveredCodes = new Set(filtered.map(flowLearningExceptionCode));
+      const mediaLabels = { text: "文字", image: "图片", audio: "语音", video: "视频" };
+      for (const kind of ["text", "image", "audio", "video"]) {
+        const unread = Number(learning.media_counts?.[kind]?.unread || 0);
+        if (!unread) continue;
+        const hasMediaDetail = kind === "video"
+          ? [...coveredCodes].some((code) => code.startsWith("video_") || code === "media_content_not_read" || code === "media_content_not_understood")
+          : coveredCodes.has("media_content_not_read") || coveredCodes.has("media_content_not_understood") || [...coveredCodes].some((code) => code.startsWith(`${kind}_`));
+        if (!hasMediaDetail) labels.push(`${unread} 个${mediaLabels[kind]}内容尚未理解。`);
+      }
+      const videoTotal = Number(learning.media_counts?.video?.total || 0);
+      if (videoTotal > 0) {
+        const visual = learning.video_parts?.visual || {};
+        const audio = learning.video_parts?.audio || {};
+        const missingVisual = Math.max(0, videoTotal - Number(visual.read || 0));
+        const missingAudio = Math.max(0, videoTotal - Number(audio.read || 0));
+        if (missingVisual > 0 && !coveredCodes.has("video_visual_analysis_unavailable")) {
+          labels.push(`${missingVisual} 个视频的画面尚未理解。`);
+        }
+        if (missingAudio > 0 && !coveredCodes.has("video_audio_analysis_unavailable") && !coveredCodes.has("video_audio_transcript_unavailable")) {
+          labels.push(`${missingAudio} 个视频的声音尚未理解。`);
+        }
+      }
+      return [...new Set(labels)];
+    }
+
+    function toggleFlowLearningIssues() {
+      const willOpen = flowLearningIssueList.hidden;
+      flowLearningIssueList.hidden = !willOpen;
+      showFlowLearningIssuesButton.setAttribute("aria-expanded", String(willOpen));
+      showFlowLearningIssuesButton.textContent = willOpen ? "收起" : "查看缺什么";
+      if (willOpen) flowLearningIssueList.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function renderFlowLearning() {
+      const learning = state.flowLearning;
+      if (!learning) {
+        flowLearningHeadline.textContent = "正在读取 ChatDaddy 销售路线";
+        flowLearningSubline.textContent = "从 Step 1 读到实际价格 Step，再读取价格后的 Follow Up。";
+        flowLearningMediaLine.textContent = "四类内容会分别确认。";
+        flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml();
+        flowLearningStatus.textContent = state.flowLearningBusy ? "AI 学习中" : "等待连接";
+        flowLearningStatus.className = "status";
+        flowLearningRoute.innerHTML = '<div class="review-empty">连接后会自动显示完整成交路线。</div>';
+        const placeholderUnderstanding = [
+          ["项目卖什么", "完成 Flow 学习后自动显示。"],
+          ["顾客为什么买", "完成 Flow 学习后自动显示。"],
+          ["项目怎么卖", "完成 Flow 学习后自动显示。"],
+          ["价格后怎么成交", "完成 Flow 学习后自动显示。"]
+        ].map(([label, text]) => `<div class="flow-understanding-card"><b>${label}</b><p>${text}</p></div>`).join("");
+        flowUnderstandingGrid.innerHTML = placeholderUnderstanding;
+        flowReviewUnderstandingGrid.innerHTML = placeholderUnderstanding;
+        flowLearningExceptions.innerHTML = '<div class="review-empty">AI 学习完成后，只会列出需要你确认的异常。</div>';
+        flowLearningIssueSummary.hidden = true;
+        flowLearningIssueList.hidden = true;
+        flowLearningIssueList.innerHTML = "";
+        showFlowLearningIssuesButton.setAttribute("aria-expanded", "false");
+        showFlowLearningIssuesButton.textContent = "查看缺什么";
+        flowLearningTechnical.textContent = "尚未读取。";
+        learnChatdaddyFlowsButton.disabled = state.flowLearningBusy;
+        acceptDetectedPriceStageButton.hidden = true;
+        return;
+      }
+      const summary = learning.summary || {};
+      const exceptions = Array.isArray(learning.exceptions) ? learning.exceptions : [];
+      const issueMessages = flowLearningDisplayIssues(learning, exceptions);
+      const ready = flowLearningSemanticReady();
+      const statusText = ready
+        ? "已读懂"
+        : learning.content_status === "needs_owner_confirmation"
+          ? "需要确认"
+          : learning.content_status === "blocked"
+            ? "内容未读完"
+          : learning.content_status === "content_unavailable"
+            ? "内容未读取"
+            : "学习中";
+      flowLearningHeadline.textContent = ready
+        ? "AI 已读懂完整销售 Flow"
+        : issueMessages.length
+          ? `AI 已整理，仍有 ${issueMessages.length} 项需处理`
+          : "AI 正在理解销售 Flow";
+      flowLearningSubline.textContent = `${summary.sales_step_count || learning.sales_steps.length} 个销售 Step · 价格在 ${summary.price_stage_key || "待识别"} · 价格后 ${summary.follow_up_count || learning.follow_ups.length} 个 Follow Up`;
+      flowLearningMediaLine.textContent = "文字、图片、语音、视频状态如下。";
+      flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml(learning);
+      flowLearningStatus.textContent = statusText;
+      flowLearningStatus.className = `status ${ready ? "ok" : learning.content_status === "content_unavailable" || issueMessages.length ? "bad" : ""}`;
+      const nodes = [
+        ...learning.sales_steps.map((item) => flowLearningNodeHtml(item, "sales", summary.price_stage_key)),
+        ...learning.follow_ups.map((item) => flowLearningNodeHtml(item, "follow_up", summary.price_stage_key))
+      ];
+      flowLearningRoute.innerHTML = nodes.length
+        ? nodes.join("")
+        : '<div class="review-empty">已连接，但还没有可读取的 Flow 内容。请按「重新读取」。</div>';
+      const understanding = learning.understanding || {};
+      const understandingHtml = [
+        ["项目卖什么", understanding.sell || "AI 还没有足够内容判断。"],
+        ["顾客为什么买", understanding.why || "AI 还没有足够内容判断。"],
+        ["项目怎么卖", understanding.how || "AI 还没有足够内容判断。"],
+        ["价格后怎么成交", understanding.close || "AI 还没有足够内容判断。"]
+      ].map(([label, text]) => `<div class="flow-understanding-card"><b>${escapeHtml(label)}</b><p>${escapeHtml(text)}</p></div>`).join("");
+      flowUnderstandingGrid.innerHTML = understandingHtml;
+      flowReviewUnderstandingGrid.innerHTML = understandingHtml;
+      flowLearningExceptions.innerHTML = issueMessages.length
+        ? issueMessages.map((message) => `
+            <div class="flow-learning-exception">
+              ${escapeHtml(message)}
+            </div>
+          `).join("")
+        : '<div class="review-empty">没有需要确认的异常。AI 已按真实 Flow 整理。</div>';
+      flowLearningIssueSummary.hidden = issueMessages.length === 0;
+      flowLearningIssueHeadline.textContent = issueMessages.length === 1
+        ? "还有 1 项需要处理"
+        : `还有 ${issueMessages.length} 项需要处理`;
+      flowLearningIssueList.innerHTML = issueMessages
+        .map((message) => `<div class="flow-learning-issue-item">${escapeHtml(message)}</div>`)
+        .join("");
+      flowLearningIssueList.hidden = true;
+      showFlowLearningIssuesButton.setAttribute("aria-expanded", "false");
+      showFlowLearningIssuesButton.textContent = "查看缺什么";
+      const technical = { ...learning.raw };
+      delete technical._response;
+      flowLearningTechnical.textContent = JSON.stringify(technical, null, 2);
+      learnChatdaddyFlowsButton.disabled = state.flowLearningBusy;
+      learnChatdaddyFlowsButton.textContent = state.flowLearningBusy
+        ? "AI 正在学习…"
+        : ready ? "重新读取 Flow" : "读取并学习 Flow";
+      const priceMismatch = flowLearningPriceMismatch();
+      acceptDetectedPriceStageButton.hidden = !priceMismatch;
+      acceptDetectedPriceStageButton.disabled = state.flowLearningBusy;
+      acceptDetectedPriceStageButton.textContent = priceMismatch
+        ? `用 ${priceMismatch.detected.replace(/^step_(\d+)$/i, "Step $1")} 继续`
+        : "使用 AI 识别的价格 Step";
+      beginnerConfirmButton.hidden = !ready || learning.owner_approved === true;
+      beginnerConfirmButton.disabled = !ready || !flowLearningUnderstandingReady();
+      beginnerConfirmButton.title = beginnerConfirmButton.disabled
+        ? "AI 必须先完成卖什么、为什么买、怎么卖和价格后成交的理解"
+        : "确认 AI 的理解";
+    }
+
+    async function requestChatdaddyFlowLearning(options = {}) {
+      if (state.flowLearningBusy) return state.flowLearning;
+      const projectKey = currentProjectKey();
+      if (state.authVerified !== true || !projectKey) {
+        flowLearningHeadline.textContent = "请先登录并选择项目";
+        flowLearningStatus.textContent = "未连接";
+        flowLearningStatus.className = "status bad";
+        return null;
+      }
+      try {
+        state.flowLearningBusy = true;
+        if (options.automatic) state.flowLearningAutoRequested = true;
+        renderFlowLearning();
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/learn-chatdaddy-flows`, {
+          read_only: true,
+          force: options.force === true,
+          updated_by: "owner_beginner_onboarding"
+        });
+        const learning = hydrateFlowLearning(data);
+        if (!learning) throw new Error("没有收到可读取的 Flow 学习结果。");
+        if (data?.project_package) {
+          state.existingPackageResponse = data;
+          state.salesPackageResponse = data;
+        } else {
+          const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+          state.existingPackageResponse = latest;
+          state.salesPackageResponse = latest;
+          hydrateFlowLearning(data);
+        }
+        updateOnboardingProgress();
+        return state.flowLearning;
+      } catch (error) {
+        const blockedLearning = hydrateFlowLearning(error?.data || {});
+        if (blockedLearning) {
+          updateOnboardingProgress();
+          return blockedLearning;
+        }
+        flowLearningHeadline.textContent = "暂时无法读取 Flow 内容";
+        flowLearningSubline.textContent = error.message || String(error);
+        flowLearningStatus.textContent = "请重试";
+        flowLearningStatus.className = "status bad";
+        return null;
+      } finally {
+        state.flowLearningBusy = false;
+        renderFlowLearning();
+      }
+    }
+
+    async function acceptDetectedPriceStage() {
+      const mismatch = flowLearningPriceMismatch();
+      if (!mismatch || state.flowLearningBusy) return;
+      const projectKey = currentProjectKey();
+      try {
+        state.flowLearningBusy = true;
+        renderFlowLearning();
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/learn-chatdaddy-flows`, {
+          read_only: true,
+          confirm_understanding: true,
+          accept_detected_price_stage: true,
+          updated_by: "owner_beginner_onboarding"
+        });
+        const learning = hydrateFlowLearning(data);
+        if (!learning?.owner_approved || !flowLearningSemanticReady()) {
+          throw new Error("价格 Step 还没有确认成功。");
+        }
+        const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+        state.existingPackageResponse = latest;
+        state.salesPackageResponse = latest;
+        hydrateFlowLearning(data);
+        flowConfirmationResult.textContent = `已按 AI 从真实价格内容识别的 ${mismatch.detected.replace(/^step_(\d+)$/i, "Step $1")} 继续；ChatDaddy 本身没有被修改。`;
+        updateOnboardingProgress();
+      } catch (error) {
+        const blocked = hydrateFlowLearning(error?.data || {});
+        if (!blocked) {
+          flowLearningHeadline.textContent = "价格 Step 还没有确认成功";
+          flowLearningSubline.textContent = error.message || String(error);
+          flowLearningStatus.textContent = "请重试";
+          flowLearningStatus.className = "status bad";
+        }
+      } finally {
+        state.flowLearningBusy = false;
+        renderFlowLearning();
+      }
     }
 
     function toggleAdvancedMode() {
@@ -3047,7 +4136,9 @@
           "safety_boundary"
         ].filter((key) => String(businessAnswers[key] || "").trim()).length;
         const ownerApproved = canonicalPackage?.project_package?.business_onboarding?.owner_signoff?.approved === true;
-        beginnerConfirmButton.hidden = businessCount !== 6 || ownerApproved;
+        beginnerConfirmButton.hidden = !flowLearningSemanticReady()
+          || state.flowLearning?.owner_approved === true
+          || ownerApproved;
         beginnerLearnButton.hidden = businessCount === 6 && !ownerApproved;
         beginnerLearningResult.textContent = attention.length
           ? `已整理，${attention.length} 项需要补充。`
@@ -3066,19 +4157,44 @@
       try {
         beginnerConfirmButton.disabled = true;
         beginnerConfirmButton.textContent = "正在确认…";
-        const currentPackage = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
-        const topologyMismatch = topologyMismatchMessage(currentPackage);
-        if (topologyMismatch) {
-          throw new Error("请先确认路线。");
+        if (!flowLearningSemanticReady()) {
+          throw new Error("AI 必须先读懂全部销售 Step、价格 Step、Follow Up 和媒体内容。");
         }
-        const saved = await createProject({ allowDraft: true, ownerApproved: true });
-        if (!saved) throw new Error("AI 的业务理解还没有保存成功。");
-        const adopted = await approveBeginnerStandardDrafts();
+        if (!flowLearningUnderstandingReady()) {
+          throw new Error("AI 还没有完整说明项目卖什么、为什么买、怎么卖和价格后怎么成交。");
+        }
+        const projectKey = currentProjectKey();
+        const confirmed = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/learn-chatdaddy-flows`, {
+          read_only: true,
+          confirm_understanding: true,
+          updated_by: "owner_beginner_onboarding"
+        });
+        const learning = hydrateFlowLearning(confirmed);
+        if (!learning?.owner_approved) {
+          throw new Error("系统尚未保存 Owner 确认，请重试。");
+        }
+        if (confirmed?.project_package) {
+          state.existingPackageResponse = confirmed;
+          state.salesPackageResponse = confirmed;
+        } else {
+          const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+          state.existingPackageResponse = latest;
+          state.salesPackageResponse = latest;
+          hydrateFlowLearning(confirmed);
+        }
+        let adopted = 0;
+        try {
+          adopted = await approveBeginnerStandardDrafts();
+        } catch (_error) {
+          adopted = 0;
+        }
         beginnerConfirmButton.hidden = true;
-        beginnerLearningResult.textContent = `已确认 ${adopted} 条，继续处理异常。`;
-        document.getElementById("learningReviewPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        flowConfirmationResult.textContent = adopted
+          ? `已确认 AI 理解，并通过 ${adopted} 条一般学习草稿。`
+          : "已确认 AI 理解。没有异常，可以继续开始使用。";
+        updateOnboardingProgress();
       } catch (error) {
-        beginnerLearningResult.textContent = `还不能确认：${error.message || error}`;
+        flowConfirmationResult.textContent = `还不能确认：${error.message || error}`;
       } finally {
         beginnerConfirmButton.disabled = false;
         beginnerConfirmButton.textContent = previous;
@@ -4487,6 +5603,17 @@
           channelFlowStatus.className = `status ${blockers.length ? "bad" : "ok"}`;
         }
         updateOnboardingProgress();
+        const connectionReady = summary.connection_ready === true
+          && Number(summary.sales_steps_total || 0) > 0
+          && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0);
+        if (
+          connectionReady
+          && !flowLearningSemanticReady()
+          && !state.flowLearningBusy
+          && !state.flowLearningAutoRequested
+        ) {
+          await requestChatdaddyFlowLearning({ automatic: true });
+        }
       } catch (error) {
         if (!options.silent) {
           channelFlowStatus.textContent = "读取失败";
