@@ -140,6 +140,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      width: 100%;
       min-height: 44px;
       margin-top: 12px;
       padding: 0 13px;
@@ -149,6 +150,7 @@
       text-decoration: none;
       background: rgba(21, 184, 215, 0.12);
       font-weight: 900;
+      cursor: pointer;
     }
 
     .main {
@@ -500,7 +502,7 @@
 
     .progress-steps {
       display: grid;
-      grid-template-columns: repeat(8, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
     }
 
@@ -589,6 +591,86 @@
       background: #ecfbff;
       font-weight: 850;
       line-height: 1.5;
+    }
+
+    .beginner-intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      margin-top: 18px;
+      padding: 18px;
+      border-left: 5px solid var(--teal);
+      border-radius: 6px;
+      background: #effcf9;
+    }
+
+    .beginner-intro strong {
+      display: block;
+      font-size: 19px;
+    }
+
+    .beginner-intro span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .beginner-source-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .beginner-source-actions .boundary {
+      margin-left: auto;
+      color: var(--muted);
+      font-weight: 850;
+    }
+
+    .beginner-optional {
+      border-style: dashed;
+    }
+
+    .beginner-optional > summary {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      padding: 18px 20px;
+      cursor: pointer;
+      color: #075666;
+      background: #f4fcfe;
+      font-weight: 950;
+      list-style: none;
+    }
+
+    .beginner-optional > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .beginner-optional > summary::after {
+      content: "展开";
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .beginner-optional[open] > summary::after {
+      content: "收起";
+    }
+
+    .advanced-wrap {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    body:not(.show-advanced) .expert-only {
+      display: none !important;
     }
 
     .auth-actions {
@@ -1057,6 +1139,10 @@
         grid-template-columns: 1fr;
       }
 
+      .beginner-intro {
+        grid-template-columns: 1fr;
+      }
+
       .contract-field.full {
         grid-column: auto;
       }
@@ -1075,6 +1161,19 @@
       .onboarding-progress {
         position: static;
       }
+
+      .beginner-source-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .beginner-source-actions .btn {
+        width: 100%;
+      }
+
+      .beginner-source-actions .boundary {
+        margin-left: 0;
+      }
     }
   </style>
 </head>
@@ -1090,8 +1189,8 @@
       </div>
 
       <div class="side-card">
-        <h2 id="setupSideTitle">先训练业务大脑</h2>
-        <p id="setupSideDescription">先回答 6 个业务问题，让 AI 理解产品、顾客、市场、成交和安全边界。ChatDaddy 与 Flow 会在 Owner 验收之后才连接。</p>
+        <h2 id="setupSideTitle">把资料交给 AI</h2>
+        <p id="setupSideDescription">你只需要提供项目资料或回答自己知道的内容。AI 会自动整理知识、FAQ、SOP 和待确认项。</p>
       </div>
 
       <div class="side-card">
@@ -1101,29 +1200,25 @@
           <div class="side-row"><span>自动发送</span><strong>关闭</strong></div>
           <div class="side-row"><span>自主 Agent</span><strong>未接管</strong></div>
         </div>
-        <a class="side-link" href="#businessPanel"><span>1. 业务六问</span><strong>→</strong></a>
-        <a class="side-link" href="#materialsPanel"><span>2. 资料学习</span><strong>→</strong></a>
-        <a class="side-link" href="#learningReviewPanel"><span>3. Owner 审核</span><strong>→</strong></a>
-        <a class="side-link" href="#salesJourneyPanel"><span>4. 销售 Step</span><strong>→</strong></a>
-        <a class="side-link" href="#replyContractPanel"><span>5. Reply Contract</span><strong>→</strong></a>
-        <a class="side-link" href="#channelFlowPanel"><span>6. Channel / Flow</span><strong>→</strong></a>
-        <a class="side-link" href="#contentMockPanel"><span>7. Mock / 发布</span><strong>→</strong></a>
-        <a class="side-link" href="#learningLoopPanel"><span>8. 学习复盘</span><strong>→</strong></a>
+        <a class="side-link" href="#businessPanel"><span>1. 给 AI 资料</span><strong>→</strong></a>
+        <a class="side-link" href="#learningReviewPanel"><span>2. AI 自动整理</span><strong>→</strong></a>
+        <a class="side-link" href="#learningLoopPanel"><span>3. 确认后使用</span><strong>→</strong></a>
+        <button class="side-link" id="advancedModeButton" type="button"><span>管理员高级设置</span><strong>＋</strong></button>
       </div>
     </aside>
 
     <main class="main">
       <section class="hero">
-        <div class="eyebrow">Owner / Admin Setup</div>
-        <h1 id="setupHeroTitle">新公司项目设置</h1>
-        <p id="setupHeroDescription">新项目先完成 6 个业务理解问题，再由 Owner 核对 AI 的理解。这里只保存可审核的 Agent Brain 草稿；不会连接渠道、不会发送顾客讯息，也不会触发 Flow。</p>
+        <div class="eyebrow">AI 小白模式</div>
+        <h1 id="setupHeroTitle">把你知道的交给 AI</h1>
+        <p id="setupHeroDescription">你不需要设计大脑、销售 Step 或回复规则。提供 FAQ、文件或简单说明，AI 会自动整理成项目知识、SOP 和回复草稿；你只处理它不确定的地方。</p>
         <div class="actions" id="existingProjectActions" hidden>
           <a class="btn" id="setupBackLink" href="../dashboard/index.html?view=operations">返回当前项目 Dashboard</a>
         </div>
         <div class="chips" id="safetyChips">
           <span class="chip">Approval-first</span>
           <span class="chip">No send</span>
-          <span class="chip">AI 分析需 Owner 操作</span>
+          <span class="chip">AI 自动整理</span>
           <span class="chip warn">No secrets</span>
         </div>
       </section>
@@ -1132,48 +1227,60 @@
         <div class="progress-head">
           <div>
             <strong id="progressProjectName">未选择项目</strong>
-            <div id="progressSummary">Owner 登录后读取 8 步真实进度</div>
+            <div id="progressSummary">Owner 登录后读取 3 段真实进度</div>
           </div>
           <div class="status" id="progressStatus">等待 Owner 登录</div>
         </div>
         <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
         <nav class="progress-steps" id="progressSteps">
-          <a class="progress-step current" href="#businessPanel" data-progress-step="business"><b>1 六问</b><span>项目与目标</span></a>
-          <a class="progress-step" href="#materialsPanel" data-progress-step="materials"><b>2 资料</b><span>PDF / PPTX / FAQ</span></a>
-          <a class="progress-step" href="#learningReviewPanel" data-progress-step="review"><b>3 审核</b><span>逐条决定</span></a>
-          <a class="progress-step" href="#salesJourneyPanel" data-progress-step="sales"><b>4 Step</b><span>销售旅程</span></a>
-          <a class="progress-step" href="#replyContractPanel" data-progress-step="contract"><b>5 回复</b><span>收尾与来源</span></a>
-          <a class="progress-step" href="#channelFlowPanel" data-progress-step="channel"><b>6 Channel</b><span>账号与 Flow</span></a>
-          <a class="progress-step" href="#contentMockPanel" data-progress-step="mock"><b>7 Mock</b><span>测试与发布</span></a>
-          <a class="progress-step" href="#learningLoopPanel" data-progress-step="learning"><b>8 复盘</b><span>持续学习</span></a>
+          <a class="progress-step current" href="#businessPanel" data-progress-phase="teach"><b>1 给资料</b><span>文件、FAQ 或你知道的内容</span></a>
+          <a class="progress-step" href="#learningReviewPanel" data-progress-phase="learn"><b>2 AI 自动整理</b><span>生成知识与待确认项</span></a>
+          <a class="progress-step" href="#learningLoopPanel" data-progress-phase="use"><b>3 确认后使用</b><span>开始 Approval-first AI Reply</span></a>
         </nav>
       </section>
 
       <section class="panel" id="businessPanel">
         <div class="toolbar">
           <div>
-            <h2>业务资料</h2>
+            <h2>1. 教 AI 认识你的项目</h2>
             <p id="formHelp">正在读取设置模板。</p>
           </div>
           <div class="status" id="connectionStatus">连接中</div>
+        </div>
+        <div class="beginner-intro">
+          <div>
+            <strong>有资料就直接放；没有完整资料，也可以只写你现在知道的</strong>
+            <span>AI 会从 FAQ、项目文件和你的说明中整理答案。价格、付款、退款、健康、投诉、隐私和绝对承诺会继续要求明确确认。</span>
+          </div>
+          <span class="status">只确认异常</span>
         </div>
         <form class="form" id="setupForm"></form>
         <div class="actions auth-actions" id="authActions" hidden>
           <a class="btn primary" id="ownerLoginLink" href="../login.html">Owner / Admin 登录后继续</a>
         </div>
-        <label class="confirm">
-          <input id="createConfirm" type="checkbox">
-          我已核对上方 6 项业务资料，确认内容正确；批准保存为 Owner 已验收草稿。系统仍不连接渠道、不发送顾客讯息、不触发 Flow。
-        </label>
+        <div class="beginner-source-actions">
+          <button class="btn primary" type="button" id="beginnerLearnButton">让 AI 学习并整理</button>
+          <a class="btn" href="#materialsPanel">加入 PDF / PPTX 文件</a>
+          <span class="boundary">不会发送顾客讯息，也不会触发 Flow</span>
+        </div>
+        <div class="boundary-note" id="beginnerLearningResult">贴上 FAQ、加入文件，或回答你知道的内容后，只需要按一次「让 AI 学习并整理」。</div>
         <div class="actions">
-          <button class="btn primary" type="button" id="previewButton">预览业务大脑</button>
-          <button class="btn" type="button" id="createButton">Owner 验收并创建草稿</button>
-          <a class="btn" href="#materialsPanel">继续上传资料</a>
-          <button class="btn" type="button" id="copyButton">复制摘要</button>
+          <button class="btn primary" type="button" id="beginnerConfirmButton" hidden>确认 AI 的理解正确</button>
+        </div>
+        <div class="advanced-wrap expert-only">
+          <label class="confirm">
+            <input id="createConfirm" type="checkbox">
+            我已核对 AI 整理的 6 项业务理解，确认内容正确；批准保存为 Owner 已验收草稿。系统仍不连接渠道、不发送顾客讯息、不触发 Flow。
+          </label>
+          <div class="actions">
+            <button class="btn primary" type="button" id="previewButton">预览业务大脑</button>
+            <button class="btn" type="button" id="createButton">Owner 验收并创建草稿</button>
+            <button class="btn" type="button" id="copyButton">复制摘要</button>
+          </div>
         </div>
       </section>
 
-      <section class="panel" id="previewPanel">
+      <section class="panel expert-only" id="previewPanel">
         <h2 class="section-title">预览</h2>
         <div class="preview-grid" id="previewMetrics">
           <div class="metric"><span>项目</span><strong>-</strong></div>
@@ -1189,8 +1296,8 @@
       <section class="panel" id="materialsPanel">
         <div class="toolbar">
           <div>
-            <h2>2. 上传并学习项目资料</h2>
-            <p>把 FAQ、产品说明、价格与配套、客服 SOP、Top Closer 话术、Proof 和禁区资料上传。AI 只生成待审核草稿，不会直接进入正式回复。</p>
+            <h2>加入项目文件（可选）</h2>
+            <p>有 PDF、PPTX、产品说明、价格表、客服 SOP 或话术就放进来；没有文件也可以只用上方 FAQ 和简单说明。</p>
           </div>
           <div class="status" id="documentStatus">等待项目草稿</div>
         </div>
@@ -1204,7 +1311,7 @@
             <b>学习后会分成</b>
             <p>FAQ、一般 SOP、敏感 / 转人工 SOP、Flow 用途建议和缺失资料。健康、退款、投诉、隐私、附件与凭证会进入更严格的 Owner 审核。</p>
             <div class="actions">
-              <button class="btn primary" type="button" id="analyzeDocumentButton">提取文字并生成学习草稿</button>
+              <button class="btn primary" type="button" id="analyzeDocumentButton">让 AI 读取这个文件</button>
             </div>
           </div>
         </div>
@@ -1214,14 +1321,14 @@
           <div class="metric"><span>一般 / 安全 SOP</span><strong>-</strong></div>
           <div class="metric"><span>真实发送 / Flow</span><strong>0 / 0</strong></div>
         </div>
-        <div class="boundary-note" id="documentResult">先完成第 1 步并保存项目草稿，再上传资料。每一条学习结果都要到第 3 步由 Owner 审核。</div>
+        <div class="boundary-note" id="documentResult">选择文件后按「让 AI 读取这个文件」，也可以直接回到上方一次完成。AI 会在第 2 段列出冲突、缺来源与敏感项目。</div>
       </section>
 
       <section class="panel" id="learningReviewPanel">
         <div class="toolbar">
           <div>
-            <h2>3. Owner 学习草稿审核</h2>
-            <p>AI 学到的 FAQ、SOP 和 Flow 判断必须逐条决定；这里没有“全部批准”。可以先逐项标记，再一次提交本轮审核；敏感资料仍需明确确认。</p>
+            <h2>2. AI 已整理；只处理不确定的地方</h2>
+            <p>AI 会自动把资料分成项目知识、FAQ、SOP 和回复建议。普通内容先整理为草稿；有冲突、缺来源或涉及价格、付款、退款、健康、投诉与隐私时才请你确认。</p>
           </div>
           <div class="status" id="learningReviewStatus">尚未加载</div>
         </div>
@@ -1245,7 +1352,7 @@
         </div>
       </section>
 
-      <section class="panel" id="salesJourneyPanel">
+      <section class="panel expert-only" id="salesJourneyPanel">
         <div class="toolbar">
           <div>
             <h2>4. 定义销售 Step 与接棒规则</h2>
@@ -1285,7 +1392,7 @@
         <div class="boundary-note">价格 Step 不固定写死；不同项目可以在 Step 1、2、3 或 4。付款、退款、投诉、健康、附件与低信心不会因为 Step 设置而自动跳到 Flow。</div>
       </section>
 
-      <section class="panel" id="replyContractPanel">
+      <section class="panel expert-only" id="replyContractPanel">
         <div class="toolbar">
           <div>
             <h2>5. Reply Contract：教 AI 怎样收尾</h2>
@@ -1413,7 +1520,7 @@
         <div class="contract-mock" id="replyContractMock"></div>
       </section>
 
-      <section class="panel" id="channelFlowPanel">
+      <section class="panel expert-only" id="channelFlowPanel">
         <div class="toolbar">
           <div>
             <h2>6. 连接 Channel 与真实 Flow</h2>
@@ -1438,7 +1545,7 @@
         <div class="boundary-note" id="readinessResult">尚未读取当前项目的连接状态。</div>
       </section>
 
-      <section class="panel" id="contentMockPanel">
+      <section class="panel expert-only" id="contentMockPanel">
         <div class="toolbar">
           <div>
             <h2>7. Synthetic Mock：检查 AI 有没有学完整，再执行发布检查</h2>
@@ -1468,8 +1575,8 @@
       <section class="panel" id="learningLoopPanel">
         <div class="toolbar">
           <div>
-            <h2>8. 上线后的学习、复盘与 FAQ</h2>
-            <p>客服真实回复、被退回的 AI 草稿、人工接管和失败原因都会成为候选学习；Owner 再决定是否写入当前项目，避免 AI 靠自己猜。</p>
+            <h2>3. 确认后使用，并让 AI 持续学习</h2>
+            <p>AI 会把没答好、重复提问、客服修正和新问题整理成复盘候选。你只确认要不要加入大脑，系统不会因为一条客服回复就偷偷改写正式内容。</p>
           </div>
           <div class="status" id="learningLoopStatus">Owner / Admin 专用</div>
         </div>
@@ -1500,7 +1607,7 @@
       sections: [
         {
           key: "project",
-          title: "1. 建立训练项目",
+          title: "项目基本资料",
           fields: [
             { key: "project_key", label: "项目代码", required: true, example: "acme_beauty" },
             { key: "company_name", label: "公司 / 品牌名称", required: true, example: "Acme Beauty" },
@@ -1511,64 +1618,64 @@
         },
         {
           key: "business_training",
-          title: "2. 六问业务教学",
+          title: "没有完整资料？回答 AI 想知道的内容",
           fields: [
             {
               key: "business_primary_offer",
-              label: "Step 1 · 业务主推",
-              required: true,
+              label: "你卖什么",
+              required: false,
               question: "你是什么生意？AI 先卖什么产品 / 服务 / 配套？",
-              reason: "AI 必须先知道自己替哪个岗位卖什么，才不会变成普通客服。",
+              reason: "用自己的话回答即可，不需要设计销售 Step。",
               example: "我们是【行业/业务】，卖给【主要客户】，现在先主推【产品/服务/配套】。"
             },
             {
               key: "why_it_works",
-              label: "Step 2 · 为什么有效",
-              required: true,
+              label: "为什么有效",
+              required: false,
               question: "产品 / 服务为什么有效？机制、流程、成分、SOP 是什么？",
-              reason: "AI 要能解释价值，不能只背 FAQ 或乱承诺效果。",
+              reason: "只写项目方已经知道、可以公开使用的内容。",
               example: "它通过【机制/流程/SOP】，解决【什么问题】，所以顾客可以得到【什么变化】。"
             },
             {
               key: "why_customer_buys",
-              label: "Step 3 · 顾客为什么买",
-              required: true,
+              label: "顾客为什么会买",
+              required: false,
               question: "顾客痛点、想要的结果、购买触发是什么？",
-              reason: "AI 要懂顾客为什么现在行动，才知道应该教育、补信任还是成交。",
+              reason: "AI 会自行整理成顾客阶段，不需要你设计漏斗。",
               example: "顾客现在痛的是【问题】，想要【结果】，购买触发是【场景/时机/担心】。"
             },
             {
               key: "why_trust_us",
-              label: "Step 4 · 凭什么相信",
-              required: true,
+              label: "顾客为什么能相信你",
+              required: false,
               question: "USP、Proof、Review、认证、市场对比是什么？",
-              reason: "AI 要知道什么时候用 USP、Proof，以及怎样处理比较和不信任。",
+              reason: "没有正式来源的证明可以留空，AI 不会自行扩写。",
               example: "我们赢在【差异】，证明是【Proof】；顾客拿我们和【替代品】比较时讲【价值差别】。"
             },
             {
               key: "offer_to_order",
-              label: "Step 5 · Offer 怎么成交",
-              required: true,
+              label: "价格、付款与下单方法",
+              required: false,
               question: "价格、配套、付款、COD、CTA、收单字段是什么？",
-              reason: "AI 要分辨看价前教育和看价后成交，避免乱接普通 Flow。",
+              reason: "写你现有的做法，AI 会自行整理回复与接棒逻辑。",
               example: "主推【价格/配套】，付款条件是【规则】，确认后收【名字/电话/地址/预约资料】。"
             },
             {
               key: "safety_boundary",
-              label: "Step 6 · 什么不能讲",
-              required: true,
+              label: "什么不能讲、什么时候找真人",
+              required: false,
               question: "不能承诺什么？什么情况必须转人工？",
-              reason: "AI 没有边界就不能上线，只能做草稿。",
+              reason: "健康、退款、投诉、法律、隐私或没把握时可以直接写要转人工。",
               example: "遇到【敏感/投诉/退款/健康法律/低信心】时，AI 不承诺，先【转人工/确认规则】。"
             }
           ]
         },
         {
           key: "materials",
-          title: "3. 可选资料（先进入学习草稿，不会直接上线）",
+          title: "FAQ 与其他你知道的内容",
           fields: [
-            { key: "faq_google_doc_url", label: "FAQ Google Docs", required: false, example: "https://docs.google.com/document/d/..." },
-            { key: "source_notes", label: "其他资料说明", required: false, example: "产品页、价格表、Top closer 话术、Proof、禁区资料的位置" }
+            { key: "faq_google_doc_url", label: "FAQ Google Doc（有就贴）", required: false, example: "https://docs.google.com/document/d/..." },
+            { key: "source_notes", label: "其他你知道的内容", required: false, example: "例如：我们卖什么、顾客最常问什么、价格和付款方式、什么情况必须转人工。可以用自己的话写，不需要整理格式。" }
           ]
         }
       ]
@@ -1601,6 +1708,10 @@
     const createButton = document.getElementById("createButton");
     const copyButton = document.getElementById("copyButton");
     const createConfirm = document.getElementById("createConfirm");
+    const beginnerLearnButton = document.getElementById("beginnerLearnButton");
+    const beginnerConfirmButton = document.getElementById("beginnerConfirmButton");
+    const beginnerLearningResult = document.getElementById("beginnerLearningResult");
+    const advancedModeButton = document.getElementById("advancedModeButton");
     const resultLog = document.getElementById("resultLog");
     const previewMetrics = document.getElementById("previewMetrics");
     const learningReviewStatus = document.getElementById("learningReviewStatus");
@@ -1640,6 +1751,9 @@
     const publishProjectButton = document.getElementById("publishProjectButton");
 
     document.addEventListener("DOMContentLoaded", init);
+    beginnerLearnButton.addEventListener("click", runBeginnerLearning);
+    beginnerConfirmButton.addEventListener("click", confirmBeginnerUnderstanding);
+    advancedModeButton.addEventListener("click", toggleAdvancedMode);
     previewButton.addEventListener("click", previewPackage);
     createButton.addEventListener("click", createProject);
     copyButton.addEventListener("click", copySummary);
@@ -1673,7 +1787,7 @@
         state.authVerified = true;
         state.template = ONBOARDING_TEMPLATE;
         setStatus("已连接", "ok");
-        formHelp.textContent = "先完成 6 个业务问题。Flow ID、API token、webhook 和渠道资料都不在这一步填写。";
+        formHelp.textContent = "贴 FAQ、加入文件或写下你知道的内容，然后按「让 AI 学习并整理」。技术设置由系统和管理员处理。";
         renderSafety(ONBOARDING_TEMPLATE);
         renderForm(ONBOARDING_TEMPLATE);
         setButtons(true);
@@ -1707,10 +1821,10 @@
       document.getElementById("existingProjectActions").hidden = !continuingExistingProject;
       if (!continuingExistingProject) return;
       const projectLabel = projectKey.toLowerCase() === "beyoute" ? "Beyoute" : projectKey;
-      document.getElementById("setupHeroTitle").textContent = `继续 ${projectLabel} Onboarding`;
-      document.getElementById("setupHeroDescription").textContent = "正在读取当前项目的 8 步真实进度。你可以从未完成处继续；所有修改先保存为可审核草稿，不会覆盖已发布的 AI Reply，也不会发送顾客讯息或触发 Flow。";
-      document.getElementById("setupSideTitle").textContent = "继续当前项目验收";
-      document.getElementById("setupSideDescription").textContent = "现有已发布版本继续服务；只有通过 Owner 审核、Mock 与发布 Gate 的新版本才会进入 AI Reply。";
+      document.getElementById("setupHeroTitle").textContent = `继续教 ${projectLabel} AI`;
+      document.getElementById("setupHeroDescription").textContent = "把新 FAQ、项目文件或你知道的内容交给 AI。系统会自动整理成学习草稿；你只处理有冲突、没来源或敏感的地方。现有已发布 AI Reply 不受影响。";
+      document.getElementById("setupSideTitle").textContent = "继续教育当前项目";
+      document.getElementById("setupSideDescription").textContent = "当前 AI Reply 会照常使用已发布版本；新资料先进入学习草稿，确认后才加入大脑。";
     }
 
     function renderSafety(template) {
@@ -1725,9 +1839,27 @@
     }
 
     function renderForm(template) {
-      const sections = Array.isArray(template.sections) ? template.sections : [];
+      const sections = Array.isArray(template.sections)
+        ? [...template.sections].sort((a, b) => {
+          const order = { project: 1, materials: 2, business_training: 3 };
+          return Number(order[a.key] || 99) - Number(order[b.key] || 99);
+        })
+        : [];
       setupForm.innerHTML = sections.map((section) => {
         const fields = Array.isArray(section.fields) ? section.fields : [];
+        if (section.key === "business_training") {
+          return `
+            <details class="section beginner-optional">
+              <summary>
+                <span>${escapeHtml(section.title || section.key)}</span>
+                <small>系统只会追问资料里缺少的内容</small>
+              </summary>
+              <div class="fields">
+                ${fields.map((field) => fieldHtml(section, field)).join("")}
+              </div>
+            </details>
+          `;
+        }
         return `
           <section class="section">
             <div class="section-head">
@@ -1815,11 +1947,11 @@
 
     function updateOnboardingProgress() {
       if (state.authVerified !== true) {
-        document.querySelectorAll("[data-progress-step]").forEach((item) => {
+        document.querySelectorAll("[data-progress-phase]").forEach((item) => {
           item.classList.remove("done", "current");
         });
         document.getElementById("progressBar").style.width = "0%";
-        document.getElementById("progressSummary").textContent = "Owner 登录后读取 8 步真实进度";
+        document.getElementById("progressSummary").textContent = "Owner 登录后读取 3 段真实进度";
         document.getElementById("progressStatus").textContent = "等待 Owner 登录";
         document.getElementById("progressStatus").className = "status";
         updateProjectLinks();
@@ -1835,7 +1967,7 @@
       const contractErrors = Array.isArray(state.replyContract?.validation?.errors) ? state.replyContract.validation.errors.length : null;
       const mockTests = state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || [];
       const mockFailed = Number(state.mockResult?.suites?.owner_content?.failed_count ?? state.mockResult?.owner_content?.failed_count ?? 0);
-      const done = {
+      const technicalDone = {
         business: Boolean(state.created?.project_key || state.existingProject?.project_key),
         materials: Number(state.documentKnowledge?.counts?.source_documents || packageData?.source_documents?.length || 0) > 0,
         review: Number(reviewSummary.total_items || 0) > 0 && Number(reviewSummary.pending_items || 0) === 0,
@@ -1845,12 +1977,23 @@
         mock: Array.isArray(mockTests) && mockTests.length > 0 && mockFailed === 0,
         learning: state.published === true
       };
-      const count = Object.values(done).filter(Boolean).length;
-      document.querySelectorAll("[data-progress-step]").forEach((item) => {
-        item.classList.toggle("done", done[item.dataset.progressStep] === true);
+      const phaseDone = {
+        teach: technicalDone.business && technicalDone.materials,
+        learn: Number(reviewSummary.total_items || 0) > 0,
+        use: state.activation?.ready_for_ai_reply === true
+      };
+      const count = Object.values(phaseDone).filter(Boolean).length;
+      document.querySelectorAll("[data-progress-phase]").forEach((item) => {
+        const phase = item.dataset.progressPhase;
+        item.classList.toggle("done", phaseDone[phase] === true);
+        item.classList.toggle("current", phaseDone[phase] !== true && (
+          phase === "teach"
+          || (phase === "learn" && phaseDone.teach)
+          || (phase === "use" && phaseDone.learn)
+        ));
       });
-      document.getElementById("progressBar").style.width = `${(count / 8) * 100}%`;
-      document.getElementById("progressSummary").textContent = `${count} / 8 步完成 · 每一步保存后都可以关闭页面再继续`;
+      document.getElementById("progressBar").style.width = `${(count / 3) * 100}%`;
+      document.getElementById("progressSummary").textContent = `${count} / 3 段完成 · 技术检查会在后台继续保留`;
       document.getElementById("progressStatus").textContent = state.activation?.ready_for_ai_reply
         ? "AI Reply 已可用 · Approval-first"
         : state.published ? "Project Brain 已发布" : "草稿 / Approval-first";
@@ -1872,16 +2015,16 @@
       state.published = packageResponse.published === true && packageResponse.draft !== true;
       state.activation = packageResponse.activation || null;
       applyExistingProjectOnboarding(packageResponse.project_package || {}, existingProject);
-      document.getElementById("setupHeroTitle").textContent = `${existingProject.name || projectKey} Owner 业务验收`;
-      document.getElementById("setupHeroDescription").textContent = "这是现有项目迁移，不会重建项目。请核对系统从原 Project Brain 预填的六问；保存只会新增草稿版本，不会发布、不发送顾客讯息，也不会触发 Flow。";
-      document.getElementById("setupSideTitle").textContent = "确认现有业务大脑";
-      document.getElementById("setupSideDescription").textContent = "旧 FAQ、SOP、Flow 和自动化设置会保留；这里只补齐六问 Owner 验收，让现有项目通过完整学习检查。";
+      document.getElementById("setupHeroTitle").textContent = `继续教 ${existingProject.name || projectKey} AI`;
+      document.getElementById("setupHeroDescription").textContent = "系统已读入现有 Project Brain。加入 FAQ、文件或简单说明后，AI 会自动整理学习草稿；旧 FAQ、SOP、Flow 和已发布 AI Reply 都会保留。";
+      document.getElementById("setupSideTitle").textContent = "继续教育当前项目";
+      document.getElementById("setupSideDescription").textContent = "你只提供项目知识并确认异常；销售 Step、回复规则、渠道 Gate 与测试留给管理员高级设置。";
       document.querySelector("#setupForm .section-title").textContent = "1. 确认现有项目";
       document.getElementById("channelSetupLink").textContent = "查看渠道连接状态";
       createButton.textContent = "Owner 验收并保存现有项目草稿";
-      formHelp.textContent = `正在迁移现有项目 ${projectKey}：系统已按原 Project Brain 预填六问。请逐项修正后再验收；保存只建立新草稿版本，不发布、不发讯息、不触发 Flow。`;
-      setStatus("现有项目迁移", "ok");
-      addLog("已载入现有项目", `${projectKey} 当前版本 ${packageResponse.version_no || "-"}。旧 FAQ、SOP、Flow 与自动化设置会保留；这里只补 Owner 六问验收。`);
+      formHelp.textContent = `已载入 ${projectKey} 的现有知识。直接贴 FAQ、加入文件或写说明，然后按「让 AI 学习并整理」。`;
+      setStatus("可以继续学习", "ok");
+      addLog("已载入现有项目", `${projectKey} 当前版本 ${packageResponse.version_no || "-"}。新资料只进入学习草稿，不会覆盖已发布版本。`);
       updateOnboardingProgress();
     }
 
@@ -1939,7 +2082,14 @@
         sopText("safe_health", "safe_no_claim", "safe_payment", "safe_handoff")
       ));
       setFormValue("materials.faq_google_doc_url", projectPackage?.business_onboarding?.source_materials?.faq_google_doc_url || "");
-      setFormValue("materials.source_notes", projectPackage?.business_onboarding?.source_materials?.notes || "");
+      setFormValue("materials.source_notes", beginnerVisibleSourceNotes(projectPackage?.business_onboarding?.source_materials?.notes || ""));
+    }
+
+    function beginnerVisibleSourceNotes(value) {
+      const text = String(value || "").trim();
+      if (/^Owner approved use of the existing .* Project Brain content as-is/i.test(text)) return "";
+      if (/^Owner confirmed all six business answers/i.test(text)) return "";
+      return text;
     }
 
     function assetTextByIds(items, ids, fields) {
@@ -1953,6 +2103,185 @@
 
     function firstNonEmpty(...values) {
       return values.map((value) => String(value || "").trim()).find(Boolean) || "";
+    }
+
+    function toggleAdvancedMode() {
+      const enabled = document.body.classList.toggle("show-advanced");
+      advancedModeButton.querySelector("span").textContent = enabled ? "收起管理员高级设置" : "管理员高级设置";
+      advancedModeButton.querySelector("strong").textContent = enabled ? "－" : "＋";
+      if (enabled) {
+        document.getElementById("previewPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    async function runBeginnerLearning() {
+      if (state.authVerified !== true) {
+        beginnerLearningResult.textContent = "请先登录 Owner / Admin 账号，再让 AI 学习当前项目资料。";
+        return;
+      }
+      const previous = beginnerLearnButton.textContent;
+      try {
+        beginnerLearnButton.disabled = true;
+        beginnerLearnButton.textContent = "AI 正在整理…";
+        beginnerLearningResult.textContent = "正在保存项目学习草稿；不会发送顾客讯息，也不会触发 Flow。";
+        const setupIntake = collectSetupIntake();
+        const file = projectDocumentFile.files?.[0] || null;
+        const faqUrl = String(setupIntake.faq_google_doc_url || "").trim();
+        const teachingText = buildBeginnerTeachingText(setupIntake);
+        const hasBusinessAnswer = [
+          "business_primary_offer",
+          "why_it_works",
+          "why_customer_buys",
+          "why_trust_us",
+          "offer_to_order",
+          "safety_boundary"
+        ].some((key) => String(setupIntake[key] || "").trim());
+        if (!faqUrl && !file && teachingText.length < 80 && !hasBusinessAnswer) {
+          throw new Error("请至少贴一份 FAQ、加入一个文件，或写下你知道的项目内容。");
+        }
+
+        const saved = await createProject({ allowDraft: true, ownerApproved: false });
+        if (!saved) throw new Error("项目学习草稿还没有保存成功。");
+
+        const learned = [];
+        const attention = [];
+        if (faqUrl) {
+          try {
+            const faqStudy = await connectAndStudyBeginnerFaq(faqUrl);
+            learned.push(faqStudy.unchanged ? "FAQ 已是最新版本" : `FAQ ${Number(faqStudy.faq_count || 0)} 条`);
+          } catch (error) {
+            attention.push(`FAQ：${error.message || error}`);
+          }
+        }
+        if (file) {
+          const fileStudy = await analyzeProjectDocument();
+          if (fileStudy) learned.push(`文件：${file.name}`);
+          else attention.push(`文件：${file.name} 尚未完成分析`);
+        } else if (!faqUrl && teachingText.length >= 80) {
+          try {
+            await analyzeBeginnerTeachingText(teachingText);
+            learned.push("你提供的项目说明");
+          } catch (error) {
+            attention.push(`项目说明：${error.message || error}`);
+          }
+        }
+
+        const canonicalPackage = await apiGet(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/package`);
+        state.salesPackageResponse = canonicalPackage;
+        state.existingPackageResponse = canonicalPackage;
+        applyExistingProjectOnboarding(canonicalPackage.project_package || {}, state.existingProject || {
+          project_key: currentProjectKey(),
+          name: setupIntake.company_name
+        });
+        await loadLearningReview();
+        const summary = state.learningReview?.summary || {};
+        const pending = Number(summary.pending_items || 0);
+        const sensitive = Number(summary.sensitive_pending_items || 0) + Number(summary.high_pending_items || 0);
+        const businessAnswers = canonicalPackage?.project_package?.business_onboarding?.answers || {};
+        const businessCount = [
+          "business_primary_offer",
+          "why_it_works",
+          "why_customer_buys",
+          "why_trust_us",
+          "offer_to_order",
+          "safety_boundary"
+        ].filter((key) => String(businessAnswers[key] || "").trim()).length;
+        const ownerApproved = canonicalPackage?.project_package?.business_onboarding?.owner_signoff?.approved === true;
+        beginnerConfirmButton.hidden = businessCount !== 6 || ownerApproved;
+        beginnerLearningResult.textContent = attention.length
+          ? `AI 已整理 ${learned.join("、") || "可读取资料"}。有 ${attention.length} 项需要处理：${attention.join("；")}`
+          : `AI 已整理 ${learned.join("、") || "项目资料"}，自动完成 ${businessCount}/6 项业务理解，并产生 ${pending} 条待确认内容；其中 ${sensitive} 条属于敏感 / 高风险。下一步只处理这些不确定项。`;
+        document.getElementById("learningReviewPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (error) {
+        beginnerLearningResult.textContent = `还不能开始学习：${error.message || error}`;
+      } finally {
+        beginnerLearnButton.disabled = false;
+        beginnerLearnButton.textContent = previous;
+      }
+    }
+
+    async function confirmBeginnerUnderstanding() {
+      const previous = beginnerConfirmButton.textContent;
+      try {
+        beginnerConfirmButton.disabled = true;
+        beginnerConfirmButton.textContent = "正在确认…";
+        const saved = await createProject({ allowDraft: true, ownerApproved: true });
+        if (!saved) throw new Error("AI 的业务理解还没有保存成功。");
+        const adopted = await approveBeginnerStandardDrafts();
+        beginnerConfirmButton.hidden = true;
+        beginnerLearningResult.textContent = `AI 的业务理解已确认，并采用 ${adopted} 条来源清楚的一般资料。接下来只处理有冲突、缺来源或敏感的学习项；不会发送顾客讯息，也不会触发 Flow。`;
+        document.getElementById("learningReviewPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (error) {
+        beginnerLearningResult.textContent = `还不能确认：${error.message || error}`;
+      } finally {
+        beginnerConfirmButton.disabled = false;
+        beginnerConfirmButton.textContent = previous;
+      }
+    }
+
+    async function approveBeginnerStandardDrafts() {
+      await loadLearningReview();
+      const items = Array.isArray(state.learningReview?.items) ? state.learningReview.items : [];
+      const decisions = items
+        .filter((item) => item.pending === true && ["standard", "low"].includes(String(item.risk?.level || "").toLowerCase()))
+        .map((item) => ({
+          asset_type: item.asset_type,
+          asset_id: item.id,
+          decision: "approve",
+          reason: "Owner confirmed the AI-organized beginner onboarding source.",
+          confirm_sensitive: false
+        }));
+      if (!decisions.length || !state.learningReview?.version_no) return 0;
+      const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/learning-review/batch`, {
+        expected_version_no: state.learningReview.version_no,
+        decisions
+      });
+      state.learningReview = data;
+      state.learningReviewDrafts.clear();
+      renderLearningReview();
+      updateReviewBatchButton();
+      updateOnboardingProgress();
+      return Number(data.reviewed_count || decisions.length);
+    }
+
+    function buildBeginnerTeachingText(setupIntake = {}) {
+      return [
+        setupIntake.source_notes,
+        setupIntake.business_primary_offer ? `我们卖什么：${setupIntake.business_primary_offer}` : "",
+        setupIntake.why_it_works ? `为什么有效：${setupIntake.why_it_works}` : "",
+        setupIntake.why_customer_buys ? `顾客为什么买：${setupIntake.why_customer_buys}` : "",
+        setupIntake.why_trust_us ? `信任依据：${setupIntake.why_trust_us}` : "",
+        setupIntake.offer_to_order ? `价格付款与下单：${setupIntake.offer_to_order}` : "",
+        setupIntake.safety_boundary ? `不能讲与转人工边界：${setupIntake.safety_boundary}` : ""
+      ].map((item) => String(item || "").trim()).filter(Boolean).join("\n\n");
+    }
+
+    async function connectAndStudyBeginnerFaq(documentUrl) {
+      const projectKey = currentProjectKey();
+      const connected = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/knowledge-sources/google-docs`, {
+        document_url: documentUrl,
+        writeback_enabled: false,
+        study_enabled: true,
+        updated_by: "owner_beginner_onboarding"
+      });
+      if (!connected?.source?.id) throw new Error("Google Doc 已收到，但没有建立可追踪的学习来源。");
+      return apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/knowledge-sources/${encodeURIComponent(connected.source.id)}/study`, {
+        force: false
+      });
+    }
+
+    async function analyzeBeginnerTeachingText(extractedText) {
+      const projectKey = currentProjectKey();
+      const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/analyze-document`, {
+        file_name: "Owner 提供的项目说明.txt",
+        file_type: "text/plain",
+        extracted_text: extractedText,
+        updated_by: "owner_beginner_onboarding"
+      });
+      state.documentKnowledge = data;
+      markOnboardingDraft();
+      renderDocumentKnowledge(data, "你提供的项目说明");
+      return data;
     }
 
     function setFormValue(id, value) {
@@ -1975,14 +2304,23 @@
       }
     }
 
-    async function createProject() {
-      if (!createConfirm.checked) {
+    async function createProject(options = {}) {
+      const allowDraft = options?.allowDraft === true;
+      const explicitOwnerApproval = options?.ownerApproved === true || (!allowDraft && createConfirm.checked);
+      if (!allowDraft && !createConfirm.checked) {
         addLog("还没完成 Owner 验收", "请先预览业务大脑，核对六项资料，再勾选 Owner 验收确认。", true);
-        return;
+        return null;
       }
       try {
         setButtons(false);
         const setupIntake = collectSetupIntake();
+        const businessQuestionKeys = ONBOARDING_TEMPLATE.sections
+          .find((section) => section.key === "business_training")
+          .fields.map((field) => field.key);
+        const hasAllBusinessAnswers = businessQuestionKeys.every((key) => String(setupIntake[key] || "").trim());
+        if (explicitOwnerApproval && !hasAllBusinessAnswers) {
+          throw new Error("还有业务理解没有确认。可以先按「让 AI 学习并整理」，等 AI 整理后只补缺少的内容。");
+        }
         const projectKey = setupIntake.project_key;
         const existing = await apiGet(`/api/admin/projects/${encodeURIComponent(projectKey)}`);
         const existingProject = Array.isArray(existing.projects) ? existing.projects[0] : null;
@@ -2012,14 +2350,18 @@
             }
           });
         }
+        const existingOwnerApproved = currentPackageResponse?.project_package?.business_onboarding?.owner_signoff?.approved === true;
+        const ownerApproved = hasAllBusinessAnswers && (explicitOwnerApproval || existingOwnerApproved);
         const projectPackage = existingProject
-          ? buildExistingProjectMigrationPackage(currentPackageResponse.project_package, setupIntake)
-          : buildProjectPackage(setupIntake, true);
+          ? buildExistingProjectMigrationPackage(currentPackageResponse.project_package, setupIntake, ownerApproved)
+          : buildProjectPackage(setupIntake, ownerApproved);
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`, {
           project_package: projectPackage,
-          note: existingProject
-            ? "Owner approved existing-project six-question migration draft"
-            : "Owner approved six-question onboarding draft",
+          note: ownerApproved
+            ? (existingProject
+              ? "Owner approved existing-project business understanding draft"
+              : "Owner approved beginner onboarding draft")
+            : "Beginner onboarding learning draft",
           expected_version_no: existingProject ? Number(currentPackageResponse.version_no || 0) : 0
         });
         state.created = data;
@@ -2033,19 +2375,23 @@
         lockProjectIdentity();
         updateProjectLinks();
         addLog(
-          existingProject ? "Owner 已验收，现有项目迁移草稿已保存" : "Owner 已验收，项目草稿已创建",
+          ownerApproved
+            ? (existingProject ? "Owner 已确认，现有项目学习草稿已保存" : "Owner 已确认，项目草稿已创建")
+            : "项目学习草稿已保存，AI 可以开始整理",
           `Project: ${data.project_key || projectKey}，草稿版本 ${data.version_no || "-"}。旧资料与自动化设置没有被覆盖；必须重新通过 Mock Test 才能发布。`
         );
         previewMetrics.innerHTML = [
           metricHtml("项目", projectKey),
-          metricHtml("业务六问", "6 / 6"),
-          metricHtml("Owner", "已验收"),
+          metricHtml("业务理解", `${businessQuestionKeys.filter((key) => String(setupIntake[key] || "").trim()).length} / 6`),
+          metricHtml("Owner", ownerApproved ? "已确认" : "待确认"),
           metricHtml("自动发送 / Flow", "关闭 / 关闭")
         ].join("");
         await Promise.all([loadLearningReview(), loadSalesJourney()]);
         updateOnboardingProgress();
+        return data;
       } catch (error) {
         addLog("创建失败", error.message || String(error), true);
+        return null;
       } finally {
         setButtons(true);
       }
@@ -2095,6 +2441,7 @@
         .find((section) => section.key === "business_training")
         .fields.map((field) => field.key);
       const answers = Object.fromEntries(questionKeys.map((key) => [key, setupIntake[key]]));
+      const completedQuestionKeys = questionKeys.filter((key) => String(answers[key] || "").trim());
       const now = new Date().toISOString();
       return {
         schema_version: "replypilot.project_brain.v2",
@@ -2108,17 +2455,17 @@
         },
         brand_brain: {
           brand_name: setupIntake.company_name,
-          positioning: setupIntake.business_primary_offer,
-          audience: [setupIntake.why_customer_buys],
+          positioning: setupIntake.business_primary_offer || "",
+          audience: setupIntake.why_customer_buys ? [setupIntake.why_customer_buys] : [],
           do: ["先回答顾客真正的问题", "资料不足就确认或转人工"],
-          dont: [setupIntake.safety_boundary]
+          dont: setupIntake.safety_boundary ? [setupIntake.safety_boundary] : []
         },
         business_onboarding: {
           schema_version: "replypilot.business_onboarding.v1",
           template_key: "first_layer_customer_onboard_default_v1",
           status: ownerApproved ? "owner_approved" : "draft",
           answers,
-          completed_question_keys: questionKeys,
+          completed_question_keys: completedQuestionKeys,
           owner_signoff: {
             approved: ownerApproved === true,
             status: ownerApproved ? "approved" : "pending",
@@ -2177,8 +2524,8 @@
       };
     }
 
-    function buildExistingProjectMigrationPackage(currentPackage, setupIntake) {
-      const ownerPackage = buildProjectPackage(setupIntake, true);
+    function buildExistingProjectMigrationPackage(currentPackage, setupIntake, ownerApproved = false) {
+      const ownerPackage = buildProjectPackage(setupIntake, ownerApproved);
       const now = new Date().toISOString();
       return {
         ...currentPackage,
@@ -2207,7 +2554,9 @@
           },
           owner_signoff: {
             ...ownerPackage.business_onboarding.owner_signoff,
-            statement: "Owner confirmed all six business answers for the existing project migration."
+            statement: ownerApproved
+              ? "Owner confirmed the AI-organized business understanding for the existing project."
+              : "AI-organized business understanding is waiting for Owner confirmation."
           }
         },
         metadata: {
@@ -2256,11 +2605,11 @@
       const file = projectDocumentFile.files?.[0];
       if (!projectKey) {
         setDocumentStatus("请先保存项目草稿", "bad");
-        return;
+        return null;
       }
       if (!file) {
         setDocumentStatus("请选择资料文件", "bad");
-        return;
+        return null;
       }
       const previous = analyzeDocumentButton.textContent;
       try {
@@ -2286,9 +2635,11 @@
         renderDocumentKnowledge(data, file.name);
         await loadLearningReview();
         updateOnboardingProgress();
+        return data;
       } catch (error) {
         setDocumentStatus("资料处理失败", "bad");
         documentResult.textContent = error.message || String(error);
+        return null;
       } finally {
         analyzeDocumentButton.disabled = false;
         analyzeDocumentButton.textContent = previous;
