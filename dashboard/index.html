@@ -17352,18 +17352,132 @@
       }
 
       function normalizedSalesStepUiState(stepCountValue, priceStageKey = "") {
-        const stepCount = Math.max(1, Math.min(4, Number(stepCountValue) || 4));
-        const requestedPriceOrder = Number(String(priceStageKey || "").replace(/\D+/g, "")) || stepCount;
-        const priceStageOrder = Math.max(1, Math.min(stepCount, requestedPriceOrder));
+        const requestedStepCount = Number(stepCountValue);
+        const stepCount = Number.isInteger(requestedStepCount) && requestedStepCount >= 1 && requestedStepCount <= 4
+          ? requestedStepCount
+          : 0;
+        const requestedPriceOrder = Number(String(priceStageKey || "").replace(/\D+/g, ""))
+          || configuredSalesStageOrder(priceStageKey);
+        const priceStageOrder = stepCount > 0
+          && Number.isInteger(requestedPriceOrder)
+          && requestedPriceOrder >= 1
+          && requestedPriceOrder <= stepCount
+          ? requestedPriceOrder
+          : 0;
         return {
           stepCount,
           priceStageOrder,
-          priceStageKey: `step_${priceStageOrder}`
+          priceStageKey: priceStageOrder > 0 ? `step_${priceStageOrder}` : ""
         };
       }
 
+      function configuredProjectSalesProcess() {
+        const salesProcess = state.projectKnowledge?.sales_process;
+        return salesProcess && typeof salesProcess === "object" ? salesProcess : {};
+      }
+
+      function configuredProjectSalesStages() {
+        const salesProcess = configuredProjectSalesProcess();
+        return (Array.isArray(salesProcess.stages) ? salesProcess.stages : [])
+          .filter((stage) => stage && typeof stage === "object")
+          .map((stage, index) => ({
+            ...stage,
+            order: Number(stage.order || index + 1) || index + 1
+          }))
+          .sort((a, b) => a.order - b.order);
+      }
+
+      function normalizedSalesStageIdentifier(value = "") {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[\s-]+/g, "_");
+      }
+
+      function configuredSalesStageOrder(value = "") {
+        const normalized = normalizedSalesStageIdentifier(value);
+        if (!normalized) return 0;
+        const stages = configuredProjectSalesStages();
+        const exactStage = stages.find((stage) => [
+          stage.stage_key,
+          stage.key,
+          stage.id
+        ].some((candidate) => normalizedSalesStageIdentifier(candidate) === normalized));
+        if (exactStage) return Number(exactStage.order || 0);
+        const genericStep = normalized.match(/^(?:step|s)_?([1-4])$/i);
+        return genericStep ? Number(genericStep[1]) : 0;
+      }
+
+      function configuredPriceStageOrder() {
+        const salesProcess = configuredProjectSalesProcess();
+        return configuredSalesStageOrder(salesProcess.price_stage_key);
+      }
+
+      function configuredUserCurrentStepOrder(contextText = "") {
+        const text = String(contextText || "");
+        const matches = [...text.matchAll(/user_current_step.{0,24}?(?:step|s)[_\s-]?([1-4])/ig)];
+        return matches.length ? Number(matches[matches.length - 1][1]) : 0;
+      }
+
+      function configuredPriceFlowExecutedEvidence(contextText = "") {
+        const text = String(contextText || "");
+        if (!text) return false;
+        const explicitExecution = /(automation\s+sent|flow[_\s-]?(?:sent|triggered|executed|progressed|continued)|(?:已发送|已發送|已触发|已觸發|已执行|已執行).{0,20}flow|flow.{0,20}(?:已发送|已發送|已触发|已觸發|已执行|已執行))/i.test(text);
+        if (!explicitExecution) return false;
+        const priceStageOrder = configuredPriceStageOrder();
+        const priceStage = configuredProjectSalesStages().find((stage) => Number(stage.order || 0) === priceStageOrder);
+        const configuredFlowIdentifiers = [
+          priceStage?.flow_key,
+          priceStage?.provider_flow_id,
+          priceStage?.provider_bot_id,
+          priceStage?.flow_name,
+          priceStage?.title
+        ].map((value) => String(value || "").trim()).filter((value) => value.length >= 3);
+        const lowerText = text.toLowerCase();
+        if (configuredFlowIdentifiers.some((value) => lowerText.includes(value.toLowerCase()))) return true;
+        return /(?:价格图|價格圖|价格\s*flow|價格\s*flow|price\s*flow|pricing\s*flow|offer\s*flow|promo\s*flow)/i.test(text);
+      }
+
+      function isConfiguredPostPriceStage(stageValue = "", contextText = "") {
+        const priceStageOrder = configuredPriceStageOrder();
+        const stageOrder = configuredSalesStageOrder(stageValue);
+        if (priceStageOrder > 0 && stageOrder >= priceStageOrder) return true;
+        const currentStepOrder = configuredUserCurrentStepOrder(contextText);
+        if (priceStageOrder > 0 && currentStepOrder >= priceStageOrder) return true;
+        const evidenceText = String(contextText || "");
+        const positivePriceSeen = /\bprice_seen\b(?!["']?\s*[:=]\s*(?:false|0)\b)/i.test(evidenceText);
+        if (positivePriceSeen || /看价后|看價後|看过价格|看過價格|\bprice_objection\b|\btrust_after_price\b|Flow后问价|Flow後問價/i.test(evidenceText)) {
+          return true;
+        }
+        return configuredPriceFlowExecutedEvidence(contextText);
+      }
+
+      function isConfiguredPrePriceStage(stageValue = "") {
+        const priceStageOrder = configuredPriceStageOrder();
+        const stageOrder = configuredSalesStageOrder(stageValue);
+        return priceStageOrder > 0 && stageOrder > 0 && stageOrder < priceStageOrder;
+      }
+
+      function configuredPrePriceFlowEvidence(contextText = "") {
+        const text = String(contextText || "").toLowerCase();
+        const priceStageOrder = configuredPriceStageOrder();
+        if (!text || priceStageOrder <= 0) return false;
+        return configuredProjectSalesStages()
+          .filter((stage) => Number(stage.order || 0) < priceStageOrder)
+          .some((stage) => [
+            stage.flow_key,
+            stage.provider_flow_id,
+            stage.provider_bot_id,
+            stage.flow_name,
+            stage.title
+          ].map((value) => String(value || "").trim().toLowerCase())
+            .filter((value) => value.length >= 3)
+            .some((value) => text.includes(value)));
+      }
+
       function salesPriceStageOptionsHtml(stepCount, selectedOrder) {
-        return Array.from({ length: stepCount }, (_, index) => {
+        const placeholder = `<option value="" ${selectedOrder ? "" : "selected"}>请选择价格出现在哪个 Step</option>`;
+        return placeholder + Array.from({ length: stepCount }, (_, index) => {
           const order = index + 1;
           return `<option value="step_${order}" ${order === selectedOrder ? "selected" : ""}>Step ${order}</option>`;
         }).join("");
@@ -17376,6 +17490,7 @@
         const uiState = normalizedSalesStepUiState(stepCountInput.value, priceStageInput.value);
         priceStageInput.innerHTML = salesPriceStageOptionsHtml(uiState.stepCount, uiState.priceStageOrder);
         priceStageInput.value = uiState.priceStageKey;
+        priceStageInput.disabled = uiState.stepCount <= 0;
         const grid = document.querySelector("[data-sales-steps-grid]");
         if (grid) grid.dataset.salesStepCount = String(uiState.stepCount);
         document.querySelectorAll("[data-sales-stage-row]").forEach((row) => {
@@ -17440,19 +17555,23 @@
             ...(assets.closer_scripts || []).map((item) => ({ ...item, group: "成交话术" }))
           ];
           const configuredStages = Array.isArray(salesProcess.stages) ? salesProcess.stages : [];
-          const salesStepUiState = normalizedSalesStepUiState(salesProcess.step_count, salesProcess.price_stage_key);
+          const configuredStepCount = Number(salesProcess.step_count)
+            || (configuredStages.length >= 1 && configuredStages.length <= 4 ? configuredStages.length : 0);
+          const salesStepUiState = normalizedSalesStepUiState(configuredStepCount, salesProcess.price_stage_key);
           const flowCatalogStatus = projectFlowCatalogStatus();
           const stageRows = Array.from({ length: 4 }, (_, index) => {
+            const stageOrder = index + 1;
             const stage = configuredStages[index] || {
-              stage_key: `step_${index + 1}`,
-              order: index + 1,
-              purpose: ["介绍产品，并了解顾客面对的问题", "核心卖点、顾客可获得的结果与产品成分", "顾客见证、线下店、认证与信任", "价格、有效优惠与成交邀请"][index],
-              flow_key: `s${index + 1}`,
+              stage_key: `step_${stageOrder}`,
+              order: stageOrder,
+              purpose: stageOrder === salesStepUiState.priceStageOrder
+                ? "价格、有效优惠与成交邀请"
+                : ["介绍产品，并了解顾客面对的问题", "核心卖点、顾客可获得的结果与产品成分", "顾客见证、线下店、认证与信任", "项目自定义的下一段销售内容"][index],
+              flow_key: `s${stageOrder}`,
               provider_flow_id: "",
               provider_bot_id: "",
               contains_media: false,
             };
-            const stageOrder = index + 1;
             return `<div class="settings-box" data-sales-stage-row="${stageOrder}" ${stageOrder > salesStepUiState.stepCount ? "hidden" : ""} aria-hidden="${stageOrder > salesStepUiState.stepCount ? "true" : "false"}">
               <h3 data-sales-stage-title>Step ${stageOrder}${stageOrder === salesStepUiState.priceStageOrder ? " · 价格阶段" : ""}</h3>
               <div class="field-grid">
@@ -17516,8 +17635,8 @@
               <summary>销售流程</summary>
               <div class="settings-section-body">
                 <div class="field-grid">
-                  <label>项目有几个销售 Step<select id="salesStepCountInput">${[1,2,3,4].map((count) => `<option value="${count}" ${salesStepUiState.stepCount === count ? "selected" : ""}>${count} Step</option>`).join("")}</select></label>
-                  <label>哪个 Step 会显示价格<select id="salesPriceStageInput">${priceOptions}</select></label>
+                  <label>项目有几个销售 Step<select id="salesStepCountInput"><option value="" ${salesStepUiState.stepCount ? "" : "selected"}>请选择 1–4 Steps</option>${[1,2,3,4].map((count) => `<option value="${count}" ${salesStepUiState.stepCount === count ? "selected" : ""}>${count} Step</option>`).join("")}</select></label>
+                  <label>哪个 Step 会显示价格<select id="salesPriceStageInput" ${salesStepUiState.stepCount ? "" : "disabled"}>${priceOptions}</select></label>
                 </div>
                 <div class="settings-grid" data-sales-steps-grid data-sales-step-count="${salesStepUiState.stepCount}">${stageRows}</div>
               </div>
@@ -21188,7 +21307,7 @@
           ? "624后问价≠回624：先答RM150/15小包；优先问安排一盒"
           : "Shopee/624提醒不是订单；先答当前价梯；再问配套";
       }
-      const postPriceContext = /(STEP_4|user_current_step.{0,16}step_4|看价后|看價後|price_objection|trust_after_price|Flow后问价|Flow後問價)/i.test(sourceText);
+      const postPriceContext = isConfiguredPostPriceStage(firstContextText(closer?.stage, item?.latest_decision?.stage, item?.stage), sourceText);
       if (directPriceQuestion && postPriceContext) {
         return "看价后问价：答当前价+给信心；CTA成交/收单";
       }
@@ -22674,13 +22793,18 @@
         showToast("请先登录真实项目账号。");
         return false;
       }
-      const stepCount = Math.max(1, Math.min(4, Number($("salesStepCountInput")?.value || 4)));
-      const priceStageKey = String($("salesPriceStageInput")?.value || `step_${stepCount}`);
-      const channelProvider = String($("salesChannelProviderInput")?.value || "chatdaddy").trim().toLowerCase();
-      if (Number(priceStageKey.replace(/\D+/g, "")) > stepCount) {
-        showToast("价格阶段不能超过项目的 Step 数量。");
-        return false;
-      }
+	      const stepCount = Number($("salesStepCountInput")?.value || 0);
+	      const priceStageKey = String($("salesPriceStageInput")?.value || "").trim();
+	      const channelProvider = String($("salesChannelProviderInput")?.value || "chatdaddy").trim().toLowerCase();
+	      if (!Number.isInteger(stepCount) || stepCount < 1 || stepCount > 4) {
+	        showToast("请先选择项目实际有几个销售 Step。");
+	        return false;
+	      }
+	      const priceStageOrder = Number(priceStageKey.replace(/\D+/g, ""));
+	      if (!priceStageKey || !Number.isInteger(priceStageOrder) || priceStageOrder < 1 || priceStageOrder > stepCount) {
+	        showToast("请选择这个项目实际在哪个 Step 显示价格。");
+	        return false;
+	      }
       const stages = Array.from({ length: stepCount }, (_, index) => {
         const order = index + 1;
         const flowSelect = document.querySelector(`[data-sales-flow-catalog="${order}"]`);
@@ -23970,7 +24094,7 @@
 	      const fearNoEffectQuestion = /(?:怕|担心|擔心|worry|afraid|scared).{0,28}(?:没效|沒效|没效果|沒效果|没有效果|沒有效果|无效|無效|浪费|浪費|waste|not\s+effective|no\s+result)|(?:浪费钱|浪費錢|waste\s+money).{0,28}(?:怕|担心|擔心|worry|afraid|买|買|buy|purchase)?/i.test(signalText);
 	      const paymentOrService = /(付款|付钱|付錢|汇款|匯款|receipt|payment|payex|grabpay|ewallet|银行卡|信用卡|送货|送貨|delivery|shipping|订单|訂單|下单|下單|refund|退款|没效果|沒效果|不舒服|想吐|售后|售後|after_sales|complaint|order|receipt|payment_method)/i.test(signalText);
 	      const flowAction = action.includes("flow");
-	      const postPriceStage = stage === "STEP_4" || stage === "S4" || /(price|early_price|objection|discount|promotion|promo|trust_after_price)/i.test(intent);
+	      const postPriceStage = isConfiguredPostPriceStage(stage, `${sourceText} ${intent}`);
 	      const noCustomerText = !String(customerText || "").trim() || /^(?:顾客没有文字讯息|顾客没有文字信息|没有顾客文字|无新文字问题[，, ]*Flow\s*已继续|no\s+customer\s+(?:text|message))$/i.test(String(customerText || "").trim());
 	      const automationOnlyFlowContext = noCustomerText && (
 	        flowAction || /(Smart delay|Automation sent|Broadcast|user_current_step|Custom field changed|Flow|Step\s*\d|STEP_\d|Promo|Sequence)/i.test(`${sourceText} ${nextFlow} ${intent} ${action}`)
@@ -23983,12 +24107,12 @@
 	        };
 	      }
 	      if (directPriceQuestion) {
-	        const priceStageSeen = stage === "STEP_4" || stage === "S4" || /(objection|discount|promotion|promo|trust_after_price)/i.test(intent);
-	        const directNewPriceQuestion = !oneBoxQuestion && !priceStageSeen && !/(Broadcast|Smart delay|Automation sent|订单资料|訂單資料|通知|提醒|SHOPEE|LAST\s*CALL|META\s*DAY|PAYDAY|user_current_step.{0,12}step_4)/i.test(signalText);
+	        const priceStageSeen = isConfiguredPostPriceStage(stage, `${sourceText} ${intent}`);
+	        const directNewPriceQuestion = !oneBoxQuestion && !priceStageSeen && !/(Broadcast|Smart delay|Automation sent|订单资料|訂單資料|通知|提醒|SHOPEE|LAST\s*CALL|META\s*DAY|PAYDAY)/i.test(signalText);
 	        if (directNewPriceQuestion) {
 	          return {
             answer: "Direct 新客只问“多少钱”时，先短桥接：先让她了解产品，再给优惠价格；不要直接收单。",
-            after: `接 ManyChat 产品 Flow：Step 1 产品定位 -> 需求按钮 -> Step 3 认证/反馈/喝法 -> Step 4 价格/成交：${nextFlow || "优先接 Step 1 / 产品 Flow"}`,
+	            after: `接这个项目当前阶段对应的产品 / 教育 Flow，再按项目配置推进到价格阶段：${nextFlow || "优先接当前阶段对应 Flow"}`,
             learning: "可学：顾客问价 -> 桥接回复 -> 接 Flow；Flow 是下一步动作，不能把蓝色 Flow 文案当成顾客问答。"
 	          };
 	        }
@@ -24572,8 +24696,9 @@
       const riskOrOps = /(付款|付钱|付錢|receipt|payment|pay|订单|訂單|收据|收據|delivery|shipping|refund|退款|投诉|投訴|complaint|怀孕|懷孕|吃药|吃藥|糖尿|血糖|不舒服|售后|售後|after.?sales)/i.test(combined);
       const priceQuestion = /(多少钱|多少錢|价钱|價錢|价格|價格|how\s+much|price|package|配套|一盒|1\s*盒|rm\s*\d+)/i.test(combined);
       const productQuestion = /(怎么|怎样|怎樣|喝法|用法|一天|几次|幾次|成分|效果|有效|安全吗|安全嗎|副作用|阻断|阻斷|燃脂|排宿便|口味|flavou?r|why|how|what|beyoute|plus)/i.test(combined);
-      const earlyStage = /(step\s*[123]|s[123]|顾客咨询|普通问题|新问题|了解)/i.test(combined) || productQuestion;
-      const postPriceStage = priceQuestion || /(step\s*[45]|s[45]|closing|cta|成交|价格|價格|配套|活动|活動|promo|promotion|优惠|優惠)/i.test(`${combined} ${lowerStage}`);
+	      const postPriceStage = isConfiguredPostPriceStage(stage, combined);
+	      const earlyStage = isConfiguredPrePriceStage(stage)
+	        || (!postPriceStage && (/(顾客咨询|普通问题|新问题|了解)/i.test(combined) || productQuestion));
       const hasCurrentPrice = /(?:1\s*(?:盒|box)\s*RM\s*150|2\s*(?:盒|boxes?)\s*RM\s*258|3\s*(?:盒|boxes?)\s*RM\s*378|RM\s*(?:150|258|378)\b)/i.test(reply);
       const hasTrust = /(放心|真实|真實|反馈|反饋|顾客|顧客|资料|資料|为什么|為什麼|阻断|阻斷|燃脂|排宿便|review|testimonial|confidence|result)/i.test(reply);
       const hasCta = /(我帮你|我幫你|帮你安排|幫你安排|先试|先試|适合你|適合你|要拿|下单|下單|订|訂|order|配套|1\s*盒|2\s*盒|3\s*盒|RM\s*(?:150|258|378))/i.test(reply);
@@ -24590,7 +24715,7 @@
         });
       }
 
-      if (!riskOrOps && (earlyStage || flowRequested)) {
+	      if (!riskOrOps && (earlyStage || (flowRequested && !postPriceStage))) {
         rows.push({
           label: "价格图前",
           detail: "Step 前：先回答顾客问题，再接对应教育/信心 Flow；没答完不能接 Flow。",
@@ -25618,11 +25743,14 @@
 	      const unknownPackageQuotedPriceDraft = unknownPackagePriceQuestion && /(?:4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|hidden\s+package|隐藏配套|隱藏配套|隐藏优惠|隱藏優惠|特殊配套|特別配套|特殊价|特殊價|老板价|老闆價|内部价|內部價).{0,64}RM\s*(?!150\b|258\b|378\b)\d{3,}|RM\s*(?!150\b|258\b|378\b)\d{3,}.{0,64}(?:4\s*\+\s*2|4\s*盒\s*送\s*2\s*盒|hidden\s+package|隐藏配套|隱藏配套|隐藏优惠|隱藏優惠|特殊配套|特別配套|特殊价|特殊價|老板价|老闆價|内部价|內部價)/i.test(draftText);
 	      const unknownPackageSafeBoundaryDraft = unknownPackagePriceQuestion && (currentPriceLadderAnswered || oneBoxPriceAnswered) && asksTeamConfirmUnknownPackage && !unknownPackageQuotedPriceDraft;
 	      const unknownPackageInventedDraft = unknownPackagePriceQuestion && (unknownPackageQuotedPriceDraft || (unknownPackageMentionedInDraft && /RM\s*(?:446|508|548|588|658|698|798|888)/i.test(draftText) && !asksTeamConfirmUnknownPackage));
-	      const priceStageSeen = stage === "STEP_4" || stage === "S4" || /user_current_step.{0,16}step_4/i.test(languageSwitchContextText) || /(price_objection|trust_after_price|discount|promotion|promo)/i.test(intent);
+	      const priceStageSeen = isConfiguredPostPriceStage(stage, `${languageSwitchContextText} ${flowContextText} ${intent}`);
 	      const broadcastOrOrderPriceContext = /(Broadcast|624|SHOPEE|Shopee|订单资料|訂單資料|订单提醒|訂單提醒|通知|提醒|LAST\s*CALL|META\s*DAY|PAYDAY)/i.test(languageSwitchContextText);
 	      const directNewPriceContext = directPriceQuestion && !oneBoxSpecificQuestion && !priceStageSeen && !broadcastOrOrderPriceContext;
 	      const directPriceBridgeDraft = directPriceQuestion && /(?:先|first).{0,20}(?:了解|讓你了解|让你了解|看|介绍|介紹|share|show).{0,30}(?:产品|產品|Beyoute|喝法|重点|重點|价|價|price|promotion|优惠|優惠).{0,30}(?:再|才|then|after).{0,24}(?:价|價|price|优惠|優惠|promotion)|(?:先让你了解|先讓你了解).{0,24}(?:产品|產品).{0,24}(?:价|價|优惠|優惠)/i.test(draftText);
-	      const directPriceEducationFlow = flowAction && /(STEP_[1-3]|S[1-3]|step\s*[1-3]|11a|22a|33a|产品|產品|喝法|背景|认证|認證|education|intro)/i.test([flowContextText, stage].filter(Boolean).join(" "));
+	      const directPriceEducationFlow = flowAction && (
+	        configuredPrePriceFlowEvidence(flowContextText)
+	        || (isConfiguredPrePriceStage(stage) && /(产品|產品|喝法|背景|认证|認證|education|intro)/i.test(flowContextText))
+	      );
 	      const directPriceBridgeSafe = directNewPriceContext && directPriceBridgeDraft && directPriceEducationFlow;
 	      const directPriceBridgeMissingAnswer = false;
 	      const directPriceBridgeMissingFlow = directNewPriceContext && directPriceBridgeDraft && !directPriceEducationFlow;
@@ -26102,13 +26230,13 @@
 	        return { tone: "fix", title: "不能过：具体问价别接教育 Flow", reason: "顾客已经问一盒/1 box 多少钱；这不是普通 Direct 问价桥接。先答 1盒 RM150 + 15小包/15天，再给一盒试喝 CTA，不能只说先了解产品。" };
 	      }
 	      if (directPriceBridgeWrongStage) {
-	        return { tone: "fix", title: "不能过：看价后别接教育 Flow", reason: "顾客已经在 Step 4、Broadcast/624/Shopee 或活动语境里问价；这时不要只说先了解产品，也不要倒回 Step 1/2/3。先正面回答当前价，再接成交 CTA。" };
+		        return { tone: "fix", title: "不能过：看价后别接教育 Flow", reason: "顾客已经到达项目配置的价格阶段，或在 Broadcast/624/Shopee / 已看价语境里问价；这时不要只说先了解产品，也不要倒回价格前的教育 Flow。先正面回答当前价，再接成交 CTA。" };
 	      }
 	      if (directPriceBridgeSafe) {
-        return { tone: "review", title: "问价前可审：桥接后接Step1 Flow", reason: "ManyChat 李秀芬/Chai 这类 Direct 新客只问“多少钱”时，人工先短桥接“先让你了解产品，再给优惠价格”，再恢复 Step 1 / 产品 Flow。可学的是顾客问题 -> 桥接回复 -> 接 Flow；不是把 Flow 长文写成 FAQ。看过价格或问一盒时仍要先答当前价。" };
+	        return { tone: "review", title: "问价前可审：桥接后接产品 Flow", reason: "Direct 新客只问“多少钱”时，人工先短桥接“先让你了解产品，再给优惠价格”，再恢复项目当前的产品 / 教育 Flow。可学的是顾客问题 -> 桥接回复 -> 接 Flow；不是把 Flow 长文写成 FAQ。看过价格或问一盒时仍要先答当前价。" };
 	      }
 	      if (directPriceBridgeMissingFlow) {
-	        return { tone: "fix", title: "不能过：Direct问价缺Step3 Flow", reason: "Direct 新客问价时可以短桥接，但必须接 Step 3 背景/认证/线下店/喝法 Flow。只丢一句“先了解产品”没有下一步，客服会卡住。" };
+		        return { tone: "fix", title: "不能过：Direct问价缺教育 Flow", reason: "Direct 新客问价时可以短桥接，但必须接项目配置中价格阶段之前的对应产品 / 教育 Flow。只丢一句“先了解产品”没有下一步，客服会卡住。" };
 	      }
       if (unknownPackageInventedDraft) {
         return { tone: "fix", title: "不能过：未知配套别乱报", reason: "顾客问 4+2、隐藏配套、配套 B/C 或特殊价时，AI 不能自己编 RM508/RM658/老板价。只能先答已确认价，或请客服/老板确认后再补 FAQ/SOP。" };
@@ -26255,12 +26383,13 @@
       if (englishRequest && flowAction && englishFlowConfirmed) {
         return { tone: "pass", title: "英文可过：答完接英文 Flow", reason: "顾客要求英文，草稿整段英文，并且下一步 Flow 明确是 English；approval-first 下仍要客服确认。" };
       }
-      if (flowAction || ["STEP_1", "STEP_2", "STEP_3", "S1", "S2", "S3"].includes(stage)) {
-        return { tone: "pass", title: "看价前可过：答完接 Flow", reason: "问题答清楚后接下一段教育/信心 Flow；approval-first 下仍要客服批准。" };
-      }
-      if (stage === "STEP_4" || stage === "S4" || intent.includes("price") || intent.includes("objection") || intent.includes("trust")) {
-        return { tone: "review", title: "看价后可过：要信心 + 下单动作", reason: "不要再乱接普通 Flow；回答疑虑、补证明，然后给明确下单动作。" };
-      }
+	      const postPriceStage = isConfiguredPostPriceStage(stage, `${intent} ${decision.reason || ""} ${decision.operator_instruction || ""}`);
+	      if (!postPriceStage && (flowAction || isConfiguredPrePriceStage(stage))) {
+	        return { tone: "pass", title: "看价前可过：答完接 Flow", reason: "问题答清楚后接下一段教育/信心 Flow；approval-first 下仍要客服批准。" };
+	      }
+	      if (postPriceStage) {
+	        return { tone: "review", title: "看价后可过：要信心 + 下单动作", reason: "不要再乱接普通 Flow；回答疑虑、补证明，然后给明确下单动作。" };
+	      }
       if (decision.send_now) {
         return { tone: "review", title: "系统动作中，仍要看记录", reason: "固定流程可继续，但客服要确认没有订单、投诉或风险语境。" };
       }
