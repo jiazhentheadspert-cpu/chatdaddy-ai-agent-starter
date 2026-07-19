@@ -22661,12 +22661,13 @@
         showToast(`暂时不能发布：${firstBlocker}`);
         return;
       }
-      const studiedDraftCount = Object.values(state.projectKnowledge?.learning_assets || {})
+      const pendingLearningStatuses = new Set(["studied_draft", "draft", "pending", "pending_review", "proposed"]);
+      const pendingLearningCount = Object.values(state.projectKnowledge?.learning_assets || {})
         .flatMap((items) => Array.isArray(items) ? items : [])
-        .filter((item) => item?.status === "studied_draft").length;
-      if (studiedDraftCount > 0) {
+        .filter((item) => pendingLearningStatuses.has(String(item?.status || "draft").toLowerCase())).length;
+      if (pendingLearningCount > 0) {
         state.projectFaqFilter = "pending";
-        showToast(`还有 ${studiedDraftCount} 条学习草稿；请逐条批准或退回，系统不会再批量批准未检查内容。`);
+        showToast(`还有 ${pendingLearningCount} 条学习草稿；请逐条批准、修改后批准或退回。系统不会再批量批准未检查内容，所有待审核资料归零前不能发布。`);
         render();
         return;
       }
