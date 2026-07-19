@@ -947,15 +947,58 @@
       </section>
 
       <section class="panel">
-        <h2 class="section-title">第 4 步：绑定每个销售 Step 的真实 Flow</h2>
-        <p>只能从当前项目实时同步到的 ChatDaddy Flow 中选择；手写或猜测的 Bot ID 会被后端拒绝。</p>
+        <h2 class="section-title">第 4 步：选择销售 Flow</h2>
+        <p>按真实发送顺序选择。价格后的 Follow Up 最少 1 个、最多 10 个。</p>
+        <div class="grid">
+          <label>
+            <b>成交 Step 数</b>
+            <select id="salesStepCount">
+              <option value="1">1 Step</option>
+              <option value="2">2 Steps</option>
+              <option value="3">3 Steps</option>
+              <option value="4">4 Steps</option>
+            </select>
+          </label>
+          <label>
+            <b>价格所在 Step</b>
+            <select id="priceStageKey"></select>
+          </label>
+        </div>
+        <h3 class="section-title" style="margin-top:22px;">Step 1 到价格 Step</h3>
         <div class="flow-bindings" id="flowBindings">
           <div class="log-item">先完成 ChatDaddy 连接，系统才会显示真实 Flow。</div>
         </div>
-        <div class="actions">
-          <button class="btn primary" type="button" id="saveBindingsButton" disabled>保存 Step Flow 绑定</button>
+        <div id="followUpBindingsSection">
+          <div class="toolbar" style="margin-top:22px;">
+            <div>
+              <h3>价格后 Follow Up</h3>
+              <p>只给 AI 学习；ChatDaddy 继续负责定时发送。</p>
+            </div>
+            <label style="min-width:180px;">
+              <b>Follow Up 数量</b>
+              <select id="followUpCount">
+                <option value="0">请选择</option>
+                <option value="1">1 个</option>
+                <option value="2">2 个</option>
+                <option value="3">3 个</option>
+                <option value="4">4 个</option>
+                <option value="5">5 个</option>
+                <option value="6">6 个</option>
+                <option value="7">7 个</option>
+                <option value="8">8 个</option>
+                <option value="9">9 个</option>
+                <option value="10">10 个</option>
+              </select>
+            </label>
+          </div>
+          <div class="flow-bindings" id="followUpBindings">
+            <div class="log-item">请选择真实 Follow Up 数量。</div>
+          </div>
         </div>
-        <div class="safety-note">保存只会建立新的 Project Brain 草稿版本并修改 Step Flow 绑定；不会发布、不会发送讯息、不会触发 Flow，也不会改变自动化等级。</div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="saveBindingsButton" disabled>保存销售路线</button>
+        </div>
+        <div class="safety-note">只保存 Project Brain 草稿；不发布、不发送、不触发 Flow，也不改变自动化等级。</div>
       </section>
 
       <section class="panel">
@@ -993,6 +1036,8 @@
     let latestGuide = null;
     let latestFlowCatalog = [];
     let currentGuideVersion = 0;
+    let draftStageSelections = new Map();
+    let draftFollowUpSelections = new Map();
 
     const projectKeyEl = document.getElementById("projectKey");
     const providerEl = document.getElementById("provider");
@@ -1013,6 +1058,10 @@
     const readinessSummaryEl = document.getElementById("readinessSummary");
     const capabilityGridEl = document.getElementById("capabilityGrid");
     const flowBindingsEl = document.getElementById("flowBindings");
+    const followUpBindingsEl = document.getElementById("followUpBindings");
+    const salesStepCountEl = document.getElementById("salesStepCount");
+    const priceStageKeyEl = document.getElementById("priceStageKey");
+    const followUpCountEl = document.getElementById("followUpCount");
     const blockerListEl = document.getElementById("blockerList");
     const saveBindingsButtonEl = document.getElementById("saveBindingsButton");
     const projectIdentityConfirmedEl = document.getElementById("projectIdentityConfirmed");
@@ -1022,6 +1071,20 @@
     document.getElementById("loadButton").addEventListener("click", loadConnections);
     document.getElementById("readinessButton").addEventListener("click", loadConnections);
     saveBindingsButtonEl.addEventListener("click", saveFlowBindings);
+    salesStepCountEl.addEventListener("change", () => {
+      renderPriceStageOptions(priceStageKeyEl.value);
+      renderFlowBindingRows(latestGuide || {});
+    });
+    priceStageKeyEl.addEventListener("change", () => renderFlowBindingRows(latestGuide || {}));
+    followUpCountEl.addEventListener("change", () => renderFollowUpBindingRows());
+    flowBindingsEl.addEventListener("change", (event) => {
+      const select = event.target.closest(".flow-binding-select");
+      if (select) draftStageSelections.set(select.dataset.stageKey, select.value);
+    });
+    followUpBindingsEl.addEventListener("change", (event) => {
+      const select = event.target.closest(".follow-up-binding-select");
+      if (select) draftFollowUpSelections.set(Number(select.dataset.followUpOrder), select.value);
+    });
     document.getElementById("copyCommandsButton").addEventListener("click", copyCommands);
     document.getElementById("copyWebhookButton").addEventListener("click", copyWebhook);
     document.getElementById("copyOwnerTutorialButton").addEventListener("click", copyOwnerTutorial);
@@ -1227,10 +1290,12 @@
 
     function renderFlowBindings(data) {
       const steps = Array.isArray(data.sales_steps) ? data.sales_steps : [];
+      const followUps = Array.isArray(data.follow_ups) ? data.follow_ups : [];
       const catalogConnected = data.flow_catalog?.live_catalog_connected === true;
       const liveFlowCount = Number(data.flow_catalog?.live_flow_count || 0);
       if (!steps.length) {
         flowBindingsEl.innerHTML = `<div class="log-item">项目还没有销售 Step。请先完成「回复与成交」设置。</div>`;
+        followUpBindingsEl.innerHTML = `<div class="log-item">项目还没有销售路线。</div>`;
         saveBindingsButtonEl.disabled = true;
         return;
       }
@@ -1244,31 +1309,123 @@
             请先完成第 1 步，系统只接受当前项目实时 ChatDaddy 清单里的 Flow ${escapeHtml(reason)}。
           </div>
         `;
+        followUpBindingsEl.innerHTML = `<div class="log-item">连接后才会显示真实 Follow Up。</div>`;
         saveBindingsButtonEl.disabled = true;
         return;
       }
-      flowBindingsEl.innerHTML = steps.map((step) => {
+      draftStageSelections = new Map();
+      for (const step of steps) {
         const selectedIndex = latestFlowCatalog.findIndex((flow) => (
           step.provider_bot_id && flow.provider_bot_id === step.provider_bot_id
         ) || (
           step.provider_flow_id && flow.provider_flow_id === step.provider_flow_id
         ));
-        const options = latestFlowCatalog.map((flow, index) => `
-          <option value="${index}" ${selectedIndex === index ? "selected" : ""}>
-            ${escapeHtml(flow.title || flow.flow_key || `Flow ${index + 1}`)}${flow.folder_name ? ` · ${escapeHtml(flow.folder_name)}` : ""}
-          </option>
-        `).join("");
+        if (selectedIndex >= 0) draftStageSelections.set(step.stage_key, String(selectedIndex));
+      }
+      draftFollowUpSelections = new Map();
+      for (const followUp of followUps) {
+        const selectedIndex = latestFlowCatalog.findIndex((flow) => (
+          followUp.provider_bot_id && flow.provider_bot_id === followUp.provider_bot_id
+        ) || (
+          followUp.provider_flow_id && flow.provider_flow_id === followUp.provider_flow_id
+        ));
+        if (selectedIndex >= 0) draftFollowUpSelections.set(Number(followUp.order), String(selectedIndex));
+      }
+      salesStepCountEl.value = String(Number(data.step_count || steps.length || 1));
+      renderPriceStageOptions(data.price_stage_key || steps.find((step) => step.is_price_stage)?.stage_key || "");
+      followUpCountEl.value = followUps.length ? String(followUps.length) : "0";
+      renderFlowBindingRows(data);
+      renderFollowUpBindingRows();
+    }
+
+    function renderPriceStageOptions(preferredValue = "") {
+      const stepCount = Number(salesStepCountEl.value || 1);
+      priceStageKeyEl.innerHTML = Array.from({ length: stepCount }, (_, index) => {
+        const value = `step_${index + 1}`;
+        return `<option value="${value}">Step ${index + 1}</option>`;
+      }).join("");
+      const safePreferred = /^step_[1-4]$/.test(preferredValue)
+        && Number(preferredValue.replace("step_", "")) <= stepCount
+        ? preferredValue
+        : `step_${stepCount}`;
+      priceStageKeyEl.value = safePreferred;
+    }
+
+    function catalogOption(flow, index, selectedValue = "") {
+      const selected = String(index) === String(selectedValue) ? "selected" : "";
+      const title = flow.title || flow.flow_key || `Flow ${index + 1}`;
+      const suffix = flow.folder_name ? ` · ${flow.folder_name}` : "";
+      return `<option value="${index}" ${selected}>${escapeHtml(title + suffix)}</option>`;
+    }
+
+    function renderFlowBindingRows(data = {}) {
+      const existingByKey = new Map((Array.isArray(data.sales_steps) ? data.sales_steps : []).map((step) => [step.stage_key, step]));
+      const stepCount = Number(salesStepCountEl.value || 1);
+      const priceStageKey = priceStageKeyEl.value || `step_${stepCount}`;
+      const eligibleIndexes = latestFlowCatalog
+        .map((flow, index) => ({ flow, index }))
+        .filter(({ flow }) => flow.flow_kind !== "payment");
+      flowBindingsEl.innerHTML = Array.from({ length: stepCount }, (_, index) => {
+        const order = index + 1;
+        const stageKey = `step_${order}`;
+        const existing = existingByKey.get(stageKey) || {};
+        const selectedValue = draftStageSelections.get(stageKey) ?? "";
+        const selectedFlow = selectedValue === "" ? null : latestFlowCatalog[Number(selectedValue)];
+        const isPrice = stageKey === priceStageKey;
+        const purpose = isPrice ? "价格与成交" : (existing.purpose || `销售 Step ${order}`);
+        const selectedTitle = selectedFlow?.title || (existing.configured ? "已有绑定" : "尚未选择");
+        const options = eligibleIndexes.map(({ flow, index: flowIndex }) => catalogOption(flow, flowIndex, selectedValue)).join("");
         return `
           <article class="flow-binding-card">
             <div>
-              <h3>Step ${escapeHtml(step.order || "")} · ${escapeHtml(step.purpose || step.stage_key)}</h3>
-              <p>${escapeHtml(step.stage_key)} · ${step.configured ? "已有绑定，仍会用实时清单复核" : "尚未绑定"}</p>
+              <h3>Step ${order}${isPrice ? " · 价格" : ""}</h3>
+              <p>${escapeHtml(purpose)} · ${escapeHtml(selectedTitle)}</p>
             </div>
             <label>
-              <b>选择真实 ChatDaddy Flow</b>
-              <select class="flow-binding-select" data-stage-key="${escapeHtml(step.stage_key)}">
+              <b>真实 ChatDaddy Flow</b>
+              <select class="flow-binding-select" data-stage-key="${stageKey}">
                 <option value="">请选择</option>
                 ${options}
+              </select>
+            </label>
+          </article>
+        `;
+      }).join("");
+      saveBindingsButtonEl.disabled = !canManageConnection || Number(followUpCountEl.value || 0) < 1;
+    }
+
+    function renderFollowUpBindingRows() {
+      const count = Number(followUpCountEl.value || 0);
+      if (count < 1) {
+        followUpBindingsEl.innerHTML = `<div class="log-item">请选择真实 Follow Up 数量。</div>`;
+        saveBindingsButtonEl.disabled = true;
+        return;
+      }
+      const recognized = latestFlowCatalog
+        .map((flow, index) => ({ flow, index }))
+        .filter(({ flow }) => flow.flow_kind === "follow_up");
+      const otherMessageFlows = latestFlowCatalog
+        .map((flow, index) => ({ flow, index }))
+        .filter(({ flow }) => flow.flow_kind === "message_flow");
+      const optionGroups = (selectedValue = "") => [
+        recognized.length ? `<optgroup label="已识别 Follow Up">${recognized.map(({ flow, index }) => catalogOption(flow, index, selectedValue)).join("")}</optgroup>` : "",
+        otherMessageFlows.length ? `<optgroup label="其他 Message Flow">${otherMessageFlows.map(({ flow, index }) => catalogOption(flow, index, selectedValue)).join("")}</optgroup>` : ""
+      ].join("");
+      followUpBindingsEl.innerHTML = Array.from({ length: count }, (_, index) => {
+        const order = index + 1;
+        const selectedValue = draftFollowUpSelections.get(order) ?? "";
+        const selectedFlow = selectedValue === "" ? null : latestFlowCatalog[Number(selectedValue)];
+        return `
+          <article class="flow-binding-card">
+            <div>
+              <h3>Follow Up ${order}</h3>
+              <p>${escapeHtml(selectedFlow?.title || "按 ChatDaddy 真实发送顺序选择")}</p>
+            </div>
+            <label>
+              <b>真实 ChatDaddy Flow</b>
+              <select class="follow-up-binding-select" data-follow-up-order="${order}">
+                <option value="">请选择</option>
+                ${optionGroups(selectedValue)}
               </select>
             </label>
           </article>
@@ -1294,8 +1451,8 @@
     async function saveFlowBindings() {
       const previousLabel = saveBindingsButtonEl.textContent;
       try {
-        if (!canManageConnection) throw new Error("只有项目负责人可以保存 Step Flow 绑定。");
-        if (!projectIdentityConfirmedEl.checked) throw new Error("请先确认当前项目身份，再保存 Step Flow 绑定。");
+        if (!canManageConnection) throw new Error("只有项目负责人可以保存销售路线。");
+        if (!projectIdentityConfirmedEl.checked) throw new Error("请先确认当前项目身份，再保存销售路线。");
         if (!latestGuide?.flow_catalog?.live_catalog_connected) throw new Error("当前项目还没有实时 ChatDaddy Flow 清单。");
         const selections = [...document.querySelectorAll(".flow-binding-select")];
         const bindings = selections.map((select) => {
@@ -1309,17 +1466,36 @@
           };
         }).filter(Boolean);
         if (bindings.length !== selections.length) throw new Error("请为每个销售 Step 选择一个真实 Flow。");
+        const followUpSelections = [...document.querySelectorAll(".follow-up-binding-select")];
+        const followUpBindings = followUpSelections.map((select) => {
+          if (select.value === "") return null;
+          const flow = latestFlowCatalog[Number(select.value)];
+          if (!flow) return null;
+          return {
+            order: Number(select.dataset.followUpOrder),
+            provider_bot_id: flow.provider_bot_id || null,
+            provider_flow_id: flow.provider_flow_id || null
+          };
+        }).filter(Boolean);
+        if (followUpSelections.length < 1 || followUpSelections.length > 10) throw new Error("Follow Up 必须是 1–10 个。");
+        if (followUpBindings.length !== followUpSelections.length) throw new Error("请按顺序选择每一个 Follow Up。");
         saveBindingsButtonEl.disabled = true;
         saveBindingsButtonEl.textContent = "正在保存绑定...";
         const projectKey = cleanProjectKey();
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/connection-guide`, {
           expected_version_no: currentGuideVersion,
-          bindings
+          step_count: Number(salesStepCountEl.value),
+          price_stage_key: priceStageKeyEl.value,
+          bindings,
+          follow_up_bindings: followUpBindings
         });
-        if (data.boundary?.sends_messages !== false || data.boundary?.triggers_flows !== false || data.boundary?.automation_enabled !== false) {
+        if (data.boundary?.sends_messages !== false
+          || data.boundary?.triggers_flows !== false
+          || data.boundary?.automation_enabled !== false
+          || data.boundary?.project_brain_published !== false) {
           throw new Error("保存边界不完整，已停止处理。");
         }
-        addLog("Step Flow 绑定已保存", `Project Brain 草稿版本 ${data.version_no}；没有发布、发送或触发 Flow。`);
+        addLog("销售路线已保存", `Project Brain 草稿版本 ${data.version_no}；没有发布、发送或触发 Flow。`);
         renderGuide(data);
         notifyDashboardConnectionChanged(projectKey, data.flow_catalog?.live_flow_count);
       } catch (error) {
@@ -1336,6 +1512,11 @@
     function humanizeGuideError(message = "") {
       if (message.includes("project_package_version_conflict")) return "资料刚被其他页面更新，请重新选择后再保存。";
       if (message.includes("connection_guide_flow_not_in_live_catalog")) return "所选 Flow 已不在当前项目实时清单，请重新同步后再选。";
+      if (message.includes("connection_guide_follow_up_not_in_live_catalog")) return "所选 Follow Up 已不在当前项目实时清单，请重新同步后再选。";
+      if (message.includes("connection_guide_follow_up_sequence_missing")) return "Follow Up 必须从 1 开始连续选择。";
+      if (message.includes("connection_guide_follow_up_flow_duplicate") || message.includes("connection_guide_duplicate_flow")) return "同一个 Flow 不能重复使用。";
+      if (message.includes("connection_guide_follow_up_type_invalid")) return "Payment 或 Step Flow 不能放进 Follow Up。";
+      if (message.includes("connection_guide_price_stage_invalid")) return "请选择正确的价格 Step。";
       if (message.includes("connection_guide_live_catalog_required")) return "请先连接当前项目 ChatDaddy 并同步真实 Flow。";
       return message;
     }
