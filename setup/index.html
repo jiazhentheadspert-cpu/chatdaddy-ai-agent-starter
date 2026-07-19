@@ -1264,6 +1264,7 @@
           <label>
             <b>这个项目实际有几个成交 Step？</b>
             <select id="expectedStepCount">
+              <option value="" selected>请选择 1–4 Steps</option>
               <option value="1">1 Step</option>
               <option value="2">2 Steps</option>
               <option value="3">3 Steps</option>
@@ -1272,7 +1273,8 @@
           </label>
           <label>
             <b>价格 / 配套主要在哪一步出现？</b>
-            <select id="expectedPriceStage">
+            <select id="expectedPriceStage" disabled>
+              <option value="" selected>请先选择 Step 数</option>
               <option value="step_1">Step 1</option>
               <option value="step_2">Step 2</option>
               <option value="step_3">Step 3</option>
@@ -1414,18 +1416,20 @@
           <label>
             <b>销售 Step 数量</b>
             <select id="salesStepCount">
+              <option value="" selected>请选择 1–4 Steps</option>
               <option value="1">1 Step</option>
               <option value="2">2 Steps</option>
               <option value="3">3 Steps</option>
-              <option value="4" selected>4 Steps</option>
+              <option value="4">4 Steps</option>
             </select>
           </label>
           <label>
             <b>价格 / 配套主要出现在哪一步</b>
-            <select id="salesPriceStage">
+            <select id="salesPriceStage" disabled>
+              <option value="" selected>请先选择 Step 数</option>
               <option value="step_1">Step 1</option>
               <option value="step_2">Step 2</option>
-              <option value="step_3" selected>Step 3</option>
+              <option value="step_3">Step 3</option>
               <option value="step_4">Step 4</option>
             </select>
           </label>
@@ -1800,6 +1804,7 @@
     analyzeDocumentButton.addEventListener("click", analyzeProjectDocument);
     submitReviewBatchButton.addEventListener("click", submitLearningReviewBatch);
     salesStepCount.addEventListener("change", renderSalesJourneyDraft);
+    salesPriceStage.addEventListener("change", renderSalesJourneyDraft);
     loadSalesJourneyButton.addEventListener("click", loadSalesJourney);
     saveSalesJourneyButton.addEventListener("click", saveSalesJourney);
     expectedStepCount.addEventListener("change", handleExpectedTopologyChange);
@@ -1863,29 +1868,49 @@
     }
 
     function applyExpectedTopologyDefaults() {
-      const projectKey = String(params.get("project_key") || "").trim().toLowerCase();
-      expectedStepCount.value = projectKey === "beyoute" ? "4" : "1";
-      expectedPriceStage.value = projectKey === "beyoute" ? "step_4" : "step_1";
+      expectedStepCount.value = "";
+      expectedPriceStage.value = "";
       syncExpectedPriceStageOptions();
     }
 
     function syncExpectedPriceStageOptions() {
-      const count = Math.min(4, Math.max(1, Number(expectedStepCount.value || 1)));
-      expectedStepCount.value = String(count);
-      [...expectedPriceStage.options].forEach((option, index) => {
-        option.hidden = index + 1 > count;
-        option.disabled = index + 1 > count;
+      const rawCount = Number(expectedStepCount.value || 0);
+      const count = Number.isInteger(rawCount) && rawCount >= 1 && rawCount <= 4 ? rawCount : 0;
+      expectedPriceStage.disabled = count === 0;
+      [...expectedPriceStage.options].forEach((option) => {
+        if (!option.value) {
+          option.hidden = false;
+          option.disabled = false;
+          option.textContent = count ? "请选择价格所在 Step" : "请先选择 Step 数";
+          return;
+        }
+        const stageNo = Number(String(option.value).replace("step_", ""));
+        option.hidden = count === 0 || stageNo > count;
+        option.disabled = count === 0 || stageNo > count;
       });
       const selectedStage = Number(String(expectedPriceStage.value || "").replace("step_", ""));
-      if (!selectedStage || selectedStage > count) expectedPriceStage.value = `step_${count}`;
+      if (!count || !selectedStage || selectedStage > count) expectedPriceStage.value = "";
+      const topologySelected = count > 0 && Boolean(expectedPriceStage.value);
+      if (!state.reonboardingBusy) startReonboardingButton.disabled = !topologySelected;
     }
 
     function selectedExpectedTopology() {
       syncExpectedPriceStageOptions();
       return {
-        expected_step_count: Number(expectedStepCount.value || 1),
-        expected_price_stage_key: expectedPriceStage.value || "step_1"
+        expected_step_count: Number(expectedStepCount.value || 0),
+        expected_price_stage_key: expectedPriceStage.value || ""
       };
+    }
+
+    function topologySelectionMessage(expected = selectedExpectedTopology()) {
+      if (!Number.isInteger(expected.expected_step_count) || expected.expected_step_count < 1 || expected.expected_step_count > 4) {
+        return "请先选择这个项目真实的成交 Step 数（1–4）";
+      }
+      const priceStageNo = Number(String(expected.expected_price_stage_key || "").replace("step_", ""));
+      if (!priceStageNo || priceStageNo > expected.expected_step_count) {
+        return "请再选择这个项目实际出现价格 / 配套的 Step";
+      }
+      return "";
     }
 
     function reonboardingRoutine() {
@@ -1899,20 +1924,42 @@
       };
     }
 
-    function reonboardingStepPurpose(index) {
+    function reonboardingStepPurpose(index, priceStageKey = "") {
+      const stageNo = index + 1;
+      const priceStageNo = Number(String(priceStageKey || "").replace("step_", ""));
+      if (priceStageNo && stageNo === priceStageNo) {
+        return "发送真实价格 / 配套，使用可验证的 Urgency 与 End Result 推进成交";
+      }
+      if (priceStageNo && stageNo > priceStageNo) {
+        return "处理价格后的疑问：回答问题、补充有来源的信心、给一个 CTA，并只使用真实 Urgency";
+      }
       return [
         "产品介绍，并了解顾客正在面对的问题",
         "介绍 USP、End Result 与产品成分",
         "用已批准的 Testimonial、线下店或认证建立信心",
-        "发送真实价格 / 配套，使用可验证的 Urgency 与 End Result 推进成交"
+        "继续项目已配置的成交教育内容"
       ][index] || `确认 Step ${index + 1} 的真实用途`;
+    }
+
+    function stageProviderReference(stage = {}) {
+      return firstNonEmpty(
+        stage?.provider_flow_id,
+        stage?.provider_bot_id,
+        stage?.provider_flow_key,
+        stage?.chatdaddy_bot_id,
+        stage?.provider_id,
+        stage?.flow_id
+      );
     }
 
     function extendReonboardingSalesTopology(projectPackage, expected) {
       const currentProcess = projectPackage?.sales_process || {};
       const currentStages = Array.isArray(currentProcess.stages) ? currentProcess.stages : [];
       if (expected.expected_step_count < currentStages.length) {
-        throw new Error(`当前已有 ${currentStages.length} 个 Step。小白模式不会自动删除已有 Step 或 Flow；请由管理员核对后再缩减。`);
+        const trailingStages = currentStages.slice(expected.expected_step_count);
+        if (trailingStages.some((stage) => Boolean(stageProviderReference(stage)))) {
+          throw new Error(`当前已有 ${currentStages.length} 个 Step，而且后段仍绑定真实 Flow。小白模式不会删除已绑定 Step；请由管理员核对。`);
+        }
       }
       const stagesByKey = new Map(currentStages.map((stage) => [String(stage?.stage_key || ""), stage]));
       const stages = Array.from({ length: expected.expected_step_count }, (_, index) => {
@@ -1928,7 +1975,7 @@
         return {
           stage_key: stageKey,
           order: index + 1,
-          purpose: reonboardingStepPurpose(index),
+          purpose: reonboardingStepPurpose(index, expected.expected_price_stage_key),
           entry_signal: index === 0
             ? "ChatDaddy Trigger starts Step 1."
             : "AI answers the current question before continuing the exact configured next Flow.",
@@ -1973,7 +2020,7 @@
           return {
             stage_key: stageKey,
             order: index + 1,
-            purpose: reonboardingStepPurpose(index),
+            purpose: reonboardingStepPurpose(index, expected.expected_price_stage_key),
             provider_flow_status: providerId ? "bound_existing" : "owner_must_select_real_flow",
             ...(providerId ? { provider_flow_reference: providerId } : {})
           };
@@ -1998,6 +2045,8 @@
     }
 
     function topologyMismatchMessage(projectPackage = {}, expected = selectedExpectedTopology()) {
+      const selectionMessage = topologySelectionMessage(expected);
+      if (selectionMessage) return selectionMessage;
       const canonical = canonicalTopology(projectPackage);
       const issues = [];
       if (canonical.step_count !== Number(expected.expected_step_count || 0)) {
@@ -2013,12 +2062,20 @@
       const projectPackage = packageResponse?.project_package || {};
       const reonboarding = projectPackage?.metadata?.reonboarding || {};
       const canonical = canonicalTopology(projectPackage);
-      if (reonboarding.status === "in_progress") {
+      const reonboardingExpectedCount = Number(reonboarding.expected_step_count || 0);
+      const reonboardingExpectedPrice = String(reonboarding.expected_price_stage_key || "");
+      if (reonboarding.status === "in_progress"
+        && reonboardingExpectedCount >= 1
+        && reonboardingExpectedCount <= 4
+        && reonboardingExpectedPrice) {
         expectedStepCount.value = String(Math.min(4, Math.max(1, Number(reonboarding.expected_step_count || 1))));
-        expectedPriceStage.value = String(reonboarding.expected_price_stage_key || `step_${expectedStepCount.value}`);
-      } else if (String(currentProjectKey()).toLowerCase() !== "beyoute" && canonical.step_count > 0) {
+        expectedPriceStage.value = reonboardingExpectedPrice;
+      } else if (!reonboarding.status
+        && canonical.step_count > 0
+        && (projectPackage?.sales_brain?.owner_review?.approved === true
+          || Boolean(projectPackage?.metadata?.sales_journey_owner_reviewed_at))) {
         expectedStepCount.value = String(Math.min(4, canonical.step_count));
-        expectedPriceStage.value = canonical.price_stage_key || `step_${expectedStepCount.value}`;
+        expectedPriceStage.value = canonical.price_stage_key || "";
       }
       syncExpectedPriceStageOptions();
 
@@ -2038,15 +2095,18 @@
         : "当前 Project Brain 还没有可确认的销售 Step。";
 
       const expected = selectedExpectedTopology();
+      const selectionMessage = topologySelectionMessage(expected);
       const mismatch = topologyMismatchMessage(projectPackage, expected);
       beginnerConfirmButton.disabled = Boolean(mismatch);
       beginnerConfirmButton.title = mismatch
         ? `先完成真实 Flow 路线：${mismatch}`
         : "确认 AI 的业务理解正确";
-      if (reonboarding.status === "in_progress" && !mismatch) {
+      if (selectionMessage) {
+        reonboardingResult.textContent = `${selectionMessage}。价格 Step 按项目而定，系统不会预设为 Step 4。`;
+      } else if (reonboarding.status === "in_progress" && !mismatch) {
         reonboardingResult.textContent = "重新 Onboard 草稿已建立，真实 Step 与价格阶段已匹配。现在可以继续教 AI，并在发布前完成 Flow Gate。";
       } else if (reonboarding.status === "in_progress") {
-        reonboardingResult.textContent = `重新 Onboard 草稿已建立，但路线尚未对齐：${mismatch}。请在真实 Flow 页面选择正确 Flow；系统不会猜测或新增 Step 4 Flow。`;
+        reonboardingResult.textContent = `重新 Onboard 草稿已建立，但路线尚未对齐：${mismatch}。请在真实 Flow 页面选择正确 Flow；系统不会猜测价格所在 Step。`;
       } else if (mismatch) {
         reonboardingResult.textContent = `发现旧路线与这次 Onboarding 不一致：${mismatch}。请先建立重新 Onboard 草稿；已发布 Runtime 不会被修改。`;
       } else {
@@ -2071,6 +2131,12 @@
         reonboardingResult.textContent = "请先选择现有项目。新项目不需要重新 Onboard。";
         return;
       }
+      const selectedTopology = selectedExpectedTopology();
+      const selectionMessage = topologySelectionMessage(selectedTopology);
+      if (selectionMessage) {
+        reonboardingResult.textContent = `${selectionMessage}；系统不会替项目决定价格在哪一步。`;
+        return;
+      }
       const previous = startReonboardingButton.textContent;
       const publishedBefore = state.published;
       const activationBefore = state.activation;
@@ -2082,7 +2148,7 @@
 
         const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
         if (!latest?.project_package) throw new Error("无法读取当前 Project Brain，已停止建立草稿。");
-        const expected = selectedExpectedTopology();
+        const expected = selectedTopology;
         const existingReonboarding = latest.project_package?.metadata?.reonboarding || {};
         const alreadyMatching = existingReonboarding.status === "in_progress"
           && Number(existingReonboarding.expected_step_count || 0) === expected.expected_step_count
@@ -2112,7 +2178,7 @@
             approved: false,
             status: "pending",
             approved_at: null,
-            statement: "Beyoute re-onboarding is waiting for Owner review; existing business content remains unchanged."
+            statement: "Project re-onboarding is waiting for Owner review; existing business content remains unchanged."
           }
         };
         draft.metadata = {
@@ -2166,8 +2232,8 @@
         reonboardingResult.textContent = `无法建立重新 Onboard 草稿：${error.message || error}`;
       } finally {
         state.reonboardingBusy = false;
-        startReonboardingButton.disabled = false;
         startReonboardingButton.textContent = previous;
+        syncExpectedPriceStageOptions();
       }
     }
 
@@ -2567,7 +2633,7 @@
         const currentPackage = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
         const topologyMismatch = topologyMismatchMessage(currentPackage);
         if (topologyMismatch) {
-          throw new Error(`请先完成真实 Flow 路线：${topologyMismatch}。系统不会替你猜 Step 4 Flow。`);
+          throw new Error(`请先完成真实 Flow 路线：${topologyMismatch}。系统不会替项目猜测价格所在 Step 或对应 Flow。`);
         }
         const saved = await createProject({ allowDraft: true, ownerApproved: true });
         if (!saved) throw new Error("AI 的业务理解还没有保存成功。");
@@ -3441,27 +3507,54 @@
     }
 
     function renderSalesJourneyDraft(process = state.salesPackageResponse?.project_package?.sales_process || {}) {
-      const count = Math.min(4, Math.max(1, Number(process.step_count || salesStepCount.value || 4)));
+      const processValue = process && typeof process === "object" && !("target" in process) ? process : {};
+      const rawCount = Number(processValue.step_count || salesStepCount.value || 0);
+      const count = Number.isInteger(rawCount) && rawCount >= 1 && rawCount <= 4 ? rawCount : 0;
+      if (!count) {
+        salesStepCount.value = "";
+        salesPriceStage.value = "";
+        salesPriceStage.disabled = true;
+        salesJourneyGrid.innerHTML = '<div class="review-empty">先选择这个项目真实的成交 Step 数，再选择价格 / 配套所在 Step。</div>';
+        return;
+      }
       salesStepCount.value = String(count);
-      salesPriceStage.value = process.price_stage_key || `step_${Math.min(3, count)}`;
-      [...salesPriceStage.options].forEach((option, index) => { option.hidden = index + 1 > count; });
-      if (Number(salesPriceStage.value.replace("step_", "")) > count) salesPriceStage.value = `step_${count}`;
-      const existingByKey = new Map((Array.isArray(process.stages) ? process.stages : []).map((stage) => [stage.stage_key, stage]));
-      const defaultPurposes = [
-        "开场并理解顾客问题",
-        "教育价值、需求与信任",
-        "回答价格 / 配套并推进选择",
-        "确认订单资料或安全交人工"
-      ];
+      salesPriceStage.disabled = false;
+      const requestedPriceStage = processValue.price_stage_key || salesPriceStage.value || "";
+      salesPriceStage.value = requestedPriceStage;
+      [...salesPriceStage.options].forEach((option) => {
+        if (!option.value) {
+          option.textContent = "请选择价格所在 Step";
+          option.hidden = false;
+          option.disabled = false;
+          return;
+        }
+        const stageNo = Number(String(option.value).replace("step_", ""));
+        option.hidden = stageNo > count;
+        option.disabled = stageNo > count;
+      });
+      if (Number(String(salesPriceStage.value || "").replace("step_", "")) > count) salesPriceStage.value = "";
+      const priceStageNo = Number(String(salesPriceStage.value || "").replace("step_", ""));
+      const existingByKey = new Map((Array.isArray(processValue.stages) ? processValue.stages : []).map((stage) => [stage.stage_key, stage]));
       salesJourneyGrid.innerHTML = Array.from({ length: count }, (_, index) => {
         const key = `step_${index + 1}`;
         const stage = existingByKey.get(key) || {};
+        const stageNo = index + 1;
+        const defaultPurpose = priceStageNo && stageNo === priceStageNo
+          ? "回答价格 / 配套并推进选择"
+          : priceStageNo && stageNo > priceStageNo
+            ? "处理价格后的疑问、补信心并给一个 CTA"
+            : [
+              "开场并理解顾客问题",
+              "教育价值、需求与信任",
+              "用已批准资料建立信心",
+              "继续项目已配置的成交教育内容"
+            ][index];
         return `
           <article class="journey-card" data-sales-stage="${key}">
             <b>Step ${index + 1}</b>
             <label>
               <span>这一步要完成什么 *</span>
-              <textarea data-sales-field="purpose" placeholder="${escapeAttr(defaultPurposes[index])}">${escapeHtml(stage.purpose || defaultPurposes[index])}</textarea>
+              <textarea data-sales-field="purpose" placeholder="${escapeAttr(defaultPurpose)}">${escapeHtml(stage.purpose || defaultPurpose)}</textarea>
             </label>
             <label>
               <span>顾客怎样进入这一步</span>
@@ -3480,6 +3573,9 @@
       const currentProcess = currentPackage.sales_process || {};
       const existingByKey = new Map((Array.isArray(currentProcess.stages) ? currentProcess.stages : []).map((stage) => [stage.stage_key, stage]));
       const cards = [...salesJourneyGrid.querySelectorAll("[data-sales-stage]")];
+      if (!cards.length) throw new Error("请先选择这个项目真实的成交 Step 数。");
+      const priceStageNo = Number(String(salesPriceStage.value || "").replace("step_", ""));
+      if (!priceStageNo || priceStageNo > cards.length) throw new Error("请确认这个项目实际在哪一个 Step 出现价格 / 配套。");
       const stages = cards.map((card, index) => {
         const stageKey = card.dataset.salesStage;
         const existing = existingByKey.get(stageKey) || {};
