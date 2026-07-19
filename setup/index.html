@@ -3507,17 +3507,19 @@
         ? state.onboardingManualPhase
         : null;
       const openPhase = manualPhase || currentPhase || fallbackPhase;
+      const workflowCurrentPhase = currentPhase || (!currentPhase && done.use === true ? "use" : "");
 
       document.querySelectorAll("[data-onboarding-panel][data-onboarding-phase]").forEach((panel) => {
         const phase = panel.dataset.onboardingPhase;
         const isDone = done[phase] === true;
-        const isCurrent = phase === currentPhase || (!currentPhase && phase === "use" && done.use === true);
+        const isCurrent = phase === workflowCurrentPhase;
+        const isViewing = phase === openPhase;
         const isOpen = phase === openPhase;
         panel.classList.toggle("is-collapsed", !isOpen);
         panel.classList.toggle("is-complete", isDone);
-        panel.classList.toggle("is-current", isCurrent && isOpen);
+        panel.classList.toggle("is-current", isViewing);
         panel.classList.toggle("done", isDone);
-        panel.classList.toggle("current", isCurrent && isOpen);
+        panel.classList.toggle("current", isViewing);
         panel.dataset.onboardingState = isDone ? "done" : isCurrent ? "current" : "upcoming";
 
         const toggle = panel.querySelector("[data-onboarding-toggle]");
@@ -3538,15 +3540,30 @@
       document.querySelectorAll("[data-progress-phase]").forEach((item) => {
         const phase = item.dataset.progressPhase;
         const isDone = done[phase] === true;
-        const isCurrent = phase === currentPhase || (!currentPhase && phase === "use" && done.use === true);
+        const isWorkflowCurrent = phase === workflowCurrentPhase;
+        const isViewing = phase === openPhase;
         item.classList.toggle("done", isDone);
-        item.classList.toggle("current", isCurrent);
-        item.setAttribute("aria-current", isCurrent ? "step" : "false");
-        item.setAttribute("aria-disabled", String(!isDone && !isCurrent));
+        item.classList.toggle("current", isViewing);
+        item.setAttribute("aria-current", isViewing ? "step" : "false");
+        item.setAttribute("aria-disabled", String(!isDone && !isWorkflowCurrent));
         const label = item.querySelector("[data-phase-label]");
-        if (label) label.textContent = isDone ? "已完成" : isCurrent ? "进行中" : "稍后";
+        if (label) {
+          label.textContent = manualPhase && isViewing
+            ? "查看中"
+            : manualPhase && isWorkflowCurrent
+              ? "待继续"
+              : isDone
+                ? "已完成"
+                : isWorkflowCurrent
+                  ? "进行中"
+                  : "稍后";
+        }
         const marker = item.querySelector(".rail-marker");
-        if (marker) marker.textContent = isDone ? "✓" : String(ONBOARDING_PHASE_ORDER.indexOf(phase) + 1);
+        if (marker) marker.textContent = isViewing
+          ? String(ONBOARDING_PHASE_ORDER.indexOf(phase) + 1)
+          : isDone
+            ? "✓"
+            : String(ONBOARDING_PHASE_ORDER.indexOf(phase) + 1);
       });
     }
 
