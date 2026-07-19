@@ -1117,6 +1117,9 @@
         <div class="eyebrow">Owner / Admin Setup</div>
         <h1 id="setupHeroTitle">新公司项目设置</h1>
         <p id="setupHeroDescription">新项目先完成 6 个业务理解问题，再由 Owner 核对 AI 的理解。这里只保存可审核的 Agent Brain 草稿；不会连接渠道、不会发送顾客讯息，也不会触发 Flow。</p>
+        <div class="actions" id="existingProjectActions" hidden>
+          <a class="btn" id="setupBackLink" href="../dashboard/index.html?view=operations">返回当前项目 Dashboard</a>
+        </div>
         <div class="chips" id="safetyChips">
           <span class="chip">Approval-first</span>
           <span class="chip">No send</span>
@@ -1660,6 +1663,7 @@
 
     async function init() {
       localStorage.setItem("hermas_setup_api", apiBase);
+      applySetupModeCopy();
       updateProjectLinks();
       renderSalesJourneyDraft();
       updateOnboardingProgress();
@@ -1693,6 +1697,17 @@
         if (projectKey) loginParams.set("project_key", projectKey);
         document.getElementById("ownerLoginLink").href = `../login.html?${loginParams.toString()}`;
       }
+    }
+
+    function applySetupModeCopy() {
+      const projectKey = String(params.get("project_key") || "").trim();
+      const continuingExistingProject = Boolean(projectKey);
+      document.getElementById("existingProjectActions").hidden = !continuingExistingProject;
+      if (!continuingExistingProject) return;
+      document.getElementById("setupHeroTitle").textContent = `继续 ${projectKey} Onboarding`;
+      document.getElementById("setupHeroDescription").textContent = "正在读取当前项目的 8 步真实进度。你可以从未完成处继续；所有修改先保存为可审核草稿，不会覆盖已发布的 AI Reply，也不会发送顾客讯息或触发 Flow。";
+      document.getElementById("setupSideTitle").textContent = "继续当前项目验收";
+      document.getElementById("setupSideDescription").textContent = "现有已发布版本继续服务；只有通过 Owner 审核、Mock 与发布 Gate 的新版本才会进入 AI Reply。";
     }
 
     function renderSafety(template) {
@@ -1778,6 +1793,12 @@
         query.set("view", view);
         if (id === "aiReplyDashboardLink" && state.activation?.ready_for_ai_reply === true) query.set("onboarding", "complete");
         link.href = `../dashboard/index.html?${query.toString()}`;
+      }
+      const setupBackLink = document.getElementById("setupBackLink");
+      if (setupBackLink) {
+        const query = new URLSearchParams(common);
+        query.set("view", "operations");
+        setupBackLink.href = `../dashboard/index.html?${query.toString()}`;
       }
       const aiReplyLink = document.getElementById("aiReplyDashboardLink");
       if (aiReplyLink) aiReplyLink.hidden = state.activation?.ready_for_ai_reply !== true;
