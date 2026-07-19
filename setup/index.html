@@ -2219,7 +2219,7 @@
           </div>
           <div class="final-card">
             <b>学习后会分成</b>
-            <p>FAQ、一般 SOP、敏感 / 转人工 SOP、Flow 用途建议和缺失资料。健康、退款、投诉、隐私、附件与凭证会进入更严格的 Owner 审核。</p>
+            <p>FAQ 原文会直接锁定；只有资料冲突、AI 改写 / 弱化或安全边界不清才需要你确认。</p>
             <div class="actions">
               <button class="btn primary" type="button" id="analyzeDocumentButton">让 AI 读取这个文件</button>
             </div>
@@ -2285,8 +2285,8 @@
           <button class="btn primary" type="button" id="submitReviewBatchButton" disabled hidden>提交确认</button>
         </div>
         <div class="preview-grid expert-only" id="learningReviewMetrics">
-          <div class="metric"><span>待审核</span><strong>-</strong></div>
-          <div class="metric"><span>已批准</span><strong>-</strong></div>
+          <div class="metric"><span>需确认异常</span><strong>-</strong></div>
+          <div class="metric"><span>FAQ 原文已锁定</span><strong>-</strong></div>
           <div class="metric"><span>已退回</span><strong>-</strong></div>
           <div class="metric"><span>敏感 / 高风险</span><strong>-</strong></div>
         </div>
@@ -2296,7 +2296,7 @@
           <button class="filter-btn" type="button" data-review-filter="all">全部记录</button>
         </div>
         <div class="review-list" id="learningReviewList">
-          <div class="review-empty">完成学习后，查看待确认内容。</div>
+          <div class="review-empty">完成学习后，只查看真正需要确认的异常。</div>
         </div>
       </section>
 
@@ -4837,6 +4837,7 @@
         await loadLearningReview();
         const summary = state.learningReview?.summary || {};
         const pending = Number(summary.pending_items || 0);
+        const lockedFaq = Number(summary.source_locked_faq_items || 0);
         const sensitive = Number(summary.sensitive_pending_items || 0) + Number(summary.high_pending_items || 0);
         const businessAnswers = canonicalPackage?.project_package?.business_onboarding?.answers || {};
         const businessCount = [
@@ -4854,7 +4855,7 @@
         beginnerLearnButton.hidden = businessCount === 6 && !ownerApproved;
         beginnerLearningResult.textContent = attention.length
           ? `已整理，${attention.length} 项需要补充。`
-          : `已整理：待确认 ${pending} 条，敏感 ${sensitive} 条。`;
+          : `已整理：FAQ 原文已锁定 ${lockedFaq} 条；需确认异常 ${pending} 条${sensitive ? `（敏感 / 高风险 ${sensitive}）` : ""}。`;
         document.getElementById("learningReviewPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (error) {
         beginnerLearningResult.textContent = `还不能开始学习：${error.message || error}`;
@@ -5851,7 +5852,14 @@
       try {
         setLearningReviewBusy(true);
         setLearningReviewStatus("加载中", "");
-        const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review`);
+        let data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review`);
+        const ownerFaqToLock = Number(data?.summary?.auto_adoptable_owner_faq_items || 0);
+        if (ownerFaqToLock > 0) {
+          setLearningReviewStatus(`正在锁定 ${ownerFaqToLock} 条 Owner FAQ 原文`, "");
+          data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review/accept-owner-faqs`, {
+            expected_version_no: data.version_no
+          });
+        }
         state.learningReview = data;
         state.learningReviewDrafts.clear();
         markOnboardingDraft();
@@ -5874,15 +5882,19 @@
       const data = state.learningReview || {};
       const summary = data.summary || {};
       const pending = Number(summary.pending_items || 0);
+      const sourceLockedFaq = Number(summary.source_locked_faq_items || 0);
       const sensitive = Number(summary.sensitive_pending_items || 0);
       const high = Number(summary.high_pending_items || 0);
       learningReviewMetrics.innerHTML = [
-        metricHtml("待审核", pending),
-        metricHtml("已批准", Number(summary.approved_items || 0)),
+        metricHtml("需确认异常", pending),
+        metricHtml("FAQ 原文已锁定", sourceLockedFaq),
         metricHtml("已退回", Number(summary.rejected_items || 0)),
         metricHtml("敏感 / 高风险", `${sensitive} / ${high}`)
       ].join("");
-      setLearningReviewStatus(pending ? `待审核 ${pending} 条` : "没有待审核", pending ? "" : "ok");
+      setLearningReviewStatus(
+        pending ? `还有 ${pending} 条异常需要确认` : "FAQ 已按原文采用，没有多余确认",
+        pending ? "" : "ok"
+      );
 
       const items = (Array.isArray(data.items) ? data.items : []).filter((item) => {
         if (state.learningReviewFilter === "pending") return item.pending === true;
@@ -5894,7 +5906,9 @@
       });
       learningReviewList.innerHTML = items.length
         ? items.map((item) => learningReviewCardHtml(item)).join("")
-        : `<div class="review-empty">${state.learningReviewFilter === "pending" ? "当前没有待审核草稿。" : "这个筛选没有资料。"}</div>`;
+        : `<div class="review-empty">${state.learningReviewFilter === "pending"
+          ? "Owner 给的 FAQ 已按原文锁定。这里只会出现资料冲突、AI 改写 / 弱化或缺少依据的异常。"
+          : "这个筛选没有资料。"}</div>`;
       renderBeginnerReviewContract();
     }
 
@@ -5904,8 +5918,9 @@
       const stagedDecision = state.learningReviewDrafts.get(draftKey) || null;
       const riskLevel = item.risk?.level || "medium";
       const pending = item.pending === true;
+      const sourceLocked = item.source_locked === true;
       const riskLabel = learningRiskLabel(riskLevel);
-      const statusLabel = learningStatusLabel(item.status);
+      const statusLabel = sourceLocked ? "原文已锁定" : learningStatusLabel(item.status);
       const source = item.source || {};
       const sourceHeadline = [
         `来源：${source.title || "未标示来源"}`,
@@ -5932,7 +5947,7 @@
               <div class="review-badges">
                 <span class="review-badge">${escapeHtml(item.type_label || item.asset_type)}</span>
                 <span class="review-badge">${escapeHtml(statusLabel)}</span>
-                <span class="review-badge risk-${escapeAttr(riskLevel)}">${escapeHtml(riskLabel)}</span>
+                <span class="review-badge risk-${escapeAttr(riskLevel)}">${escapeHtml(sourceLocked && riskLevel === "sensitive" ? "敏感回复受安全 Gate 保护" : riskLabel)}</span>
                 ${stagedDecision ? `<span class="review-badge">本轮：${escapeHtml(learningDecisionLabel(stagedDecision.decision))}</span>` : ""}
               </div>
               <h3>${escapeHtml(item.title || "学习草稿")}</h3>
@@ -6071,7 +6086,7 @@
 
     function learningRiskLabel(level) {
       return {
-        sensitive: "敏感，需明确确认",
+        sensitive: "敏感异常，需确认",
         high: "高风险",
         medium: "中风险",
         standard: "一般"
