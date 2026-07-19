@@ -252,6 +252,32 @@
       min-width: 64px;
     }
 
+    .side-settings-onboarding {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 48px;
+      padding: 9px 10px;
+      border: 1px solid rgba(0,183,216,.34);
+      border-radius: 13px;
+      background: linear-gradient(135deg, rgba(0,183,216,.18), rgba(16,185,157,.10));
+      color: #fff;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .side-settings-onboarding:hover {
+      border-color: rgba(0,183,216,.58);
+      background: linear-gradient(135deg, rgba(0,183,216,.25), rgba(16,185,157,.14));
+    }
+
+    .side-settings-onboarding small {
+      background: rgba(255,255,255,.18);
+      color: #fff;
+    }
+
     .onboarding-summary {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1091,7 +1117,6 @@
       align-items: center;
       justify-content: center;
       gap: 9px;
-      margin: 10px 12px 12px;
       border: 1px solid var(--line);
       border-radius: 12px;
       background: #fff;
@@ -1104,6 +1129,76 @@
     .project-switcher-new:hover {
       border-color: rgba(0,183,216,.46);
       background: var(--soft-cyan);
+    }
+
+    .project-switcher-actions {
+      display: grid;
+      gap: 8px;
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(249,252,253,.92);
+    }
+
+    .project-switcher-current-onboarding {
+      min-height: 58px;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid rgba(0,183,216,.28);
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(231,250,252,.96), rgba(237,251,247,.96));
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .project-switcher-current-onboarding:hover {
+      border-color: rgba(0,183,216,.52);
+    }
+
+    .project-switcher-current-onboarding > i {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: #fff;
+      color: #087b73;
+      font-size: 17px;
+    }
+
+    .project-switcher-current-onboarding span {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .project-switcher-current-onboarding strong {
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .project-switcher-current-onboarding small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 780;
+      line-height: 1.25;
+    }
+
+    .project-switcher-current-onboarding > b {
+      min-width: 44px;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: #fff;
+      color: #087b73;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .project-switcher-current-onboarding.is-readonly {
+      cursor: default;
+      pointer-events: none;
     }
 
     .sidebar .project-switcher {
@@ -8577,10 +8672,20 @@
             <input id="projectSwitcherSearch" type="search" placeholder="搜索项目" autocomplete="off" />
           </label>
           <div class="project-switcher-list" id="projectSwitcherList" role="list"></div>
-          <a class="project-switcher-new" id="projectSwitcherNewProject" href="../setup/index.html">
-            <i class="bi bi-plus-lg" aria-hidden="true"></i>
-            <span>新项目</span>
-          </a>
+          <div class="project-switcher-actions">
+            <a class="project-switcher-current-onboarding" id="projectSwitcherCurrentOnboarding" href="../setup/index.html">
+              <i class="bi bi-list-check" aria-hidden="true"></i>
+              <span>
+                <strong id="projectSwitcherOnboardingTitle">继续当前项目 Onboarding</strong>
+                <small id="projectSwitcherOnboardingSummary">读取 8 步进度</small>
+              </span>
+              <b id="projectSwitcherOnboardingBadge">…</b>
+            </a>
+            <a class="project-switcher-new" id="projectSwitcherNewProject" href="../setup/index.html">
+              <i class="bi bi-plus-lg" aria-hidden="true"></i>
+              <span>新增项目</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -8610,6 +8715,10 @@
         <div class="side-settings" id="sideSettings" aria-label="设置">
           <button class="side-settings-title" id="sideSettingsToggle" type="button" aria-expanded="false" aria-controls="sideSettingsPanel"><span class="side-label side-label-plain"><em>设置</em></span></button>
           <div class="side-settings-panel" id="sideSettingsPanel" aria-hidden="true">
+            <a class="side-settings-onboarding" id="projectOnboardingLink" href="../setup/index.html">
+              <span class="side-label"><em>项目 Onboarding</em></span>
+              <small id="navOnboardingBadge">读取中</small>
+            </a>
             <button aria-label="聊天工具链接" title="聊天工具链接" data-short="聊" data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
               <span class="side-label"><em>聊天工具链接</em></span>
               <small id="navStep1Badge">待连接</small>
@@ -9246,6 +9355,8 @@
       },
       saasActivation: null,
       saasActivationError: "",
+      projectOnboardingStatus: null,
+      projectOnboardingStatusError: "",
       auditEvents: [],
 	      projectVersions: null,
 	      qualityReview: null,
@@ -9397,7 +9508,12 @@
     const projectSwitcherListEl = $("projectSwitcherList");
     const projectSwitcherAvatarEl = $("projectSwitcherAvatar");
     const projectSwitcherCurrentNameEl = $("projectSwitcherCurrentName");
+    const projectSwitcherCurrentOnboardingEl = $("projectSwitcherCurrentOnboarding");
+    const projectSwitcherOnboardingTitleEl = $("projectSwitcherOnboardingTitle");
+    const projectSwitcherOnboardingSummaryEl = $("projectSwitcherOnboardingSummary");
+    const projectSwitcherOnboardingBadgeEl = $("projectSwitcherOnboardingBadge");
     const projectSwitcherNewProjectEl = $("projectSwitcherNewProject");
+    const projectOnboardingLinkEl = $("projectOnboardingLink");
     const adminTokenEl = { value: "", placeholder: "" };
     const casesEl = $("cases");
     const errorEl = $("error");
@@ -10361,6 +10477,49 @@
       return url.toString();
     }
 
+    function currentProjectOnboardingUrl() {
+      const url = new URL("../setup/index.html", window.location.href);
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const projectKey = String(projectKeyEl.value || "").trim();
+      if (api) url.searchParams.set("api", api);
+      if (projectKey) url.searchParams.set("project_key", projectKey);
+      url.searchParams.set("return_to", "dashboard");
+      return url.toString();
+    }
+
+    function syncProjectOnboardingEntry() {
+      const status = state.projectOnboardingStatus;
+      const currentProject = projectDisplayName(String(projectKeyEl.value || "").trim());
+      const completed = Number(status?.completed_count || 0);
+      const total = Number(status?.total_count || 8);
+      const progressLabel = status ? `${completed}/${total}` : state.projectOnboardingStatusError ? "重试" : "…";
+      const canManage = state.role !== "staff";
+      const runtimeReady = status?.ready_for_ai_reply === true;
+      const revisionComplete = status?.revision_complete === true;
+      const summary = !status
+        ? state.projectOnboardingStatusError ? "暂时无法读取进度" : "正在读取 8 步进度"
+        : revisionComplete
+          ? "8 步完成 · AI Reply 可直接使用"
+          : runtimeReady
+            ? `AI Reply 使用已发布版本 · ${Number(status.pending_owner_review_count || 0)} 条更新待验收`
+            : `继续第 ${Number(status.steps?.find((step) => step.key === status.current_step_key)?.order || completed + 1)} 步`;
+      if (projectOnboardingLinkEl) projectOnboardingLinkEl.href = currentProjectOnboardingUrl();
+      if ($("navOnboardingBadge")) $("navOnboardingBadge").textContent = progressLabel;
+      if (projectSwitcherCurrentOnboardingEl) {
+        projectSwitcherCurrentOnboardingEl.href = canManage ? currentProjectOnboardingUrl() : "#";
+        projectSwitcherCurrentOnboardingEl.classList.toggle("is-readonly", !canManage);
+        projectSwitcherCurrentOnboardingEl.setAttribute("aria-disabled", canManage ? "false" : "true");
+      }
+      if (projectSwitcherOnboardingTitleEl) {
+        projectSwitcherOnboardingTitleEl.textContent = canManage
+          ? `继续 ${currentProject} Onboarding`
+          : `${currentProject} Onboarding 状态`;
+      }
+      if (projectSwitcherOnboardingSummaryEl) projectSwitcherOnboardingSummaryEl.textContent = summary;
+      if (projectSwitcherOnboardingBadgeEl) projectSwitcherOnboardingBadgeEl.textContent = progressLabel;
+      if (projectSwitcherNewProjectEl) projectSwitcherNewProjectEl.classList.toggle("hidden", !canManage);
+    }
+
     function projectSwitcherOptions() {
       const current = String(projectKeyEl.value || "beyoute").trim();
       const projects = Array.isArray(state.session?.projects) ? state.session.projects : [];
@@ -10429,6 +10588,7 @@
         if (projectSwitcherSearchEl) projectSwitcherSearchEl.value = "";
         renderProjectSwitcherMenu("");
         if (projectSwitcherNewProjectEl) projectSwitcherNewProjectEl.href = projectCreationUrl();
+        syncProjectOnboardingEntry();
         if (focusSearch) window.setTimeout(() => projectSwitcherSearchEl?.focus(), 0);
       }
     }
@@ -10453,6 +10613,7 @@
       attachProjectAvatarFallbacks();
       renderProjectSwitcherMenu();
       if (projectSwitcherNewProjectEl) projectSwitcherNewProjectEl.href = projectCreationUrl();
+      syncProjectOnboardingEntry();
       $("projectSwitcherShell").classList.toggle("hidden", options.length <= 1 && !hasAccountSession());
     }
 
@@ -10573,6 +10734,28 @@
       }
     }
 
+    async function loadProjectOnboardingStatus() {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const projectKey = String(projectKeyEl.value || "").trim();
+      if (!api || !projectKey || !hasAccountSession()) return null;
+      try {
+        const res = await fetch(
+          `${api}/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding-status`,
+          authRequestOptions("", { method: "GET" })
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.message || data.error || "onboarding_status_unavailable");
+        state.projectOnboardingStatus = data;
+        state.projectOnboardingStatusError = "";
+        syncProjectOnboardingEntry();
+        return data;
+      } catch (error) {
+        state.projectOnboardingStatus = null;
+        state.projectOnboardingStatusError = error.message || "onboarding_status_unavailable";
+        syncProjectOnboardingEntry();
+        return null;
+      }
+    }
     async function syncCurrentProjectAvatarFromChannel(options = {}) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const projectKey = String(projectKeyEl.value || "").trim();
@@ -11277,12 +11460,18 @@
 
     function statusStripHtml() {
       const activationReady = state.saasActivation?.ready_for_ai_reply === true;
+      const onboarding = state.projectOnboardingStatus;
       const activationLabel = state.saasActivationError
         ? "AI Reply 状态待重试"
         : activationReady ? "AI Reply 可用" : "Onboarding 未完成";
       const activationTone = activationReady ? "" : "warn";
+      const onboardingLabel = onboarding
+        ? `Onboarding ${Number(onboarding.completed_count || 0)}/${Number(onboarding.total_count || 8)}`
+        : "Onboarding 读取中";
+      const onboardingTone = onboarding?.revision_complete === true ? "" : "warn";
       return `
         <span class="status-chip ${activationTone}">${activationLabel}</span>
+        <span class="status-chip ${onboardingTone}">${onboardingLabel}</span>
         <span class="status-chip">Approval-first</span>
         <span class="status-chip">自动发送关</span>
         <span class="status-chip">自动 Flow 关</span>
@@ -16074,6 +16263,12 @@
       setBadge("navOrderBadge", counts.orders || 0);
       setBadge("navLogBadge", learned || "记录");
       setBadge("navConfigureBadge", "✅");
+      setBadge(
+        "navOnboardingBadge",
+        state.projectOnboardingStatus
+          ? `${Number(state.projectOnboardingStatus.completed_count || 0)}/${Number(state.projectOnboardingStatus.total_count || 8)}`
+          : state.projectOnboardingStatusError ? "重试" : "读取中"
+      );
       const setupCompletion = projectSettingsCompletion();
       setBadge("navStep1Badge", setupCompletion.messageReady ? "已连接" : "待连接");
       setBadge("navStep2Badge", setupCompletion.replyReady ? "已完成" : setupCompletion.replyContentReady ? "待接 Flow" : "待完成");
@@ -29697,7 +29892,10 @@
 	(async function bootDashboard() {
 	  const sessionReady = await bootstrapSaasSession();
 	  if (!sessionReady && apiUrlEl.value.trim()) return;
-	  const activationReady = await loadSaasActivationStatus();
+	  const [activationReady] = await Promise.all([
+	    loadSaasActivationStatus(),
+	    loadProjectOnboardingStatus()
+	  ]);
 	  if (activationReady) {
 	    if (state.workspaceView === "inbox") await loadInboxConversations();
 	    else await loadCases();
