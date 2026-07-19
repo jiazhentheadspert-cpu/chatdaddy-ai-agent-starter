@@ -52,12 +52,14 @@
     .side {
       position: sticky;
       top: 28px;
+      display: flex;
+      flex-direction: column;
       align-self: start;
       min-height: calc(100vh - 56px);
       padding: 24px;
-      color: #e8fffb;
-      background: linear-gradient(180deg, #031417 0%, #062b2d 100%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: var(--shadow);
     }
@@ -67,7 +69,7 @@
       align-items: center;
       gap: 12px;
       padding-bottom: 22px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      border-bottom: 1px solid var(--line);
     }
 
     .brand-mark {
@@ -90,7 +92,7 @@
     .brand span {
       display: block;
       margin-top: 4px;
-      color: rgba(232, 255, 251, 0.62);
+      color: var(--muted);
       font-weight: 800;
       font-size: 13px;
     }
@@ -98,9 +100,9 @@
     .side-card {
       margin-top: 22px;
       padding: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.055);
+      background: var(--soft);
     }
 
     .side-card h2 {
@@ -111,7 +113,7 @@
 
     .side-card p {
       margin: 0;
-      color: rgba(232, 255, 251, 0.66);
+      color: var(--muted);
       font-weight: 750;
       line-height: 1.45;
       font-size: 13px;
@@ -127,13 +129,13 @@
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      color: rgba(232, 255, 251, 0.78);
+      color: var(--muted);
       font-weight: 850;
       font-size: 13px;
     }
 
     .side-row strong {
-      color: #ffffff;
+      color: var(--ink);
     }
 
     .side-link {
@@ -144,13 +146,132 @@
       min-height: 44px;
       margin-top: 12px;
       padding: 0 13px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
+      border: 1px solid var(--line);
       border-radius: 8px;
-      color: #ffffff;
+      color: var(--ink);
       text-decoration: none;
-      background: rgba(21, 184, 215, 0.12);
+      background: white;
       font-weight: 900;
       cursor: pointer;
+    }
+
+    .side > .side-card:last-child {
+      margin-top: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    #advancedModeButton {
+      margin-top: 18px;
+      border-color: transparent;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    #advancedModeButton:hover {
+      color: var(--ink);
+      border-color: var(--line);
+      background: var(--soft);
+    }
+
+    .onboarding-rail-wrap {
+      margin-top: 22px;
+    }
+
+    .onboarding-rail-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .onboarding-rail-head strong {
+      color: var(--ink);
+    }
+
+    .onboarding-rail {
+      position: relative;
+      display: grid;
+      gap: 8px;
+    }
+
+    .onboarding-rail::before {
+      content: "";
+      position: absolute;
+      top: 26px;
+      bottom: 26px;
+      left: 18px;
+      width: 2px;
+      background: var(--line);
+    }
+
+    .onboarding-rail-step {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 11px;
+      align-items: center;
+      min-height: 58px;
+      padding: 8px 10px 8px 0;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: var(--muted);
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .onboarding-rail-step .rail-marker {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border: 2px solid var(--line);
+      border-radius: 50%;
+      color: var(--muted);
+      background: white;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .onboarding-rail-step b,
+    .onboarding-rail-step small {
+      display: block;
+    }
+
+    .onboarding-rail-step b {
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .onboarding-rail-step small {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .onboarding-rail-step.done .rail-marker {
+      color: white;
+      border-color: var(--teal);
+      background: var(--teal);
+    }
+
+    .onboarding-rail-step.current {
+      border-color: rgba(47, 111, 237, 0.24);
+      background: #f5f8ff;
+    }
+
+    .onboarding-rail-step.current .rail-marker {
+      color: white;
+      border-color: var(--blue);
+      background: var(--blue);
+      box-shadow: 0 0 0 4px rgba(47, 111, 237, 0.1);
     }
 
     .main {
@@ -536,6 +657,75 @@
       box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.08);
     }
 
+    .progress-steps-hidden {
+      display: none;
+    }
+
+    .onboarding-step-panel,
+    .login-gate-panel {
+      scroll-margin-top: 142px;
+      min-height: calc(100vh - 56px);
+      transition: border-color 180ms ease, box-shadow 180ms ease, padding 180ms ease;
+    }
+
+    .onboarding-step-panel .toolbar h2 {
+      font-size: 32px;
+    }
+
+    .onboarding-step-panel.is-current {
+      border-color: rgba(47, 111, 237, 0.3);
+      box-shadow: 0 18px 54px rgba(47, 111, 237, 0.1);
+    }
+
+    .onboarding-step-panel.is-complete {
+      border-color: rgba(15, 159, 146, 0.3);
+    }
+
+    .onboarding-step-panel.is-collapsed {
+      display: none;
+    }
+
+    body.login-required .onboarding-step-panel {
+      display: none !important;
+    }
+
+    .login-gate-panel {
+      display: grid;
+      place-items: center;
+    }
+
+    .login-gate-panel .auth-actions {
+      width: 100%;
+    }
+
+    .onboarding-panel-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .onboarding-panel-toggle {
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: white;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .onboarding-panel-toggle:not(:disabled):hover {
+      color: var(--ink);
+      border-color: rgba(47, 111, 237, 0.32);
+      background: #f5f8ff;
+    }
+
+    .onboarding-panel-toggle:disabled {
+      display: none;
+    }
+
     .upload-grid,
     .sales-controls,
     .journey-grid,
@@ -675,6 +865,30 @@
 
     .auth-actions {
       margin-top: 16px;
+    }
+
+    .onboarding-login-card {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 360px;
+      align-content: center;
+      text-align: center;
+    }
+
+    .onboarding-login-card b {
+      font-size: 20px;
+    }
+
+    .onboarding-login-card p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .onboarding-login-card .btn {
+      min-width: 150px;
     }
 
     .queued-review {
@@ -1128,6 +1342,15 @@
         grid-template-columns: 1fr;
       }
 
+      .onboarding-panel-controls {
+        justify-content: flex-start;
+      }
+
+      .onboarding-step-panel,
+      .login-gate-panel {
+        min-height: auto;
+      }
+
       .progress-steps,
       .journey-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1177,15 +1400,40 @@
     }
   </style>
 </head>
-<body>
+<body class="login-required">
   <div class="shell">
     <aside class="side">
       <div class="brand">
         <div class="brand-mark">RP</div>
         <div>
           <b>ReplyPilot AI</b>
-          <span>项目设置</span>
+          <span id="sideProjectName">项目设置</span>
         </div>
+      </div>
+
+      <div class="onboarding-rail-wrap">
+        <div class="onboarding-rail-head">
+          <span>设置路线</span>
+          <strong id="railProgressSummary">读取中</strong>
+        </div>
+        <nav class="onboarding-rail" id="onboardingRail" aria-label="Onboarding 四步路线">
+          <a class="onboarding-rail-step" href="#channelFlowPanel" data-progress-phase="flow">
+            <span class="rail-marker">1</span>
+            <span><b>确认路线</b><small data-phase-label>读取中</small></span>
+          </a>
+          <a class="onboarding-rail-step" href="#businessPanel" data-progress-phase="teach">
+            <span class="rail-marker">2</span>
+            <span><b>给资料</b><small data-phase-label>等待</small></span>
+          </a>
+          <a class="onboarding-rail-step" href="#learningReviewPanel" data-progress-phase="review">
+            <span class="rail-marker">3</span>
+            <span><b>确认异常</b><small data-phase-label>等待</small></span>
+          </a>
+          <a class="onboarding-rail-step" href="#learningLoopPanel" data-progress-phase="use">
+            <span class="rail-marker">4</span>
+            <span><b>开始使用</b><small data-phase-label>等待</small></span>
+          </a>
+        </nav>
       </div>
 
       <div class="side-card expert-only">
@@ -1206,12 +1454,12 @@
           <a class="side-link" href="#learningReviewPanel"><span>3. Owner 审核</span><strong>→</strong></a>
           <a class="side-link" href="#learningLoopPanel"><span>4. 发布与复盘</span><strong>→</strong></a>
         </div>
-        <button class="side-link" id="advancedModeButton" type="button"><span>高级设置</span><strong>＋</strong></button>
+        <button class="side-link" id="advancedModeButton" type="button" aria-expanded="false"><span>高级设置</span><strong>＋</strong></button>
       </div>
     </aside>
 
     <main class="main">
-      <section class="hero">
+      <section class="hero expert-only">
         <h1 id="setupHeroTitle">让 AI 学会你的项目</h1>
         <p id="setupHeroDescription">给资料，AI 整理；你只确认异常。</p>
         <div class="actions expert-only" id="existingProjectActions" hidden>
@@ -1225,7 +1473,7 @@
         </div>
       </section>
 
-      <section class="panel onboarding-progress" aria-label="Onboarding 进度">
+      <section class="panel onboarding-progress expert-only" aria-label="Onboarding 进度">
         <div class="progress-head">
           <div>
             <strong id="progressProjectName">未选择项目</strong>
@@ -1234,7 +1482,7 @@
           <div class="status" id="progressStatus">未开始</div>
         </div>
         <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
-        <nav class="progress-steps" id="progressSteps">
+        <nav class="progress-steps progress-steps-hidden" id="progressSteps" aria-hidden="true">
           <a class="progress-step current" href="#channelFlowPanel" data-progress-phase="flow"><b>1 确认路线</b><span class="expert-only">Step 数 + 价格 Step</span></a>
           <a class="progress-step" href="#businessPanel" data-progress-phase="teach"><b>2 给资料</b><span class="expert-only">FAQ、文件或说明</span></a>
           <a class="progress-step" href="#learningReviewPanel" data-progress-phase="review"><b>3 确认异常</b><span class="expert-only">只看不确定内容</span></a>
@@ -1242,13 +1490,30 @@
         </nav>
       </section>
 
-      <section class="panel" id="channelFlowPanel">
+      <section class="panel login-gate-panel" id="loginGatePanel" aria-live="polite">
+        <div class="onboarding-login-card" id="loginLoadingCard">
+          <b>正在读取项目</b>
+          <p>马上继续上次进度。</p>
+        </div>
+        <div class="actions auth-actions" id="authActions" hidden>
+          <div class="onboarding-login-card">
+            <b>登录后继续设置</b>
+            <p>回来后会从第一步开始。</p>
+            <a class="btn primary" id="ownerLoginLink" href="../login.html">登录</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel onboarding-step-panel" id="channelFlowPanel" data-onboarding-panel data-onboarding-phase="flow">
         <div class="toolbar">
           <div>
             <h2>1. 确认路线</h2>
             <p>选择 Step 数和价格所在 Step。</p>
           </div>
-          <div class="status expert-only" id="channelFlowStatus">尚未检查</div>
+          <div class="onboarding-panel-controls">
+            <div class="status expert-only" id="channelFlowStatus">尚未检查</div>
+            <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="channelFlowPanelBody" aria-expanded="true">当前步骤</button>
+          </div>
         </div>
         <div class="final-grid expert-only">
           <div class="final-card">
@@ -1292,13 +1557,16 @@
         <div class="boundary-note expert-only" id="readinessResult">尚未读取当前项目的连接状态。</div>
       </section>
 
-      <section class="panel" id="businessPanel">
+      <section class="panel onboarding-step-panel is-collapsed" id="businessPanel" data-onboarding-panel data-onboarding-phase="teach">
         <div class="toolbar">
           <div>
             <h2>2. 给资料</h2>
             <p id="formHelp">正在读取设置模板。</p>
           </div>
-          <div class="status expert-only" id="connectionStatus">连接中</div>
+          <div class="onboarding-panel-controls">
+            <div class="status expert-only" id="connectionStatus">连接中</div>
+            <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="businessPanelBody" aria-expanded="false">稍后</button>
+          </div>
         </div>
         <div class="beginner-intro expert-only">
           <div>
@@ -1308,9 +1576,6 @@
           <span class="status">只确认异常</span>
         </div>
         <form class="form" id="setupForm"></form>
-        <div class="actions auth-actions" id="authActions" hidden>
-          <a class="btn primary" id="ownerLoginLink" href="../login.html">登录</a>
-        </div>
         <label class="dropzone" id="beginnerUpload" hidden>
           <b>上传项目文件（可选）</b>
           <input id="projectDocumentFile" type="file" accept=".txt,.md,.pdf,.pptx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation">
@@ -1380,13 +1645,16 @@
         <div class="boundary-note" id="documentResult">选择文件后按「让 AI 读取这个文件」，也可以直接回到上方一次完成。AI 会在第 2 段列出冲突、缺来源与敏感项目。</div>
       </section>
 
-      <section class="panel" id="learningReviewPanel">
+      <section class="panel onboarding-step-panel is-collapsed" id="learningReviewPanel" data-onboarding-panel data-onboarding-phase="review">
         <div class="toolbar">
           <div>
             <h2>3. 确认异常</h2>
             <p>只确认冲突、缺来源或敏感内容。</p>
           </div>
-          <div class="status" id="learningReviewStatus">尚未加载</div>
+          <div class="onboarding-panel-controls">
+            <div class="status" id="learningReviewStatus">尚未加载</div>
+            <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="learningReviewPanelBody" aria-expanded="false">稍后</button>
+          </div>
         </div>
         <div class="actions">
           <button class="btn expert-only" type="button" id="loadReviewButton">重新加载</button>
@@ -1605,13 +1873,16 @@
         </div>
       </section>
 
-      <section class="panel" id="learningLoopPanel">
+      <section class="panel onboarding-step-panel is-collapsed" id="learningLoopPanel" data-onboarding-panel data-onboarding-phase="use">
         <div class="toolbar">
           <div>
             <h2>4. 开始使用</h2>
             <p>确认完成后，进入 AI Reply。</p>
           </div>
-          <div class="status expert-only" id="learningLoopStatus">Owner / Admin 专用</div>
+          <div class="onboarding-panel-controls">
+            <div class="status expert-only" id="learningLoopStatus">Owner / Admin 专用</div>
+            <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="learningLoopPanelBody" aria-expanded="false">稍后</button>
+          </div>
         </div>
         <div class="final-grid expert-only">
           <div class="final-card"><b>每日</b><p>看待批准、人工接管、失败与重复追问；先修 FAQ / SOP / Flow 绑定，再考虑扩大自动回复。</p></div>
@@ -1732,7 +2003,12 @@
       authVerified: false,
       existingProject: null,
       existingPackageResponse: null,
-      reonboardingBusy: false
+      reonboardingBusy: false,
+      onboardingHydrated: false,
+      onboardingPhaseDone: { flow: false, teach: false, review: false, use: false },
+      onboardingCurrentPhase: "",
+      onboardingManualPhase: null,
+      onboardingPhaseSignature: ""
     };
 
     const setupForm = document.getElementById("setupForm");
@@ -1791,6 +2067,7 @@
     const publishConfirm = document.getElementById("publishConfirm");
     const publishProjectButton = document.getElementById("publishProjectButton");
 
+    prepareOnboardingPanelDisclosure();
     document.addEventListener("DOMContentLoaded", init);
     beginnerLearnButton.addEventListener("click", runBeginnerLearning);
     beginnerConfirmButton.addEventListener("click", confirmBeginnerUnderstanding);
@@ -1819,8 +2096,14 @@
     refreshReadinessButton.addEventListener("click", refreshConnectionReadiness);
     publishConfirm.addEventListener("change", updatePublishButton);
     publishProjectButton.addEventListener("click", publishCurrentProjectBrain);
+    document.getElementById("onboardingRail").addEventListener("click", handleOnboardingPhaseNavigation);
+    document.getElementById("progressSteps").addEventListener("click", handleOnboardingPhaseNavigation);
+    document.querySelectorAll("[data-onboarding-toggle]").forEach((button) => {
+      button.addEventListener("click", handleOnboardingPanelToggle);
+    });
 
     async function init() {
+      document.body.classList.remove("show-advanced");
       localStorage.setItem("hermas_setup_api", apiBase);
       applySetupModeCopy();
       applyExpectedTopologyDefaults();
@@ -1850,8 +2133,11 @@
             refreshConnectionReadiness({ silent: true })
           ]);
         }
+        state.onboardingHydrated = true;
+        updateOnboardingProgress();
       } catch (error) {
         state.authVerified = false;
+        state.onboardingHydrated = true;
         setStatus("请先登录", "bad");
         formHelp.textContent = "";
         setupForm.innerHTML = "";
@@ -1865,6 +2151,7 @@
         const projectKey = String(params.get("project_key") || "").trim();
         if (projectKey) loginParams.set("project_key", projectKey);
         document.getElementById("ownerLoginLink").href = `../login.html?${loginParams.toString()}`;
+        updateOnboardingProgress();
       }
     }
 
@@ -2366,25 +2653,151 @@
       if (aiReplyLink) aiReplyLink.hidden = state.activation?.ready_for_ai_reply !== true;
       const progressName = document.getElementById("progressProjectName");
       if (progressName) progressName.textContent = projectKey ? `项目：${projectKey}` : "未选择项目";
+      const sideProjectName = document.getElementById("sideProjectName");
+      if (sideProjectName) sideProjectName.textContent = projectKey || "新项目";
       const channelIdentity = document.getElementById("channelProjectIdentity");
       if (channelIdentity) channelIdentity.textContent = projectKey
         ? `${projectKey}（Channel 页面将锁定此 Project Key）`
         : "请先完成项目草稿；没有项目代码时不会打开任何默认项目。";
     }
 
+    const ONBOARDING_PHASE_ORDER = ["flow", "teach", "review", "use"];
+    const ONBOARDING_PANEL_IDS = {
+      flow: "channelFlowPanel",
+      teach: "businessPanel",
+      review: "learningReviewPanel",
+      use: "learningLoopPanel"
+    };
+
+    function prepareOnboardingPanelDisclosure() {
+      document.querySelectorAll("[data-onboarding-panel][data-onboarding-phase]").forEach((panel) => {
+        const toggle = panel.querySelector("[data-onboarding-toggle]");
+        if (!toggle) return;
+        const bodyId = toggle.getAttribute("aria-controls") || `${panel.id}Body`;
+        toggle.setAttribute("aria-controls", bodyId);
+        if (document.getElementById(bodyId)) return;
+        const body = document.createElement("div");
+        body.id = bodyId;
+        body.className = "onboarding-panel-body";
+        body.setAttribute("role", "region");
+        body.setAttribute("aria-label", panel.querySelector("h2")?.textContent?.trim() || "Onboarding 步骤");
+        [...panel.children].filter((child) => !child.classList.contains("toolbar")).forEach((child) => body.appendChild(child));
+        panel.appendChild(body);
+      });
+    }
+
+    function syncOnboardingPanels(phaseDone, currentPhase) {
+      const done = { flow: false, teach: false, review: false, use: false, ...(phaseDone || {}) };
+      const signature = `${ONBOARDING_PHASE_ORDER.map((phase) => done[phase] ? "1" : "0").join("")}:${currentPhase || ""}`;
+      if (state.onboardingPhaseSignature && state.onboardingPhaseSignature !== signature) {
+        state.onboardingManualPhase = null;
+      }
+      state.onboardingPhaseDone = done;
+      state.onboardingCurrentPhase = currentPhase || "";
+      state.onboardingPhaseSignature = signature;
+      const fallbackPhase = done.use === true ? "use" : (state.authVerified === true ? "flow" : "");
+      const manualPhase = ONBOARDING_PHASE_ORDER.includes(state.onboardingManualPhase)
+        && (done[state.onboardingManualPhase] === true || state.onboardingManualPhase === currentPhase)
+        ? state.onboardingManualPhase
+        : null;
+      const openPhase = manualPhase || currentPhase || fallbackPhase;
+
+      document.querySelectorAll("[data-onboarding-panel][data-onboarding-phase]").forEach((panel) => {
+        const phase = panel.dataset.onboardingPhase;
+        const isDone = done[phase] === true;
+        const isCurrent = phase === currentPhase || (!currentPhase && phase === "use" && done.use === true);
+        const isOpen = phase === openPhase;
+        panel.classList.toggle("is-collapsed", !isOpen);
+        panel.classList.toggle("is-complete", isDone);
+        panel.classList.toggle("is-current", isCurrent && isOpen);
+        panel.classList.toggle("done", isDone);
+        panel.classList.toggle("current", isCurrent && isOpen);
+        panel.dataset.onboardingState = isDone ? "done" : isCurrent ? "current" : "upcoming";
+
+        const toggle = panel.querySelector("[data-onboarding-toggle]");
+        if (!toggle) return;
+        toggle.setAttribute("aria-expanded", String(isOpen));
+        if (isCurrent) {
+          toggle.disabled = true;
+          toggle.textContent = done[phase] ? "已完成" : "当前步骤";
+        } else if (isDone) {
+          toggle.disabled = false;
+          toggle.textContent = isOpen ? "回到当前步骤" : "查看";
+        } else {
+          toggle.disabled = true;
+          toggle.textContent = "稍后";
+        }
+      });
+
+      document.querySelectorAll("[data-progress-phase]").forEach((item) => {
+        const phase = item.dataset.progressPhase;
+        const isDone = done[phase] === true;
+        const isCurrent = phase === currentPhase || (!currentPhase && phase === "use" && done.use === true);
+        item.classList.toggle("done", isDone);
+        item.classList.toggle("current", isCurrent);
+        item.setAttribute("aria-current", isCurrent ? "step" : "false");
+        item.setAttribute("aria-disabled", String(!isDone && !isCurrent));
+        const label = item.querySelector("[data-phase-label]");
+        if (label) label.textContent = isDone ? "已完成" : isCurrent ? "进行中" : "稍后";
+        const marker = item.querySelector(".rail-marker");
+        if (marker) marker.textContent = isDone ? "✓" : String(ONBOARDING_PHASE_ORDER.indexOf(phase) + 1);
+      });
+    }
+
+    function handleOnboardingPhaseNavigation(event) {
+      const link = event.target.closest("[data-progress-phase]");
+      if (!link) return;
+      const phase = link.dataset.progressPhase;
+      const isDone = state.onboardingPhaseDone?.[phase] === true;
+      const isCurrent = phase === state.onboardingCurrentPhase
+        || (!state.onboardingCurrentPhase && phase === "use" && state.onboardingPhaseDone?.use === true);
+      if (!isDone && !isCurrent) {
+        event.preventDefault();
+        return;
+      }
+      event.preventDefault();
+      state.onboardingManualPhase = isCurrent ? null : phase;
+      syncOnboardingPanels(state.onboardingPhaseDone, state.onboardingCurrentPhase);
+      document.getElementById(ONBOARDING_PANEL_IDS[phase])?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function handleOnboardingPanelToggle(event) {
+      const panel = event.currentTarget.closest("[data-onboarding-panel][data-onboarding-phase]");
+      if (!panel) return;
+      const phase = panel.dataset.onboardingPhase;
+      if (state.onboardingPhaseDone?.[phase] !== true) return;
+      state.onboardingManualPhase = state.onboardingManualPhase === phase ? null : phase;
+      syncOnboardingPanels(state.onboardingPhaseDone, state.onboardingCurrentPhase);
+      const targetPhase = state.onboardingManualPhase || state.onboardingCurrentPhase || "use";
+      document.getElementById(ONBOARDING_PANEL_IDS[targetPhase])?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     function updateOnboardingProgress() {
       if (state.authVerified !== true) {
-        document.querySelectorAll("[data-progress-phase]").forEach((item) => {
-          item.classList.remove("done", "current");
-        });
+        const phaseDone = { flow: false, teach: false, review: false, use: false };
+        const currentPhase = "";
+        const hydrated = state.onboardingHydrated === true;
+        document.body.classList.add("login-required");
+        document.getElementById("loginGatePanel").hidden = false;
+        document.getElementById("loginLoadingCard").hidden = hydrated;
+        if (!hydrated) document.getElementById("authActions").hidden = true;
+        syncOnboardingPanels(phaseDone, currentPhase);
         document.getElementById("progressBar").style.width = "0%";
-        document.getElementById("progressSummary").textContent = "0 / 4 完成";
-        document.getElementById("progressStatus").textContent = "请先登录";
+        document.getElementById("progressSummary").textContent = hydrated ? "登录后读取" : "读取中";
+        document.getElementById("railProgressSummary").textContent = hydrated ? "登录后读取" : "读取中";
+        document.getElementById("progressStatus").textContent = hydrated ? "请先登录" : "正在读取";
         document.getElementById("progressStatus").className = "status";
+        document.querySelectorAll("#onboardingRail [data-phase-label]").forEach((label) => {
+          label.textContent = hydrated ? "登录后" : "读取中";
+        });
         updateProjectLinks();
         updatePublishButton();
         return;
       }
+      document.body.classList.remove("login-required");
+      document.getElementById("loginGatePanel").hidden = true;
+      document.getElementById("loginLoadingCard").hidden = true;
+      document.getElementById("authActions").hidden = true;
       const reviewSummary = state.learningReview?.summary || {};
       const guideSummary = state.connectionGuide?.summary || {};
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
@@ -2411,7 +2824,7 @@
       const teachReady = flowReady && technicalDone.business && technicalDone.materials;
       const reviewReady = teachReady
         && packageData?.business_onboarding?.owner_signoff?.approved === true
-        && Number(reviewSummary.total_items || 0) > 0
+        && state.learningReview !== null
         && Number(reviewSummary.pending_items || 0) === 0;
       const phaseDone = {
         flow: flowReady,
@@ -2420,18 +2833,19 @@
         use: reviewReady && state.activation?.ready_for_ai_reply === true
       };
       const count = Object.values(phaseDone).filter(Boolean).length;
-      const phaseOrder = ["flow", "teach", "review", "use"];
-      const currentPhase = phaseOrder.find((phase, index) => (
+      const currentPhase = ONBOARDING_PHASE_ORDER.find((phase, index) => (
         phaseDone[phase] !== true
-        && phaseOrder.slice(0, index).every((previousPhase) => phaseDone[previousPhase] === true)
+        && ONBOARDING_PHASE_ORDER.slice(0, index).every((previousPhase) => phaseDone[previousPhase] === true)
       )) || "";
-      document.querySelectorAll("[data-progress-phase]").forEach((item) => {
-        const phase = item.dataset.progressPhase;
-        item.classList.toggle("done", phaseDone[phase] === true);
-        item.classList.toggle("current", phase === currentPhase);
-      });
+      if (state.onboardingHydrated) {
+        syncOnboardingPanels(phaseDone, currentPhase);
+      } else {
+        state.onboardingPhaseDone = phaseDone;
+        state.onboardingCurrentPhase = currentPhase;
+      }
       document.getElementById("progressBar").style.width = `${(count / 4) * 100}%`;
       document.getElementById("progressSummary").textContent = `${count} / 4 完成`;
+      document.getElementById("railProgressSummary").textContent = `${count} / 4`;
       document.getElementById("progressStatus").textContent = topologyMismatch
         ? "路线待确认"
         : state.activation?.ready_for_ai_reply
@@ -2548,6 +2962,7 @@
 
     function toggleAdvancedMode() {
       const enabled = document.body.classList.toggle("show-advanced");
+      advancedModeButton.setAttribute("aria-expanded", String(enabled));
       advancedModeButton.querySelector("span").textContent = enabled ? "收起高级设置" : "高级设置";
       advancedModeButton.querySelector("strong").textContent = enabled ? "－" : "＋";
       if (enabled) {
