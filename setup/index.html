@@ -1876,6 +1876,7 @@
           <div class="flow-learning-issue-summary" id="flowLearningIssueSummary" hidden>
             <span id="flowLearningIssueHeadline">还有内容需要处理</span>
             <button class="btn" type="button" id="showFlowLearningIssuesButton" aria-expanded="false" aria-controls="flowLearningIssueList">查看缺什么</button>
+            <a class="btn primary" id="flowLearningFixLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer" hidden>选择缺少的 Flow</a>
           </div>
           <div class="flow-learning-issue-list" id="flowLearningIssueList" hidden></div>
         </div>
@@ -3037,6 +3038,8 @@
       if (projectKey) common.set("project_key", projectKey);
       const channelLink = document.getElementById("channelSetupLink");
       if (channelLink) channelLink.href = `../channel-setup/index.html?${common.toString()}`;
+      const flowLearningFixLink = document.getElementById("flowLearningFixLink");
+      if (flowLearningFixLink) flowLearningFixLink.href = `../channel-setup/index.html?${common.toString()}`;
       for (const [id, view] of [["aiReplyDashboardLink", "cases"], ["learningDashboardLink", "learning"], ["operationsDashboardLink", "operations"]]) {
         const link = document.getElementById(id);
         if (!link) continue;
@@ -3883,6 +3886,7 @@
         flowLearningIssueList.innerHTML = "";
         showFlowLearningIssuesButton.setAttribute("aria-expanded", "false");
         showFlowLearningIssuesButton.textContent = "查看缺什么";
+        flowLearningFixLink.hidden = true;
         flowLearningTechnical.textContent = "尚未读取。";
         learnChatdaddyFlowsButton.disabled = state.flowLearningBusy;
         acceptDetectedPriceStageButton.hidden = true;
@@ -3944,6 +3948,14 @@
       flowLearningIssueList.hidden = true;
       showFlowLearningIssuesButton.setAttribute("aria-expanded", "false");
       showFlowLearningIssuesButton.textContent = "查看缺什么";
+      const issueCodes = new Set(exceptions.map(flowLearningExceptionCode));
+      const missingFollowUps = issueCodes.has("follow_ups_missing") || issueCodes.has("follow_up_sequence_missing");
+      const needsFlowSelection = missingFollowUps
+        || issueCodes.has("sales_steps_missing")
+        || issueCodes.has("provider_id_missing")
+        || issueCodes.has("content_not_read");
+      flowLearningFixLink.hidden = !needsFlowSelection;
+      flowLearningFixLink.textContent = missingFollowUps ? "选择 Follow Up" : "选择缺少的 Flow";
       const technical = { ...learning.raw };
       delete technical._response;
       flowLearningTechnical.textContent = JSON.stringify(technical, null, 2);
