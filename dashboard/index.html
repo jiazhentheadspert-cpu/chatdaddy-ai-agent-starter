@@ -9671,7 +9671,8 @@
     // Old staff bookmarks pointed at the filtered Case queue. That made the
     // full Inbox look empty even while ChatDaddy had new conversations.
     const staffLegacyCaseLanding = state.role === "staff" && requestedView === "cases" && !state.pendingCaseId;
-    const requestedWorkspaceView = requestedView === "learning" && !optionalUiModuleEnabled("review")
+    const requestedWorkspaceView = requestedView === "learning"
+      && (!optionalUiModuleEnabled("review") || state.role === "staff")
       ? "cases"
       : requestedView;
     state.workspaceView = staffLegacyCaseLanding
