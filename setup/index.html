@@ -502,7 +502,7 @@
 
     .progress-steps {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
     }
 
@@ -1200,9 +1200,10 @@
           <div class="side-row"><span>自动发送</span><strong>关闭</strong></div>
           <div class="side-row"><span>自主 Agent</span><strong>未接管</strong></div>
         </div>
-        <a class="side-link" href="#businessPanel"><span>1. 给 AI 资料</span><strong>→</strong></a>
-        <a class="side-link" href="#learningReviewPanel"><span>2. AI 自动整理</span><strong>→</strong></a>
-        <a class="side-link" href="#learningLoopPanel"><span>3. 确认后使用</span><strong>→</strong></a>
+        <a class="side-link" href="#channelFlowPanel"><span>1. 确认真实 Flow</span><strong>→</strong></a>
+        <a class="side-link" href="#businessPanel"><span>2. 给 AI 资料</span><strong>→</strong></a>
+        <a class="side-link" href="#learningReviewPanel"><span>3. 确认异常</span><strong>→</strong></a>
+        <a class="side-link" href="#learningLoopPanel"><span>4. 确认后使用</span><strong>→</strong></a>
         <button class="side-link" id="advancedModeButton" type="button"><span>管理员高级设置</span><strong>＋</strong></button>
       </div>
     </aside>
@@ -1227,22 +1228,71 @@
         <div class="progress-head">
           <div>
             <strong id="progressProjectName">未选择项目</strong>
-            <div id="progressSummary">Owner 登录后读取 3 段真实进度</div>
+            <div id="progressSummary">Owner 登录后读取 4 段真实进度</div>
           </div>
           <div class="status" id="progressStatus">等待 Owner 登录</div>
         </div>
         <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
         <nav class="progress-steps" id="progressSteps">
-          <a class="progress-step current" href="#businessPanel" data-progress-phase="teach"><b>1 给资料</b><span>文件、FAQ 或你知道的内容</span></a>
-          <a class="progress-step" href="#learningReviewPanel" data-progress-phase="learn"><b>2 AI 自动整理</b><span>生成知识与待确认项</span></a>
-          <a class="progress-step" href="#learningLoopPanel" data-progress-phase="use"><b>3 确认后使用</b><span>开始 Approval-first AI Reply</span></a>
+          <a class="progress-step current" href="#channelFlowPanel" data-progress-phase="flow"><b>1 真实 Flow</b><span>确认 Step 数与价格阶段</span></a>
+          <a class="progress-step" href="#businessPanel" data-progress-phase="teach"><b>2 教 AI</b><span>文件、FAQ 或你知道的内容</span></a>
+          <a class="progress-step" href="#learningReviewPanel" data-progress-phase="review"><b>3 Owner 审核</b><span>只处理异常与敏感内容</span></a>
+          <a class="progress-step" href="#learningLoopPanel" data-progress-phase="use"><b>4 开始使用</b><span>Approval-first AI Reply</span></a>
         </nav>
+      </section>
+
+      <section class="panel" id="channelFlowPanel">
+        <div class="toolbar">
+          <div>
+            <h2>1. 先确认真实 ChatDaddy Step / Flow</h2>
+            <p>AI 先看懂项目现有的销售路线，才开始学习内容。这里只确认 Step 数和价格出现在哪一步；不会修改、绑定或猜测任何 Flow。</p>
+          </div>
+          <div class="status" id="channelFlowStatus">尚未检查</div>
+        </div>
+        <div class="final-grid">
+          <div class="final-card">
+            <b>当前项目与真实 Flow</b>
+            <p id="channelProjectIdentity">请先完成项目草稿。</p>
+            <p id="currentFlowTopology">登录后读取当前 Project Brain 的 Step 与已绑定 Flow。</p>
+          </div>
+          <div class="final-card">
+            <b>安全边界</b>
+            <p>重新 Onboard 只创建新草稿；已发布 Runtime、旧 FAQ、SOP、Flow ID 和 Provider ID 全部保留。自动发送与自动触发 Flow 继续关闭。</p>
+          </div>
+        </div>
+        <div class="sales-controls" aria-label="重新 Onboard 路线确认">
+          <label>
+            <b>这个项目实际有几个成交 Step？</b>
+            <select id="expectedStepCount">
+              <option value="1">1 Step</option>
+              <option value="2">2 Steps</option>
+              <option value="3">3 Steps</option>
+              <option value="4">4 Steps</option>
+            </select>
+          </label>
+          <label>
+            <b>价格 / 配套主要在哪一步出现？</b>
+            <select id="expectedPriceStage">
+              <option value="step_1">Step 1</option>
+              <option value="step_2">Step 2</option>
+              <option value="step_3">Step 3</option>
+              <option value="step_4">Step 4</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="startReonboardingButton">开始重新 Onboard（只建草稿）</button>
+          <a class="btn" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">查看 / 选择当前项目真实 Flow</a>
+          <button class="btn" type="button" id="refreshReadinessButton">刷新真实 Flow 状态</button>
+        </div>
+        <div class="boundary-note" id="reonboardingResult">先核对真实 Step 数与价格阶段，再建立重新 Onboard 草稿。系统不会发送顾客讯息，也不会触发 Flow。</div>
+        <div class="boundary-note" id="readinessResult">尚未读取当前项目的连接状态。</div>
       </section>
 
       <section class="panel" id="businessPanel">
         <div class="toolbar">
           <div>
-            <h2>1. 教 AI 认识你的项目</h2>
+            <h2>2. 教 AI 认识你的项目</h2>
             <p id="formHelp">正在读取设置模板。</p>
           </div>
           <div class="status" id="connectionStatus">连接中</div>
@@ -1327,7 +1377,7 @@
       <section class="panel" id="learningReviewPanel">
         <div class="toolbar">
           <div>
-            <h2>2. AI 已整理；只处理不确定的地方</h2>
+            <h2>3. AI 已整理；Owner 只处理不确定的地方</h2>
             <p>AI 会自动把资料分成项目知识、FAQ、SOP 和回复建议。普通内容先整理为草稿；有冲突、缺来源或涉及价格、付款、退款、健康、投诉与隐私时才请你确认。</p>
           </div>
           <div class="status" id="learningReviewStatus">尚未加载</div>
@@ -1520,31 +1570,6 @@
         <div class="contract-mock" id="replyContractMock"></div>
       </section>
 
-      <section class="panel expert-only" id="channelFlowPanel">
-        <div class="toolbar">
-          <div>
-            <h2>6. 连接 Channel 与真实 Flow</h2>
-            <p>只从当前项目专属链接进入。连接页面会锁定 Project Key，不再使用上一次项目或默认 Beyoute；每个 Step 只能选择当前 ChatDaddy 实时清单里的 Flow。</p>
-          </div>
-          <div class="status" id="channelFlowStatus">尚未检查</div>
-        </div>
-        <div class="final-grid">
-          <div class="final-card">
-            <b>项目身份</b>
-            <p id="channelProjectIdentity">请先完成项目草稿。</p>
-          </div>
-          <div class="final-card">
-            <b>连接边界</b>
-            <p>贴 Token 只建立当前项目连接并同步 Flow 清单。不会发送测试讯息、触发 Flow 或开启自动回复。</p>
-          </div>
-        </div>
-        <div class="actions">
-          <a class="btn primary" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">打开当前项目 Channel / Flow 设置</a>
-          <button class="btn" type="button" id="refreshReadinessButton">刷新连接与发布阻塞</button>
-        </div>
-        <div class="boundary-note" id="readinessResult">尚未读取当前项目的连接状态。</div>
-      </section>
-
       <section class="panel expert-only" id="contentMockPanel">
         <div class="toolbar">
           <div>
@@ -1575,7 +1600,7 @@
       <section class="panel" id="learningLoopPanel">
         <div class="toolbar">
           <div>
-            <h2>3. 确认后使用，并让 AI 持续学习</h2>
+            <h2>4. 确认后使用，并让 AI 持续学习</h2>
             <p>AI 会把没答好、重复提问、客服修正和新问题整理成复盘候选。你只确认要不要加入大脑，系统不会因为一条客服回复就偷偷改写正式内容。</p>
           </div>
           <div class="status" id="learningLoopStatus">Owner / Admin 专用</div>
@@ -1698,7 +1723,8 @@
       activation: null,
       authVerified: false,
       existingProject: null,
-      existingPackageResponse: null
+      existingPackageResponse: null,
+      reonboardingBusy: false
     };
 
     const setupForm = document.getElementById("setupForm");
@@ -1747,6 +1773,11 @@
     const refreshReadinessButton = document.getElementById("refreshReadinessButton");
     const readinessResult = document.getElementById("readinessResult");
     const channelFlowStatus = document.getElementById("channelFlowStatus");
+    const expectedStepCount = document.getElementById("expectedStepCount");
+    const expectedPriceStage = document.getElementById("expectedPriceStage");
+    const startReonboardingButton = document.getElementById("startReonboardingButton");
+    const reonboardingResult = document.getElementById("reonboardingResult");
+    const currentFlowTopology = document.getElementById("currentFlowTopology");
     const publishConfirm = document.getElementById("publishConfirm");
     const publishProjectButton = document.getElementById("publishProjectButton");
 
@@ -1771,6 +1802,9 @@
     salesStepCount.addEventListener("change", renderSalesJourneyDraft);
     loadSalesJourneyButton.addEventListener("click", loadSalesJourney);
     saveSalesJourneyButton.addEventListener("click", saveSalesJourney);
+    expectedStepCount.addEventListener("change", handleExpectedTopologyChange);
+    expectedPriceStage.addEventListener("change", handleExpectedTopologyChange);
+    startReonboardingButton.addEventListener("click", startReonboardingDraft);
     refreshReadinessButton.addEventListener("click", refreshConnectionReadiness);
     publishConfirm.addEventListener("change", updatePublishButton);
     publishProjectButton.addEventListener("click", publishCurrentProjectBrain);
@@ -1778,6 +1812,7 @@
     async function init() {
       localStorage.setItem("hermas_setup_api", apiBase);
       applySetupModeCopy();
+      applyExpectedTopologyDefaults();
       updateProjectLinks();
       renderSalesJourneyDraft();
       updateOnboardingProgress();
@@ -1821,10 +1856,319 @@
       document.getElementById("existingProjectActions").hidden = !continuingExistingProject;
       if (!continuingExistingProject) return;
       const projectLabel = projectKey.toLowerCase() === "beyoute" ? "Beyoute" : projectKey;
-      document.getElementById("setupHeroTitle").textContent = `继续教 ${projectLabel} AI`;
-      document.getElementById("setupHeroDescription").textContent = "把新 FAQ、项目文件或你知道的内容交给 AI。系统会自动整理成学习草稿；你只处理有冲突、没来源或敏感的地方。现有已发布 AI Reply 不受影响。";
-      document.getElementById("setupSideTitle").textContent = "继续教育当前项目";
-      document.getElementById("setupSideDescription").textContent = "当前 AI Reply 会照常使用已发布版本；新资料先进入学习草稿，确认后才加入大脑。";
+      document.getElementById("setupHeroTitle").textContent = `重新 Onboard ${projectLabel} AI`;
+      document.getElementById("setupHeroDescription").textContent = "先确认现有 ChatDaddy Step / Flow，再把 FAQ、项目文件和你知道的内容交给 AI。所有变更先进入新草稿；当前已发布 AI Reply 不会被覆盖。";
+      document.getElementById("setupSideTitle").textContent = "重新 Onboard 当前项目";
+      document.getElementById("setupSideDescription").textContent = "先认清真实 Flow，再教育 AI；当前已发布 Runtime 会继续原样运行。";
+    }
+
+    function applyExpectedTopologyDefaults() {
+      const projectKey = String(params.get("project_key") || "").trim().toLowerCase();
+      expectedStepCount.value = projectKey === "beyoute" ? "4" : "1";
+      expectedPriceStage.value = projectKey === "beyoute" ? "step_4" : "step_1";
+      syncExpectedPriceStageOptions();
+    }
+
+    function syncExpectedPriceStageOptions() {
+      const count = Math.min(4, Math.max(1, Number(expectedStepCount.value || 1)));
+      expectedStepCount.value = String(count);
+      [...expectedPriceStage.options].forEach((option, index) => {
+        option.hidden = index + 1 > count;
+        option.disabled = index + 1 > count;
+      });
+      const selectedStage = Number(String(expectedPriceStage.value || "").replace("step_", ""));
+      if (!selectedStage || selectedStage > count) expectedPriceStage.value = `step_${count}`;
+    }
+
+    function selectedExpectedTopology() {
+      syncExpectedPriceStageOptions();
+      return {
+        expected_step_count: Number(expectedStepCount.value || 1),
+        expected_price_stage_key: expectedPriceStage.value || "step_1"
+      };
+    }
+
+    function reonboardingRoutine() {
+      return {
+        new_inbox: "ChatDaddy Trigger starts Step 1.",
+        button_click: "ChatDaddy continues its configured Button or Flow; AI Reply observes the resulting state.",
+        pre_price_free_text: "AI Reply answers the customer's current question, then continues only the exact next configured Flow.",
+        post_price_free_text: "AI Reply answers, gives source-backed confidence, one CTA, and only verified urgency.",
+        auto_follow_up: "ChatDaddy owns Auto Follow Up and stops when the customer replies.",
+        sensitive_or_uncertain: "Payment, refund, complaint, privacy, health, attachment, or low-confidence cases require human review."
+      };
+    }
+
+    function reonboardingStepPurpose(index) {
+      return [
+        "产品介绍，并了解顾客正在面对的问题",
+        "介绍 USP、End Result 与产品成分",
+        "用已批准的 Testimonial、线下店或认证建立信心",
+        "发送真实价格 / 配套，使用可验证的 Urgency 与 End Result 推进成交"
+      ][index] || `确认 Step ${index + 1} 的真实用途`;
+    }
+
+    function extendReonboardingSalesTopology(projectPackage, expected) {
+      const currentProcess = projectPackage?.sales_process || {};
+      const currentStages = Array.isArray(currentProcess.stages) ? currentProcess.stages : [];
+      if (expected.expected_step_count < currentStages.length) {
+        throw new Error(`当前已有 ${currentStages.length} 个 Step。小白模式不会自动删除已有 Step 或 Flow；请由管理员核对后再缩减。`);
+      }
+      const stagesByKey = new Map(currentStages.map((stage) => [String(stage?.stage_key || ""), stage]));
+      const stages = Array.from({ length: expected.expected_step_count }, (_, index) => {
+        const stageKey = `step_${index + 1}`;
+        const existing = stagesByKey.get(stageKey);
+        const nextStageKey = index + 1 < expected.expected_step_count ? `step_${index + 2}` : null;
+        if (existing) {
+          return {
+            ...existing,
+            next_stage_key: nextStageKey
+          };
+        }
+        return {
+          stage_key: stageKey,
+          order: index + 1,
+          purpose: reonboardingStepPurpose(index),
+          entry_signal: index === 0
+            ? "ChatDaddy Trigger starts Step 1."
+            : "AI answers the current question before continuing the exact configured next Flow.",
+          handoff_when: "付款、退款、投诉、隐私、健康、附件或低信心时转人工。",
+          flow_key: stageKey,
+          next_stage_key: nextStageKey,
+          language: "zh-MY",
+          contains_media: false,
+          active: true
+        };
+      });
+      return {
+        ...currentProcess,
+        channel_provider: currentProcess.channel_provider || "chatdaddy",
+        step_count: expected.expected_step_count,
+        entry_stage_key: currentProcess.entry_stage_key || "step_1",
+        price_stage_key: expected.expected_price_stage_key,
+        stages
+      };
+    }
+
+    function buildSalesBrainDraft(projectPackage, expected, routine, now) {
+      const topology = canonicalTopology(projectPackage);
+      return {
+        ...(projectPackage?.sales_brain || {}),
+        schema_version: "replypilot.sales_brain.v1",
+        status: "draft",
+        source: "owner_confirmed_chatdaddy_topology",
+        step_count: expected.expected_step_count,
+        price_stage_key: expected.expected_price_stage_key,
+        stages: Array.from({ length: expected.expected_step_count }, (_, index) => {
+          const stageKey = `step_${index + 1}`;
+          const stage = topology.stages.find((item) => item?.stage_key === stageKey) || {};
+          const providerId = firstNonEmpty(
+            stage?.provider_flow_id,
+            stage?.provider_bot_id,
+            stage?.provider_flow_key,
+            stage?.chatdaddy_bot_id,
+            stage?.provider_id,
+            stage?.flow_id
+          );
+          return {
+            stage_key: stageKey,
+            order: index + 1,
+            purpose: reonboardingStepPurpose(index),
+            provider_flow_status: providerId ? "bound_existing" : "owner_must_select_real_flow",
+            ...(providerId ? { provider_flow_reference: providerId } : {})
+          };
+        }),
+        routine,
+        owner_review: {
+          approved: false,
+          status: "pending"
+        },
+        updated_at: now
+      };
+    }
+
+    function canonicalTopology(projectPackage = {}) {
+      const process = projectPackage?.sales_process || {};
+      const stages = Array.isArray(process.stages) ? process.stages : [];
+      return {
+        step_count: Number(process.step_count || stages.length || 0),
+        price_stage_key: String(process.price_stage_key || ""),
+        stages
+      };
+    }
+
+    function topologyMismatchMessage(projectPackage = {}, expected = selectedExpectedTopology()) {
+      const canonical = canonicalTopology(projectPackage);
+      const issues = [];
+      if (canonical.step_count !== Number(expected.expected_step_count || 0)) {
+        issues.push(`当前 Project Brain 是 ${canonical.step_count || 0} Step，你确认的是 ${expected.expected_step_count} Step`);
+      }
+      if (canonical.price_stage_key !== String(expected.expected_price_stage_key || "")) {
+        issues.push(`当前价格阶段是 ${canonical.price_stage_key || "未设置"}，你确认的是 ${expected.expected_price_stage_key}`);
+      }
+      return issues.join("；");
+    }
+
+    function renderReonboardingTopology(packageResponse = state.existingPackageResponse || state.salesPackageResponse || {}) {
+      const projectPackage = packageResponse?.project_package || {};
+      const reonboarding = projectPackage?.metadata?.reonboarding || {};
+      const canonical = canonicalTopology(projectPackage);
+      if (reonboarding.status === "in_progress") {
+        expectedStepCount.value = String(Math.min(4, Math.max(1, Number(reonboarding.expected_step_count || 1))));
+        expectedPriceStage.value = String(reonboarding.expected_price_stage_key || `step_${expectedStepCount.value}`);
+      } else if (String(currentProjectKey()).toLowerCase() !== "beyoute" && canonical.step_count > 0) {
+        expectedStepCount.value = String(Math.min(4, canonical.step_count));
+        expectedPriceStage.value = canonical.price_stage_key || `step_${expectedStepCount.value}`;
+      }
+      syncExpectedPriceStageOptions();
+
+      const stageSummary = canonical.stages.map((stage, index) => {
+        const providerId = firstNonEmpty(
+          stage?.provider_flow_id,
+          stage?.provider_bot_id,
+          stage?.provider_flow_key,
+          stage?.chatdaddy_bot_id,
+          stage?.provider_id,
+          stage?.flow_id
+        );
+        return `Step ${index + 1}${providerId ? `（${providerId}）` : "（未绑定）"}`;
+      }).join("、");
+      currentFlowTopology.textContent = canonical.step_count
+        ? `当前 Project Brain：${canonical.step_count} Step，价格在 ${canonical.price_stage_key || "未设置"}。${stageSummary || "尚未绑定真实 Flow。"}`
+        : "当前 Project Brain 还没有可确认的销售 Step。";
+
+      const expected = selectedExpectedTopology();
+      const mismatch = topologyMismatchMessage(projectPackage, expected);
+      beginnerConfirmButton.disabled = Boolean(mismatch);
+      beginnerConfirmButton.title = mismatch
+        ? `先完成真实 Flow 路线：${mismatch}`
+        : "确认 AI 的业务理解正确";
+      if (reonboarding.status === "in_progress" && !mismatch) {
+        reonboardingResult.textContent = "重新 Onboard 草稿已建立，真实 Step 与价格阶段已匹配。现在可以继续教 AI，并在发布前完成 Flow Gate。";
+      } else if (reonboarding.status === "in_progress") {
+        reonboardingResult.textContent = `重新 Onboard 草稿已建立，但路线尚未对齐：${mismatch}。请在真实 Flow 页面选择正确 Flow；系统不会猜测或新增 Step 4 Flow。`;
+      } else if (mismatch) {
+        reonboardingResult.textContent = `发现旧路线与这次 Onboarding 不一致：${mismatch}。请先建立重新 Onboard 草稿；已发布 Runtime 不会被修改。`;
+      } else {
+        reonboardingResult.textContent = "真实 Step 与价格阶段已对齐。建立重新 Onboard 草稿后，才会重置本轮 Owner 验收并开始学习。";
+      }
+      updateOnboardingProgress();
+    }
+
+    function handleExpectedTopologyChange() {
+      syncExpectedPriceStageOptions();
+      renderReonboardingTopology(state.existingPackageResponse || state.salesPackageResponse || {});
+    }
+
+    async function startReonboardingDraft() {
+      if (state.reonboardingBusy) return;
+      if (state.authVerified !== true) {
+        reonboardingResult.textContent = "请先登录 Owner / Admin 账号，再建立重新 Onboard 草稿。";
+        return;
+      }
+      const projectKey = currentProjectKey();
+      if (!projectKey) {
+        reonboardingResult.textContent = "请先选择现有项目。新项目不需要重新 Onboard。";
+        return;
+      }
+      const previous = startReonboardingButton.textContent;
+      const publishedBefore = state.published;
+      const activationBefore = state.activation;
+      try {
+        state.reonboardingBusy = true;
+        startReonboardingButton.disabled = true;
+        startReonboardingButton.textContent = "正在建立安全草稿…";
+        reonboardingResult.textContent = "正在读取最新 Project Brain；不会发送讯息、触发 Flow 或修改已发布 Runtime。";
+
+        const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+        if (!latest?.project_package) throw new Error("无法读取当前 Project Brain，已停止建立草稿。");
+        const expected = selectedExpectedTopology();
+        const existingReonboarding = latest.project_package?.metadata?.reonboarding || {};
+        const alreadyMatching = existingReonboarding.status === "in_progress"
+          && Number(existingReonboarding.expected_step_count || 0) === expected.expected_step_count
+          && String(existingReonboarding.expected_price_stage_key || "") === expected.expected_price_stage_key
+          && !topologyMismatchMessage(latest.project_package, expected)
+          && latest.project_package?.sales_brain?.schema_version === "replypilot.sales_brain.v1";
+        if (alreadyMatching) {
+          state.existingPackageResponse = latest;
+          state.salesPackageResponse = latest;
+          state.connectionGuide = null;
+          renderReonboardingTopology(latest);
+          await refreshConnectionReadiness({ silent: true });
+          reonboardingResult.textContent = `相同的重新 Onboard 草稿已经存在（v${latest.version_no || "-"}），没有重复建立，也没有修改已发布 Runtime。`;
+          return;
+        }
+
+        const now = new Date().toISOString();
+        const draft = JSON.parse(JSON.stringify(latest.project_package));
+        const routine = reonboardingRoutine();
+        draft.sales_process = extendReonboardingSalesTopology(draft, expected);
+        draft.sales_brain = buildSalesBrainDraft(draft, expected, routine, now);
+        draft.business_onboarding = {
+          ...(draft.business_onboarding || {}),
+          status: "reonboarding_draft",
+          owner_signoff: {
+            ...((draft.business_onboarding || {}).owner_signoff || {}),
+            approved: false,
+            status: "pending",
+            approved_at: null,
+            statement: "Beyoute re-onboarding is waiting for Owner review; existing business content remains unchanged."
+          }
+        };
+        draft.metadata = {
+          ...(draft.metadata || {}),
+          approval_first: true,
+          auto_send_enabled: false,
+          auto_trigger_flows_enabled: false,
+          reonboarding: {
+            schema_version: "replypilot.reonboarding.v1",
+            status: "in_progress",
+            expected_step_count: expected.expected_step_count,
+            expected_price_stage_key: expected.expected_price_stage_key,
+            owner_review: {
+              approved: false,
+              status: "pending"
+            },
+            started_at: now,
+            base_version_no: Number(latest.version_no || 0),
+            routine,
+            protected_paths: [
+              "sales_process.stages[*].provider_flow_id",
+              "sales_process.stages[*].provider_bot_id",
+              "sales_process.stages[*].provider_flow_key",
+              "sales_process.stages[*].chatdaddy_bot_id",
+              "sales_process.stages[*].provider_id",
+              "learning_assets",
+              "source_documents",
+              "business_onboarding.answers",
+              "metadata.auto_send_enabled",
+              "metadata.auto_trigger_flows_enabled"
+            ]
+          }
+        };
+
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`, {
+          project_package: draft,
+          note: "Owner started Flow-first re-onboarding draft; published runtime and existing Flow bindings preserved.",
+          expected_version_no: Number(latest.version_no || 0)
+        });
+        state.existingPackageResponse = data;
+        state.salesPackageResponse = data;
+        state.connectionGuide = null;
+        state.published = publishedBefore;
+        state.activation = activationBefore;
+        publishConfirm.checked = false;
+        renderReonboardingTopology(data);
+        await refreshConnectionReadiness({ silent: true });
+        reonboardingResult.textContent = `重新 Onboard 草稿 v${data.version_no || "-"} 已建立。旧内容与真实 Flow ID 原样保留；自动发送和自动 Flow 仍关闭，已发布 Runtime 未改变。`;
+        addLog("重新 Onboard 草稿已建立", `${projectKey} 草稿 v${data.version_no || "-"}；先补齐真实 Step / Flow，再进行本轮 Owner 验收。`);
+      } catch (error) {
+        reonboardingResult.textContent = `无法建立重新 Onboard 草稿：${error.message || error}`;
+      } finally {
+        state.reonboardingBusy = false;
+        startReonboardingButton.disabled = false;
+        startReonboardingButton.textContent = previous;
+      }
     }
 
     function renderSafety(template) {
@@ -1951,7 +2295,7 @@
           item.classList.remove("done", "current");
         });
         document.getElementById("progressBar").style.width = "0%";
-        document.getElementById("progressSummary").textContent = "Owner 登录后读取 3 段真实进度";
+        document.getElementById("progressSummary").textContent = "Owner 登录后读取 4 段真实进度";
         document.getElementById("progressStatus").textContent = "等待 Owner 登录";
         document.getElementById("progressStatus").className = "status";
         updateProjectLinks();
@@ -1961,6 +2305,9 @@
       const reviewSummary = state.learningReview?.summary || {};
       const guideSummary = state.connectionGuide?.summary || {};
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
+      const expectedTopology = selectedExpectedTopology();
+      const topologyMismatch = topologyMismatchMessage(packageData, expectedTopology);
+      const topologyMatches = canonicalTopology(packageData).step_count > 0 && !topologyMismatch;
       const salesValidationReady = Boolean(packageData?.metadata?.sales_journey_owner_reviewed_at)
         && Array.isArray(packageData?.sales_process?.stages)
         && packageData.sales_process.stages.length > 0;
@@ -1977,27 +2324,37 @@
         mock: Array.isArray(mockTests) && mockTests.length > 0 && mockFailed === 0,
         learning: state.published === true
       };
+      const flowReady = topologyMatches && technicalDone.channel;
+      const teachReady = flowReady && technicalDone.business && technicalDone.materials;
+      const reviewReady = teachReady
+        && packageData?.business_onboarding?.owner_signoff?.approved === true
+        && Number(reviewSummary.total_items || 0) > 0
+        && Number(reviewSummary.pending_items || 0) === 0;
       const phaseDone = {
-        teach: technicalDone.business && technicalDone.materials,
-        learn: Number(reviewSummary.total_items || 0) > 0,
-        use: state.activation?.ready_for_ai_reply === true
+        flow: flowReady,
+        teach: teachReady,
+        review: reviewReady,
+        use: reviewReady && state.activation?.ready_for_ai_reply === true
       };
       const count = Object.values(phaseDone).filter(Boolean).length;
+      const phaseOrder = ["flow", "teach", "review", "use"];
+      const currentPhase = phaseOrder.find((phase, index) => (
+        phaseDone[phase] !== true
+        && phaseOrder.slice(0, index).every((previousPhase) => phaseDone[previousPhase] === true)
+      )) || "";
       document.querySelectorAll("[data-progress-phase]").forEach((item) => {
         const phase = item.dataset.progressPhase;
         item.classList.toggle("done", phaseDone[phase] === true);
-        item.classList.toggle("current", phaseDone[phase] !== true && (
-          phase === "teach"
-          || (phase === "learn" && phaseDone.teach)
-          || (phase === "use" && phaseDone.learn)
-        ));
+        item.classList.toggle("current", phase === currentPhase);
       });
-      document.getElementById("progressBar").style.width = `${(count / 3) * 100}%`;
-      document.getElementById("progressSummary").textContent = `${count} / 3 段完成 · 技术检查会在后台继续保留`;
-      document.getElementById("progressStatus").textContent = state.activation?.ready_for_ai_reply
-        ? "AI Reply 已可用 · Approval-first"
-        : state.published ? "Project Brain 已发布" : "草稿 / Approval-first";
-      document.getElementById("progressStatus").className = `status ${state.published ? "ok" : ""}`;
+      document.getElementById("progressBar").style.width = `${(count / 4) * 100}%`;
+      document.getElementById("progressSummary").textContent = `${count} / 4 段完成 · 已发布 Runtime 与本轮草稿分开`;
+      document.getElementById("progressStatus").textContent = topologyMismatch
+        ? "真实 Flow 路线未对齐"
+        : state.activation?.ready_for_ai_reply
+          ? "AI Reply 已可用 · Approval-first"
+          : state.published ? "Project Brain 已发布" : "草稿 / Approval-first";
+      document.getElementById("progressStatus").className = `status ${topologyMismatch ? "bad" : state.published ? "ok" : ""}`;
       updateProjectLinks();
       updatePublishButton();
     }
@@ -2015,16 +2372,17 @@
       state.published = packageResponse.published === true && packageResponse.draft !== true;
       state.activation = packageResponse.activation || null;
       applyExistingProjectOnboarding(packageResponse.project_package || {}, existingProject);
-      document.getElementById("setupHeroTitle").textContent = `继续教 ${existingProject.name || projectKey} AI`;
-      document.getElementById("setupHeroDescription").textContent = "系统已读入现有 Project Brain。加入 FAQ、文件或简单说明后，AI 会自动整理学习草稿；旧 FAQ、SOP、Flow 和已发布 AI Reply 都会保留。";
-      document.getElementById("setupSideTitle").textContent = "继续教育当前项目";
-      document.getElementById("setupSideDescription").textContent = "你只提供项目知识并确认异常；销售 Step、回复规则、渠道 Gate 与测试留给管理员高级设置。";
-      document.querySelector("#setupForm .section-title").textContent = "1. 确认现有项目";
-      document.getElementById("channelSetupLink").textContent = "查看渠道连接状态";
-      createButton.textContent = "Owner 验收并保存现有项目草稿";
-      formHelp.textContent = `已载入 ${projectKey} 的现有知识。直接贴 FAQ、加入文件或写说明，然后按「让 AI 学习并整理」。`;
-      setStatus("可以继续学习", "ok");
-      addLog("已载入现有项目", `${projectKey} 当前版本 ${packageResponse.version_no || "-"}。新资料只进入学习草稿，不会覆盖已发布版本。`);
+      renderReonboardingTopology(packageResponse);
+      document.getElementById("setupHeroTitle").textContent = `重新 Onboard ${existingProject.name || projectKey} AI`;
+      document.getElementById("setupHeroDescription").textContent = "系统已读入现有 Project Brain。先核对真实 ChatDaddy Step / Flow，再加入 FAQ、文件或简单说明；旧 FAQ、SOP、Flow 与已发布 AI Reply 全部保留。";
+      document.getElementById("setupSideTitle").textContent = "重新 Onboard 当前项目";
+      document.getElementById("setupSideDescription").textContent = "先确认真实 Flow，再教育 AI 和确认异常；已发布 Runtime 不会因草稿改变。";
+      document.querySelector("#setupForm .section-title").textContent = "确认现有项目资料";
+      document.getElementById("channelSetupLink").textContent = "查看 / 选择当前项目真实 Flow";
+      createButton.textContent = "Owner 验收并保存重新 Onboard 草稿";
+      formHelp.textContent = `已载入 ${projectKey} 的现有知识。先完成上方真实 Flow 核对，再贴 FAQ、加入文件或写说明。`;
+      setStatus("等待重新 Onboard", "");
+      addLog("已载入现有项目", `${projectKey} 当前编辑版本 ${packageResponse.version_no || "-"}。本轮只建立新草稿，不会覆盖已发布 Runtime。`);
       updateOnboardingProgress();
     }
 
@@ -2169,6 +2527,7 @@
         const canonicalPackage = await apiGet(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/package`);
         state.salesPackageResponse = canonicalPackage;
         state.existingPackageResponse = canonicalPackage;
+        renderReonboardingTopology(canonicalPackage);
         applyExistingProjectOnboarding(canonicalPackage.project_package || {}, state.existingProject || {
           project_key: currentProjectKey(),
           name: setupIntake.company_name
@@ -2205,6 +2564,11 @@
       try {
         beginnerConfirmButton.disabled = true;
         beginnerConfirmButton.textContent = "正在确认…";
+        const currentPackage = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
+        const topologyMismatch = topologyMismatchMessage(currentPackage);
+        if (topologyMismatch) {
+          throw new Error(`请先完成真实 Flow 路线：${topologyMismatch}。系统不会替你猜 Step 4 Flow。`);
+        }
         const saved = await createProject({ allowDraft: true, ownerApproved: true });
         if (!saved) throw new Error("AI 的业务理解还没有保存成功。");
         const adopted = await approveBeginnerStandardDrafts();
@@ -2335,6 +2699,12 @@
             : await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
           if (!currentPackageResponse?.project_package) {
             throw new Error(`无法读取项目 ${projectKey} 的当前 Project Brain，已停止保存。`);
+          }
+          if (explicitOwnerApproval) {
+            const topologyMismatch = topologyMismatchMessage(currentPackageResponse.project_package);
+            if (topologyMismatch) {
+              throw new Error(`Owner 验收前必须先对齐真实 Flow 路线：${topologyMismatch}。已发布 Runtime 没有改变。`);
+            }
           }
           addLog("准备保存现有项目迁移草稿", `项目 ${projectKey} 的旧 FAQ、SOP、Flow 和自动化设置会原样保留。`);
         } else {
@@ -2559,13 +2929,41 @@
               : "AI-organized business understanding is waiting for Owner confirmation."
           }
         },
+        ...(
+          currentPackage?.sales_brain?.status === "draft"
+            ? {
+              sales_brain: {
+                ...currentPackage.sales_brain,
+                owner_review: {
+                  approved: ownerApproved === true,
+                  status: ownerApproved ? "approved" : "pending"
+                },
+                ...(ownerApproved ? { reviewed_at: now } : {})
+              }
+            }
+            : {}
+        ),
         metadata: {
           ...(currentPackage.metadata || {}),
           requires_business_onboarding: true,
           approval_first: true,
           onboarding_updated_at: now,
           owner_business_onboarding_migrated_at: now,
-          owner_business_onboarding_source: "existing_project_owner_migration"
+          owner_business_onboarding_source: "existing_project_owner_migration",
+          ...(
+            currentPackage?.metadata?.reonboarding?.status === "in_progress"
+              ? {
+                reonboarding: {
+                  ...currentPackage.metadata.reonboarding,
+                  owner_review: {
+                    approved: ownerApproved === true,
+                    status: ownerApproved ? "approved" : "pending"
+                  },
+                  ...(ownerApproved ? { reviewed_at: now } : {})
+                }
+              }
+              : {}
+          )
         }
       };
     }
@@ -3504,11 +3902,19 @@
         const summary = data.summary || {};
         const blockers = Array.isArray(data.readiness?.blockers) ? data.readiness.blockers : [];
         const steps = `${Number(summary.sales_steps_bound || 0)} / ${Number(summary.sales_steps_total || 0)}`;
-        readinessResult.textContent = blockers.length
-          ? `仍有 ${blockers.length} 项阻塞。销售 Step Flow：${steps}。下一步：${blockers.slice(0, 3).map((item) => item.message || item.code).join("；")}`
-          : `连接与 Flow Gate 已通过。销售 Step Flow：${steps}。现在可以运行完整 Synthetic Mock。`;
-        channelFlowStatus.textContent = blockers.length ? `仍有 ${blockers.length} 项` : "连接与 Flow 已通过";
-        channelFlowStatus.className = `status ${blockers.length ? "bad" : "ok"}`;
+        const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
+        const topologyMismatch = topologyMismatchMessage(packageData);
+        if (topologyMismatch) {
+          readinessResult.textContent = `当前连接页只验证了旧路线 ${steps}，不能当作本轮 Onboarding 已完成：${topologyMismatch}。请打开真实 Flow 页面选择缺少的 Step；系统不会伪造 Flow ID。`;
+          channelFlowStatus.textContent = "真实 Flow 路线未对齐";
+          channelFlowStatus.className = "status bad";
+        } else {
+          readinessResult.textContent = blockers.length
+            ? `仍有 ${blockers.length} 项阻塞。销售 Step Flow：${steps}。下一步：${blockers.slice(0, 3).map((item) => item.message || item.code).join("；")}`
+            : `连接与 Flow Gate 已通过。销售 Step Flow：${steps}。现在可以继续教 AI。`;
+          channelFlowStatus.textContent = blockers.length ? `仍有 ${blockers.length} 项` : "连接与 Flow 已通过";
+          channelFlowStatus.className = `status ${blockers.length ? "bad" : "ok"}`;
+        }
         updateOnboardingProgress();
       } catch (error) {
         if (!options.silent) {
