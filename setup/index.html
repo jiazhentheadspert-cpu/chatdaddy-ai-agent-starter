@@ -4140,6 +4140,38 @@
         && videoPartsReady;
     }
 
+    function flowLearningSelectionChanged(learning = state.flowLearning) {
+      const exceptions = Array.isArray(learning?.exceptions) ? learning.exceptions : [];
+      return learning?.content_status === "flow_selection_changed"
+        || exceptions.some((item) => flowLearningExceptionCode(item) === "flow_selection_changed_requires_relearning");
+    }
+
+    function selectedFlowLearningPreview() {
+      const projectPackage = state.salesPackageResponse?.project_package
+        || state.existingPackageResponse?.project_package
+        || {};
+      const process = projectPackage.sales_process || {};
+      const stages = Array.isArray(process.stages) ? process.stages : [];
+      const followUps = Array.isArray(process.follow_up_policy?.flow_sequence)
+        ? process.follow_up_policy.flow_sequence
+        : [];
+      return {
+        priceStageKey: String(process.price_stage_key || ""),
+        salesSteps: stages.map((item, index) => ({
+          ...item,
+          order: Number(item?.order || index + 1),
+          title: firstNonEmpty(item?.selected_flow_title, item?.title, item?.purpose, `Step ${index + 1}`),
+          content_summary: "已选择最新 Flow，等待 AI 重新理解内容。"
+        })),
+        followUps: followUps.map((item, index) => ({
+          ...item,
+          order: Number(item?.order || index + 1),
+          title: firstNonEmpty(item?.selected_flow_title, item?.title, `Follow Up ${index + 1}`),
+          content_summary: "已选择最新 Flow，等待 AI 重新理解内容。"
+        }))
+      };
+    }
+
     function flowLearningUnderstandingReady() {
       const understanding = state.flowLearning?.understanding || {};
       return ["sell", "why", "how", "close"].every((key) => Boolean(String(understanding[key] || "").trim()));
@@ -4147,6 +4179,18 @@
 
     function flowLearningNextGateState() {
       const learning = state.flowLearning || {};
+      if (flowLearningSelectionChanged(learning)) {
+        const selectedFollowUpCount = Number(state.connectionGuide?.summary?.follow_ups_total || 0)
+          || selectedFlowLearningPreview().followUps.length;
+        return {
+          hasPriceEvidence: false,
+          priceStageKey: "",
+          realFollowUps: false,
+          followUpCount: selectedFollowUpCount,
+          ready: false,
+          relearningRequired: true
+        };
+      }
       const priceEvidence = learning.price_evidence || {};
       const priceStageKey = firstNonEmpty(
         priceEvidence.stage_key,
@@ -4195,9 +4239,13 @@
         : "真实 Follow Up：尚未读完整";
       beginnerNextGateTitle.textContent = gate.ready
         ? "成交路线已完整，可以继续学习"
+        : gate.relearningRequired
+          ? `Flow 已更新，AI 正在重新学习 ${gate.followUpCount} 个 Follow Up`
         : "下一步前，AI 要先读完整成交路线";
       beginnerNextGateText.textContent = gate.ready
         ? "价格和看价后的跟进都来自真实 ChatDaddy Flow。"
+        : gate.relearningRequired
+          ? "旧学习结果已收起；完成后会显示本次最新路线。"
         : "请先补齐价格证据与 1–10 个真实 Follow Up；AI 不会用猜的继续。";
       beginnerLearnButton.disabled = !gate.ready;
       beginnerLearnButton.title = gate.ready ? "" : "请先完成价格证据与真实 Follow Up";
@@ -4343,6 +4391,7 @@
         flow_graph_not_normalized: `${targetLabel || "这个 Flow"} 的顺序尚未读取完整。`,
         provider_content_error: `${targetLabel || "这个 Flow"} 无法读取：${detail || "ChatDaddy 内容暂不可用"}。`,
         source_content_incomplete: "真实 Flow 内容还没有读取完整。",
+        flow_selection_changed_requires_relearning: "Flow 选择已更新，AI 必须按最新销售路线重新学习。",
         price_evidence_not_detected: "还没有从真实 Flow 找到价格内容。",
         source_copy_locks_missing: "还没有找到可追溯的 CTA、效果、价格或配套原话。",
         source_brand_conflict: "已阻止品牌冲突：这份资料可能属于另一个项目，请 Owner 确认。",
@@ -4592,10 +4641,18 @@
       }
       const summary = learning.summary || {};
       const exceptions = Array.isArray(learning.exceptions) ? learning.exceptions : [];
+      const selectionChanged = flowLearningSelectionChanged(learning);
+      const selectedPreview = selectionChanged ? selectedFlowLearningPreview() : null;
+      const selectedSalesStepCount = selectedPreview?.salesSteps.length
+        || Number(state.connectionGuide?.summary?.sales_steps_total || 0);
+      const selectedFollowUpCount = selectedPreview?.followUps.length
+        || Number(state.connectionGuide?.summary?.follow_ups_total || 0);
       const issueMessages = flowLearningDisplayIssues(learning, exceptions);
       const warningMessages = flowLearningNonBlockingWarnings(learning);
-      const ready = flowLearningSemanticReady();
-      const statusText = ready
+      const ready = !selectionChanged && flowLearningSemanticReady();
+      const statusText = selectionChanged
+        ? state.flowLearningBusy ? "重新学习中" : "等待重新学习"
+        : ready
         ? "已读懂"
         : learning.content_status === "needs_owner_confirmation"
           ? "需要确认"
@@ -4604,20 +4661,31 @@
           : learning.content_status === "content_unavailable"
             ? "内容未读取"
             : "学习中";
-      flowLearningHeadline.textContent = ready
+      flowLearningHeadline.textContent = selectionChanged
+        ? state.flowLearningBusy
+          ? "Flow 已更新，AI 正在重新学习"
+          : "Flow 已更新，需要重新学习"
+        : ready
         ? "AI 已读懂完整销售 Flow"
         : issueMessages.length
           ? `AI 已整理，仍有 ${issueMessages.length} 项需处理`
           : "AI 正在理解销售 Flow";
-      flowLearningSubline.textContent = `${summary.sales_step_count || learning.sales_steps.length} 个销售 Step · 价格在 ${summary.price_stage_key || "待识别"} · 价格后 ${summary.follow_up_count || learning.follow_ups.length} 个 Follow Up`;
+      flowLearningSubline.textContent = selectionChanged
+        ? `${selectedSalesStepCount} 个销售 Step · 价格在 ${selectedPreview?.priceStageKey || "待识别"} · 价格后 ${selectedFollowUpCount} 个 Follow Up`
+        : `${summary.sales_step_count || learning.sales_steps.length} 个销售 Step · 价格在 ${summary.price_stage_key || "待识别"} · 价格后 ${summary.follow_up_count || learning.follow_ups.length} 个 Follow Up`;
       flowLearningMediaLine.textContent = "";
-      flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml(learning);
+      flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml(selectionChanged ? null : learning);
       flowLearningStatus.textContent = statusText;
-      flowLearningStatus.className = `status ${ready ? "ok" : learning.content_status === "content_unavailable" || issueMessages.length ? "bad" : ""}`;
-      const nodes = [
-        ...learning.sales_steps.map((item) => flowLearningNodeHtml(item, "sales", summary.price_stage_key)),
-        ...learning.follow_ups.map((item) => flowLearningNodeHtml(item, "follow_up", summary.price_stage_key))
-      ];
+      flowLearningStatus.className = `status ${ready ? "ok" : selectionChanged || learning.content_status === "content_unavailable" || issueMessages.length ? "bad" : ""}`;
+      const nodes = selectionChanged
+        ? [
+            ...selectedPreview.salesSteps.map((item) => flowLearningNodeHtml(item, "sales", selectedPreview.priceStageKey)),
+            ...selectedPreview.followUps.map((item) => flowLearningNodeHtml(item, "follow_up", selectedPreview.priceStageKey))
+          ]
+        : [
+            ...learning.sales_steps.map((item) => flowLearningNodeHtml(item, "sales", summary.price_stage_key)),
+            ...learning.follow_ups.map((item) => flowLearningNodeHtml(item, "follow_up", summary.price_stage_key))
+          ];
       flowLearningRoute.innerHTML = nodes.length
         ? nodes.join("")
         : '<div class="review-empty">已连接，但还没有可读取的 Flow 内容。请按「重新读取」。</div>';
