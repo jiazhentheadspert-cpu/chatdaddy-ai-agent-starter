@@ -5697,8 +5697,8 @@
       border-radius: 15px;
       border: 1px solid var(--line);
       background: #fff;
-      line-height: 1.55;
-      font-weight: 700;
+      line-height: 1.68;
+      font-weight: 620;
     }
 
     .bubble.in {
@@ -6072,7 +6072,7 @@
 	      width: 100%;
 	      min-width: 0;
 	      min-height: 42px;
-	      max-height: 104px;
+	      max-height: 240px;
 	      height: 42px;
 	      box-sizing: border-box;
 	      resize: none;
@@ -6082,8 +6082,8 @@
 	      background: transparent;
 	      padding: 10px 0 8px;
 	      font-size: 14px;
-	      line-height: 1.45;
-	      font-weight: 720;
+	      line-height: 1.65;
+	      font-weight: 600;
 	      color: #111b21;
 	      caret-color: #00a884;
 	      box-shadow: none;
@@ -7758,7 +7758,7 @@
 	      }
 	      #replyBox {
 	        min-height: 40px;
-	        max-height: 96px;
+	        max-height: 180px;
 	        height: 40px;
 	      }
 	      .voice-recording-row,
@@ -12138,7 +12138,7 @@
       const box = $("replyBox");
       if (!box) return;
 	  box.style.height = "42px";
-      const maxHeight = window.matchMedia("(max-width: 820px)").matches ? 116 : 132;
+      const maxHeight = window.matchMedia("(max-width: 820px)").matches ? 180 : 240;
 	  box.style.height = `${Math.min(Math.max(box.scrollHeight, 42), maxHeight)}px`;
     }
 
