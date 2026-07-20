@@ -21086,12 +21086,22 @@
 
     function noInterventionInferredFlowContext(rows = []) {
       const bundle = noInterventionOutboundBundle(rows);
+      const confirmedMessage = bundle.slice().reverse().find((message) => (
+        noInterventionExplicitFlowName(message) && noInterventionStepLabel(message)
+      ));
+      if (confirmedMessage) {
+        return {
+          name: noInterventionExplicitFlowName(confirmedMessage),
+          source: "confirmed",
+          stage: noInterventionStepLabel(confirmedMessage),
+        };
+      }
       const explicitMessage = bundle.slice().reverse().find((message) => noInterventionExplicitFlowName(message));
       const explicitName = noInterventionExplicitFlowName(explicitMessage || {});
       if (explicitName) {
         return {
           name: explicitName,
-          source: "confirmed",
+          source: "partial",
           stage: noInterventionStepLabel(explicitMessage || {}),
         };
       }
@@ -21294,6 +21304,8 @@
       const summary = noInterventionSummary(item);
       const flowSourceLabel = summary.flowContext.source === "confirmed"
         ? "已确认"
+        : summary.flowContext.source === "partial"
+          ? "Step 待同步"
         : summary.flowContext.source === "inferred"
           ? "按内容识别"
           : "待同步";
