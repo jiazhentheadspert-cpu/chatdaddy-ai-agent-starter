@@ -1278,8 +1278,8 @@
         ? "保存并重新同步 Flow"
         : "连接并同步 Flow";
       webhookBoxEl.textContent = latestSetup?.webhook_url || "连接项目后会显示 Webhook URL";
-      if (latestSetup?.ready) setStatus("已完成", "ok");
-      else if (latestSetup?.active_connection) setStatus("已连接，仍有项目待确认", "ok");
+      if (latestGuide?.summary?.api_connected === true) setStatus("API 已连接", "ok");
+      else if (latestSetup?.active_connection) setStatus("API 尚未完成", "bad");
       else setStatus("继续设置", "bad");
       renderCommands();
       if (!connections.length) {
@@ -1292,7 +1292,7 @@
             <b>${escapeHtml(item.display_name || item.provider || "聊天工具")}</b>
             <span>${escapeHtml(item.provider || "-")} · ${escapeHtml(item.external_channel_id || "-")} · ${escapeHtml(item.phone_hint || "未填写号码")} · ${item.credential_configured ? `Token ${escapeHtml(item.credential_hint || "已加密")}` : "未授权"}${Number.isFinite(Number(item.live_flow_count)) ? ` · ${Number(item.live_flow_count)} 条 Flow` : ""}</span>
           </div>
-          <div class="status ${["active", "connected", "ready", "live", "enabled"].includes(String(item.status || "").toLowerCase()) ? "ok" : ""}">${escapeHtml(["active", "connected", "ready", "live", "enabled"].includes(String(item.status || "").toLowerCase()) ? "已连接" : "继续设置")}</div>
+          <div class="status ${["active", "connected", "ready", "live", "enabled"].includes(String(item.status || "").toLowerCase()) && item.credential_configured ? "ok" : ""}">${escapeHtml(["active", "connected", "ready", "live", "enabled"].includes(String(item.status || "").toLowerCase()) && item.credential_configured ? "API 已连接" : "API 未完成")}</div>
         </div>
       `).join("");
     }
@@ -1300,9 +1300,9 @@
     function renderReadiness(data) {
       const summary = data.summary || {};
       const capabilities = Array.isArray(data.readiness?.capabilities) ? data.readiness.capabilities : [];
-      const connectionValue = summary.connection_ready ? "1 / 1" : "0 / 1";
+      const connectionValue = summary.api_connected ? "1 / 1" : "0 / 1";
       readinessSummaryEl.innerHTML = [
-        [connectionValue, "当前项目渠道已连接"],
+        [connectionValue, "ChatDaddy API 已连接"],
         [`${Number(summary.required_capabilities_configured || 0)} / ${Number(summary.required_capabilities_total || 0)}`, "必需能力已配置"],
         [`${Number(summary.required_capabilities_verified || 0)} / ${Number(summary.required_capabilities_total || 0)}`, "必需能力有历史证据"],
         [`${Number(summary.sales_steps_bound || 0)} / ${Number(summary.sales_steps_total || 0)}`, "销售 Step 已绑定真实 Flow"],
@@ -1332,11 +1332,32 @@
       }).join("");
     }
 
+    function setFlowSelectionControlsEnabled(enabled) {
+      [salesStepCountEl, priceStageKeyEl, followUpCountEl].forEach((element) => {
+        element.disabled = !enabled;
+      });
+      if (!enabled) saveBindingsButtonEl.disabled = true;
+    }
+
     function renderFlowBindings(data) {
       const steps = Array.isArray(data.sales_steps) ? data.sales_steps : [];
       const followUps = Array.isArray(data.follow_ups) ? data.follow_ups : [];
+      const apiConnected = data.summary?.api_connected === true;
       const catalogConnected = data.flow_catalog?.live_catalog_connected === true;
       const liveFlowCount = Number(data.flow_catalog?.live_flow_count || 0);
+      setFlowSelectionControlsEnabled(apiConnected && canManageConnection);
+      if (!apiConnected) {
+        flowBindingsEl.innerHTML = `
+          <div class="log-item">
+            <b>先连接 ChatDaddy API</b><br>
+            API 尚未连接并验证，Flow 选择与下一步已锁定。请先完成上方第 1 步；成功读取当前项目实时 Flow 后才会解锁。
+          </div>
+        `;
+        paymentBindingEl.innerHTML = `<div class="log-item">API 连接成功后才会显示 Payment Flow。</div>`;
+        followUpBindingsEl.innerHTML = `<div class="log-item">API 连接成功后才会显示 Follow Up。</div>`;
+        saveBindingsButtonEl.disabled = true;
+        return;
+      }
       if (!steps.length) {
         flowBindingsEl.innerHTML = `<div class="log-item">项目还没有销售 Step。请先完成「回复与成交」设置。</div>`;
         paymentBindingEl.innerHTML = `<div class="log-item">项目还没有销售路线。</div>`;
@@ -1578,6 +1599,7 @@
       try {
         if (!canManageConnection) throw new Error("只有项目负责人可以保存销售路线。");
         if (!projectIdentityConfirmedEl.checked) throw new Error("请先确认当前项目身份，再保存销售路线。");
+        if (latestGuide?.summary?.api_connected !== true) throw new Error("请先连接并验证当前项目的 ChatDaddy API。");
         if (!latestGuide?.flow_catalog?.live_catalog_connected) throw new Error("当前项目还没有实时 ChatDaddy Flow 清单。");
         const selections = [...document.querySelectorAll(".flow-binding-select")];
         const bindings = selections.map((select) => {
@@ -1637,7 +1659,7 @@
         await loadConnections();
       } finally {
         saveBindingsButtonEl.textContent = previousLabel;
-        if (latestGuide?.flow_catalog?.live_catalog_connected) {
+        if (latestGuide?.summary?.api_connected === true && latestGuide?.flow_catalog?.live_catalog_connected) {
           saveBindingsButtonEl.disabled = !canManageConnection
             || draftPaymentSelection === ""
             || Number(followUpCountEl.value || 0) < 1;
