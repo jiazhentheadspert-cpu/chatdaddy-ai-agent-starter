@@ -683,6 +683,39 @@
       margin-top: 8px;
     }
 
+    .flow-picker-grid {
+      display: grid;
+      grid-template-columns: minmax(150px, 0.72fr) minmax(220px, 1.28fr);
+      gap: 10px;
+      align-items: end;
+    }
+
+    .flow-picker-grid label {
+      min-width: 0;
+    }
+
+    .flow-sync-status {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 14px 0 4px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(15, 159, 146, 0.2);
+      background: #f2fcfa;
+      color: #17635d;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .flow-sync-status.warning {
+      border-color: rgba(165, 105, 24, 0.28);
+      background: #fff8ec;
+      color: #704814;
+    }
+
     .flow-preview {
       grid-column: 1 / -1;
       display: grid;
@@ -752,6 +785,10 @@
       .connection-card,
       .capability-grid,
       .flow-binding-card {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-picker-grid {
         grid-template-columns: 1fr;
       }
 
@@ -968,7 +1005,8 @@
 
       <section class="panel">
         <h2 class="section-title">第 4 步：选择 AI 要学习的 Flow</h2>
-        <p>系统已读取当前 ChatDaddy Flow。核对名称和内容预览后，选择销售 Step、价格 Step、Payment 与价格后 Follow Up。</p>
+        <p>先选 ChatDaddy 文件夹，再选里面的 Flow。客服修改 Flow 后会自动同步；已绑定内容一旦改变，旧学习结果会暂停并要求重学。</p>
+        <div class="flow-sync-status" id="flowSyncStatus">正在读取 ChatDaddy 文件夹与 Flow。</div>
         <div class="grid">
           <label>
             <b>成交 Step 数</b>
@@ -1066,6 +1104,11 @@
     let draftStageSelections = new Map();
     let draftFollowUpSelections = new Map();
     let draftPaymentSelection = "";
+    let draftStageFolders = new Map();
+    let draftFollowUpFolders = new Map();
+    let draftPaymentFolder = "";
+    let lastGuideLoadedAt = 0;
+    let guideRefreshBusy = false;
 
     const projectKeyEl = document.getElementById("projectKey");
     const providerEl = document.getElementById("provider");
@@ -1093,6 +1136,7 @@
     const followUpCountEl = document.getElementById("followUpCount");
     const blockerListEl = document.getElementById("blockerList");
     const saveBindingsButtonEl = document.getElementById("saveBindingsButton");
+    const flowSyncStatusEl = document.getElementById("flowSyncStatus");
     const projectIdentityConfirmedEl = document.getElementById("projectIdentityConfirmed");
     const requestedProjectKey = String(params.get("project_key") || "").trim();
 
@@ -1107,6 +1151,13 @@
     priceStageKeyEl.addEventListener("change", () => renderFlowBindingRows(latestGuide || {}));
     followUpCountEl.addEventListener("change", () => renderFollowUpBindingRows());
     flowBindingsEl.addEventListener("change", (event) => {
+      const folderSelect = event.target.closest(".flow-folder-select");
+      if (folderSelect) {
+        draftStageFolders.set(folderSelect.dataset.stageKey, folderSelect.value);
+        draftStageSelections.set(folderSelect.dataset.stageKey, "");
+        renderFlowBindingRows(latestGuide || {});
+        return;
+      }
       const select = event.target.closest(".flow-binding-select");
       if (select) {
         draftStageSelections.set(select.dataset.stageKey, select.value);
@@ -1114,6 +1165,13 @@
       }
     });
     paymentBindingEl.addEventListener("change", (event) => {
+      const folderSelect = event.target.closest(".payment-folder-select");
+      if (folderSelect) {
+        draftPaymentFolder = folderSelect.value;
+        draftPaymentSelection = "";
+        renderPaymentBindingRow(latestGuide || {});
+        return;
+      }
       const select = event.target.closest(".payment-binding-select");
       if (select) {
         draftPaymentSelection = select.value;
@@ -1121,6 +1179,14 @@
       }
     });
     followUpBindingsEl.addEventListener("change", (event) => {
+      const folderSelect = event.target.closest(".follow-up-folder-select");
+      if (folderSelect) {
+        const order = Number(folderSelect.dataset.followUpOrder);
+        draftFollowUpFolders.set(order, folderSelect.value);
+        draftFollowUpSelections.set(order, "");
+        renderFollowUpBindingRows();
+        return;
+      }
       const select = event.target.closest(".follow-up-binding-select");
       if (select) {
         draftFollowUpSelections.set(Number(select.dataset.followUpOrder), select.value);
@@ -1136,6 +1202,10 @@
     });
 
     document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) refreshGuideIfStale();
+    });
+    window.addEventListener("focus", refreshGuideIfStale);
 
     async function init() {
       localStorage.setItem("hermas_channel_api", apiBase);
@@ -1172,6 +1242,7 @@
         return;
       }
       await loadConnections();
+      window.setInterval(refreshGuideIfStale, 5 * 60 * 1000);
     }
 
     async function saveMetadata() {
@@ -1212,6 +1283,8 @@
     }
 
     async function loadConnections() {
+      if (guideRefreshBusy) return;
+      guideRefreshBusy = true;
       try {
         const projectKey = cleanProjectKey();
         const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/connection-guide`);
@@ -1222,20 +1295,56 @@
           throw new Error("只读检查边界不完整，已停止显示结果。");
         }
         renderGuide(data);
+        lastGuideLoadedAt = Date.now();
       } catch (error) {
         setStatus("读取失败", "bad");
         addLog("读取失败", error.message || "请重新登录当前项目。", true);
+      } finally {
+        guideRefreshBusy = false;
       }
+    }
+
+    function refreshGuideIfStale() {
+      if (document.hidden || guideRefreshBusy || Date.now() - lastGuideLoadedAt < 2 * 60 * 1000) return;
+      loadConnections();
     }
 
     function renderGuide(data) {
       latestGuide = data;
       currentGuideVersion = Number(data.version_no || 0);
       latestFlowCatalog = Array.isArray(data.flow_catalog?.flows) ? data.flow_catalog.flows : [];
+      renderFlowSyncStatus(data);
       renderConnections(data.channels || {});
       renderReadiness(data);
       renderFlowBindings(data);
       renderBlockers(data);
+    }
+
+    function renderFlowSyncStatus(data = {}) {
+      const catalog = data.flow_catalog || {};
+      const liveStatus = data.flow_selection?.live_status || {};
+      const folderCount = Number(catalog.folder_count || 0);
+      const flowCount = Number(catalog.live_flow_count || 0);
+      const syncedAt = catalog.synced_at ? new Date(catalog.synced_at) : null;
+      const timeLabel = syncedAt && !Number.isNaN(syncedAt.getTime())
+        ? syncedAt.toLocaleString("zh-MY", { hour12: false })
+        : "刚刚";
+      const changed = Number(liveStatus.changed_count || 0);
+      const missing = Number(liveStatus.missing_count || 0);
+      const baseline = Number(liveStatus.baseline_required_count || 0);
+      const warning = changed > 0 || missing > 0 || baseline > 0;
+      flowSyncStatusEl.classList.toggle("warning", warning);
+      if (missing > 0) {
+        flowSyncStatusEl.textContent = `已同步 · ${missing} 个已绑定 Flow 在 ChatDaddy 中找不到。请重新选择；旧学习结果已暂停。`;
+      } else if (changed > 0) {
+        flowSyncStatusEl.textContent = `已同步 · ${changed} 个已绑定 Flow 刚被修改。请核对后保存并让 AI 重学。`;
+      } else if (baseline > 0) {
+        flowSyncStatusEl.textContent = `已读取 ${flowCount} 个 Flow · 正在建立同步版本，刷新后即可继续。`;
+      } else if (catalog.folder_metadata_available === true) {
+        flowSyncStatusEl.textContent = `ChatDaddy 实时同步 · ${folderCount} 个文件夹 · ${flowCount} 个 Flow · ${timeLabel}`;
+      } else {
+        flowSyncStatusEl.textContent = `ChatDaddy 实时同步 · ${flowCount} 个 Flow · 当前 API 未返回文件夹名称，暂归入「未归档」· ${timeLabel}`;
+      }
     }
 
     function renderConnections(data) {
@@ -1381,22 +1490,30 @@
         return;
       }
       draftStageSelections = new Map();
+      draftStageFolders = new Map();
       for (const step of steps) {
         const selectedIndex = latestFlowCatalog.findIndex((flow) => (
           step.provider_bot_id && flow.provider_bot_id === step.provider_bot_id
         ) || (
           step.provider_flow_id && flow.provider_flow_id === step.provider_flow_id
         ));
-        if (selectedIndex >= 0) draftStageSelections.set(step.stage_key, String(selectedIndex));
+        if (selectedIndex >= 0) {
+          draftStageSelections.set(step.stage_key, String(selectedIndex));
+          draftStageFolders.set(step.stage_key, flowFolderKey(latestFlowCatalog[selectedIndex]));
+        }
       }
       draftFollowUpSelections = new Map();
+      draftFollowUpFolders = new Map();
       for (const followUp of followUps) {
         const selectedIndex = latestFlowCatalog.findIndex((flow) => (
           followUp.provider_bot_id && flow.provider_bot_id === followUp.provider_bot_id
         ) || (
           followUp.provider_flow_id && flow.provider_flow_id === followUp.provider_flow_id
         ));
-        if (selectedIndex >= 0) draftFollowUpSelections.set(Number(followUp.order), String(selectedIndex));
+        if (selectedIndex >= 0) {
+          draftFollowUpSelections.set(Number(followUp.order), String(selectedIndex));
+          draftFollowUpFolders.set(Number(followUp.order), flowFolderKey(latestFlowCatalog[selectedIndex]));
+        }
       }
       const payment = data.payment && typeof data.payment === "object" ? data.payment : null;
       const paymentIndex = payment ? latestFlowCatalog.findIndex((flow) => (
@@ -1405,6 +1522,7 @@
         payment.provider_flow_id && flow.provider_flow_id === payment.provider_flow_id
       )) : -1;
       draftPaymentSelection = paymentIndex >= 0 ? String(paymentIndex) : "";
+      draftPaymentFolder = paymentIndex >= 0 ? flowFolderKey(latestFlowCatalog[paymentIndex]) : defaultFolderKey();
       salesStepCountEl.value = String(Number(data.step_count || steps.length || 1));
       renderPriceStageOptions(data.price_stage_key || steps.find((step) => step.is_price_stage)?.stage_key || "");
       followUpCountEl.value = followUps.length ? String(followUps.length) : "0";
@@ -1426,11 +1544,56 @@
       priceStageKeyEl.value = safePreferred;
     }
 
+    const NO_FOLDER_KEY = "__replypilot_no_folder__";
+
+    function flowFolderKey(flow = {}) {
+      return String(flow.folder_name || "").trim() || NO_FOLDER_KEY;
+    }
+
+    function flowFolderLabel(folderKey = "") {
+      return folderKey === NO_FOLDER_KEY ? "未归档" : folderKey;
+    }
+
+    function flowFolderKeys() {
+      return [...new Set(latestFlowCatalog.map(flowFolderKey))]
+        .sort((left, right) => {
+          if (left === NO_FOLDER_KEY) return 1;
+          if (right === NO_FOLDER_KEY) return -1;
+          return flowFolderLabel(left).localeCompare(flowFolderLabel(right), "zh-Hans-MY");
+        });
+    }
+
+    function defaultFolderKey(preferredPattern = null) {
+      const keys = flowFolderKeys();
+      if (preferredPattern) {
+        const matched = keys.find((key) => preferredPattern.test(flowFolderLabel(key)));
+        if (matched) return matched;
+      }
+      return keys.length === 1 ? keys[0] : "";
+    }
+
+    function folderOptions(selectedFolder = "") {
+      return [
+        `<option value="">请选择文件夹</option>`,
+        ...flowFolderKeys().map((folderKey) => {
+          const count = latestFlowCatalog.filter((flow) => flowFolderKey(flow) === folderKey).length;
+          const selected = folderKey === selectedFolder ? "selected" : "";
+          return `<option value="${escapeHtml(folderKey)}" ${selected}>${escapeHtml(flowFolderLabel(folderKey))}（${count}）</option>`;
+        })
+      ].join("");
+    }
+
+    function flowIndexesInFolder(folderKey = "") {
+      if (!folderKey) return [];
+      return latestFlowCatalog
+        .map((flow, index) => ({ flow, index }))
+        .filter(({ flow }) => flowFolderKey(flow) === folderKey);
+    }
+
     function catalogOption(flow, index, selectedValue = "") {
       const selected = String(index) === String(selectedValue) ? "selected" : "";
       const title = flow.title || flow.flow_key || `Flow ${index + 1}`;
-      const suffix = flow.folder_name ? ` · ${flow.folder_name}` : "";
-      return `<option value="${index}" ${selected}>${escapeHtml(title + suffix)}</option>`;
+      return `<option value="${index}" ${selected}>${escapeHtml(title)}</option>`;
     }
 
     function flowPreviewHtml(flow) {
@@ -1451,8 +1614,13 @@
         ? texts.map((text) => escapeHtml(text)).join(" / ")
         : escapeHtml(flow.content_summary || flow.description || "没有文字预览");
       const buttonPreview = buttons.length ? `Button：${buttons.map((text) => escapeHtml(text)).join("、")}` : "没有 Button";
+      const sourceMeta = [
+        flow.folder_name ? `文件夹：${escapeHtml(flow.folder_name)}` : "文件夹：未归档",
+        flow.updated_at ? `ChatDaddy 更新：${escapeHtml(new Date(flow.updated_at).toLocaleString("zh-MY", { hour12: false }))}` : ""
+      ].filter(Boolean).join(" · ");
       return `
         <div class="flow-preview">
+          <span><b>来源：</b>${sourceMeta}</span>
           <span><b>内容：</b>${textPreview}</span>
           <span><b>结构：</b>${buttonPreview} · ${escapeHtml(mediaText)}</span>
         </div>
@@ -1463,31 +1631,42 @@
       const existingByKey = new Map((Array.isArray(data.sales_steps) ? data.sales_steps : []).map((step) => [step.stage_key, step]));
       const stepCount = Number(salesStepCountEl.value || 1);
       const priceStageKey = priceStageKeyEl.value || `step_${stepCount}`;
-      const eligibleIndexes = latestFlowCatalog
-        .map((flow, index) => ({ flow, index }));
       flowBindingsEl.innerHTML = Array.from({ length: stepCount }, (_, index) => {
         const order = index + 1;
         const stageKey = `step_${order}`;
         const existing = existingByKey.get(stageKey) || {};
         const selectedValue = draftStageSelections.get(stageKey) ?? "";
         const selectedFlow = selectedValue === "" ? null : latestFlowCatalog[Number(selectedValue)];
+        const selectedFolder = draftStageFolders.get(stageKey)
+          || (selectedFlow ? flowFolderKey(selectedFlow) : defaultFolderKey());
+        if (selectedFolder && !draftStageFolders.has(stageKey)) draftStageFolders.set(stageKey, selectedFolder);
         const isPrice = stageKey === priceStageKey;
         const purpose = isPrice ? "价格与成交" : (existing.purpose || `销售 Step ${order}`);
         const selectedTitle = selectedFlow?.title || (existing.configured ? "已有绑定" : "尚未选择");
-        const options = eligibleIndexes.map(({ flow, index: flowIndex }) => catalogOption(flow, flowIndex, selectedValue)).join("");
+        const options = flowIndexesInFolder(selectedFolder)
+          .map(({ flow, index: flowIndex }) => catalogOption(flow, flowIndex, selectedValue))
+          .join("");
         return `
           <article class="flow-binding-card">
             <div>
               <h3>Step ${order}${isPrice ? " · 价格" : ""}</h3>
               <p>${escapeHtml(purpose)} · ${escapeHtml(selectedTitle)}</p>
             </div>
-            <label>
-              <b>真实 ChatDaddy Flow</b>
-              <select class="flow-binding-select" data-stage-key="${stageKey}">
-                <option value="">请选择</option>
-                ${options}
-              </select>
-            </label>
+            <div class="flow-picker-grid">
+              <label>
+                <b>ChatDaddy 文件夹</b>
+                <select class="flow-folder-select" data-stage-key="${stageKey}">
+                  ${folderOptions(selectedFolder)}
+                </select>
+              </label>
+              <label>
+                <b>文件夹内 Flow</b>
+                <select class="flow-binding-select" data-stage-key="${stageKey}" ${selectedFolder ? "" : "disabled"}>
+                  <option value="">${selectedFolder ? "请选择 Flow" : "先选择文件夹"}</option>
+                  ${options}
+                </select>
+              </label>
+            </div>
             ${flowPreviewHtml(selectedFlow)}
           </article>
         `;
@@ -1498,33 +1677,33 @@
     function renderPaymentBindingRow(data = {}) {
       const selectedValue = draftPaymentSelection;
       const selectedFlow = selectedValue === "" ? null : latestFlowCatalog[Number(selectedValue)];
-      const paymentFlows = latestFlowCatalog
-        .map((flow, index) => ({ flow, index }))
-        .filter(({ flow }) => flow.flow_kind === "payment");
-      const otherFlows = latestFlowCatalog
-        .map((flow, index) => ({ flow, index }))
-        .filter(({ flow }) => flow.flow_kind !== "payment");
-      const paymentOptions = [
-        paymentFlows.length
-          ? `<optgroup label="系统识别为 Payment">${paymentFlows.map(({ flow, index }) => catalogOption(flow, index, selectedValue)).join("")}</optgroup>`
-          : "",
-        otherFlows.length
-          ? `<optgroup label="其他 ChatDaddy Flow">${otherFlows.map(({ flow, index }) => catalogOption(flow, index, selectedValue)).join("")}</optgroup>`
-          : ""
-      ].join("");
+      const selectedFolder = draftPaymentFolder
+        || (selectedFlow ? flowFolderKey(selectedFlow) : defaultFolderKey(/payment|付款/i));
+      if (selectedFolder && !draftPaymentFolder) draftPaymentFolder = selectedFolder;
+      const paymentOptions = flowIndexesInFolder(selectedFolder)
+        .map(({ flow, index }) => catalogOption(flow, index, selectedValue))
+        .join("");
       paymentBindingEl.innerHTML = `
         <article class="flow-binding-card">
           <div>
             <h3>付款后流程</h3>
             <p>${escapeHtml(selectedFlow?.title || data.payment?.title || "尚未选择")}</p>
           </div>
-          <label>
-            <b>真实 ChatDaddy Payment Flow</b>
-            <select class="payment-binding-select">
-              <option value="">请选择</option>
-              ${paymentOptions}
-            </select>
-          </label>
+          <div class="flow-picker-grid">
+            <label>
+              <b>ChatDaddy 文件夹</b>
+              <select class="payment-folder-select">
+                ${folderOptions(selectedFolder)}
+              </select>
+            </label>
+            <label>
+              <b>文件夹内 Payment Flow</b>
+              <select class="payment-binding-select" ${selectedFolder ? "" : "disabled"}>
+                <option value="">${selectedFolder ? "请选择 Flow" : "先选择文件夹"}</option>
+                ${paymentOptions}
+              </select>
+            </label>
+          </div>
           ${flowPreviewHtml(selectedFlow)}
         </article>
       `;
@@ -1538,33 +1717,37 @@
         saveBindingsButtonEl.disabled = true;
         return;
       }
-      const recognized = latestFlowCatalog
-        .map((flow, index) => ({ flow, index }))
-        .filter(({ flow }) => flow.flow_kind === "follow_up");
-      const otherMessageFlows = latestFlowCatalog
-        .map((flow, index) => ({ flow, index }))
-        .filter(({ flow }) => flow.flow_kind !== "follow_up");
-      const optionGroups = (selectedValue = "") => [
-        recognized.length ? `<optgroup label="已识别 Follow Up">${recognized.map(({ flow, index }) => catalogOption(flow, index, selectedValue)).join("")}</optgroup>` : "",
-        otherMessageFlows.length ? `<optgroup label="其他 ChatDaddy Flow">${otherMessageFlows.map(({ flow, index }) => catalogOption(flow, index, selectedValue)).join("")}</optgroup>` : ""
-      ].join("");
       followUpBindingsEl.innerHTML = Array.from({ length: count }, (_, index) => {
         const order = index + 1;
         const selectedValue = draftFollowUpSelections.get(order) ?? "";
         const selectedFlow = selectedValue === "" ? null : latestFlowCatalog[Number(selectedValue)];
+        const selectedFolder = draftFollowUpFolders.get(order)
+          || (selectedFlow ? flowFolderKey(selectedFlow) : defaultFolderKey(/follow\s*up|follow|跟进|跟進/i));
+        if (selectedFolder && !draftFollowUpFolders.has(order)) draftFollowUpFolders.set(order, selectedFolder);
+        const options = flowIndexesInFolder(selectedFolder)
+          .map(({ flow, index: flowIndex }) => catalogOption(flow, flowIndex, selectedValue))
+          .join("");
         return `
           <article class="flow-binding-card">
             <div>
               <h3>Follow Up ${order}</h3>
               <p>${escapeHtml(selectedFlow?.title || "按 ChatDaddy 真实发送顺序选择")}</p>
             </div>
-            <label>
-              <b>真实 ChatDaddy Flow</b>
-              <select class="follow-up-binding-select" data-follow-up-order="${order}">
-                <option value="">请选择</option>
-                ${optionGroups(selectedValue)}
-              </select>
-            </label>
+            <div class="flow-picker-grid">
+              <label>
+                <b>ChatDaddy 文件夹</b>
+                <select class="follow-up-folder-select" data-follow-up-order="${order}">
+                  ${folderOptions(selectedFolder)}
+                </select>
+              </label>
+              <label>
+                <b>文件夹内 Flow</b>
+                <select class="follow-up-binding-select" data-follow-up-order="${order}" ${selectedFolder ? "" : "disabled"}>
+                  <option value="">${selectedFolder ? "请选择 Flow" : "先选择文件夹"}</option>
+                  ${options}
+                </select>
+              </label>
+            </div>
             ${flowPreviewHtml(selectedFlow)}
           </article>
         `;
