@@ -2615,11 +2615,13 @@
           <div class="metric"><span>已退回</span><strong>-</strong></div>
           <div class="metric"><span>敏感 / 高风险</span><strong>-</strong></div>
         </div>
-        <div class="review-toolbar expert-only" id="learningReviewFilters">
-          <button class="filter-btn active" type="button" data-review-filter="pending">待审核</button>
-          <button class="filter-btn" type="button" data-review-filter="sensitive">敏感 / 高风险</button>
-          <button class="filter-btn" type="button" data-review-filter="all">全部记录</button>
+        <div class="review-toolbar" id="learningReviewFilters">
+          <button class="filter-btn active" type="button" data-review-filter="pending">需要处理</button>
+          <button class="filter-btn" type="button" data-review-filter="adopted">已采用内容（可调整）</button>
+          <button class="filter-btn expert-only" type="button" data-review-filter="sensitive">敏感 / 高风险</button>
+          <button class="filter-btn expert-only" type="button" data-review-filter="all">全部记录</button>
         </div>
+        <div class="boundary-note">不需要逐条批准。有需要才展开修改；保存后只更新 AI 学习草稿，不会修改 ChatDaddy 原 Flow、发送讯息或触发 Flow。</div>
         <div class="review-list" id="learningReviewList">
           <div class="review-empty">等待学习结果。</div>
         </div>
@@ -6767,6 +6769,7 @@
 
       const items = (Array.isArray(data.items) ? data.items : []).filter((item) => {
         if (state.learningReviewFilter === "pending") return item.pending === true;
+        if (state.learningReviewFilter === "adopted") return item.status === "approved";
         if (state.learningReviewFilter === "sensitive") return item.pending === true && ["sensitive", "high"].includes(item.risk?.level);
         return true;
       });
@@ -6776,8 +6779,10 @@
       learningReviewList.innerHTML = items.length
         ? items.map((item) => learningReviewCardHtml(item)).join("")
         : `<div class="review-empty">${state.learningReviewFilter === "pending"
-          ? "Owner 资料、ChatDaddy Flow 与系统规则已自动采用。这里只会出现资料冲突、AI 改写 / 弱化或缺少依据的异常。"
-          : "这个筛选没有资料。"}</div>`;
+          ? "没有异常需要处理。Owner 资料、ChatDaddy Flow 与系统规则已自动采用；如需修改，请打开「已采用内容（可调整）」。"
+          : state.learningReviewFilter === "adopted"
+            ? "目前没有已采用的学习内容。"
+            : "这个筛选没有资料。"}</div>`;
       renderBeginnerReviewContract();
     }
 
@@ -6787,9 +6792,14 @@
       const stagedDecision = state.learningReviewDrafts.get(draftKey) || null;
       const riskLevel = item.risk?.level || "medium";
       const pending = item.pending === true;
+      const adjustable = !pending && item.status === "approved";
       const sourceLocked = item.source_locked === true;
       const riskLabel = learningRiskLabel(riskLevel);
-      const statusLabel = sourceLocked ? "原文已锁定" : learningStatusLabel(item.status);
+      const statusLabel = adjustable
+        ? "已采用，可调整"
+        : sourceLocked
+          ? "原文已锁定"
+          : learningStatusLabel(item.status);
       const source = item.source || {};
       const sourceHeadline = [
         `来源：${source.title || "未标示来源"}`,
@@ -6804,7 +6814,7 @@
         return `
           <label>
             <b>${escapeHtml(learningFieldLabel(field))}</b>
-            <textarea data-review-field="${escapeAttr(field)}" ${pending ? "" : "disabled"}>${escapeHtml(value)}</textarea>
+            <textarea data-review-field="${escapeAttr(field)}" ${pending || adjustable ? "" : "disabled"}>${escapeHtml(value)}</textarea>
           </label>
         `;
       }).join("");
@@ -6833,25 +6843,31 @@
             ` : ""}
           </div>
           <div class="review-fields">${fields}</div>
-          ${pending ? `
+          ${pending || adjustable ? `
             <label class="review-confirm ${riskLevel === "sensitive" ? "" : "optional"}">
               <input type="checkbox" data-review-sensitive-confirm>
               ${riskLevel === "sensitive"
-                ? "我已核对来源与风险，明确确认这条敏感资料可以进入项目草稿。"
-                : "若我把内容改成涉及健康、退款、法律或绝对承诺，我会先核对来源并明确确认。"}
+                ? adjustable
+                  ? "这项调整涉及健康、退款、法律或绝对承诺；我已核对来源与风险。"
+                  : "我已核对来源与风险，明确确认这条敏感资料可以进入项目草稿。"
+                : "若修改涉及健康、退款、法律或绝对承诺，我会先核对来源。"}
             </label>
           ` : ""}
           <div class="review-decision">
-            <label>
-              <b>${pending ? "退回原因（选择退回时必填）" : "Owner 记录"}</b>
-              <input data-review-reason value="${escapeAttr(reasonText)}" placeholder="${pending ? "例如：来源不足、范围不清、不能用于顾客回复" : "已完成审核"}" ${pending ? "" : "disabled"}>
-            </label>
+            ${pending ? `
+              <label>
+                <b>退回原因（选择退回时必填）</b>
+                <input data-review-reason value="${escapeAttr(reasonText)}" placeholder="例如：来源不足、范围不清、不能用于顾客回复">
+              </label>
+            ` : `<span class="review-badge">当前内容已采用，无需批准</span>`}
             <div class="actions">
               ${pending ? `
                 <button class="btn small approve" type="button" data-review-action="approve" data-review-index="${originalIndex}">批准原文</button>
                 <button class="btn small" type="button" data-review-action="approve_with_edits" data-review-index="${originalIndex}">修改后批准</button>
                 <button class="btn small danger" type="button" data-review-action="reject" data-review-index="${originalIndex}">退回</button>
-              ` : `<span class="review-badge">${escapeHtml(item.owner_review?.reviewed_by || "Owner")} · ${escapeHtml(formatReviewTime(item.owner_review?.reviewed_at))}</span>`}
+              ` : adjustable
+                ? `<button class="btn small approve" type="button" data-review-action="adjust" data-review-index="${originalIndex}">保存调整</button>`
+                : `<span class="review-badge">${escapeHtml(item.owner_review?.reviewed_by || "Owner")} · ${escapeHtml(formatReviewTime(item.owner_review?.reviewed_at))}</span>`}
             </div>
           </div>
         </details>
@@ -6865,7 +6881,7 @@
       renderLearningReview();
     }
 
-    function handleLearningReviewAction(event) {
+    async function handleLearningReviewAction(event) {
       const button = event.target.closest("[data-review-action]");
       if (!button || state.learningReviewBusy) return;
       const index = Number(button.dataset.reviewIndex);
@@ -6888,6 +6904,10 @@
         setLearningReviewStatus("内容还没有修改", "bad");
         return;
       }
+      if (decision === "adjust" && !changed) {
+        setLearningReviewStatus("内容还没有修改", "bad");
+        return;
+      }
       if (decision === "reject" && !reason) {
         setLearningReviewStatus("请填写退回原因", "bad");
         return;
@@ -6903,8 +6923,30 @@
         decision,
         reason,
         confirm_sensitive: confirmSensitive,
-        ...(decision === "approve_with_edits" ? { edited_asset: editedAsset } : {})
+        ...(["approve_with_edits", "adjust"].includes(decision) ? { edited_asset: editedAsset } : {})
       };
+      if (decision === "adjust") {
+        try {
+          setLearningReviewBusy(true);
+          setLearningReviewStatus("正在保存调整", "");
+          const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/learning-review/batch`, {
+            expected_version_no: state.learningReview.version_no,
+            decisions: [payload]
+          });
+          state.learningReview = data;
+          state.learningReviewDrafts.clear();
+          hydrateBrainVersionStatus(data, { draft: true });
+          renderLearningReview();
+          updateReviewBatchButton();
+          setLearningReviewStatus("调整已保存", "ok");
+          updateOnboardingProgress();
+        } catch (error) {
+          setLearningReviewStatus(error.message || "调整保存失败", "bad");
+        } finally {
+          setLearningReviewBusy(false);
+        }
+        return;
+      }
       state.learningReviewDrafts.set(`${item.asset_type}:${item.id}`, payload);
       renderLearningReview();
       updateReviewBatchButton();
