@@ -4681,10 +4681,14 @@
       ].join(":");
       if (state.flowLearningAutoRetryKey === retryKey || state.flowLearningBusy) return;
       if (state.flowLearningAutoRetryTimer) clearTimeout(state.flowLearningAutoRetryTimer);
+      const nextRetryAtMs = Date.parse(summary.next_retry_at || "");
+      const remainingRetrySeconds = Number.isFinite(nextRetryAtMs)
+        ? Math.ceil((nextRetryAtMs - Date.now()) / 1000)
+        : 0;
       const delaySeconds = Math.max(5, Math.min(
         300,
-        Number(summary.retry_after_seconds || 0)
-          || Math.ceil((Date.parse(summary.next_retry_at || "") - Date.now()) / 1000)
+        remainingRetrySeconds
+          || Number(summary.retry_after_seconds || 0)
           || 30
       ));
       state.flowLearningAutoRetryKey = retryKey;
