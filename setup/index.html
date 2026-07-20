@@ -2044,8 +2044,8 @@
       <section class="panel onboarding-step-panel" id="channelFlowPanel" data-onboarding-panel data-onboarding-phase="flow">
         <div class="toolbar">
           <div>
-            <h2>1. 选择 AI 要学习的 Flow</h2>
-            <p>系统先读取 ChatDaddy；你只核对 Flow 名称和内容，再选择销售 Step、价格 Step、Payment 与 Follow Up。</p>
+            <h2>1. 连接 ChatDaddy，再选择 Flow</h2>
+            <p>先连接 API；验证成功后才可选择销售 Step、价格 Step、Payment 与 Follow Up。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status expert-only" id="channelFlowStatus">尚未检查</div>
@@ -2127,7 +2127,7 @@
           </label>
         </div>
         <div class="actions">
-          <a class="btn primary" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">选择 ChatDaddy Flow</a>
+          <a class="btn primary" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">连接 ChatDaddy API</a>
           <button class="btn" type="button" id="learnChatdaddyFlowsButton" disabled>尚未确认 Flow</button>
           <button class="btn primary" type="button" id="acceptDetectedPriceStageButton" hidden>使用 AI 识别的价格 Step</button>
           <button class="btn expert-only" type="button" id="startReonboardingButton">手动确认路线</button>
@@ -3647,7 +3647,8 @@
         review: Number(reviewSummary.total_items || 0) > 0 && Number(reviewSummary.pending_items || 0) === 0,
         sales: salesValidationReady,
         contract: contractErrors === 0,
-        channel: guideSummary.flow_selection_confirmed === true
+        channel: guideSummary.api_connected === true
+          && guideSummary.flow_selection_confirmed === true
           && Number(guideSummary.sales_steps_total || 0) > 0
           && Number(guideSummary.sales_steps_bound || 0) >= Number(guideSummary.sales_steps_total || 0)
           && Number(guideSummary.payment_bound || 0) === 1
@@ -3727,7 +3728,7 @@
       document.getElementById("setupSideTitle").textContent = "4 步完成";
       document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 开始使用";
       document.querySelector("#setupForm .section-title").textContent = "项目资料";
-      document.getElementById("channelSetupLink").textContent = "查看 / 选择当前项目真实 Flow";
+      document.getElementById("channelSetupLink").textContent = "连接 ChatDaddy API";
       createButton.textContent = "Owner 验收并保存重新 Onboard 草稿";
       formHelp.textContent = "AI 会先读完整销售 Flow；FAQ、PPT 和说明只是补充。";
       setStatus("等待重新 Onboard", "");
@@ -4128,7 +4129,8 @@
 
     function flowSelectionConfirmed() {
       const summary = state.connectionGuide?.summary || {};
-      return summary.flow_selection_confirmed === true
+      return summary.api_connected === true
+        && summary.flow_selection_confirmed === true
         && Number(summary.sales_steps_total || 0) > 0
         && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0)
         && Number(summary.payment_bound || 0) === 1
@@ -4687,11 +4689,13 @@
       const technical = { ...learning.raw };
       delete technical._response;
       flowLearningTechnical.textContent = JSON.stringify(technical, null, 2);
+      const apiConnected = state.connectionGuide?.summary?.api_connected === true;
       const selectionConfirmed = flowSelectionConfirmed();
       learnChatdaddyFlowsButton.disabled = state.flowLearningBusy || !selectionConfirmed;
       learnChatdaddyFlowsButton.textContent = state.flowLearningBusy
         ? "AI 正在学习…"
-        : !selectionConfirmed ? "尚未确认 Flow"
+        : !apiConnected ? "先连接 ChatDaddy API"
+          : !selectionConfirmed ? "尚未确认 Flow"
           : ready ? "重新学习已选择 Flow" : "学习已选择 Flow";
       const priceMismatch = flowLearningPriceMismatch();
       acceptDetectedPriceStageButton.hidden = !priceMismatch;
@@ -4714,9 +4718,14 @@
         return null;
       }
       if (!flowSelectionConfirmed()) {
-        flowLearningHeadline.textContent = "请先选择 AI 要学习的 Flow";
-        flowLearningSubline.textContent = "销售 Step、价格 Step、Payment 与 Follow Up 尚未确认；系统不会开始学习。";
-        flowLearningStatus.textContent = "尚未确认";
+        const apiConnected = state.connectionGuide?.summary?.api_connected === true;
+        flowLearningHeadline.textContent = apiConnected
+          ? "请先选择 AI 要学习的 Flow"
+          : "请先连接 ChatDaddy API";
+        flowLearningSubline.textContent = apiConnected
+          ? "销售 Step、价格 Step、Payment 与 Follow Up 尚未确认；系统不会开始学习。"
+          : "API 未验证前，Flow 选择、AI 学习与下一步全部锁定。";
+        flowLearningStatus.textContent = apiConnected ? "尚未确认" : "尚未连接";
         flowLearningStatus.className = "status bad";
         return null;
       }
@@ -6700,10 +6709,16 @@
         const summary = data.summary || {};
         const blockers = Array.isArray(data.readiness?.blockers) ? data.readiness.blockers : [];
         const steps = `${Number(summary.sales_steps_bound || 0)} / ${Number(summary.sales_steps_total || 0)}`;
+        const apiConnected = summary.api_connected === true;
         const selectionConfirmed = summary.flow_selection_confirmed === true;
         const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
         const topologyMismatch = topologyMismatchMessage(packageData);
-        if (topologyMismatch) {
+        channelSetupLink.textContent = apiConnected ? "查看 / 选择当前项目真实 Flow" : "连接 ChatDaddy API";
+        if (!apiConnected) {
+          readinessResult.textContent = "请先连接并验证当前项目的 ChatDaddy API。连接成功并读取实时 Flow 后，系统才会开放 Flow 选择、AI 学习和下一步。";
+          channelFlowStatus.textContent = "先连接 API";
+          channelFlowStatus.className = "status bad";
+        } else if (topologyMismatch) {
           readinessResult.textContent = `当前连接页只验证了旧路线 ${steps}，不能当作本轮 Onboarding 已完成：${topologyMismatch}。请打开真实 Flow 页面选择缺少的 Step；系统不会伪造 Flow ID。`;
           channelFlowStatus.textContent = "真实 Flow 路线未对齐";
           channelFlowStatus.className = "status bad";
@@ -6719,7 +6734,8 @@
           channelFlowStatus.className = `status ${selectionConfirmed && !blockers.length ? "ok" : "bad"}`;
         }
         updateOnboardingProgress();
-        const connectionReady = selectionConfirmed
+        const connectionReady = apiConnected
+          && selectionConfirmed
           && Number(summary.sales_steps_total || 0) > 0
           && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0)
           && Number(summary.payment_bound || 0) === 1
