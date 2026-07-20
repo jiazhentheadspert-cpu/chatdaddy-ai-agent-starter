@@ -1018,12 +1018,26 @@
         </div>
       </section>
 
-      <section class="panel">
-        <h2 class="section-title">第 2 步：接收顾客讯息</h2>
-        <p>把下面网址放进 ChatDaddy Webhook。系统会等待下一条真实顾客讯息并自动验证，不需要为了检查另外发送测试讯息。</p>
-        <div class="codebox" id="webhookBox">连接项目后会显示 Webhook URL</div>
-        <div class="actions">
-          <button class="btn" type="button" id="copyWebhookButton">复制 Webhook URL</button>
+      <section class="panel" id="webhookPanel">
+        <h2 class="section-title" id="webhookPanelTitle">第 2 步：接收顾客讯息</h2>
+        <div class="connection-ready-card" id="webhookReadyCard" hidden>
+          <div>
+            <strong>顾客讯息已连接</strong>
+            <p>系统已经收到真实顾客讯息，不需要再放 Webhook，也不需要发送测试讯息。</p>
+          </div>
+        </div>
+        <div id="webhookSetupForm" hidden>
+          <p>还没接通时，只做下面 3 步：</p>
+          <div class="checklist">
+            <div class="check"><span><b>1.</b> 点击下方“复制连接网址”。</span></div>
+            <div class="check"><span><b>2.</b> 打开 ChatDaddy → Developer → Webhook，新增后贴上网址并保存。</span></div>
+            <div class="check"><span><b>3.</b> 等下一条真实顾客讯息，系统会自动打勾；不用另外发送测试讯息。</span></div>
+          </div>
+          <div class="codebox" id="webhookBox" hidden>连接项目后会显示 Webhook URL</div>
+          <div class="actions">
+            <button class="btn primary" type="button" id="copyWebhookButton">复制连接网址</button>
+            <button class="btn" type="button" id="webhookRefreshButton">我放好了，重新检查</button>
+          </div>
         </div>
       </section>
 
@@ -1185,6 +1199,9 @@
     const connectionSetupFormEl = document.getElementById("connectionSetupForm");
     const changeConnectionButtonEl = document.getElementById("changeConnectionButton");
     const cancelConnectionEditButtonEl = document.getElementById("cancelConnectionEditButton");
+    const webhookReadyCardEl = document.getElementById("webhookReadyCard");
+    const webhookSetupFormEl = document.getElementById("webhookSetupForm");
+    const webhookPanelTitleEl = document.getElementById("webhookPanelTitle");
     const requestedProjectKey = String(params.get("project_key") || "").trim();
 
     document.getElementById("saveButton").addEventListener("click", saveMetadata);
@@ -1242,6 +1259,7 @@
     });
     document.getElementById("copyCommandsButton").addEventListener("click", copyCommands);
     document.getElementById("copyWebhookButton").addEventListener("click", copyWebhook);
+    document.getElementById("webhookRefreshButton").addEventListener("click", loadConnections);
     document.getElementById("copyOwnerTutorialButton").addEventListener("click", copyOwnerTutorial);
     document.getElementById("connectedRefreshButton").addEventListener("click", loadConnections);
     changeConnectionButtonEl.addEventListener("click", () => {
@@ -1434,6 +1452,12 @@
       secretStoredEl.checked = latestSetup?.credential_configured === true;
       webhookConfiguredEl.checked = latestSetup?.webhook_configured === true;
       approvalFirstEl.checked = latestSetup?.approval_first === true;
+      const webhookReady = latestSetup?.webhook_configured === true;
+      webhookReadyCardEl.hidden = !webhookReady;
+      webhookSetupFormEl.hidden = webhookReady;
+      webhookPanelTitleEl.textContent = webhookReady
+        ? "第 2 步：顾客讯息已连接"
+        : "第 2 步：接收顾客讯息";
       const connectionReady = latestGuide?.summary?.api_connected === true
         && latestSetup?.credential_configured === true;
       const showConnectedSummary = connectionReady && !editingConnection;
