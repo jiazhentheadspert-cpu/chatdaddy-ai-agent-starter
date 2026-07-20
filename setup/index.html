@@ -1344,6 +1344,10 @@
       display: none !important;
     }
 
+    #materialsPanel {
+      display: none !important;
+    }
+
     .auth-actions {
       margin-top: 16px;
     }
@@ -1935,7 +1939,7 @@
 
       <div class="onboarding-rail-wrap">
         <div class="onboarding-rail-head">
-          <span>设置路线</span>
+          <span>设置进度</span>
           <strong id="railProgressSummary">读取中</strong>
         </div>
         <nav class="onboarding-rail" id="onboardingRail" aria-label="Onboarding 四步路线">
@@ -1958,13 +1962,13 @@
         </nav>
       </div>
 
-      <div class="side-card expert-only">
+      <div class="side-card expert-only" hidden>
         <h2 id="setupSideTitle">4 步完成</h2>
         <p id="setupSideDescription">连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 开始使用</p>
       </div>
 
       <div class="side-card">
-        <div class="expert-only">
+        <div class="expert-only" hidden>
           <h2>技术状态</h2>
           <div class="side-list">
             <div class="side-row"><span>客服批准</span><strong>开启</strong></div>
@@ -1981,7 +1985,7 @@
     </aside>
 
     <main class="main">
-      <section class="hero expert-only">
+      <section class="hero expert-only" hidden>
         <h1 id="setupHeroTitle">让 AI 学会你的项目</h1>
         <p id="setupHeroDescription">给资料，AI 整理；你只确认异常。</p>
         <div class="actions expert-only" id="existingProjectActions" hidden>
@@ -1995,7 +1999,7 @@
         </div>
       </section>
 
-      <section class="panel onboarding-progress expert-only" aria-label="Onboarding 进度">
+      <section class="panel onboarding-progress expert-only" aria-label="Onboarding 进度" hidden>
         <div class="progress-head">
           <div>
             <strong id="progressProjectName">未选择项目</strong>
@@ -2014,13 +2018,11 @@
 
       <section class="panel login-gate-panel" id="loginGatePanel" aria-live="polite">
         <div class="onboarding-login-card" id="loginLoadingCard">
-          <b>正在读取项目</b>
-          <p>马上继续上次进度。</p>
+          <b>正在读取进度</b>
         </div>
         <div class="actions auth-actions" id="authActions" hidden>
           <div class="onboarding-login-card">
-            <b>登录后继续设置</b>
-            <p>登录后会自动恢复设置进度。</p>
+            <b>请先登录</b>
             <a class="btn primary" id="ownerLoginLink" href="../login.html">登录</a>
           </div>
         </div>
@@ -2044,8 +2046,8 @@
       <section class="panel onboarding-step-panel" id="channelFlowPanel" data-onboarding-panel data-onboarding-phase="flow">
         <div class="toolbar">
           <div>
-            <h2>1. 连接 ChatDaddy，再选择 Flow</h2>
-            <p>先连接 API；验证成功后才可选择销售 Step、价格 Step、Payment 与 Follow Up。</p>
+            <h2>1. 连接并选择 Flow</h2>
+            <p>选择销售 Step、价格 Step、Payment 和 Follow Up。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status expert-only" id="channelFlowStatus">尚未检查</div>
@@ -2067,21 +2069,21 @@
           <article class="brain-version-card">
             <small>当前线上 AI</small>
             <b id="activeBrainVersion">读取中</b>
-            <span id="activeBrainVersionNote">继续使用已发布版本，不受本次学习影响。</span>
+            <span id="activeBrainVersionNote">学习期间继续运行。</span>
           </article>
           <div class="brain-version-arrow" aria-hidden="true">→</div>
           <article class="brain-version-card draft">
-            <small>本次重新学习</small>
+            <small>本次学习</small>
             <b id="draftBrainVersion">读取中</b>
-            <span id="draftBrainVersionNote">只建立新草稿，完成验收后才会替换线上版本。</span>
+            <span id="draftBrainVersionNote">验收后才更新。</span>
           </article>
         </div>
         <div class="flow-learning-overview" aria-live="polite">
           <div class="flow-learning-head">
             <div>
               <strong id="flowLearningHeadline">正在读取 ChatDaddy 销售路线</strong>
-              <span id="flowLearningSubline">从 Step 1 读到实际价格 Step，再读取价格后的 Follow Up。</span>
-              <span id="flowLearningMediaLine">四类内容会分别确认。</span>
+              <span id="flowLearningSubline">读取 Step 1 至价格后的 Follow Up。</span>
+              <span id="flowLearningMediaLine" hidden></span>
             </div>
             <span class="status" id="flowLearningStatus">等待连接</span>
           </div>
@@ -2097,12 +2099,12 @@
           <div class="flow-learning-issue-list" id="flowLearningIssueList" hidden></div>
         </div>
         <div class="beginner-next-gate" id="beginnerNextGate" aria-live="polite">
-          <b id="beginnerNextGateTitle">下一步前，AI 要先读完整成交路线</b>
+          <b id="beginnerNextGateTitle">继续前需完成</b>
           <div class="beginner-gate-checks">
             <span class="beginner-gate-check" id="priceEvidenceGate">价格证据：等待读取</span>
             <span class="beginner-gate-check" id="followUpGate">真实 Follow Up：等待读取</span>
           </div>
-          <span id="beginnerNextGateText">两项都完成后，才会进入 AI 自动学习。</span>
+          <span id="beginnerNextGateText" hidden></span>
         </div>
         <div class="sales-controls expert-only" aria-label="高级手动路线确认">
           <label>
@@ -2133,7 +2135,7 @@
           <button class="btn expert-only" type="button" id="startReonboardingButton">手动确认路线</button>
           <button class="btn expert-only" type="button" id="refreshReadinessButton">刷新真实 Flow 状态</button>
         </div>
-        <div class="boundary-note" id="flowLearningSafety">只读取，不修改 ChatDaddy。不会发送顾客讯息，也不会触发 Flow。</div>
+        <div class="boundary-note" id="flowLearningSafety">只读取，不修改或发送。</div>
         <div class="boundary-note expert-only" id="reonboardingResult">高级手动路线只建立草稿，不影响当前回复。</div>
         <div class="boundary-note expert-only" id="readinessResult">尚未读取当前项目的连接状态。</div>
         <details class="flow-technical-details expert-only">
@@ -2146,34 +2148,25 @@
         <div class="toolbar">
           <div>
             <h2>2. AI 自动学习</h2>
-            <p id="formHelp">AI 会从真实 Flow 理解项目卖什么、为什么买、怎么成交。</p>
+            <p id="formHelp">AI 自动整理销售逻辑。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status expert-only" id="connectionStatus">连接中</div>
             <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="businessPanelBody" aria-expanded="false">稍后</button>
           </div>
         </div>
-        <div class="flow-understanding-grid" id="flowUnderstandingGrid">
-          <div class="flow-understanding-card"><b>项目卖什么</b><p>完成 Flow 学习后自动显示。</p></div>
-          <div class="flow-understanding-card"><b>顾客为什么买</b><p>完成 Flow 学习后自动显示。</p></div>
-          <div class="flow-understanding-card"><b>项目怎么卖</b><p>完成 Flow 学习后自动显示。</p></div>
-          <div class="flow-understanding-card"><b>价格后怎么成交</b><p>完成 Flow 学习后自动显示。</p></div>
-        </div>
-        <div class="flow-learning-exceptions" id="flowLearningExceptions">
-          <div class="review-empty">AI 学习完成后，只会列出需要你确认的异常。</div>
-        </div>
+        <div class="flow-understanding-grid" id="flowUnderstandingGrid" hidden></div>
+        <div class="flow-learning-exceptions" id="flowLearningExceptions" hidden></div>
         <details class="section beginner-optional">
-          <summary>补充 FAQ、PPT 或项目资料（可选）</summary>
+          <summary>补充资料（可选）</summary>
           <div style="padding: 0 20px 20px;">
             <form class="form" id="setupForm"></form>
             <label class="dropzone" id="beginnerUpload" hidden>
               <b>上传项目文件（可选）</b>
               <input id="projectDocumentFile" type="file" accept=".txt,.md,.pdf,.pptx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation">
-              <p>支持 PDF、PPTX、TXT、Markdown。</p>
             </label>
             <div class="beginner-source-actions" id="beginnerSourceActions" hidden>
               <button class="btn primary" type="button" id="beginnerLearnButton">补充给 AI 学习</button>
-              <span class="boundary">只生成草稿，不会联系顾客。</span>
             </div>
             <div class="boundary-note" id="beginnerLearningResult" hidden>没有补充资料也可以继续。</div>
           </div>
@@ -2238,19 +2231,14 @@
         <div class="toolbar">
           <div>
             <h2>3. 确认 AI 理解</h2>
-            <p>FAQ 和 ChatDaddy 原话会自动锁定；这里只处理真正异常。</p>
+            <p>只处理异常；原话自动锁定。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status" id="learningReviewStatus">尚未加载</div>
             <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="learningReviewPanelBody" aria-expanded="false">稍后</button>
           </div>
         </div>
-        <div class="flow-understanding-grid" id="flowReviewUnderstandingGrid">
-          <div class="flow-understanding-card"><b>项目卖什么</b><p>等待 AI 学习。</p></div>
-          <div class="flow-understanding-card"><b>顾客为什么买</b><p>等待 AI 学习。</p></div>
-          <div class="flow-understanding-card"><b>项目怎么卖</b><p>等待 AI 学习。</p></div>
-          <div class="flow-understanding-card"><b>价格后怎么成交</b><p>等待 AI 学习。</p></div>
-        </div>
+        <div class="flow-understanding-grid" id="flowReviewUnderstandingGrid"></div>
         <div class="beginner-review-contract" id="beginnerReviewContract" aria-live="polite">
           <div class="beginner-review-grid">
             <article class="beginner-review-card">
@@ -2259,27 +2247,24 @@
             </article>
             <article class="beginner-review-card">
               <b>3 条示范回复</b>
-              <div class="sample-reply-list" id="beginnerSampleReplies">
-                <div class="sample-reply">等待本轮学习结果。</div>
-                <div class="sample-reply">等待本轮学习结果。</div>
-                <div class="sample-reply">等待本轮学习结果。</div>
-              </div>
+              <div class="sample-reply-list" id="beginnerSampleReplies"></div>
             </article>
           </div>
           <article class="beginner-review-card">
             <b>ChatDaddy 不可改原话</b>
-            <p id="protectedSourceCopySummary">AI 会列出 CTA、效果、公斤数、疗程、价格、赠品与配套原话。</p>
+            <p id="protectedSourceCopySummary">效果、数字、价格、配套和 CTA 均锁定。</p>
             <div class="protected-copy-list" id="protectedSourceCopyList"></div>
           </article>
           <input id="protectedSourceCopyConfirm" type="checkbox" checked hidden>
           <div class="boundary-note ok" id="protectedSourceCopyConfirmLabel">
-            原话已自动锁定，不用重复确认。AI 不能弱化、改数字或偷换意思；加强只能组合其他已批准原话。
+            <span hidden>原话已自动锁定，不用重复确认。</span>
+            AI 不得弱化、改数字或偷换意思。
           </div>
         </div>
         <div class="actions">
           <button class="btn primary" type="button" id="beginnerConfirmButton" hidden>完成检查，进入第 4 步</button>
         </div>
-        <div class="boundary-note" id="flowConfirmationResult">没有真正异常时可直接进入第 4 步；不会修改 ChatDaddy，也不会联系顾客。</div>
+        <div class="boundary-note" id="flowConfirmationResult">无异常可直接进入第 4 步。</div>
         <div class="actions">
           <button class="btn expert-only" type="button" id="loadReviewButton">重新加载</button>
           <button class="btn primary" type="button" id="submitReviewBatchButton" disabled hidden>提交确认</button>
@@ -2296,7 +2281,7 @@
           <button class="filter-btn" type="button" data-review-filter="all">全部记录</button>
         </div>
         <div class="review-list" id="learningReviewList">
-          <div class="review-empty">完成学习后，只查看真正需要确认的异常。</div>
+          <div class="review-empty">等待学习结果。</div>
         </div>
       </section>
 
@@ -2474,7 +2459,7 @@
         <div class="toolbar">
           <div>
             <h2>7. Synthetic Mock：检查 AI 有没有学完整，再执行发布检查</h2>
-            <p>用 Owner 已批准资料组成合成顾客场景，检查来源、Step、附件、付款、风险与人工接管。不会调用真实顾客、不会发送讯息、不会触发 Flow。</p>
+            <p>检查来源、Step、附件、付款、风险与人工接管。</p>
           </div>
           <div class="status" id="contentMockStatus">尚未运行</div>
         </div>
@@ -2501,7 +2486,6 @@
         <div class="toolbar">
           <div>
             <h2>4. 开始使用</h2>
-            <p>确认完成后，进入 AI Reply。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status expert-only" id="learningLoopStatus">Owner / Admin 专用</div>
@@ -2805,7 +2789,7 @@
       state.authState = "authenticated";
       state.template = ONBOARDING_TEMPLATE;
       setStatus("已连接", "ok");
-      formHelp.textContent = "AI 会先读完整销售 Flow；FAQ、PPT 和说明只是补充。";
+      formHelp.textContent = "AI 自动整理销售逻辑。";
       renderSafety(ONBOARDING_TEMPLATE);
       renderForm(ONBOARDING_TEMPLATE);
       beginnerUpload.hidden = false;
@@ -3533,7 +3517,7 @@
           toggle.textContent = isOpen ? "回到当前步骤" : "查看";
         } else {
           toggle.disabled = true;
-          toggle.textContent = "稍后";
+          toggle.textContent = "未开放";
         }
       });
 
@@ -3556,7 +3540,7 @@
                 ? "已完成"
                 : isWorkflowCurrent
                   ? "进行中"
-                  : "稍后";
+                  : "未开放";
         }
         const marker = item.querySelector(".rail-marker");
         if (marker) marker.textContent = isViewing
@@ -3724,13 +3708,13 @@
       applyExistingProjectOnboarding(packageResponse.project_package || {}, existingProject);
       renderReonboardingTopology(packageResponse);
       document.getElementById("setupHeroTitle").textContent = `重新设置 ${existingProject.name || projectKey}`;
-      document.getElementById("setupHeroDescription").textContent = "AI 先读完整 Flow；你只确认异常。";
+      document.getElementById("setupHeroDescription").textContent = "AI 自动学习；你只确认异常。";
       document.getElementById("setupSideTitle").textContent = "4 步完成";
       document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 开始使用";
       document.querySelector("#setupForm .section-title").textContent = "项目资料";
       document.getElementById("channelSetupLink").textContent = "连接 ChatDaddy API";
       createButton.textContent = "Owner 验收并保存重新 Onboard 草稿";
-      formHelp.textContent = "AI 会先读完整销售 Flow；FAQ、PPT 和说明只是补充。";
+      formHelp.textContent = "AI 自动整理销售逻辑。";
       setStatus("等待重新 Onboard", "");
       addLog("已载入现有项目", `${projectKey} 当前编辑版本 ${packageResponse.version_no || "-"}。本轮只建立新草稿，不会覆盖已发布 Runtime。`);
       updateOnboardingProgress();
@@ -3777,12 +3761,12 @@
       const draft = Number(state.brainVersions?.draft || 0);
       document.getElementById("activeBrainVersion").textContent = published ? `线上 v${published}` : "尚未发布";
       document.getElementById("activeBrainVersionNote").textContent = published
-        ? "顾客回复继续使用这个版本，本次学习不会改动它。"
-        : "目前没有线上版本；本次学习仍不会自动发送。";
-      document.getElementById("draftBrainVersion").textContent = draft ? `重学草稿 v${draft}` : "尚未建立重学草稿";
+        ? "学习期间继续运行。"
+        : "尚未上线。";
+      document.getElementById("draftBrainVersion").textContent = draft ? `草稿 v${draft}` : "尚未建立草稿";
       document.getElementById("draftBrainVersionNote").textContent = draft
-        ? "所有学习和验收都写进这个草稿；发布后才会替换线上版本。"
-        : "读取真实 Flow 后建立；不会覆盖线上 AI。";
+        ? "验收后才更新。"
+        : "读取 Flow 后建立。";
     }
 
     function markOnboardingDraft() {
@@ -4290,9 +4274,9 @@
       beginnerPersonaSummary.textContent = voice;
 
       const samples = flowLearningSampleReplyTexts();
-      beginnerSampleReplies.innerHTML = Array.from({ length: 3 }, (_, index) => (
-        `<div class="sample-reply">${escapeHtml(samples[index] || `示范 ${index + 1}：等待本轮学习 / Mock Test 生成。`)}</div>`
-      )).join("");
+      beginnerSampleReplies.innerHTML = samples.length
+        ? samples.map((sample) => `<div class="sample-reply">${escapeHtml(sample)}</div>`).join("")
+        : "";
 
       const locks = Array.isArray(state.flowLearning?.source_copy_locks) ? state.flowLearning.source_copy_locks : [];
       const alerts = protectedFlowAlerts();
@@ -4584,21 +4568,15 @@
       const learning = state.flowLearning;
       if (!learning) {
         flowLearningHeadline.textContent = "正在读取 ChatDaddy 销售路线";
-        flowLearningSubline.textContent = "从 Step 1 读到实际价格 Step，再读取价格后的 Follow Up。";
-        flowLearningMediaLine.textContent = "四类内容会分别确认。";
+        flowLearningSubline.textContent = "读取 Step 1 至价格后的 Follow Up。";
+        flowLearningMediaLine.textContent = "";
         flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml();
         flowLearningStatus.textContent = state.flowLearningBusy ? "AI 学习中" : "等待连接";
         flowLearningStatus.className = "status";
         flowLearningRoute.innerHTML = '<div class="review-empty">连接后会自动显示完整成交路线。</div>';
-        const placeholderUnderstanding = [
-          ["项目卖什么", "完成 Flow 学习后自动显示。"],
-          ["顾客为什么买", "完成 Flow 学习后自动显示。"],
-          ["项目怎么卖", "完成 Flow 学习后自动显示。"],
-          ["价格后怎么成交", "完成 Flow 学习后自动显示。"]
-        ].map(([label, text]) => `<div class="flow-understanding-card"><b>${label}</b><p>${text}</p></div>`).join("");
-        flowUnderstandingGrid.innerHTML = placeholderUnderstanding;
-        flowReviewUnderstandingGrid.innerHTML = placeholderUnderstanding;
-        flowLearningExceptions.innerHTML = '<div class="review-empty">AI 学习完成后，只会列出需要你确认的异常。</div>';
+        flowUnderstandingGrid.innerHTML = "";
+        flowReviewUnderstandingGrid.innerHTML = "";
+        flowLearningExceptions.innerHTML = "";
         flowLearningIssueSummary.hidden = true;
         flowLearningIssueList.hidden = true;
         flowLearningIssueList.innerHTML = "";
@@ -4632,7 +4610,7 @@
           ? `AI 已整理，仍有 ${issueMessages.length} 项需处理`
           : "AI 正在理解销售 Flow";
       flowLearningSubline.textContent = `${summary.sales_step_count || learning.sales_steps.length} 个销售 Step · 价格在 ${summary.price_stage_key || "待识别"} · 价格后 ${summary.follow_up_count || learning.follow_ups.length} 个 Follow Up`;
-      flowLearningMediaLine.textContent = "文字、图片、语音、视频状态如下。";
+      flowLearningMediaLine.textContent = "";
       flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml(learning);
       flowLearningStatus.textContent = statusText;
       flowLearningStatus.className = `status ${ready ? "ok" : learning.content_status === "content_unavailable" || issueMessages.length ? "bad" : ""}`;
@@ -4664,7 +4642,7 @@
               ${escapeHtml(message)}
             </div>
           `).join("")
-        : '<div class="review-empty">没有需要确认的异常。AI 已按真实 Flow 整理。</div>';
+        : '<div class="review-empty">没有异常。</div>';
       flowLearningExceptions.innerHTML = `${warningMarkup}${issueMarkup}`;
       flowLearningIssueSummary.hidden = issueMessages.length === 0;
       flowLearningIssueHeadline.textContent = issueMessages.length === 1
@@ -4961,7 +4939,7 @@
           hydrateFlowLearning(confirmed);
         }
         beginnerConfirmButton.hidden = true;
-        flowConfirmationResult.textContent = "检查完成。FAQ 与 ChatDaddy 原话已自动锁定，正在进入第 4 步。";
+        flowConfirmationResult.textContent = "检查完成，进入第 4 步。";
         updateOnboardingProgress();
       } catch (error) {
         flowConfirmationResult.textContent = `还不能确认：${error.message || error}`;
