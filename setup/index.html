@@ -4248,14 +4248,39 @@
 
     function flowSelectionConfirmed() {
       const summary = state.connectionGuide?.summary || {};
-      return summary.api_connected === true
-        && summary.flow_selection_confirmed === true
-        && Number(summary.sales_steps_total || 0) > 0
-        && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0)
-        && Number(summary.payment_bound || 0) === 1
-        && Number(summary.follow_ups_total || 0) >= 1
-        && Number(summary.follow_ups_total || 0) <= 10
-        && Number(summary.follow_ups_bound || 0) === Number(summary.follow_ups_total || 0);
+      const guideHasConnectionState = typeof summary.api_connected === "boolean";
+      if (guideHasConnectionState) {
+        return summary.api_connected === true
+          && summary.flow_selection_confirmed === true
+          && Number(summary.sales_steps_total || 0) > 0
+          && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0)
+          && Number(summary.payment_bound || 0) === 1
+          && Number(summary.follow_ups_total || 0) >= 1
+          && Number(summary.follow_ups_total || 0) <= 10
+          && Number(summary.follow_ups_bound || 0) === Number(summary.follow_ups_total || 0);
+      }
+
+      // While the live connection guide is still loading, preserve the latest
+      // Owner-confirmed package state instead of falsely showing "API 未连接".
+      // The Worker still re-validates the live API before any learning request.
+      const projectPackage = state.salesPackageResponse?.project_package
+        || state.existingPackageResponse?.project_package
+        || {};
+      const confirmation = projectPackage?.metadata?.flow_selection || {};
+      const process = projectPackage?.sales_process || {};
+      const stages = Array.isArray(process.stages) ? process.stages : [];
+      const paymentRules = Array.isArray(process.payment_flow_rules) ? process.payment_flow_rules : [];
+      const followUps = Array.isArray(process.follow_up_policy?.flow_sequence)
+        ? process.follow_up_policy.flow_sequence
+        : [];
+      return confirmation.owner_confirmed === true
+        && stages.length > 0
+        && stages.every((item) => firstNonEmpty(item?.provider_bot_id, item?.provider_flow_id))
+        && paymentRules.length > 0
+        && paymentRules.every((item) => firstNonEmpty(item?.provider_bot_id, item?.provider_flow_id))
+        && followUps.length >= 1
+        && followUps.length <= 10
+        && followUps.every((item) => firstNonEmpty(item?.provider_bot_id, item?.provider_flow_id));
     }
 
     function flowLearningSemanticReady() {
@@ -4781,20 +4806,25 @@
       const remainingRetrySeconds = Number.isFinite(nextRetryAtMs)
         ? Math.ceil((nextRetryAtMs - Date.now()) / 1000)
         : 0;
-      const delaySeconds = Math.max(5, Math.min(
-        300,
-        remainingRetrySeconds
-          || Number(summary.retry_after_seconds || 0)
-          || 30
-      ));
+      const delaySeconds = remainingRetrySeconds > 0
+        ? Math.max(5, Math.min(300, remainingRetrySeconds + 3))
+        : 15;
       state.flowLearningAutoRetryKey = retryKey;
       state.flowLearningAutoRetryTimer = setTimeout(async () => {
         state.flowLearningAutoRetryTimer = null;
-        await requestChatdaddyFlowLearning({
-          automatic: true,
-          force: true,
-          retry_reason: "system_media_retry"
-        });
+        state.flowLearningAutoRetryKey = "";
+        try {
+          // The Worker owns the retry job. This browser timer only refreshes
+          // progress, so closing the page never stops media processing.
+          const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/package`);
+          state.existingPackageResponse = latest;
+          state.salesPackageResponse = latest;
+          hydrateBrainVersionStatus(latest);
+          hydrateFlowLearning(latest);
+          updateOnboardingProgress();
+        } catch {
+          scheduleFlowLearningAutoRetry(state.flowLearning);
+        }
       }, delaySeconds * 1000);
     }
 
@@ -4810,12 +4840,12 @@
       const targetMs = Date.parse(nextRetryAt || "");
       if (!Number.isFinite(targetMs)) return "等待系统自动重试";
       const seconds = Math.max(0, Math.ceil((targetMs - Date.now()) / 1000));
-      if (seconds <= 0) return state.flowLearningBusy ? "正在执行当前轮" : "即将自动重试";
+      if (seconds <= 0) return state.flowLearningBusy ? "正在执行当前轮" : "后台正在处理";
       const minutes = Math.floor(seconds / 60);
       const remainder = seconds % 60;
       return minutes > 0
-        ? `${minutes}:${String(remainder).padStart(2, "0")} 后自动重试`
-        : `${seconds} 秒后自动重试`;
+        ? `${minutes}:${String(remainder).padStart(2, "0")} 后后台处理`
+        : `${seconds} 秒后后台处理`;
     }
 
     function renderFlowLearningRetryProgress(learning = state.flowLearning) {
@@ -4858,7 +4888,7 @@
       flowLearningRetryTrack.setAttribute("aria-valuemax", String(totalAttempts));
       flowLearningRetryTrack.setAttribute("aria-valuenow", String(currentAttempt));
       flowLearningRetryFill.style.width = `${attemptPercent}%`;
-      flowLearningRetryNote.textContent = `本轮已完成 ${completedMedia}/${totalMedia} 个媒体；超过自动重试次数会转交平台技术处理。`;
+      flowLearningRetryNote.textContent = `本轮已完成 ${completedMedia}/${totalMedia} 个媒体；页面关闭也会继续，超过重试次数会转交平台技术处理。`;
       updateCountdown();
       state.flowLearningRetryProgressTimer = setInterval(updateCountdown, 1000);
     }
@@ -5015,12 +5045,15 @@
       const technical = { ...learning.raw };
       delete technical._response;
       flowLearningTechnical.textContent = JSON.stringify(technical, null, 2);
+      const apiConnectionKnown = typeof state.connectionGuide?.summary?.api_connected === "boolean";
       const apiConnected = state.connectionGuide?.summary?.api_connected === true;
+      const apiDisconnected = apiConnectionKnown && !apiConnected;
       const selectionConfirmed = flowSelectionConfirmed();
       learnChatdaddyFlowsButton.disabled = state.flowLearningBusy || !selectionConfirmed;
       learnChatdaddyFlowsButton.textContent = state.flowLearningBusy
         ? "AI 正在学习…"
-        : !apiConnected ? "先连接 ChatDaddy API"
+        : apiDisconnected ? "先连接 ChatDaddy API"
+          : !apiConnectionKnown && !selectionConfirmed ? "正在确认 ChatDaddy API"
           : !selectionConfirmed ? "尚未确认 Flow"
           : systemRetryingCount > 0 ? "立即重新处理未读媒体"
           : ready ? "重新学习已选择 Flow" : "学习已选择 Flow";
