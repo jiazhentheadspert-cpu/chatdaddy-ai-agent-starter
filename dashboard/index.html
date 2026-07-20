@@ -9211,8 +9211,8 @@
 	          <small>先核对金额和配套，再一次完成</small>
 	        </div>
 	        <label class="purchase-flow-wrap">
-	          <span>配套 / Flow</span>
-	          <select id="paymentFlowSelect" aria-label="选择付款后 Flow"></select>
+	          <span>自动匹配配套 / Flow</span>
+	          <select id="paymentFlowSelect" aria-label="按付款金额自动匹配的付款后 Flow" disabled></select>
 	        </label>
 	        <label class="purchase-input-wrap">
 	          <span>RM</span>
@@ -10034,6 +10034,7 @@
 	    $("returnAiBtn").addEventListener("click", returnAiActive);
 		    $("handoffBtn").addEventListener("click", handoffActive);
 		    $("markPurchaseBtn").addEventListener("click", markPurchaseActive);
+		    $("purchaseAmountInput").addEventListener("input", () => autoSelectPaymentFlowByAmount());
 		    $("applyQuickReplyBtn").addEventListener("click", applyQuickReplyActive);
 		    $("triggerFlowBtn").addEventListener("click", triggerFlowActive);
 		    $("flowSelect").addEventListener("change", () => updateFlowSelectionNote(state.active));
@@ -22221,6 +22222,11 @@
 	    function updatePurchaseNote(item = state.active) {
 	      const note = $("purchaseNote");
 	      if (!note) return;
+	      const mappedFlow = autoSelectPaymentFlowByAmount();
+	      if (mappedFlow) {
+	        note.className = "purchase-note";
+	        return;
+	      }
 	      const status = purchaseMetaStatusForCase(item);
 	      note.textContent = status.text;
 	      note.className = `purchase-note ${status.tone || ""}`.trim();
@@ -23191,14 +23197,22 @@
 	function inferPaidPackage(item = {}) {
 	  const amount = casePurchaseAmount(item);
 	  const text = caseFlowMatchText(item);
-	  const definitions = [
-	    { flow_key: "payment_meta_3_rm378", package_code: "3_box_rm378", amount_rm: 378, patterns: [/\bRM\s*378(?:\.00)?\b/i, /3\s*盒\s*送\s*1\s*盒/i, /配套\s*A\b/i] },
-	    { flow_key: "payment_meta_4_rm508", package_code: "4_box_rm508", amount_rm: 508, patterns: [/\bRM\s*508(?:\.00)?\b/i, /4\s*盒\s*送\s*2\s*盒/i, /配套\s*B\b/i] },
-	    { flow_key: "payment_meta_5_rm658", package_code: "5_box_rm658", amount_rm: 658, patterns: [/\bRM\s*658(?:\.00)?\b/i, /5\s*盒\s*送\s*3\s*盒/i, /配套\s*C\b/i] }
-	  ];
-	  const amountMatch = definitions.find((entry) => amount && Math.abs(amount - entry.amount_rm) < 0.01);
-	  if (amountMatch) return { ...amountMatch, confidence: "exact_amount" };
-	  const matches = definitions.filter((entry) => entry.patterns.some((pattern) => pattern.test(text)));
+	  const definitions = state.flowCatalog
+	    .filter((flow) => isPaymentFlowEntry(flow) && flow.configured === true)
+	    .map((flow) => ({
+	      ...flow,
+	      amount_rm: normalizedPurchaseAmount(flow.amount_rm),
+	      match_tokens: [
+	        flow.package_label,
+	        flow.package_code,
+	        ...(Array.isArray(flow.aliases) ? flow.aliases : [])
+	      ].map((value) => String(value || "").normalize("NFKC").toLowerCase().replace(/\s+/g, "")).filter((value) => value.length >= 2)
+	    }))
+	    .filter((entry) => entry.amount_rm && entry.package_code);
+	  const amountMatches = definitions.filter((entry) => amount && Math.abs(amount - entry.amount_rm) < 0.01);
+	  if (amountMatches.length === 1) return { ...amountMatches[0], confidence: "exact_amount" };
+	  const normalizedText = String(text || "").normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+	  const matches = definitions.filter((entry) => entry.match_tokens.some((token) => normalizedText.includes(token)));
 	  return matches.length === 1 ? { ...matches[0], confidence: "conversation" } : null;
 	}
 
@@ -23234,7 +23248,7 @@
 	  if (!canUsePaymentFlow) return null;
 	  const packageMatch = inferPaidPackage(item);
 	  if (packageMatch) return flowCatalogEntry(packageMatch.flow_key);
-	  return isPaymentConfirmationCase(item) ? flowCatalogEntry("after_payment_group") || flowCatalogEntry("payment") : null;
+	  return null;
 	}
 
 	function flowOptionLabel(flow = {}) {
@@ -23279,6 +23293,37 @@
 	  }).join("");
 	}
 
+	function mappedPaymentFlowsForAmount(amount) {
+	  const normalizedAmount = normalizedPurchaseAmount(amount);
+	  if (!normalizedAmount) return [];
+	  return projectMappedFlowCatalog(state.active)
+	    .filter((flow) => isPaymentFlowEntry(flow) && flow.configured === true)
+	    .filter((flow) => {
+	      const flowAmount = normalizedPurchaseAmount(flow.amount_rm);
+	      return flowAmount && Math.abs(flowAmount - normalizedAmount) < 0.01;
+	    });
+	}
+
+	function autoSelectPaymentFlowByAmount() {
+	  const select = $("paymentFlowSelect");
+	  const note = $("purchaseNote");
+	  if (!select) return null;
+	  const amount = normalizedPurchaseAmount($("purchaseAmountInput")?.value);
+	  const matches = mappedPaymentFlowsForAmount(amount);
+	  if (matches.length === 1) {
+	    select.value = matches[0].flow_key;
+	    if (note) note.textContent = `已按 RM ${amount.toFixed(2)} 匹配：${matches[0].package_label || matches[0].title}。确认付款后会自动发送对应 Flow。`;
+	    return matches[0];
+	  }
+	  select.value = "";
+	  if (note && amount) {
+	    note.textContent = matches.length > 1
+	      ? `RM ${amount.toFixed(2)} 对应多个 Flow，请先修正 Onboarding 配套映射。`
+	      : `RM ${amount.toFixed(2)} 尚未绑定 After Payment Flow，不会自动发送。`;
+	  }
+	  return null;
+	}
+
 	function renderChannelActions(item = state.active) {
 	  if (!item) return;
 	  const quickReplySelect = $("quickReplySelect");
@@ -23292,6 +23337,7 @@
 	  fillFlowSelect($("paymentFlowSelect"), paymentFlows, recommended?.configured ? recommended.flow_key : "");
 	  const packageMatch = inferPaidPackage(item);
 	  if (packageMatch && !$("purchaseAmountInput").value) $("purchaseAmountInput").value = String(packageMatch.amount_rm);
+	  autoSelectPaymentFlowByAmount();
 	  updateFlowSelectionNote(item);
 	}
 
@@ -27758,12 +27804,16 @@
 	    showToast(meta?.sent ? `已补回流 Meta RM ${amount.toFixed(2)}。` : `成交已记录；请检查 Meta 回流状态。`);
 	    return;
 	  }
-	  const flow = flowCatalogEntry($("paymentFlowSelect").value);
-	  if (!flow) {
-	    showToast("先选择顾客付款对应的 After Payment Flow。");
-	    $("paymentFlowSelect").focus();
+	  const amountMatches = mappedPaymentFlowsForAmount(amount);
+	  if (amountMatches.length !== 1) {
+	    showToast(amountMatches.length > 1
+	      ? "这个金额对应多个 After Payment Flow，请先修正 Onboarding 配套映射。"
+	      : "这个金额还没有对应的 After Payment Flow，请先完成 Onboarding 配套映射。");
+	    $("purchaseAmountInput").focus();
 	    return;
 	  }
+	  const flow = amountMatches[0];
+	  $("paymentFlowSelect").value = flow.flow_key;
 	  if (flow.configured !== true) {
 	    alert(`${flow.title} 还没有接入 ChatDaddy Bot ID，系统不会冒险触发。`);
 	    return;
@@ -27776,6 +27826,7 @@
 	    provider_bot_id: flow.provider_bot_id || "",
 	    provider_flow_id: flow.provider_flow_id || "",
 	    package_code: flow.package_code || "",
+	    package_label: flow.package_label || "",
         amount_rm: amount,
         currency: "MYR",
         order_id: casePurchaseOrderId(state.active),
@@ -27810,9 +27861,11 @@
 	    facts: [
 	      { label: "顾客消息", value: "Flow 会真实发送" },
 	      { label: "付款记录", value: options.paymentAlreadyRecorded ? "已经记录，不会重复" : (confirmPayment ? `同时记录 RM ${Number(options.amount || 0).toFixed(2)}` : "不会变更") },
-	      { label: "使用条件", value: "配套与阶段已确认" },
+	      { label: "配套匹配", value: confirmPayment ? (flow.package_label || flow.package_code || "按金额精准匹配") : "当前阶段已确认" },
 	    ],
-	    note: "Flow 发出后不能从 Dashboard 撤回，请先确认顾客选择和当前阶段。",
+	    note: confirmPayment
+	      ? "系统只会发送这个金额唯一对应的 After Payment Flow；发出后不能从 Dashboard 撤回。"
+	      : "Flow 发出后不能从 Dashboard 撤回，请先确认顾客选择和当前阶段。",
 	    cancelLabel: "返回检查",
 	    confirmLabel: "确认接 Flow",
 	  });
@@ -29330,7 +29383,7 @@
 	      $("quickReplySelect").disabled = isBusy || conversationLocked;
 	      $("flowSelect").disabled = isBusy || readOnly;
 	      $("flowSearchInput").disabled = isBusy || readOnly;
-	      $("paymentFlowSelect").disabled = isBusy || readOnly;
+	      $("paymentFlowSelect").disabled = true;
 	      setExternalFlowFieldsDisabled(isBusy || $("externalFlowPanel").classList.contains("hidden"));
 	      updateExternalFlowButtonState(state.active);
 	      if (isBusy) {
