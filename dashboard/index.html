@@ -27575,6 +27575,9 @@
     function executionPlanSummary(item = {}) {
       const plan = salesExecutionPlanForCase(item);
       const mediaCount = Array.isArray(plan.media_asset_ids) ? plan.media_asset_ids.length : 0;
+      const replyMessageCount = Array.isArray(plan.reply_messages) && plan.reply_messages.length
+        ? plan.reply_messages.length
+        : 1;
       const flowValue = plan.action === "reply_then_flow" && plan.flow_key
         ? `回复后接 ${plan.flow_key}`
         : "不会触发";
@@ -27585,7 +27588,7 @@
           : plan.cta_mode === "soft_cta"
             ? "最多一项 Proof + 轻 CTA"
             : "不使用 CTA";
-      return { plan, mediaCount, flowValue, cadenceValue };
+      return { plan, mediaCount, replyMessageCount, flowValue, cadenceValue };
     }
 
     function approveExecuteBusyLabel(item = {}) {
@@ -29634,7 +29637,7 @@
 	        subtitle: name,
 	        lead: `${preview}${reply.length > 180 ? "..." : ""}`,
 	        facts: [
-	          { label: "顾客消息", value: "立即发送" },
+	          { label: "顾客消息", value: executionSummary.replyMessageCount > 1 ? `${executionSummary.replyMessageCount} 则依序发送` : "1 则立即发送" },
 	          { label: "批准素材", value: executionSummary.mediaCount ? `${executionSummary.mediaCount} 个` : "没有" },
 	          { label: "ChatDaddy Flow", value: executionSummary.flowValue },
 	          { label: "成交节奏", value: executionSummary.cadenceValue },
