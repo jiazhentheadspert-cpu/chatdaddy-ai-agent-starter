@@ -1050,6 +1050,65 @@
       font-weight: 900;
     }
 
+    .flow-learning-issue-copy {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .flow-learning-retry-progress {
+      display: grid;
+      gap: 7px;
+      margin-top: 10px;
+      color: var(--ink);
+    }
+
+    .flow-learning-retry-progress[hidden] {
+      display: none;
+    }
+
+    .flow-learning-retry-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .flow-learning-retry-meta b {
+      color: var(--amber);
+      font-size: 13px;
+    }
+
+    .flow-learning-retry-meta span {
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .flow-learning-retry-track {
+      width: 100%;
+      height: 9px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(165, 105, 24, 0.15);
+    }
+
+    .flow-learning-retry-track > span {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--amber);
+      transition: width 240ms ease;
+    }
+
+    .flow-learning-retry-progress small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
     .flow-learning-issue-summary .btn {
       min-height: 38px;
       padding: 0 14px;
@@ -1923,6 +1982,16 @@
       .flow-learning-issue-summary .btn {
         width: 100%;
       }
+
+      .flow-learning-retry-meta {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .flow-learning-retry-meta span {
+        text-align: left;
+      }
     }
   </style>
 </head>
@@ -2092,7 +2161,27 @@
             <div class="review-empty">连接后会自动显示完整成交路线。</div>
           </div>
           <div class="flow-learning-issue-summary" id="flowLearningIssueSummary" hidden>
-            <span id="flowLearningIssueHeadline">还有内容需要处理</span>
+            <div class="flow-learning-issue-copy">
+              <span id="flowLearningIssueHeadline">还有内容需要处理</span>
+              <div class="flow-learning-retry-progress" id="flowLearningRetryProgress" hidden>
+                <div class="flow-learning-retry-meta">
+                  <b id="flowLearningRetryAttempt">自动处理轮次</b>
+                  <span id="flowLearningRetryCountdown">等待系统处理</span>
+                </div>
+                <div
+                  class="flow-learning-retry-track"
+                  id="flowLearningRetryTrack"
+                  role="progressbar"
+                  aria-label="系统媒体自动处理轮次"
+                  aria-valuemin="1"
+                  aria-valuemax="4"
+                  aria-valuenow="1"
+                >
+                  <span id="flowLearningRetryFill"></span>
+                </div>
+                <small id="flowLearningRetryNote">系统会自动完成，项目方无需操作。</small>
+              </div>
+            </div>
             <button class="btn" type="button" id="showFlowLearningIssuesButton" aria-expanded="false" aria-controls="flowLearningIssueList">查看缺什么</button>
             <a class="btn primary" id="flowLearningFixLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer" hidden>选择缺少的 Flow</a>
           </div>
@@ -2621,6 +2710,7 @@
       flowLearningAutoRequested: false,
       flowLearningAutoRetryTimer: null,
       flowLearningAutoRetryKey: "",
+      flowLearningRetryProgressTimer: null,
       protectedSourceRevision: "",
       onboardingHydrated: false,
       onboardingPhaseDone: { flow: false, teach: false, review: false, use: false },
@@ -2692,6 +2782,12 @@
     const flowLearningRoute = document.getElementById("flowLearningRoute");
     const flowLearningIssueSummary = document.getElementById("flowLearningIssueSummary");
     const flowLearningIssueHeadline = document.getElementById("flowLearningIssueHeadline");
+    const flowLearningRetryProgress = document.getElementById("flowLearningRetryProgress");
+    const flowLearningRetryAttempt = document.getElementById("flowLearningRetryAttempt");
+    const flowLearningRetryCountdown = document.getElementById("flowLearningRetryCountdown");
+    const flowLearningRetryTrack = document.getElementById("flowLearningRetryTrack");
+    const flowLearningRetryFill = document.getElementById("flowLearningRetryFill");
+    const flowLearningRetryNote = document.getElementById("flowLearningRetryNote");
     const showFlowLearningIssuesButton = document.getElementById("showFlowLearningIssuesButton");
     const flowLearningIssueList = document.getElementById("flowLearningIssueList");
     const flowUnderstandingGrid = document.getElementById("flowUnderstandingGrid");
@@ -4702,6 +4798,71 @@
       }, delaySeconds * 1000);
     }
 
+    function stopFlowLearningRetryProgress() {
+      if (state.flowLearningRetryProgressTimer) {
+        clearInterval(state.flowLearningRetryProgressTimer);
+      }
+      state.flowLearningRetryProgressTimer = null;
+      flowLearningRetryProgress.hidden = true;
+    }
+
+    function flowLearningRetryCountdownText(nextRetryAt = "") {
+      const targetMs = Date.parse(nextRetryAt || "");
+      if (!Number.isFinite(targetMs)) return "等待系统自动重试";
+      const seconds = Math.max(0, Math.ceil((targetMs - Date.now()) / 1000));
+      if (seconds <= 0) return state.flowLearningBusy ? "正在执行当前轮" : "即将自动重试";
+      const minutes = Math.floor(seconds / 60);
+      const remainder = seconds % 60;
+      return minutes > 0
+        ? `${minutes}:${String(remainder).padStart(2, "0")} 后自动重试`
+        : `${seconds} 秒后自动重试`;
+    }
+
+    function renderFlowLearningRetryProgress(learning = state.flowLearning) {
+      if (state.flowLearningRetryProgressTimer) {
+        clearInterval(state.flowLearningRetryProgressTimer);
+        state.flowLearningRetryProgressTimer = null;
+      }
+      const issues = Array.isArray(learning?.issue_log) ? learning.issue_log : [];
+      const activeRetryIssues = issues.filter((item) => item?.status === "system_retrying");
+      if (!activeRetryIssues.length) {
+        flowLearningRetryProgress.hidden = true;
+        return;
+      }
+      const summary = learning?.issue_summary || {};
+      const maxAutomaticRetries = Math.max(
+        1,
+        ...activeRetryIssues.map((item) => Number(item?.max_automatic_retries || 3))
+      );
+      const totalAttempts = maxAutomaticRetries + 1;
+      const currentAttempt = Math.max(
+        1,
+        Math.min(
+          totalAttempts,
+          Math.max(...activeRetryIssues.map((item) => Number(item?.occurrence_count || 1)))
+        )
+      );
+      const mediaIssues = issues.filter((item) => item?.category === "media_analysis");
+      const completedMedia = mediaIssues.filter((item) => item?.status === "resolved").length;
+      const remainingMedia = mediaIssues.filter((item) => item?.status !== "resolved").length
+        || activeRetryIssues.length;
+      const totalMedia = Math.max(completedMedia + remainingMedia, activeRetryIssues.length);
+      const attemptPercent = Math.max(4, Math.min(100, (currentAttempt / totalAttempts) * 100));
+      const updateCountdown = () => {
+        flowLearningRetryCountdown.textContent = state.flowLearningBusy
+          ? `正在处理 ${activeRetryIssues.length} 个媒体`
+          : flowLearningRetryCountdownText(summary.next_retry_at);
+      };
+      flowLearningRetryProgress.hidden = false;
+      flowLearningRetryAttempt.textContent = `自动处理轮次 ${currentAttempt}/${totalAttempts}`;
+      flowLearningRetryTrack.setAttribute("aria-valuemax", String(totalAttempts));
+      flowLearningRetryTrack.setAttribute("aria-valuenow", String(currentAttempt));
+      flowLearningRetryFill.style.width = `${attemptPercent}%`;
+      flowLearningRetryNote.textContent = `本轮已完成 ${completedMedia}/${totalMedia} 个媒体；超过自动重试次数会转交平台技术处理。`;
+      updateCountdown();
+      state.flowLearningRetryProgressTimer = setInterval(updateCountdown, 1000);
+    }
+
     function toggleFlowLearningIssues() {
       const willOpen = flowLearningIssueList.hidden;
       flowLearningIssueList.hidden = !willOpen;
@@ -4714,6 +4875,7 @@
       const learning = state.flowLearning;
       if (!learning) {
         scheduleFlowLearningAutoRetry(null);
+        stopFlowLearningRetryProgress();
         flowLearningHeadline.textContent = "正在读取 ChatDaddy 销售路线";
         flowLearningSubline.textContent = "读取 Step 1 至价格后的 Follow Up。";
         flowLearningMediaLine.textContent = "";
@@ -4833,6 +4995,7 @@
             : issueMessages.length === 1
               ? "还有 1 项需要处理"
               : `还有 ${issueMessages.length} 项需要处理`;
+      renderFlowLearningRetryProgress(learning);
       flowLearningIssueList.innerHTML = issueMessages
         .map((message) => `<div class="flow-learning-issue-item">${escapeHtml(message)}</div>`)
         .join("");
