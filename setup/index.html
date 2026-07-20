@@ -2351,6 +2351,7 @@
             <p id="setupLoadErrorText">这不是登录问题，请稍后重试。</p>
             <div class="actions">
               <button class="btn primary" id="retrySetupLoadButton" type="button">重新读取</button>
+              <a class="btn" id="setupReturnDashboardLink" href="../dashboard/index.html?view=projects">返回项目列表</a>
               <a class="btn" id="setupSwitchAccountLink" href="../login.html" hidden>切换账号</a>
             </div>
           </div>
@@ -2974,7 +2975,22 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const apiBase = (params.get("api") || localStorage.getItem("agent_api_url") || localStorage.getItem("hermas_setup_api") || "https://ctg-chatdaddy-hermas-agents-runtime.jiazhen-theadspert.workers.dev").replace(/\/+$/, "");
+    const CANONICAL_API_BASE = "https://ctg-chatdaddy-hermas-agents-runtime.jiazhen-theadspert.workers.dev";
+
+    function safeApiBase(value = "") {
+      try {
+        const url = new URL(String(value || "").trim());
+        const local = url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname);
+        if (url.protocol !== "https:" && !local) return "";
+        return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+      } catch {
+        return "";
+      }
+    }
+
+    // Production setup must not inherit an obsolete API hostname from localStorage.
+    // A different API is accepted only when it is explicitly present in the URL.
+    let apiBase = safeApiBase(params.get("api")) || CANONICAL_API_BASE;
     const adminToken = hashParams.get("admin_token") || "";
     const ONBOARDING_TEMPLATE = {
       mode: {
@@ -3430,20 +3446,28 @@
 
     function showInitialSetupLoadError(error) {
       const accessError = isProjectAccessError(error);
+      const networkError = String(error?.code || "") === "network_fetch_failed"
+        || /failed to fetch|network|网络暂时无法连接/i.test(String(error?.message || error || ""));
       state.authState = accessError ? "access_error" : "load_error";
-      setStatus(accessError ? "没有项目权限" : "读取失败", "bad");
+      setStatus(accessError ? "没有项目权限" : networkError ? "网络连接中断" : "读取失败", "bad");
       document.getElementById("loginLoadingCard").hidden = true;
       document.getElementById("authActions").hidden = true;
       document.getElementById("setupLoadErrorActions").hidden = false;
       document.getElementById("setupLoadErrorTitle").textContent = accessError
         ? "这个账号没有项目访问权限"
-        : "暂时无法读取项目";
+        : networkError
+          ? "暂时无法连接项目服务"
+          : "暂时无法读取项目";
       document.getElementById("setupLoadErrorText").textContent = accessError
         ? "你已经登录，但这个账号不能打开当前项目。请切换到有权限的账号，或请管理员加入项目。"
-        : `这不是登录问题：${error?.message || error || "服务暂时不可用"}。`;
+        : networkError
+          ? "系统已自动切换到正式 API 并重试。请点击「重新读取」；仍无法连接时可先返回项目列表。"
+          : `这不是登录问题：${error?.message || error || "服务暂时不可用"}。`;
       const switchAccountLink = document.getElementById("setupSwitchAccountLink");
       switchAccountLink.hidden = !accessError;
       switchAccountLink.href = ownerLoginUrl({ switchAccount: true });
+      const dashboardParams = new URLSearchParams({ view: "projects", api: apiBase });
+      document.getElementById("setupReturnDashboardLink").href = `../dashboard/index.html?${dashboardParams.toString()}`;
     }
 
     function showSetupModuleErrors() {
@@ -8389,7 +8413,7 @@
     }
 
     async function apiFetch(path, options) {
-      const response = await fetch(`${apiBase}${path}`, {
+      const requestOptions = {
         ...options,
         credentials: "include",
         headers: {
@@ -8397,7 +8421,45 @@
           ...(adminToken ? { "x-admin-token": adminToken } : {}),
           ...(options.headers || {})
         }
-      });
+      };
+      const method = String(requestOptions.method || "GET").toUpperCase();
+      const canRetry = ["GET", "HEAD", "OPTIONS"].includes(method);
+      const productionUi = window.location.hostname.endsWith(".github.io");
+      const candidates = [apiBase];
+      if (canRetry && productionUi && apiBase !== CANONICAL_API_BASE) candidates.push(CANONICAL_API_BASE);
+      let response = null;
+      let lastNetworkError = null;
+
+      for (const candidate of candidates) {
+        const attempts = canRetry && candidate === CANONICAL_API_BASE ? 3 : 1;
+        for (let attempt = 1; attempt <= attempts; attempt += 1) {
+          try {
+            response = await fetch(`${candidate}${path}`, requestOptions);
+            if (candidate !== apiBase) {
+              apiBase = candidate;
+              localStorage.setItem("hermas_setup_api", apiBase);
+              params.set("api", apiBase);
+              const nextUrl = new URL(window.location.href);
+              nextUrl.searchParams.set("api", apiBase);
+              window.history.replaceState({}, "", nextUrl);
+            }
+            break;
+          } catch (error) {
+            lastNetworkError = error;
+            if (attempt < attempts) {
+              await new Promise((resolve) => window.setTimeout(resolve, attempt * 450));
+            }
+          }
+        }
+        if (response) break;
+      }
+
+      if (!response) {
+        const error = new Error("网络暂时无法连接正式 API，系统已自动重试。");
+        error.code = "network_fetch_failed";
+        error.cause = lastNetworkError;
+        throw error;
+      }
       const text = await response.text();
       let data = null;
       try {
