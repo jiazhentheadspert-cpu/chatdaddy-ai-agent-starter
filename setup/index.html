@@ -906,6 +906,57 @@
       line-height: 1.45;
     }
 
+    .beginner-go-live {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+      padding: 20px;
+      border: 1px solid rgba(47, 111, 237, 0.24);
+      border-left: 5px solid var(--blue);
+      border-radius: 8px;
+      background: #f5f8ff;
+    }
+
+    .beginner-go-live.ready {
+      border-color: rgba(15, 159, 146, 0.32);
+      border-left-color: var(--teal);
+      background: #effcf9;
+    }
+
+    .beginner-go-live h3,
+    .beginner-go-live p {
+      margin: 0;
+    }
+
+    .beginner-go-live h3 {
+      font-size: 22px;
+    }
+
+    .beginner-go-live p {
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.5;
+    }
+
+    .beginner-go-live-issues {
+      display: grid;
+      gap: 8px;
+    }
+
+    .beginner-go-live-issue {
+      padding: 12px 14px;
+      border: 1px solid rgba(184, 113, 14, 0.24);
+      border-radius: 8px;
+      color: #8b560d;
+      background: #fff9ef;
+      font-weight: 850;
+      line-height: 1.45;
+    }
+
+    .beginner-go-live [hidden] {
+      display: none !important;
+    }
+
     .journey-grid {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
@@ -2531,7 +2582,6 @@
           <button class="btn" type="button" id="loadReplyContractButton">加载当前设置</button>
           <button class="btn" type="button" id="previewReplyContractButton">预览回复结构</button>
           <button class="btn primary" type="button" id="saveReplyContractButton">保存为项目草稿</button>
-          <button class="btn" type="button" id="runReplyContractMockButton">运行完整 Synthetic Mock</button>
         </div>
 
         <div class="preview-grid" id="replyContractMetrics">
@@ -2550,7 +2600,7 @@
             <h2>7. Synthetic Mock：检查 AI 有没有学完整，再执行发布检查</h2>
             <p>检查来源、Step、附件、付款、风险与人工接管。</p>
           </div>
-          <div class="status" id="contentMockStatus">尚未运行</div>
+          <div class="status">高级检查详情</div>
         </div>
         <div class="preview-grid" id="contentMockMetrics">
           <div class="metric"><span>测试场景</span><strong>-</strong></div>
@@ -2562,13 +2612,6 @@
         <div class="content-mock-list" id="contentMockList">
           <div class="review-empty">点击上方「运行完整 Synthetic Mock」，系统才会读取当前草稿并生成测试结果。</div>
         </div>
-        <label class="confirm">
-          <input id="publishConfirm" type="checkbox">
-          我确认 Mock、Owner 审核、销售 Step、Reply Contract、Channel 与 Flow 全部通过；发布只会启用 Project Brain 版本，不会在这里发送顾客讯息或触发 Flow。
-        </label>
-        <div class="actions">
-          <button class="btn primary" type="button" id="publishProjectButton" disabled>明确发布当前 Project Brain</button>
-        </div>
       </section>
 
       <section class="panel onboarding-step-panel is-collapsed" id="learningLoopPanel" data-onboarding-panel data-onboarding-phase="use">
@@ -2577,16 +2620,35 @@
             <h2>4. 开始使用</h2>
           </div>
           <div class="onboarding-panel-controls">
+            <div class="status" id="contentMockStatus">尚未检查</div>
             <div class="status expert-only" id="learningLoopStatus">Owner / Admin 专用</div>
             <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="learningLoopPanelBody" aria-expanded="false">稍后</button>
           </div>
+        </div>
+        <div class="beginner-go-live" id="beginnerGoLiveCard">
+          <div>
+            <h3 id="beginnerGoLiveTitle">上线前还差 1 步</h3>
+            <p id="beginnerGoLiveText">运行上线检查，确认回复来源、销售路线和安全边界；通过后才可启用 AI Reply。</p>
+          </div>
+          <div class="beginner-go-live-issues" id="beginnerGoLiveIssues" hidden></div>
+          <div class="actions">
+            <button class="btn primary" type="button" id="runReplyContractMockButton">运行上线检查</button>
+            <a class="btn primary" id="aiReplyDashboardLink" href="../dashboard/index.html?view=cases" hidden>进入 AI Reply</a>
+          </div>
+          <label class="confirm" id="beginnerPublishConfirmWrap" hidden>
+            <input id="publishConfirm" type="checkbox">
+            我确认上线检查已经通过；启用后 AI Reply 仍按当前客服审批模式运行。
+          </label>
+          <div class="actions" id="beginnerPublishActions" hidden>
+            <button class="btn primary" type="button" id="publishProjectButton" disabled>确认上线并进入 AI Reply</button>
+          </div>
+          <div class="boundary-note">上线检查与发布不会在这里发送顾客讯息，也不会触发 ChatDaddy Flow。</div>
         </div>
         <div class="final-grid expert-only">
           <div class="final-card"><b>每日</b><p>看待批准、人工接管、失败与重复追问；先修 FAQ / SOP / Flow 绑定，再考虑扩大自动回复。</p></div>
           <div class="final-card"><b>每周</b><p>复盘准确率、成交推进、转人工原因、未覆盖问题、资料过期和敏感内容；所有学习保留 Case 来源。</p></div>
         </div>
-        <div class="actions">
-          <a class="btn primary" id="aiReplyDashboardLink" href="../dashboard/index.html?view=cases" hidden>进入 AI Reply</a>
+        <div class="actions expert-only">
           <a class="btn expert-only" id="learningDashboardLink" href="../dashboard/index.html?view=learning">打开当前项目复盘与学习</a>
           <a class="btn expert-only" id="operationsDashboardLink" href="../dashboard/index.html?view=operations">回到项目设置 / 运营台</a>
         </div>
@@ -2698,6 +2760,7 @@
       mockAttestedVersionNo: null,
       published: false,
       activation: null,
+      publishError: "",
       authVerified: false,
       authState: "loading",
       brainVersions: { published: null, draft: null },
@@ -2807,6 +2870,12 @@
     const protectedSourceCopyConfirm = document.getElementById("protectedSourceCopyConfirm");
     const setupModuleNotice = document.getElementById("setupModuleNotice");
     const setupModuleNoticeText = document.getElementById("setupModuleNoticeText");
+    const beginnerGoLiveCard = document.getElementById("beginnerGoLiveCard");
+    const beginnerGoLiveTitle = document.getElementById("beginnerGoLiveTitle");
+    const beginnerGoLiveText = document.getElementById("beginnerGoLiveText");
+    const beginnerGoLiveIssues = document.getElementById("beginnerGoLiveIssues");
+    const beginnerPublishConfirmWrap = document.getElementById("beginnerPublishConfirmWrap");
+    const beginnerPublishActions = document.getElementById("beginnerPublishActions");
     const publishConfirm = document.getElementById("publishConfirm");
     const publishProjectButton = document.getElementById("publishProjectButton");
 
@@ -6922,6 +6991,11 @@
           setReplyContractStatus(error.message || "Mock Test 失败", "bad");
           contentMockStatus.textContent = error.message || "Mock Test 失败";
           contentMockStatus.className = "status bad";
+          state.mockResult = {
+            blockers: [{ message: error.message || "上线检查失败，请重试。" }],
+            owner_content: { tests: [], passed_count: 0, failed_count: 0 }
+          };
+          renderBeginnerGoLiveState();
         }
       } finally {
         setReplyContractBusy(false);
@@ -7124,12 +7198,12 @@
       }
     }
 
-    function updatePublishButton() {
-      if (!publishProjectButton || !publishConfirm) return;
+    function currentPublishReadiness() {
       const pending = Number(state.learningReview?.summary?.pending_items || 0);
       const blockers = Array.isArray(state.connectionGuide?.readiness?.blockers) ? state.connectionGuide.readiness.blockers.length : 1;
       const failed = Number(state.mockResult?.suites?.owner_content?.failed_count ?? state.mockResult?.owner_content?.failed_count ?? 1);
-      const hasTests = (state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || []).length > 0;
+      const tests = state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || [];
+      const hasTests = tests.length > 0;
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
       const currentVersionNo = Math.max(
         Number(state.salesPackageResponse?.version_no || 0),
@@ -7144,23 +7218,98 @@
         && packageData.sales_process.stages.length > 0;
       const contractReady = Array.isArray(state.replyContract?.validation?.errors)
         && state.replyContract.validation.errors.length === 0;
-      publishProjectButton.disabled = !(
-        publishConfirm.checked
-        && pending === 0
+      const ready = pending === 0
         && salesReviewed
         && contractReady
         && blockers === 0
         && hasTests
         && failed === 0
         && mockBoundToCurrentVersion
-        && !state.published
-      );
+        && !state.published;
+      const reasons = [];
+      if (pending > 0) reasons.push(`还有 ${pending} 项资料需要确认`);
+      if (!salesReviewed) reasons.push("销售路线尚未确认");
+      if (!contractReady) reasons.push("回复规则尚未通过");
+      if (blockers > 0) reasons.push(`ChatDaddy 连接或 Flow 仍有 ${blockers} 项未完成`);
+      if (!hasTests) reasons.push("尚未运行上线检查");
+      if (hasTests && failed > 0) reasons.push(`上线检查还有 ${failed} 项未通过`);
+      if (hasTests && !mockBoundToCurrentVersion) reasons.push("当前草稿已更新，请重新运行上线检查");
+      return {
+        ready,
+        reasons,
+        tests,
+        blockers,
+        failed,
+        hasTests,
+        mockBoundToCurrentVersion
+      };
+    }
+
+    function renderBeginnerGoLiveState(readiness = currentPublishReadiness()) {
+      if (!beginnerGoLiveCard) return;
+      const published = state.published === true && state.activation?.ready_for_ai_reply === true;
+      const rawBlockers = Array.isArray(state.mockResult?.blockers) ? state.mockResult.blockers : [];
+      const failedTests = readiness.tests.filter((test) => test?.passed === false);
+      const issueMessages = [
+        state.publishError,
+        ...readiness.reasons,
+        ...rawBlockers.map((item) => item?.message || item?.code),
+        ...failedTests.map((test) => test?.fix || test?.label || test?.name)
+      ].map((item) => String(item || "").trim()).filter(Boolean);
+      const uniqueIssues = [...new Set(issueMessages)].slice(0, 5);
+
+      beginnerGoLiveCard.classList.toggle("ready", readiness.ready || published);
+      beginnerGoLiveIssues.hidden = uniqueIssues.length === 0 || published;
+      beginnerGoLiveIssues.innerHTML = uniqueIssues
+        .map((message) => `<div class="beginner-go-live-issue">${escapeHtml(message)}</div>`)
+        .join("");
+      runReplyContractMockButton.hidden = published;
+      runReplyContractMockButton.textContent = readiness.hasTests ? "重新运行上线检查" : "运行上线检查";
+      beginnerPublishConfirmWrap.hidden = !readiness.ready || published;
+      beginnerPublishActions.hidden = !readiness.ready || published;
+
+      if (published) {
+        beginnerGoLiveTitle.textContent = "AI Reply 已启用";
+        beginnerGoLiveText.textContent = "Onboarding 已完成，可以进入客服工作台。";
+        contentMockStatus.textContent = "已启用";
+        contentMockStatus.className = "status ok";
+      } else if (state.publishError) {
+        beginnerGoLiveTitle.textContent = "上线未完成";
+        beginnerGoLiveText.textContent = "请处理下方问题后重试；系统没有启用 AI Reply。";
+        contentMockStatus.textContent = "发布未完成";
+        contentMockStatus.className = "status bad";
+      } else if (readiness.ready) {
+        beginnerGoLiveTitle.textContent = "上线检查已通过";
+        beginnerGoLiveText.textContent = "确认后启用本次 Project Brain；AI Reply 仍按当前客服审批模式运行。";
+        contentMockStatus.textContent = "检查通过";
+        contentMockStatus.className = "status ok";
+      } else if (readiness.hasTests || rawBlockers.length > 0) {
+        beginnerGoLiveTitle.textContent = "上线检查尚未通过";
+        beginnerGoLiveText.textContent = "系统已列出需要处理的项目；修复后重新运行检查。";
+        contentMockStatus.textContent = `还差 ${uniqueIssues.length || 1} 项`;
+        contentMockStatus.className = "status bad";
+        publishConfirm.checked = false;
+      } else {
+        beginnerGoLiveTitle.textContent = "上线前还差 1 步";
+        beginnerGoLiveText.textContent = "运行上线检查，确认回复来源、销售路线和安全边界；通过后才可启用 AI Reply。";
+        contentMockStatus.textContent = "尚未检查";
+        contentMockStatus.className = "status";
+        publishConfirm.checked = false;
+      }
+    }
+
+    function updatePublishButton() {
+      if (!publishProjectButton || !publishConfirm) return;
+      const readiness = currentPublishReadiness();
+      publishProjectButton.disabled = !(publishConfirm.checked && readiness.ready);
+      renderBeginnerGoLiveState(readiness);
     }
 
     async function publishCurrentProjectBrain() {
       if (publishProjectButton.disabled || !publishConfirm.checked) return;
       const projectKey = currentProjectKey();
       try {
+        state.publishError = "";
         publishProjectButton.disabled = true;
         publishProjectButton.textContent = "正在执行发布 Gate…";
         const packageState = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
@@ -7176,6 +7325,7 @@
         }
         state.published = data.published === true;
         state.activation = data.activation;
+        state.publishError = "";
         if (state.published) {
           hydrateBrainVersionStatus({
             version_no: Number(data.version_no || state.mockAttestedVersionNo),
@@ -7194,8 +7344,9 @@
           window.setTimeout(() => window.location.assign(aiReplyLink.href), 900);
         }
       } catch (error) {
+        state.publishError = error.message || "发布失败";
         publishProjectButton.textContent = "发布受阻，请查看上方原因";
-        contentMockStatus.textContent = error.message || "发布失败";
+        contentMockStatus.textContent = state.publishError;
         contentMockStatus.className = "status bad";
         publishConfirm.checked = false;
         updatePublishButton();
