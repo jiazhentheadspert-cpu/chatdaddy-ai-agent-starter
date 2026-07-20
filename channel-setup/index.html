@@ -2092,7 +2092,9 @@
       const previousLabel = saveBindingsButtonEl.textContent;
       try {
         if (!canManageConnection) throw new Error("只有项目负责人可以保存销售路线。");
-        if (!projectIdentityConfirmedEl.checked) throw new Error("请先确认当前项目身份，再保存销售路线。");
+        if (!lockedProjectIdentityMatchesGuide()) {
+          throw new Error("当前页面的项目身份与服务器不一致；请返回当前项目 Onboarding 后重新进入。");
+        }
         if (latestGuide?.summary?.api_connected !== true) throw new Error("请先连接并验证当前项目的 ChatDaddy API。");
         if (!latestGuide?.flow_catalog?.live_catalog_connected) throw new Error("当前项目还没有实时 ChatDaddy Flow 清单。");
         const selections = [...document.querySelectorAll(".flow-binding-select")];
@@ -2270,6 +2272,14 @@
         throw new Error("Project Key 只能用小写英文、数字、_ 或 -");
       }
       return value;
+    }
+
+    function lockedProjectIdentityMatchesGuide() {
+      const pageProjectKey = cleanProjectKey();
+      const guideProjectKey = String(latestGuide?.project_key || "").trim();
+      return /^[a-z0-9_-]+$/.test(requestedProjectKey)
+        && pageProjectKey === requestedProjectKey
+        && guideProjectKey === pageProjectKey;
     }
 
     function providerLabel(provider = "") {
