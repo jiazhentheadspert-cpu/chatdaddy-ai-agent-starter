@@ -241,6 +241,33 @@
       background: #f4fcfe;
     }
 
+    .connection-ready-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px;
+      border: 1px solid rgba(15, 159, 146, 0.28);
+      border-radius: 8px;
+      background: linear-gradient(135deg, #effcf9, #f2f7ff);
+    }
+
+    .connection-ready-card strong {
+      display: block;
+      font-size: 21px;
+    }
+
+    .connection-ready-card p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .connection-ready-card .actions {
+      flex: 0 0 auto;
+      margin: 0;
+    }
+
     .owner-tutorial {
       padding: 0;
       overflow: hidden;
@@ -847,7 +874,7 @@
         <div class="status" id="projectIdentityStatus">检查中</div>
       </section>
 
-      <details class="panel owner-tutorial" id="ownerTutorial" open>
+      <details class="panel owner-tutorial" id="ownerTutorial" open hidden>
         <summary>项目负责人教程：先准备两样资料</summary>
         <div class="owner-tutorial-body">
           <p class="owner-tutorial-intro"><span data-owner-project-name>当前项目</span> 的负责人照着下面做即可，不需要改代码，也不要把 ChatDaddy 登录密码贴进来。</p>
@@ -899,81 +926,95 @@
           <div class="status" id="connectionStatus" aria-live="polite">连接中</div>
         </div>
 
-        <div class="grid">
-          <label>
-            <b>项目编号</b>
-            <input id="projectKey" placeholder="beyoute">
-          </label>
-          <label>
-            <b>聊天工具</b>
-            <select id="provider">
-              <option value="chatdaddy">ChatDaddy</option>
-              <option value="whatsapp_cloud">WhatsApp Cloud</option>
-              <option value="manychat">ManyChat</option>
-            </select>
-          </label>
-          <label>
-            <b>连接名称</b>
-            <input id="connectionLabel" placeholder="Beyoute ChatDaddy">
-          </label>
-          <label>
-            <b>连接状态</b>
-            <select id="statusSelect" disabled>
-              <option value="needs_config">继续设置</option>
-              <option value="connected">已连接</option>
-              <option value="paused">已暂停</option>
-            </select>
-          </label>
-          <label>
-            <b>ChatDaddy Channel / Account ID</b>
-            <input id="externalAccountId" placeholder="从 Manage Channels 复制 ID">
-          </label>
-          <label>
-            <b>聊天渠道</b>
-            <input id="externalChannelId" placeholder="例如：WhatsApp">
-          </label>
-          <label class="field full">
-            <b>WhatsApp 号码提示</b>
-            <input id="phoneHint" placeholder="例如：+60***1234">
-          </label>
-          <label class="field full" id="apiTokenField">
-            <b>ChatDaddy API Token</b>
-            <input id="apiToken" type="password" autocomplete="new-password" placeholder="只在第一次连接或更换 Token 时填写">
-            <span>在 ChatDaddy 打开 Developer → API Token → +Create。请同时勾选 TEMPLATES_READ（同步 Flow）和 MESSAGES_SEND_TO_ALL（发送讯息）。</span>
-          </label>
+        <div class="connection-ready-card" id="connectionReadyCard" hidden>
+          <div>
+            <strong>ChatDaddy 已连接</strong>
+            <p id="connectionReadyText">系统会继续同步这个项目的 Flow，不需要重新填写资料。</p>
+          </div>
+          <div class="actions">
+            <button class="btn" type="button" id="connectedRefreshButton">重新检查</button>
+            <button class="btn" type="button" id="changeConnectionButton">更换连接</button>
+          </div>
         </div>
 
-        <div class="log-item" id="chatDaddyHelp">
-          <b>不知道去哪里拿？</b><br>
-          API Token：ChatDaddy → Developer → API Token。Channel / Account ID：ChatDaddy → Manage Channels → 复制该 WhatsApp Channel 的 ID。
-          <a href="../docs/ReplyPilot_ChatDaddy_Brand_Onboarding_Guide_ZH.pdf" download>下载图文教程 PDF</a>
-          <a href="https://help.chatdaddy.tech/article/how-to-create-an-api-token" target="_blank" rel="noreferrer">打开 ChatDaddy 官方教学</a>
-        </div>
+        <div id="connectionSetupForm" hidden>
+          <div class="grid">
+            <label>
+              <b>项目编号</b>
+              <input id="projectKey" placeholder="beyoute">
+            </label>
+            <label>
+              <b>聊天工具</b>
+              <select id="provider">
+                <option value="chatdaddy">ChatDaddy</option>
+                <option value="whatsapp_cloud">WhatsApp Cloud</option>
+                <option value="manychat">ManyChat</option>
+              </select>
+            </label>
+            <label>
+              <b>连接名称</b>
+              <input id="connectionLabel" placeholder="Beyoute ChatDaddy">
+            </label>
+            <label>
+              <b>连接状态</b>
+              <select id="statusSelect" disabled>
+                <option value="needs_config">继续设置</option>
+                <option value="connected">已连接</option>
+                <option value="paused">已暂停</option>
+              </select>
+            </label>
+            <label>
+              <b>ChatDaddy Channel / Account ID</b>
+              <input id="externalAccountId" placeholder="从 Manage Channels 复制 ID">
+            </label>
+            <label>
+              <b>聊天渠道</b>
+              <input id="externalChannelId" placeholder="例如：WhatsApp">
+            </label>
+            <label class="field full">
+              <b>WhatsApp 号码提示</b>
+              <input id="phoneHint" placeholder="例如：+60***1234">
+            </label>
+            <label class="field full" id="apiTokenField">
+              <b>ChatDaddy API Token</b>
+              <input id="apiToken" type="password" autocomplete="new-password" placeholder="只在第一次连接或更换 Token 时填写">
+              <span>在 ChatDaddy 打开 Developer → API Token → +Create。请同时勾选 TEMPLATES_READ（同步 Flow）和 MESSAGES_SEND_TO_ALL（发送讯息）。</span>
+            </label>
+          </div>
 
-        <div class="checklist">
-          <label class="check">
-            <input id="secretStored" type="checkbox" disabled>
-            <span><b>平台授权</b>由系统安全检查；页面不会显示密钥。</span>
-          </label>
-          <label class="check">
-            <input id="webhookConfigured" type="checkbox" disabled>
-            <span><b>顾客讯息入口</b>收到真实入站记录后自动打勾。</span>
-          </label>
-          <label class="check">
-            <input id="approvalFirstConfirmed" type="checkbox" disabled>
-            <span><b>客服批准优先</b>连接渠道不会自动开启发送或 Flow。</span>
-          </label>
-        </div>
+          <div class="log-item" id="chatDaddyHelp">
+            <b>不知道去哪里拿？</b><br>
+            API Token：ChatDaddy → Developer → API Token。Channel / Account ID：ChatDaddy → Manage Channels → 复制该 WhatsApp Channel 的 ID。
+            <a href="../docs/ReplyPilot_ChatDaddy_Brand_Onboarding_Guide_ZH.pdf" download>下载图文教程 PDF</a>
+            <a href="https://help.chatdaddy.tech/article/how-to-create-an-api-token" target="_blank" rel="noreferrer">打开 ChatDaddy 官方教学</a>
+          </div>
 
-        <label class="check project-confirm">
-          <input id="projectIdentityConfirmed" type="checkbox">
-          <span>我确认上方显示的是我要连接的当前项目；不会把这个 ChatDaddy Account / Token 连接到其他项目。</span>
-        </label>
+          <div class="checklist">
+            <label class="check">
+              <input id="secretStored" type="checkbox" disabled>
+              <span><b>平台授权</b>由系统安全检查；页面不会显示密钥。</span>
+            </label>
+            <label class="check">
+              <input id="webhookConfigured" type="checkbox" disabled>
+              <span><b>顾客讯息入口</b>收到真实入站记录后自动打勾。</span>
+            </label>
+            <label class="check">
+              <input id="approvalFirstConfirmed" type="checkbox" disabled>
+              <span><b>客服批准优先</b>连接渠道不会自动开启发送或 Flow。</span>
+            </label>
+          </div>
 
-        <div class="actions">
-          <button class="btn primary" type="button" id="saveButton">连接并同步 Flow</button>
-          <button class="btn" type="button" id="loadButton">重新检查</button>
-          <button class="btn" type="button" id="copyCommandsButton" hidden>复制技术资料</button>
+          <label class="check project-confirm">
+            <input id="projectIdentityConfirmed" type="checkbox">
+            <span>我确认上方显示的是我要连接的当前项目；不会把这个 ChatDaddy Account / Token 连接到其他项目。</span>
+          </label>
+
+          <div class="actions">
+            <button class="btn primary" type="button" id="saveButton">连接并同步 Flow</button>
+            <button class="btn" type="button" id="loadButton">重新检查</button>
+            <button class="btn" type="button" id="cancelConnectionEditButton" hidden>取消更换</button>
+            <button class="btn" type="button" id="copyCommandsButton" hidden>复制技术资料</button>
+          </div>
         </div>
       </section>
 
@@ -1109,6 +1150,7 @@
     let draftPaymentFolder = "";
     let lastGuideLoadedAt = 0;
     let guideRefreshBusy = false;
+    let editingConnection = false;
 
     const projectKeyEl = document.getElementById("projectKey");
     const providerEl = document.getElementById("provider");
@@ -1138,6 +1180,11 @@
     const saveBindingsButtonEl = document.getElementById("saveBindingsButton");
     const flowSyncStatusEl = document.getElementById("flowSyncStatus");
     const projectIdentityConfirmedEl = document.getElementById("projectIdentityConfirmed");
+    const connectionReadyCardEl = document.getElementById("connectionReadyCard");
+    const connectionReadyTextEl = document.getElementById("connectionReadyText");
+    const connectionSetupFormEl = document.getElementById("connectionSetupForm");
+    const changeConnectionButtonEl = document.getElementById("changeConnectionButton");
+    const cancelConnectionEditButtonEl = document.getElementById("cancelConnectionEditButton");
     const requestedProjectKey = String(params.get("project_key") || "").trim();
 
     document.getElementById("saveButton").addEventListener("click", saveMetadata);
@@ -1196,6 +1243,19 @@
     document.getElementById("copyCommandsButton").addEventListener("click", copyCommands);
     document.getElementById("copyWebhookButton").addEventListener("click", copyWebhook);
     document.getElementById("copyOwnerTutorialButton").addEventListener("click", copyOwnerTutorial);
+    document.getElementById("connectedRefreshButton").addEventListener("click", loadConnections);
+    changeConnectionButtonEl.addEventListener("click", () => {
+      editingConnection = true;
+      projectIdentityConfirmedEl.checked = false;
+      renderConnections(latestGuide?.channels || {});
+      connectionSetupFormEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    cancelConnectionEditButtonEl.addEventListener("click", () => {
+      editingConnection = false;
+      apiTokenEl.value = "";
+      projectIdentityConfirmedEl.checked = false;
+      renderConnections(latestGuide?.channels || {});
+    });
     providerEl.addEventListener("change", () => {
       renderCommands();
       loadConnections();
@@ -1271,6 +1331,7 @@
           throw new Error("API boundary did not confirm secrets_returned=false");
         }
         apiTokenEl.value = "";
+        editingConnection = false;
         addLog("ChatDaddy 已连接", data.next || payload.connection_label);
         notifyDashboardConnectionChanged(projectKey, data.live_flow_count);
         await loadConnections();
@@ -1373,12 +1434,22 @@
       secretStoredEl.checked = latestSetup?.credential_configured === true;
       webhookConfiguredEl.checked = latestSetup?.webhook_configured === true;
       approvalFirstEl.checked = latestSetup?.approval_first === true;
+      const connectionReady = latestGuide?.summary?.api_connected === true
+        && latestSetup?.credential_configured === true;
+      const showConnectedSummary = connectionReady && !editingConnection;
+      connectionReadyCardEl.hidden = !showConnectedSummary;
+      connectionSetupFormEl.hidden = showConnectedSummary;
+      connectionReadyTextEl.textContent = `${selected?.display_name || providerLabel(requestedProvider)}`
+        + `${Number.isFinite(Number(selected?.live_flow_count)) ? ` · ${Number(selected.live_flow_count)} 条 Flow` : ""}`
+        + "。系统会继续自动同步，不需要重新填写号码或 Token。";
+      changeConnectionButtonEl.hidden = !canManageConnection;
+      cancelConnectionEditButtonEl.hidden = !(connectionReady && editingConnection);
       [providerEl, connectionLabelEl, externalAccountEl, externalChannelEl, phoneHintEl, apiTokenEl].forEach((element) => {
         element.disabled = !canManageConnection;
       });
       document.getElementById("apiTokenField").hidden = requestedProvider !== "chatdaddy";
       document.getElementById("chatDaddyHelp").hidden = requestedProvider !== "chatdaddy";
-      document.getElementById("ownerTutorial").hidden = requestedProvider !== "chatdaddy";
+      document.getElementById("ownerTutorial").hidden = requestedProvider !== "chatdaddy" || showConnectedSummary;
       document.getElementById("ownerTutorial").open = latestSetup?.credential_configured !== true;
       projectKeyEl.readOnly = true;
       statusEl.disabled = true;
