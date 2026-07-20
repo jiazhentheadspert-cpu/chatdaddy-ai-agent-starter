@@ -10439,6 +10439,24 @@
       return { label: status ? status.toUpperCase() : "已加入", className: "active" };
     }
 
+    function replyPilotInternalQaProject(project = {}) {
+      const settings = project?.settings && typeof project.settings === "object" ? project.settings : {};
+      const explicitInternal = settings.internal_project === true
+        || settings.system_generated === true
+        || settings.qa_project === true
+        || ["internal", "test", "qa"].includes(String(
+          settings.project_visibility || settings.visibility || settings.project_type || ""
+        ).trim().toLowerCase());
+      if (explicitInternal) return true;
+      if (String(project?.status || "").trim().toLowerCase() !== "draft") return false;
+      const descriptor = [
+        project?.project_key,
+        project?.project_name,
+        project?.name
+      ].map((value) => String(value || "").trim()).filter(Boolean).join(" ");
+      return /(?:replypilot[\s_-]+onboarding[\s_-]+qa|onboarding[\s_-]+qa|synthetic[\s_-]+qa)/i.test(descriptor);
+    }
+
     function projectRoleLabel(project = {}) {
       const role = String(project?.role || "").trim().toLowerCase();
       if (role === "owner") return "项目负责人";
@@ -10523,7 +10541,8 @@
 
     function projectSwitcherOptions() {
       const current = String(projectKeyEl.value || "beyoute").trim();
-      const projects = Array.isArray(state.session?.projects) ? state.session.projects : [];
+      const projects = (Array.isArray(state.session?.projects) ? state.session.projects : [])
+        .filter((project) => !replyPilotInternalQaProject(project));
       return projects.length
         ? projects
         : [{ project_key: current, project_name: projectDisplayName(current), status: "active" }];
@@ -10652,9 +10671,13 @@
           render();
           return false;
         }
-        const projects = Array.isArray(data.projects) ? data.projects : [];
+        const projects = (Array.isArray(data.projects) ? data.projects : [])
+          .filter((project) => !replyPilotInternalQaProject(project));
         const currentProject = projectKeyEl.value.trim();
-        const selectedProject = projects.find((item) => item.project_key === currentProject) || projects[0] || { project_key: currentProject || "beyoute" };
+        const selectedProject = projects.find((item) => item.project_key === currentProject)
+          || projects.find((item) => ["active", "published", "live"].includes(String(item?.status || "").toLowerCase()))
+          || projects[0]
+          || { project_key: currentProject || "beyoute" };
         const effectiveRole = data.user.role === "admin"
           ? "admin"
           : ["owner", "admin"].includes(String(selectedProject.role || "").toLowerCase())
