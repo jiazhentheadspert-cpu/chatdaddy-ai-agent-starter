@@ -4830,19 +4830,99 @@
 
     .case-no-intervention-summary {
       align-content: start;
-      gap: 8px;
+      gap: 9px;
     }
 
     .case-no-intervention-summary strong {
       color: var(--green-deep);
       font-size: clamp(17px, 1.45vw, 21px);
       line-height: 1.28;
+      -webkit-line-clamp: 1;
     }
 
     .case-no-intervention-wait {
       color: var(--muted);
       font-size: 12px;
       font-weight: 900;
+    }
+
+    .case-no-intervention-topline,
+    .case-no-intervention-bottomline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .case-no-intervention-potential {
+      flex: 0 0 auto;
+      border: 1px solid rgba(16,185,157,.25);
+      border-radius: 999px;
+      background: var(--soft-green);
+      color: var(--green-deep);
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .case-no-intervention-potential.high {
+      border-color: rgba(16,185,157,.34);
+      background: rgba(209,250,229,.96);
+      color: #047857;
+    }
+
+    .case-no-intervention-potential.watch,
+    .case-no-intervention-potential.unknown {
+      border-color: rgba(183,121,31,.28);
+      background: var(--soft-amber);
+      color: var(--amber);
+    }
+
+    .case-no-intervention-potential.low,
+    .case-no-intervention-potential.review {
+      border-color: rgba(201,74,85,.28);
+      background: var(--soft-red);
+      color: var(--red);
+    }
+
+    .case-no-intervention-flow {
+      min-width: 0;
+      color: var(--green-deep);
+      font-size: 15px;
+      font-weight: 950;
+      line-height: 1.28;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .case-no-intervention-flow em {
+      color: var(--muted);
+      font-size: 9px;
+      font-style: normal;
+      font-weight: 900;
+      margin-left: 5px;
+      vertical-align: 1px;
+    }
+
+    .case-no-intervention-key {
+      border-left: 3px solid rgba(0,183,216,.42);
+      padding-left: 8px;
+      color: #27424a;
+      font-size: 11px;
+      font-weight: 850;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .case-no-intervention-key span {
+      color: var(--muted);
+      font-weight: 950;
     }
 
     .case-no-intervention-summary.review {
@@ -4922,6 +5002,15 @@
     @media (max-width: 420px) {
       .case-no-intervention-facts {
         grid-template-columns: 1fr;
+      }
+
+      .case-no-intervention-topline {
+        align-items: flex-start;
+      }
+
+      .case-no-intervention-bottomline {
+        align-items: flex-start;
+        flex-direction: column;
       }
     }
 
@@ -20938,6 +21027,168 @@
       return `Button「${text.length > 14 ? `${text.slice(0, 14)}…` : text}」`;
     }
 
+    function noInterventionMessageText(message = {}) {
+      return firstContextText(
+        message.text,
+        message.body,
+        message.message,
+        message.caption,
+        message.content?.text,
+        message.content?.body,
+        message.content?.caption
+      ).replace(/\s+/g, " ").trim();
+    }
+
+    function noInterventionExplicitFlowName(message = {}) {
+      const metadata = message.metadata && typeof message.metadata === "object" ? message.metadata : {};
+      const content = message.content && typeof message.content === "object" ? message.content : {};
+      const explicit = firstContextText(
+        message.flow_name,
+        message.flowName,
+        message.bot_name,
+        message.botName,
+        message.automation_name,
+        message.automationName,
+        metadata.flow_name,
+        metadata.flowName,
+        metadata.bot_name,
+        metadata.botName,
+        metadata.automation_name,
+        metadata.automationName,
+        content.flow_name,
+        content.flowName,
+        content.bot_name,
+        content.botName,
+        content.automation_name,
+        content.automationName
+      );
+      if (!explicit) return "";
+      return String(explicit).replace(/\s+/g, " ").trim().slice(0, 72);
+    }
+
+    function noInterventionOutboundBundle(rows = []) {
+      const latestOutboundIndex = rows.reduce((found, message, index) => (
+        contextMessageIsOutbound(message) ? index : found
+      ), -1);
+      if (latestOutboundIndex < 0) return [];
+      const latestAt = messageTimeMs(rows[latestOutboundIndex]);
+      const bundle = [];
+      for (let index = latestOutboundIndex; index >= 0; index -= 1) {
+        const message = rows[index];
+        if (noInterventionMessageIsCustomer(message)) break;
+        if (!contextMessageIsOutbound(message)) continue;
+        const at = messageTimeMs(message);
+        if (latestAt && at && latestAt - at > 180000) break;
+        bundle.unshift(message);
+      }
+      return bundle.slice(-16);
+    }
+
+    function noInterventionInferredFlowContext(rows = []) {
+      const bundle = noInterventionOutboundBundle(rows);
+      const explicitMessage = bundle.slice().reverse().find((message) => noInterventionExplicitFlowName(message));
+      const explicitName = noInterventionExplicitFlowName(explicitMessage || {});
+      if (explicitName) {
+        return {
+          name: explicitName,
+          source: "confirmed",
+          stage: noInterventionStepLabel(explicitMessage || {}),
+        };
+      }
+      const text = bundle.map(noInterventionMessageText).filter(Boolean).join(" ");
+      if (!text) return { name: "Flow 名称待同步", source: "missing", stage: "" };
+      if (/(付款|付钱|付錢|汇款|匯款|receipt|收据|收據|bank\s*in|payment|COD|货到付款|貨到付款)/i.test(text)) {
+        return { name: "付款 / 收单 Flow", source: "inferred", stage: "付款阶段" };
+      }
+      if (/(RM\s*\d+|多少钱|多少錢|价格|價格|价钱|價錢|优惠|優惠|赠品|贈品|配套|下单|下單|promo|promotion|price|urgency)/i.test(text)) {
+        return { name: "价格 / 成交 Flow", source: "inferred", stage: "价格阶段" };
+      }
+      if (/(testimonial|见证|見證|认证|認證|母公司|实体店|實體店|线下店|線下店|信心|review|顾客反馈|顧客反饋)/i.test(text)) {
+        return { name: "信心证明 Flow", source: "inferred", stage: "信心阶段" };
+      }
+      if (/(成分|白芸豆|藤黄果|藤黃果|Kombucha|红茶菌|紅茶菌|USP|阻碳水|燃脂|代谢|代謝|美白|end result)/i.test(text)) {
+        return { name: "USP / 成分 Flow", source: "inferred", stage: "产品价值阶段" };
+      }
+      if (/(最想改善|目前.*体重|目前.*體重|目标.*kg|目標.*kg|面对.*问题|面對.*問題|想了解|先了解|产品介绍|產品介紹)/i.test(text)) {
+        return { name: "产品介绍 / 了解需求 Flow", source: "inferred", stage: "了解需求阶段" };
+      }
+      if (/(怎么喝|怎麼喝|怎样喝|怎樣喝|喝法|用法|一天.*次|餐前|冲泡|沖泡|review区|售后|售後)/i.test(text)) {
+        return { name: "使用 / 售后跟进 Flow", source: "inferred", stage: "跟进阶段" };
+      }
+      return { name: "ChatDaddy Flow", source: "inferred", stage: "" };
+    }
+
+    function noInterventionCurrentStage(item = {}, rows = [], flowContext = {}) {
+      const decision = item.latest_decision || {};
+      const candidates = [
+        item.current_stage_key,
+        item.conversation_stage,
+        decision.stage,
+        decision.stage_key,
+        flowContext.stage,
+      ];
+      for (const candidate of candidates) {
+        const value = String(candidate || "").trim();
+        if (!value || /^(?:new|follow_up|unknown|current)$/i.test(value)) continue;
+        const stepMatch = value.match(/(?:^|[^a-z0-9])step[_\s-]*(\d+)(?:[^a-z0-9]|$)/i)
+          || value.match(/^s[_\s-]?(\d+)$/i);
+        if (stepMatch) return `Step ${Number(stepMatch[1])}`;
+        if (/价格|價格|付款|信心|产品|產品|了解|跟进|跟進/.test(value)) return value.slice(0, 24);
+      }
+      const messageStep = rows.slice().reverse().map(noInterventionStepLabel).find(Boolean);
+      return messageStep || flowContext.stage || "Step 待同步";
+    }
+
+    function noInterventionActorSummary(rows = []) {
+      const outboundRows = rows.filter((message) => contextMessageIsOutbound(message));
+      if (!outboundRows.length) return { replied: false, label: "我方未回复", actor: "none" };
+      const latest = outboundRows.at(-1) || {};
+      const source = [
+        latest.sender_type,
+        latest.metadata?.source,
+        latest.metadata?.sender_type,
+        latest.metadata?.delivery_mode,
+        latest.content?.source,
+        latest.content?.sender_type,
+        latest.content?.delivery_mode,
+        noInterventionExplicitFlowName(latest),
+      ].map((value) => String(value || "")).join(" ");
+      if (/human|staff|operator|dashboard_manual|manual_send|客服/i.test(source)) {
+        return { replied: true, label: "客服已回复", actor: "staff" };
+      }
+      if (/(?:^|[_\s-])(?:ai|assistant|agent_auto_send|auto_reply)(?:$|[_\s-])/i.test(source)) {
+        return { replied: true, label: "AI 已回复", actor: "ai" };
+      }
+      return { replied: true, label: "Flow 已回复", actor: "flow" };
+    }
+
+    function noInterventionPotentialAssessment(item = {}, typedCustomerReplies = [], flowContext = {}, stageLabel = "") {
+      const customerText = typedCustomerReplies.map(noInterventionMessageText).filter(Boolean).join(" ");
+      const combined = `${customerText} ${flowContext.name || ""} ${stageLabel || ""}`;
+      const explicitStop = /(不要再|别再|別再|不要买|不要買|不想买|不想買|没兴趣|沒興趣|不需要|没需要|沒需要|stop|unsubscribe|not interested|don['’]?t message|do not message)/i.test(customerText);
+      const buyingSignal = /(多少钱|多少錢|价格|價格|价钱|價錢|配套|几盒|幾盒|一盒|怎么买|怎麼買|怎样买|怎樣買|哪里买|哪裡買|下单|下單|订购|訂購|我要|我想买|我想買|付款|付钱|付錢|汇款|匯款|COD|货到付款|貨到付款|bank\s*in|how\s+much|price|package|order|buy|purchase|payment)/i.test(customerText);
+      const engagedSignal = typedCustomerReplies.length > 0
+        || /(Step\s*[2-9]|价格阶段|價格階段|付款阶段|信心阶段|产品价值阶段)/i.test(combined);
+      if (item.unhandled_customer_message === true) {
+        return { level: "review", label: "需复查", reason: "顾客刚有新回复" };
+      }
+      if (explicitStop) return { level: "low", label: "低潜力", reason: "顾客明确表示不需要或停止" };
+      if (buyingSignal) return { level: "high", label: "高潜力", reason: "出现价格、配套、下单或付款讯号" };
+      if (engagedSignal) return { level: "watch", label: "可跟进", reason: "顾客有互动或已进入较后阶段" };
+      if (flowContext.source === "missing" && stageLabel === "Step 待同步") {
+        return { level: "unknown", label: "资料不足", reason: "Flow 与 Step 尚未同步" };
+      }
+      return { level: "watch", label: "待观察", reason: "目前只有 Flow 发送，尚无顾客文字回复" };
+    }
+
+    function noInterventionKeyMessage(typedCustomerReplies = [], progress = {}) {
+      const latestText = noInterventionMessageText(typedCustomerReplies.at(-1) || {});
+      if (latestText) {
+        return `“${latestText.length > 74 ? `${latestText.slice(0, 74)}…` : latestText}”`;
+      }
+      return progress.kind === "button" ? progress.label : "顾客进入后还没有文字回复";
+    }
+
     function noInterventionProgress(item = {}, rows = []) {
       const buttonIndex = rows.reduce((latestIndex, message, index) => (
         noInterventionMessageIsCustomer(message) && noInterventionMessageIsSelfServeButton(message) ? index : latestIndex
@@ -20990,6 +21241,10 @@
         && messageHasRenderableContent(latest);
       const needsReview = item.unhandled_customer_message === true || latestIsTypedCustomer;
       const reason = String(item.no_intervention_reason || "").toLowerCase();
+      const flowContext = noInterventionInferredFlowContext(rows);
+      const stageLabel = noInterventionCurrentStage(item, rows, flowContext);
+      const actor = noInterventionActorSummary(rows);
+      const potential = noInterventionPotentialAssessment(item, typedCustomerReplies, flowContext, stageLabel);
       let headline = "";
       if (needsReview) {
         headline = "顾客已回复，需复查";
@@ -21007,32 +21262,60 @@
       return {
         tone: needsReview ? "review" : "ok",
         headline,
+        flowContext,
+        stageLabel,
+        actor,
+        potential,
+        keyMessage: noInterventionKeyMessage(typedCustomerReplies, progress),
+        potentialReason: potential.reason,
         facts: [
           {
-            label: "顾客历史",
+            label: "顾客回复",
             value: needsReview ? "刚有新回复" : replyLabel,
             tone: needsReview ? "review" : typedCustomerReplies.length > 0 ? "has-reply" : "never-replied",
           },
           {
-            label: "最后停在",
-            value: progressLabel,
+            label: "当前阶段",
+            value: stageLabel,
             tone: needsReview ? "review" : "",
           },
           {
-            label: wait.stale ? "已超 24 小时" : "已等待",
-            value: wait.label,
-            tone: wait.stale ? "stale" : "",
+            label: "我方回复",
+            value: actor.label,
+            tone: actor.replied ? "" : "stale",
           },
         ],
+        wait,
+        progressLabel,
       };
     }
 
     function noInterventionSummaryHtml(item = {}) {
       const summary = noInterventionSummary(item);
+      const flowSourceLabel = summary.flowContext.source === "confirmed"
+        ? "已确认"
+        : summary.flowContext.source === "inferred"
+          ? "按内容识别"
+          : "待同步";
       return `
         <div class="case-word-block case-no-intervention-summary ${escapeHtml(summary.tone)}">
-          <strong>${escapeHtml(summary.headline)}</strong>
-          <span class="case-no-intervention-wait">${escapeHtml(summary.tone === "review" ? "刚有新回复" : `等待 ${summary.facts.at(-1)?.value || ""}`)}</span>
+          <div class="case-no-intervention-topline">
+            <div class="case-no-intervention-flow" title="${escapeHtml(summary.flowContext.name)}">${escapeHtml(summary.flowContext.name)}<em>${escapeHtml(flowSourceLabel)}</em></div>
+            <span class="case-no-intervention-potential ${escapeHtml(summary.potential.level)}" title="${escapeHtml(summary.potentialReason)}">${escapeHtml(summary.potential.label)}</span>
+          </div>
+          <div class="case-no-intervention-facts">
+            ${summary.facts.map((fact) => `
+              <div class="case-no-intervention-fact ${escapeHtml(fact.tone || "")}" title="${escapeHtml(fact.value)}">
+                <span>${escapeHtml(fact.label)}</span>
+                <b>${escapeHtml(fact.value)}</b>
+              </div>
+            `).join("")}
+          </div>
+          <div class="case-no-intervention-key"><span>关键讯息：</span>${escapeHtml(summary.keyMessage)}</div>
+          <div class="case-no-intervention-bottomline">
+            <span class="case-no-intervention-wait">${escapeHtml(summary.headline)}</span>
+            <span class="case-no-intervention-wait">${escapeHtml(summary.tone === "review" ? "刚有新回复" : `${summary.wait.stale ? "已超时" : "已等待"} ${summary.wait.label}`)}</span>
+          </div>
         </div>
       `;
     }
