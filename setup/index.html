@@ -3898,17 +3898,50 @@
       const source = flowLearningPayload(data);
       if (!source) return null;
       const summary = source.summary && typeof source.summary === "object" ? source.summary : {};
-      const salesSteps = [
+      const analyzedSalesSteps = [
         source.sales_steps,
         source.sales_journey?.steps,
         source.journey?.sales_steps
       ].find(Array.isArray) || [];
-      const followUps = [
+      const analyzedFollowUps = [
         source.follow_ups,
         source.follow_up_steps,
         source.sales_journey?.follow_ups,
         source.journey?.follow_ups
       ].find(Array.isArray) || [];
+      const sourceSalesSteps = Array.isArray(source.source_flows?.sales_steps)
+        ? source.source_flows.sales_steps
+        : [];
+      const sourceFollowUps = Array.isArray(source.source_flows?.follow_ups)
+        ? source.source_flows.follow_ups
+        : [];
+      const sourceFlowPreview = (item = {}, index = 0, kind = "sales") => {
+        const texts = Array.isArray(item?.content_snapshot?.texts)
+          ? item.content_snapshot.texts.filter((text) => String(text || "").trim())
+          : [];
+        const hasMedia = item?.content_snapshot?.has_media === true
+          || (Array.isArray(item?.content_snapshot?.media_items) && item.content_snapshot.media_items.length > 0);
+        return {
+          ...item,
+          order: Number(item?.order || index + 1),
+          sequence_no: Number(item?.sequence_no || item?.order || index + 1),
+          title: firstNonEmpty(
+            item?.title,
+            kind === "follow_up" ? `Follow Up ${index + 1}` : `Step ${index + 1}`
+          ),
+          content_summary: firstNonEmpty(
+            item?.content_summary,
+            texts.join("；"),
+            hasMedia ? "包含媒体，等待 AI 完成理解。" : "已读取当前 Flow。"
+          )
+        };
+      };
+      const salesSteps = analyzedSalesSteps.length
+        ? analyzedSalesSteps
+        : sourceSalesSteps.map((item, index) => sourceFlowPreview(item, index, "sales"));
+      const followUps = analyzedFollowUps.length
+        ? analyzedFollowUps
+        : sourceFollowUps.map((item, index) => sourceFlowPreview(item, index, "follow_up"));
       const understanding = source.understanding && typeof source.understanding === "object"
         ? source.understanding
         : {};
@@ -3921,8 +3954,8 @@
       ].filter((warning) => warning?.blocking !== true);
       const mediaSource = source.media_counts || summary.media_counts || source.content_counts || summary.content_counts || {};
       const sourceFlows = [
-        ...(Array.isArray(source.source_flows?.sales_steps) ? source.source_flows.sales_steps : []),
-        ...(Array.isArray(source.source_flows?.follow_ups) ? source.source_flows.follow_ups : [])
+        ...sourceSalesSteps,
+        ...sourceFollowUps
       ];
       const derivedMediaCounts = {
         text: { read: 0, unread: 0, total: 0 },
