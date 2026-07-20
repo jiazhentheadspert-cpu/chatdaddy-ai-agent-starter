@@ -3103,6 +3103,9 @@
       reonboardingBusy: false,
       flowLearning: null,
       flowLearningBusy: false,
+      flowLearningJob: null,
+      flowLearningJobPollTimer: null,
+      flowLearningJobProjectKey: "",
       flowLearningAutoRequested: false,
       flowLearningAutoRetryTimer: null,
       flowLearningAutoRetryKey: "",
@@ -3295,6 +3298,10 @@
       state.authState = "loading";
       state.moduleErrors = [];
       state.onboardingHydrated = false;
+      stopFlowLearningJobPolling();
+      state.flowLearningJob = null;
+      state.flowLearningJobProjectKey = "";
+      state.flowLearningBusy = false;
       setupModuleNotice.hidden = true;
       document.getElementById("authActions").hidden = true;
       document.getElementById("setupLoadErrorActions").hidden = true;
@@ -3359,7 +3366,8 @@
           loadLearningReview(),
           loadReplyContract(),
           loadSalesJourney(),
-          refreshConnectionReadiness({ silent: true })
+          refreshConnectionReadiness({ silent: true }),
+          refreshFlowLearningJobStatus({ silent: true })
         ]);
         const accessFailure = moduleResults.find((result) => (
           result.status === "rejected" && isProjectAccessError(result.reason)
@@ -3373,7 +3381,7 @@
         }
         moduleResults.forEach((result, index) => {
           if (result.status !== "rejected") return;
-          const labels = ["学习审核", "回复规则", "销售路线", "ChatDaddy 连接"];
+          const labels = ["学习审核", "回复规则", "销售路线", "ChatDaddy 连接", "AI 学习进度"];
           state.moduleErrors.push(`${labels[index]}：${result.reason?.message || result.reason || "读取失败"}`);
         });
       }
@@ -5297,6 +5305,91 @@
       flowLearningRetryProgress.hidden = true;
     }
 
+    function flowLearningJobActive(job = state.flowLearningJob) {
+      return Boolean(job?.active) && ["queued", "running", "failed"].includes(String(job?.status || ""));
+    }
+
+    function stopFlowLearningJobPolling() {
+      if (state.flowLearningJobPollTimer) {
+        clearInterval(state.flowLearningJobPollTimer);
+      }
+      state.flowLearningJobPollTimer = null;
+    }
+
+    function renderFlowLearningJobProgress(job = state.flowLearningJob) {
+      if (!flowLearningJobActive(job)) return false;
+      const progress = job?.progress || {};
+      const percent = Math.max(0, Math.min(100, Number(progress.percent || 0)));
+      const completed = Number(progress.completed_items || 0);
+      const total = Number(progress.total_items || 0);
+      const phaseLabels = {
+        queued: "已排队",
+        preflight: "确认连接与版本",
+        reading_flows: "读取 Flow 与媒体",
+        semantic_analysis: "AI 理解成交路线",
+        saving_draft: "保存学习草稿",
+        retrying: "后台自动重试"
+      };
+      flowLearningRetryProgress.hidden = false;
+      flowLearningRetryAttempt.textContent = `AI 学习进度 ${Math.round(percent)}%`;
+      flowLearningRetryCountdown.textContent = phaseLabels[progress.phase] || "后台处理中";
+      flowLearningRetryTrack.setAttribute("aria-valuemin", "0");
+      flowLearningRetryTrack.setAttribute("aria-valuemax", "100");
+      flowLearningRetryTrack.setAttribute("aria-valuenow", String(Math.round(percent)));
+      flowLearningRetryFill.style.width = `${Math.max(2, percent)}%`;
+      flowLearningRetryNote.textContent = progress.message
+        || (total > 0 ? `已完成 ${completed}/${total} 项；关闭页面也会继续。` : "关闭页面也会继续，不会重复收费。");
+      return true;
+    }
+
+    async function refreshFlowLearningJobStatus(options = {}) {
+      const projectKey = currentProjectKey();
+      if (!projectKey || state.authVerified !== true) return null;
+      try {
+        const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/learn-chatdaddy-flows`);
+        const job = data?.learning_job || null;
+        state.flowLearningJob = job;
+        state.flowLearningJobProjectKey = projectKey;
+        state.flowLearningBusy = flowLearningJobActive(job);
+        if (flowLearningJobActive(job)) {
+          startFlowLearningJobPolling();
+        } else {
+          stopFlowLearningJobPolling();
+        }
+        renderFlowLearning();
+        if (job?.status === "succeeded") {
+          const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+          state.existingPackageResponse = latest;
+          state.salesPackageResponse = latest;
+          hydrateBrainVersionStatus(latest);
+          hydrateFlowLearning(latest);
+          updateOnboardingProgress();
+        } else if (job?.status === "dead_letter") {
+          flowLearningHeadline.textContent = "AI 学习需要平台处理";
+          flowLearningSubline.textContent = job.error || job.progress?.message || "系统已停止重复重试，请联系平台技术。";
+          flowLearningStatus.textContent = "需平台处理";
+          flowLearningStatus.className = "status bad";
+        }
+        return job;
+      } catch (error) {
+        if (!options.silent) {
+          flowLearningHeadline.textContent = "暂时无法读取学习进度";
+          flowLearningSubline.textContent = error.message || String(error);
+          flowLearningStatus.textContent = "自动重试";
+          flowLearningStatus.className = "status bad";
+        }
+        return null;
+      }
+    }
+
+    function startFlowLearningJobPolling() {
+      stopFlowLearningJobPolling();
+      if (!flowLearningJobActive()) return;
+      state.flowLearningJobPollTimer = setInterval(() => {
+        refreshFlowLearningJobStatus({ silent: true });
+      }, 4000);
+    }
+
     function flowLearningRetryCountdownText(nextRetryAt = "") {
       const targetMs = Date.parse(nextRetryAt || "");
       if (!Number.isFinite(targetMs)) return "等待系统自动重试";
@@ -5314,6 +5407,7 @@
         clearInterval(state.flowLearningRetryProgressTimer);
         state.flowLearningRetryProgressTimer = null;
       }
+      if (renderFlowLearningJobProgress()) return;
       const issues = Array.isArray(learning?.issue_log) ? learning.issue_log : [];
       const activeRetryIssues = issues.filter((item) => item?.status === "system_retrying");
       if (!activeRetryIssues.length) {
@@ -5366,12 +5460,18 @@
       const learning = state.flowLearning;
       if (!learning) {
         scheduleFlowLearningAutoRetry(null);
-        stopFlowLearningRetryProgress();
-        flowLearningHeadline.textContent = "正在读取 ChatDaddy 销售路线";
-        flowLearningSubline.textContent = "读取 Step 1 至价格后的 Follow Up。";
+        const hasActiveJob = flowLearningJobActive();
+        if (hasActiveJob) renderFlowLearningJobProgress();
+        else stopFlowLearningRetryProgress();
+        flowLearningHeadline.textContent = hasActiveJob
+          ? "AI 正在学习完整销售路线"
+          : "正在读取 ChatDaddy 销售路线";
+        flowLearningSubline.textContent = hasActiveJob
+          ? "后台会继续读取 Step、价格、Payment、Follow Up 与媒体。"
+          : "读取 Step 1 至价格后的 Follow Up。";
         flowLearningMediaLine.textContent = "";
         flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml();
-        flowLearningStatus.textContent = state.flowLearningBusy ? "AI 学习中" : "等待连接";
+        flowLearningStatus.textContent = hasActiveJob || state.flowLearningBusy ? "AI 学习中" : "等待连接";
         flowLearningStatus.className = "status";
         flowLearningRoute.innerHTML = '<div class="review-empty">连接后会自动显示完整成交路线。</div>';
         flowUnderstandingGrid.innerHTML = "";
@@ -5562,6 +5662,18 @@
           retry_reason: firstNonEmpty(options.retry_reason),
           updated_by: "owner_beginner_onboarding"
         });
+        if (data?.learning_job) {
+          state.flowLearningJob = data.learning_job;
+          state.flowLearningJobProjectKey = projectKey;
+          state.flowLearningBusy = flowLearningJobActive(data.learning_job);
+          if (flowLearningJobActive(data.learning_job)) {
+            startFlowLearningJobPolling();
+          } else {
+            await refreshFlowLearningJobStatus({ silent: true });
+          }
+          renderFlowLearning();
+          return state.flowLearning;
+        }
         const learning = hydrateFlowLearning(data);
         if (!learning) throw new Error("没有收到可读取的 Flow 学习结果。");
         if (data?.project_package) {
@@ -5589,7 +5701,7 @@
         flowLearningStatus.className = "status bad";
         return null;
       } finally {
-        state.flowLearningBusy = false;
+        state.flowLearningBusy = flowLearningJobActive();
         renderFlowLearning();
       }
     }
