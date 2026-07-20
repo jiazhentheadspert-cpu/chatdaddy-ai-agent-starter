@@ -721,6 +721,45 @@
       min-width: 0;
     }
 
+    .payment-rule-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .payment-rule-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 0.65fr) minmax(110px, 0.35fr) minmax(170px, 0.7fr) minmax(260px, 1.3fr) auto;
+      gap: 10px;
+      align-items: end;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .payment-rule-row label {
+      min-width: 0;
+    }
+
+    .payment-rule-row input,
+    .payment-rule-row select {
+      margin-top: 8px;
+    }
+
+    .payment-rule-remove {
+      min-height: 48px;
+      padding-inline: 14px;
+    }
+
+    .payment-rule-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
     .flow-sync-status {
       display: flex;
       flex-wrap: wrap;
@@ -816,6 +855,10 @@
       }
 
       .flow-picker-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .payment-rule-row {
         grid-template-columns: 1fr;
       }
 
@@ -1082,9 +1125,15 @@
           <div class="log-item">先完成 ChatDaddy 连接，系统才会显示真实 Flow。</div>
         </div>
         <div id="paymentBindingSection">
-          <h3 class="section-title" style="margin-top:22px;">Payment</h3>
+          <div class="payment-rule-summary" style="margin-top:22px;">
+            <div>
+              <h3 class="section-title">付款后自动 Flow</h3>
+              <p>每个配套绑定一个 After Payment Flow；确认付款后按配套或金额自动选择。</p>
+            </div>
+            <button class="btn" type="button" id="addPaymentRuleButton">+ 添加配套</button>
+          </div>
           <div class="flow-bindings" id="paymentBinding">
-            <div class="log-item">连接后选择真实 Payment Flow。</div>
+            <div class="log-item">连接后设置“配套 → After Payment Flow”。</div>
           </div>
         </div>
         <div id="followUpBindingsSection">
@@ -1158,10 +1207,9 @@
     let currentGuideVersion = 0;
     let draftStageSelections = new Map();
     let draftFollowUpSelections = new Map();
-    let draftPaymentSelection = "";
+    let draftPaymentRules = [];
     let draftStageFolders = new Map();
     let draftFollowUpFolders = new Map();
-    let draftPaymentFolder = "";
     let lastGuideLoadedAt = 0;
     let guideRefreshBusy = false;
     let editingConnection = false;
@@ -1202,6 +1250,7 @@
     const webhookReadyCardEl = document.getElementById("webhookReadyCard");
     const webhookSetupFormEl = document.getElementById("webhookSetupForm");
     const webhookPanelTitleEl = document.getElementById("webhookPanelTitle");
+    const addPaymentRuleButtonEl = document.getElementById("addPaymentRuleButton");
     const requestedProjectKey = String(params.get("project_key") || "").trim();
 
     document.getElementById("saveButton").addEventListener("click", saveMetadata);
@@ -1231,16 +1280,38 @@
     paymentBindingEl.addEventListener("change", (event) => {
       const folderSelect = event.target.closest(".payment-folder-select");
       if (folderSelect) {
-        draftPaymentFolder = folderSelect.value;
-        draftPaymentSelection = "";
+        const rule = draftPaymentRules.find((entry) => entry.id === folderSelect.dataset.paymentRuleId);
+        if (!rule) return;
+        rule.folder = folderSelect.value;
+        rule.selection = "";
         renderPaymentBindingRow(latestGuide || {});
         return;
       }
       const select = event.target.closest(".payment-binding-select");
       if (select) {
-        draftPaymentSelection = select.value;
+        const rule = draftPaymentRules.find((entry) => entry.id === select.dataset.paymentRuleId);
+        if (!rule) return;
+        rule.selection = select.value;
         renderPaymentBindingRow(latestGuide || {});
       }
+    });
+    paymentBindingEl.addEventListener("input", (event) => {
+      const input = event.target.closest("[data-payment-rule-field]");
+      if (!input) return;
+      const rule = draftPaymentRules.find((entry) => entry.id === input.dataset.paymentRuleId);
+      if (!rule) return;
+      rule[input.dataset.paymentRuleField] = input.value;
+      updateSaveBindingsState();
+    });
+    paymentBindingEl.addEventListener("click", (event) => {
+      const removeButton = event.target.closest(".payment-rule-remove");
+      if (!removeButton) return;
+      draftPaymentRules = draftPaymentRules.filter((entry) => entry.id !== removeButton.dataset.paymentRuleId);
+      renderPaymentBindingRow(latestGuide || {});
+    });
+    addPaymentRuleButtonEl.addEventListener("click", () => {
+      draftPaymentRules.push(createEmptyPaymentRule());
+      renderPaymentBindingRow(latestGuide || {});
     });
     followUpBindingsEl.addEventListener("change", (event) => {
       const folderSelect = event.target.closest(".follow-up-folder-select");
@@ -1540,7 +1611,116 @@
       [salesStepCountEl, priceStageKeyEl, followUpCountEl].forEach((element) => {
         element.disabled = !enabled;
       });
+      addPaymentRuleButtonEl.disabled = !enabled;
       if (!enabled) saveBindingsButtonEl.disabled = true;
+    }
+
+    function paymentRuleId() {
+      return `payment_rule_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+
+    function paymentPackageCode(label = "", amount = "") {
+      const slug = String(label || "")
+        .normalize("NFKC")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\u3400-\u9fff]+/gu, "_")
+        .replace(/^_+|_+$/g, "");
+      return slug || `rm_${String(amount || "").replace(/\D+/g, "") || "package"}`;
+    }
+
+    function createEmptyPaymentRule(overrides = {}) {
+      return {
+        id: paymentRuleId(),
+        package_label: "",
+        amount_rm: "",
+        folder: defaultFolderKey(/payment|付款|收款/i),
+        selection: "",
+        ...overrides
+      };
+    }
+
+    function paymentFlowTitleParts(flow = {}) {
+      const title = String(flow.title || "");
+      const amountMatch = title.match(/\bRM\s*(\d+(?:\.\d{1,2})?)/i);
+      const packageMatch = title.match(/(\d+\s*盒(?:\s*送\s*\d+\s*盒)?)/i);
+      if (!amountMatch || !packageMatch) return null;
+      const amount = Number(amountMatch[1]);
+      if (!Number.isFinite(amount) || amount <= 0) return null;
+      const group = title
+        .replace(amountMatch[0], "")
+        .replace(packageMatch[0], "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+      return {
+        package_label: packageMatch[1].replace(/\s+/g, ""),
+        amount_rm: amount,
+        group
+      };
+    }
+
+    function suggestedPaymentRules() {
+      const groups = new Map();
+      latestFlowCatalog.forEach((flow, index) => {
+        const parts = paymentFlowTitleParts(flow);
+        if (!parts || !/payment|付款|收款/i.test(`${flow.folder_name || ""} ${flow.title || ""}`)) return;
+        const rows = groups.get(parts.group) || [];
+        rows.push({ flow, index, parts });
+        groups.set(parts.group, rows);
+      });
+      const candidates = [...groups.values()]
+        .map((rows) => {
+          const uniqueByAmount = [...new Map(
+            rows
+              .sort((left, right) => Date.parse(right.flow.updated_at || 0) - Date.parse(left.flow.updated_at || 0))
+              .map((row) => [row.parts.amount_rm, row])
+          ).values()];
+          return {
+            rows: uniqueByAmount,
+            latest: Math.max(...uniqueByAmount.map((row) => Date.parse(row.flow.updated_at || 0) || 0))
+          };
+        })
+        .filter((group) => group.rows.length >= 2)
+        .sort((left, right) => right.latest - left.latest);
+      const selectedGroup = candidates[0]?.rows || [];
+      return selectedGroup
+        .sort((left, right) => left.parts.amount_rm - right.parts.amount_rm)
+        .map(({ flow, index, parts }) => createEmptyPaymentRule({
+          package_label: parts.package_label,
+          amount_rm: String(parts.amount_rm),
+          folder: flowFolderKey(flow),
+          selection: String(index),
+          suggested: true
+        }));
+    }
+
+    function paymentRulesComplete() {
+      if (!draftPaymentRules.length) return false;
+      const amounts = new Set();
+      const codes = new Set();
+      for (const rule of draftPaymentRules) {
+        const amount = Number(rule.amount_rm);
+        const code = paymentPackageCode(rule.package_label, rule.amount_rm);
+        if (!String(rule.package_label || "").trim() || !Number.isFinite(amount) || amount <= 0 || rule.selection === "") return false;
+        if (amounts.has(amount.toFixed(2)) || codes.has(code)) return false;
+        amounts.add(amount.toFixed(2));
+        codes.add(code);
+      }
+      return true;
+    }
+
+    function updateSaveBindingsState() {
+      const followUpCount = Number(followUpCountEl.value || 0);
+      const followUpSelects = [...document.querySelectorAll(".follow-up-binding-select")];
+      const salesStepSelects = [...document.querySelectorAll(".flow-binding-select")];
+      saveBindingsButtonEl.disabled = !canManageConnection
+        || !paymentRulesComplete()
+        || followUpCount < 1
+        || followUpSelects.length !== followUpCount
+        || followUpSelects.some((select) => select.value === "")
+        || salesStepSelects.length < 1
+        || salesStepSelects.some((select) => select.value === "");
     }
 
     function renderFlowBindings(data) {
@@ -1610,14 +1790,28 @@
           draftFollowUpFolders.set(Number(followUp.order), flowFolderKey(latestFlowCatalog[selectedIndex]));
         }
       }
-      const payment = data.payment && typeof data.payment === "object" ? data.payment : null;
-      const paymentIndex = payment ? latestFlowCatalog.findIndex((flow) => (
-        payment.provider_bot_id && flow.provider_bot_id === payment.provider_bot_id
-      ) || (
-        payment.provider_flow_id && flow.provider_flow_id === payment.provider_flow_id
-      )) : -1;
-      draftPaymentSelection = paymentIndex >= 0 ? String(paymentIndex) : "";
-      draftPaymentFolder = paymentIndex >= 0 ? flowFolderKey(latestFlowCatalog[paymentIndex]) : defaultFolderKey();
+      const savedPaymentRules = Array.isArray(data.payment_rules) && data.payment_rules.length
+        ? data.payment_rules
+        : data.payment && typeof data.payment === "object"
+          ? [data.payment]
+          : [];
+      draftPaymentRules = savedPaymentRules.map((payment) => {
+        const paymentIndex = latestFlowCatalog.findIndex((flow) => (
+          payment.provider_bot_id && flow.provider_bot_id === payment.provider_bot_id
+        ) || (
+          payment.provider_flow_id && flow.provider_flow_id === payment.provider_flow_id
+        ));
+        return createEmptyPaymentRule({
+          package_label: payment.package_label || payment.title || "",
+          amount_rm: payment.amount_rm ? String(payment.amount_rm) : "",
+          selection: paymentIndex >= 0 ? String(paymentIndex) : "",
+          folder: paymentIndex >= 0
+            ? flowFolderKey(latestFlowCatalog[paymentIndex])
+            : defaultFolderKey(/payment|付款|收款/i)
+        });
+      });
+      if (!draftPaymentRules.length) draftPaymentRules = suggestedPaymentRules();
+      if (!draftPaymentRules.length) draftPaymentRules = [createEmptyPaymentRule()];
       salesStepCountEl.value = String(Number(data.step_count || steps.length || 1));
       renderPriceStageOptions(data.price_stage_key || steps.find((step) => step.is_price_stage)?.stage_key || "");
       followUpCountEl.value = followUps.length ? String(followUps.length) : "0";
@@ -1766,43 +1960,69 @@
           </article>
         `;
       }).join("");
-      saveBindingsButtonEl.disabled = !canManageConnection || Number(followUpCountEl.value || 0) < 1 || draftPaymentSelection === "";
+      updateSaveBindingsState();
     }
 
     function renderPaymentBindingRow(data = {}) {
-      const selectedValue = draftPaymentSelection;
-      const selectedFlow = selectedValue === "" ? null : latestFlowCatalog[Number(selectedValue)];
-      const selectedFolder = draftPaymentFolder
-        || (selectedFlow ? flowFolderKey(selectedFlow) : defaultFolderKey(/payment|付款/i));
-      if (selectedFolder && !draftPaymentFolder) draftPaymentFolder = selectedFolder;
-      const paymentOptions = flowIndexesInFolder(selectedFolder)
-        .map(({ flow, index }) => catalogOption(flow, index, selectedValue))
-        .join("");
       paymentBindingEl.innerHTML = `
-        <article class="flow-binding-card">
-          <div>
-            <h3>付款后流程</h3>
-            <p>${escapeHtml(selectedFlow?.title || data.payment?.title || "尚未选择")}</p>
-          </div>
-          <div class="flow-picker-grid">
-            <label>
-              <b>ChatDaddy 文件夹</b>
-              <select class="payment-folder-select">
-                ${folderOptions(selectedFolder)}
-              </select>
-            </label>
-            <label>
-              <b>文件夹内 Payment Flow</b>
-              <select class="payment-binding-select" ${selectedFolder ? "" : "disabled"}>
-                <option value="">${selectedFolder ? "请选择 Flow" : "先选择文件夹"}</option>
-                ${paymentOptions}
-              </select>
-            </label>
-          </div>
-          ${flowPreviewHtml(selectedFlow)}
-        </article>
+        ${draftPaymentRules.some((rule) => rule.suggested)
+          ? `<div class="flow-sync-status"><b>已按最新 Payment Flow 名称带入配套</b><span>请核对配套与金额后保存。</span></div>`
+          : ""}
+        <div class="payment-rule-list">
+          ${draftPaymentRules.map((rule, index) => {
+            const selectedValue = rule.selection;
+            const selectedFlow = selectedValue === "" ? null : latestFlowCatalog[Number(selectedValue)];
+            const selectedFolder = rule.folder
+              || (selectedFlow ? flowFolderKey(selectedFlow) : defaultFolderKey(/payment|付款|收款/i));
+            rule.folder = selectedFolder;
+            const paymentOptions = flowIndexesInFolder(selectedFolder)
+              .map(({ flow, index: flowIndex }) => catalogOption(flow, flowIndex, selectedValue))
+              .join("");
+            return `
+              <article class="payment-rule-row">
+                <label>
+                  <b>配套</b>
+                  <input
+                    type="text"
+                    value="${escapeHtml(rule.package_label || "")}"
+                    placeholder="例如：3盒送1盒"
+                    data-payment-rule-id="${escapeHtml(rule.id)}"
+                    data-payment-rule-field="package_label"
+                  />
+                </label>
+                <label>
+                  <b>金额（RM）</b>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value="${escapeHtml(rule.amount_rm || "")}"
+                    placeholder="378"
+                    data-payment-rule-id="${escapeHtml(rule.id)}"
+                    data-payment-rule-field="amount_rm"
+                  />
+                </label>
+                <label>
+                  <b>ChatDaddy 文件夹</b>
+                  <select class="payment-folder-select" data-payment-rule-id="${escapeHtml(rule.id)}">
+                    ${folderOptions(selectedFolder)}
+                  </select>
+                </label>
+                <label>
+                  <b>对应 After Payment Flow</b>
+                  <select class="payment-binding-select" data-payment-rule-id="${escapeHtml(rule.id)}" ${selectedFolder ? "" : "disabled"}>
+                    <option value="">${selectedFolder ? "请选择 Flow" : "先选择文件夹"}</option>
+                    ${paymentOptions}
+                  </select>
+                </label>
+                <button class="btn payment-rule-remove" type="button" data-payment-rule-id="${escapeHtml(rule.id)}" ${draftPaymentRules.length <= 1 ? "disabled" : ""}>移除</button>
+              </article>
+              ${flowPreviewHtml(selectedFlow)}
+            `;
+          }).join("")}
+        </div>
       `;
-      saveBindingsButtonEl.disabled = !canManageConnection || draftPaymentSelection === "" || Number(followUpCountEl.value || 0) < 1;
+      updateSaveBindingsState();
     }
 
     function renderFollowUpBindingRows() {
@@ -1851,11 +2071,7 @@
         .filter((select) => select.value !== "").length;
       const salesStepSelects = [...document.querySelectorAll(".flow-binding-select")];
       const selectedSalesSteps = salesStepSelects.filter((select) => select.value !== "").length;
-      saveBindingsButtonEl.disabled = !canManageConnection
-        || draftPaymentSelection === ""
-        || salesStepSelects.length < 1
-        || selectedSalesSteps !== salesStepSelects.length
-        || selectedFollowUps !== count;
+      updateSaveBindingsState();
     }
 
     function renderBlockers(data) {
@@ -1904,14 +2120,20 @@
         }).filter(Boolean);
         if (followUpSelections.length < 1 || followUpSelections.length > 10) throw new Error("Follow Up 必须是 1–10 个。");
         if (followUpBindings.length !== followUpSelections.length) throw new Error("请按顺序选择每一个 Follow Up。");
-        const paymentSelect = document.querySelector(".payment-binding-select");
-        if (!paymentSelect || paymentSelect.value === "") throw new Error("请选择真实 Payment Flow。");
-        const paymentFlow = latestFlowCatalog[Number(paymentSelect.value)];
-        if (!paymentFlow) throw new Error("请选择真实 Payment Flow。");
-        const paymentBinding = {
-          provider_bot_id: paymentFlow.provider_bot_id || null,
-          provider_flow_id: paymentFlow.provider_flow_id || null
-        };
+        if (!paymentRulesComplete()) {
+          throw new Error("请把每个配套、金额和对应 After Payment Flow 填完整；金额不能重复。");
+        }
+        const paymentBindings = draftPaymentRules.map((rule) => {
+          const paymentFlow = latestFlowCatalog[Number(rule.selection)];
+          if (!paymentFlow) throw new Error("请选择真实 After Payment Flow。");
+          return {
+            package_code: paymentPackageCode(rule.package_label, rule.amount_rm),
+            package_label: String(rule.package_label || "").trim(),
+            amount_rm: Number(rule.amount_rm),
+            provider_bot_id: paymentFlow.provider_bot_id || null,
+            provider_flow_id: paymentFlow.provider_flow_id || null
+          };
+        });
         saveBindingsButtonEl.disabled = true;
         saveBindingsButtonEl.textContent = "正在保存绑定...";
         const projectKey = cleanProjectKey();
@@ -1920,7 +2142,7 @@
           step_count: Number(salesStepCountEl.value),
           price_stage_key: priceStageKeyEl.value,
           bindings,
-          payment_binding: paymentBinding,
+          payment_bindings: paymentBindings,
           follow_up_bindings: followUpBindings
         });
         if (data.boundary?.sends_messages !== false
@@ -1938,9 +2160,7 @@
       } finally {
         saveBindingsButtonEl.textContent = previousLabel;
         if (latestGuide?.summary?.api_connected === true && latestGuide?.flow_catalog?.live_catalog_connected) {
-          saveBindingsButtonEl.disabled = !canManageConnection
-            || draftPaymentSelection === ""
-            || Number(followUpCountEl.value || 0) < 1;
+          updateSaveBindingsState();
         }
       }
     }
@@ -1952,7 +2172,11 @@
       if (message.includes("connection_guide_follow_up_sequence_missing")) return "Follow Up 必须从 1 开始连续选择。";
       if (message.includes("connection_guide_follow_up_flow_duplicate") || message.includes("connection_guide_duplicate_flow")) return "同一个 Flow 不能重复使用。";
       if (message.includes("connection_guide_follow_up_type_invalid")) return "Payment 或 Step Flow 不能放进 Follow Up。";
-      if (message.includes("connection_guide_payment_binding_required")) return "请选择真实 Payment Flow。";
+      if (message.includes("connection_guide_payment_binding_required")) return "请设置至少一个配套和对应 After Payment Flow。";
+      if (message.includes("connection_guide_payment_package_label_required")) return "每个付款规则都要填写配套名称。";
+      if (message.includes("connection_guide_payment_amount_required")) return "每个付款规则都要填写正确金额。";
+      if (message.includes("connection_guide_payment_package_duplicate")) return "配套名称不能重复。";
+      if (message.includes("connection_guide_payment_amount_duplicate")) return "同一个金额不能绑定多个 After Payment Flow。";
       if (message.includes("connection_guide_payment_not_in_live_catalog")) return "所选 Payment Flow 已不在当前项目实时清单，请重新同步。";
       if (message.includes("connection_guide_payment_type_invalid")) return "Payment 位置只能选择 ChatDaddy 识别为 Payment 的 Flow。";
       if (message.includes("connection_guide_payment_flow_duplicate")) return "Payment Flow 不能与销售 Step 或 Follow Up 重复。";
