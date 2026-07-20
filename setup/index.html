@@ -2611,7 +2611,7 @@
         </div>
         <div class="preview-grid expert-only" id="learningReviewMetrics">
           <div class="metric"><span>需确认异常</span><strong>-</strong></div>
-          <div class="metric"><span>FAQ 原文已锁定</span><strong>-</strong></div>
+          <div class="metric"><span>可信资料已采用</span><strong>-</strong></div>
           <div class="metric"><span>已退回</span><strong>-</strong></div>
           <div class="metric"><span>敏感 / 高风险</span><strong>-</strong></div>
         </div>
@@ -5713,7 +5713,7 @@
         await loadLearningReview();
         const summary = state.learningReview?.summary || {};
         const pending = Number(summary.pending_items || 0);
-        const lockedFaq = Number(summary.source_locked_faq_items || 0);
+        const trustedSources = Number(summary.trusted_source_items || summary.source_locked_faq_items || 0);
         const sensitive = Number(summary.sensitive_pending_items || 0) + Number(summary.high_pending_items || 0);
         const businessAnswers = canonicalPackage?.project_package?.business_onboarding?.answers || {};
         const businessCount = [
@@ -5731,7 +5731,7 @@
         beginnerLearnButton.hidden = businessCount === 6 && !ownerApproved;
         beginnerLearningResult.textContent = attention.length
           ? `已整理，${attention.length} 项需要补充。`
-          : `已整理：FAQ 原文已锁定 ${lockedFaq} 条；需确认异常 ${pending} 条${sensitive ? `（敏感 / 高风险 ${sensitive}）` : ""}。`;
+          : `已整理：可信资料已采用 ${trustedSources} 条；真正异常 ${pending} 条${sensitive ? `（敏感 / 高风险 ${sensitive}）` : ""}。`;
         document.getElementById("learningReviewPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (error) {
         beginnerLearningResult.textContent = `还不能开始学习：${error.message || error}`;
@@ -6718,9 +6718,13 @@
         setLearningReviewBusy(true);
         setLearningReviewStatus("加载中", "");
         let data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review`);
-        const ownerFaqToLock = Number(data?.summary?.auto_adoptable_owner_faq_items || 0);
-        if (ownerFaqToLock > 0) {
-          setLearningReviewStatus(`正在锁定 ${ownerFaqToLock} 条 Owner FAQ 原文`, "");
+        const trustedItemsToAdopt = Number(
+          data?.summary?.auto_adoptable_trusted_items
+          || data?.summary?.auto_adoptable_owner_faq_items
+          || 0
+        );
+        if (trustedItemsToAdopt > 0) {
+          setLearningReviewStatus(`正在采用 ${trustedItemsToAdopt} 条可信资料与系统规则`, "");
           data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review/accept-owner-faqs`, {
             expected_version_no: data.version_no
           });
@@ -6747,17 +6751,17 @@
       const data = state.learningReview || {};
       const summary = data.summary || {};
       const pending = Number(summary.pending_items || 0);
-      const sourceLockedFaq = Number(summary.source_locked_faq_items || 0);
+      const trustedSources = Number(summary.trusted_source_items || summary.source_locked_faq_items || 0);
       const sensitive = Number(summary.sensitive_pending_items || 0);
       const high = Number(summary.high_pending_items || 0);
       learningReviewMetrics.innerHTML = [
         metricHtml("需确认异常", pending),
-        metricHtml("FAQ 原文已锁定", sourceLockedFaq),
+        metricHtml("可信资料已采用", trustedSources),
         metricHtml("已退回", Number(summary.rejected_items || 0)),
         metricHtml("敏感 / 高风险", `${sensitive} / ${high}`)
       ].join("");
       setLearningReviewStatus(
-        pending ? `还有 ${pending} 条异常需要确认` : "FAQ 已按原文采用，没有多余确认",
+        pending ? `还有 ${pending} 条真正异常需要确认` : "可信资料已自动采用，没有多余确认",
         pending ? "" : "ok"
       );
 
@@ -6772,7 +6776,7 @@
       learningReviewList.innerHTML = items.length
         ? items.map((item) => learningReviewCardHtml(item)).join("")
         : `<div class="review-empty">${state.learningReviewFilter === "pending"
-          ? "Owner 给的 FAQ 已按原文锁定。这里只会出现资料冲突、AI 改写 / 弱化或缺少依据的异常。"
+          ? "Owner 资料、ChatDaddy Flow 与系统规则已自动采用。这里只会出现资料冲突、AI 改写 / 弱化或缺少依据的异常。"
           : "这个筛选没有资料。"}</div>`;
       renderBeginnerReviewContract();
     }
