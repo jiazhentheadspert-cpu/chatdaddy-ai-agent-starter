@@ -2619,6 +2619,8 @@
       flowLearning: null,
       flowLearningBusy: false,
       flowLearningAutoRequested: false,
+      flowLearningAutoRetryTimer: null,
+      flowLearningAutoRetryKey: "",
       protectedSourceRevision: "",
       onboardingHydrated: false,
       onboardingPhaseDone: { flow: false, teach: false, review: false, use: false },
@@ -4131,6 +4133,10 @@
           visual: videoPartCounter("visual"),
           audio: videoPartCounter("audio")
         },
+        issue_log: Array.isArray(source.issue_log) ? source.issue_log : [],
+        issue_summary: source.issue_summary && typeof source.issue_summary === "object"
+          ? source.issue_summary
+          : {},
         exceptions,
         non_blocking_warnings: nonBlockingWarnings,
         raw: source
@@ -4595,6 +4601,24 @@
     }
 
     function flowLearningDisplayIssues(learning = {}, exceptions = []) {
+      const activeRegistryIssues = (Array.isArray(learning.issue_log) ? learning.issue_log : [])
+        .filter((item) => item?.status && item.status !== "resolved");
+      if (activeRegistryIssues.length) {
+        const messages = [];
+        const systemRetrying = activeRegistryIssues.filter((item) => item.status === "system_retrying");
+        const systemAdmin = activeRegistryIssues.filter((item) => item.status === "system_admin_required");
+        const ownerActions = activeRegistryIssues.filter((item) => item.status === "owner_action_required");
+        if (systemRetrying.length) {
+          messages.push(`系统正在自动重新处理 ${systemRetrying.length} 个媒体内容，项目方无需操作。`);
+        }
+        if (systemAdmin.length) {
+          messages.push(`${systemAdmin.length} 个系统异常已自动记录，平台技术人员会处理；项目方无需修改 Flow。`);
+        }
+        messages.push(...ownerActions
+          .map((item) => firstNonEmpty(item?.public_message, "有一项 Flow 资料需要项目负责人处理。"))
+          .filter(Boolean));
+        return [...new Set(messages)];
+      }
       const videoVisualSpecific = new Set();
       const videoAudioSpecific = new Set();
       for (const item of exceptions) {
@@ -4638,6 +4662,42 @@
       return [...new Set(labels)];
     }
 
+    function scheduleFlowLearningAutoRetry(learning = state.flowLearning) {
+      const summary = learning?.issue_summary || {};
+      const retryingCount = Number(summary.system_retrying_count || 0);
+      if (!retryingCount) {
+        if (state.flowLearningAutoRetryTimer) clearTimeout(state.flowLearningAutoRetryTimer);
+        state.flowLearningAutoRetryTimer = null;
+        state.flowLearningAutoRetryKey = "";
+        return;
+      }
+      const retryIssues = (Array.isArray(learning?.issue_log) ? learning.issue_log : [])
+        .filter((item) => item?.status === "system_retrying");
+      const maxAttempt = Math.max(0, ...retryIssues.map((item) => Number(item?.occurrence_count || 0)));
+      const retryKey = [
+        firstNonEmpty(learning?.raw?.source_revision, learning?.raw?.learned_at),
+        maxAttempt,
+        retryingCount
+      ].join(":");
+      if (state.flowLearningAutoRetryKey === retryKey || state.flowLearningBusy) return;
+      if (state.flowLearningAutoRetryTimer) clearTimeout(state.flowLearningAutoRetryTimer);
+      const delaySeconds = Math.max(5, Math.min(
+        300,
+        Number(summary.retry_after_seconds || 0)
+          || Math.ceil((Date.parse(summary.next_retry_at || "") - Date.now()) / 1000)
+          || 30
+      ));
+      state.flowLearningAutoRetryKey = retryKey;
+      state.flowLearningAutoRetryTimer = setTimeout(async () => {
+        state.flowLearningAutoRetryTimer = null;
+        await requestChatdaddyFlowLearning({
+          automatic: true,
+          force: true,
+          retry_reason: "system_media_retry"
+        });
+      }, delaySeconds * 1000);
+    }
+
     function toggleFlowLearningIssues() {
       const willOpen = flowLearningIssueList.hidden;
       flowLearningIssueList.hidden = !willOpen;
@@ -4649,6 +4709,7 @@
     function renderFlowLearning() {
       const learning = state.flowLearning;
       if (!learning) {
+        scheduleFlowLearningAutoRetry(null);
         flowLearningHeadline.textContent = "正在读取 ChatDaddy 销售路线";
         flowLearningSubline.textContent = "读取 Step 1 至价格后的 Follow Up。";
         flowLearningMediaLine.textContent = "";
@@ -4682,9 +4743,16 @@
         || Number(state.connectionGuide?.summary?.follow_ups_total || 0);
       const issueMessages = flowLearningDisplayIssues(learning, exceptions);
       const warningMessages = flowLearningNonBlockingWarnings(learning);
+      const issueSummary = learning.issue_summary || {};
+      const systemRetryingCount = Number(issueSummary.system_retrying_count || 0);
+      const systemAdminCount = Number(issueSummary.system_admin_required_count || 0);
+      const ownerActionCount = Number(issueSummary.owner_action_required_count || 0);
       const ready = !selectionChanged && flowLearningSemanticReady();
       const statusText = selectionChanged
         ? state.flowLearningBusy ? "重新学习中" : "等待重新学习"
+        : systemRetryingCount > 0 ? "系统处理中"
+        : ownerActionCount > 0 ? "等待项目方"
+        : systemAdminCount > 0 ? "技术处理中"
         : ready
         ? "已读懂"
         : learning.content_status === "needs_owner_confirmation"
@@ -4700,6 +4768,12 @@
           : "Flow 已更新，需要重新学习"
         : ready
         ? "AI 已读懂完整销售 Flow"
+        : systemRetryingCount > 0
+          ? "AI 已读取 Flow，系统正在处理媒体"
+        : ownerActionCount > 0
+          ? `还有 ${ownerActionCount} 项资料需要项目方处理`
+        : systemAdminCount > 0
+          ? "系统异常已记录，平台正在处理"
         : issueMessages.length
           ? `AI 已整理，仍有 ${issueMessages.length} 项需处理`
           : "AI 正在理解销售 Flow";
@@ -4746,9 +4820,15 @@
         : '<div class="review-empty">没有异常。</div>';
       flowLearningExceptions.innerHTML = `${warningMarkup}${issueMarkup}`;
       flowLearningIssueSummary.hidden = issueMessages.length === 0;
-      flowLearningIssueHeadline.textContent = issueMessages.length === 1
-        ? "还有 1 项需要处理"
-        : `还有 ${issueMessages.length} 项需要处理`;
+      flowLearningIssueHeadline.textContent = ownerActionCount > 0
+        ? `需要项目方处理 ${ownerActionCount} 项`
+        : systemRetryingCount > 0
+          ? `系统正在自动处理 ${systemRetryingCount} 项`
+          : systemAdminCount > 0
+            ? `平台已记录 ${systemAdminCount} 项系统异常`
+            : issueMessages.length === 1
+              ? "还有 1 项需要处理"
+              : `还有 ${issueMessages.length} 项需要处理`;
       flowLearningIssueList.innerHTML = issueMessages
         .map((message) => `<div class="flow-learning-issue-item">${escapeHtml(message)}</div>`)
         .join("");
@@ -4775,6 +4855,7 @@
         ? "AI 正在学习…"
         : !apiConnected ? "先连接 ChatDaddy API"
           : !selectionConfirmed ? "尚未确认 Flow"
+          : systemRetryingCount > 0 ? "立即重新处理未读媒体"
           : ready ? "重新学习已选择 Flow" : "学习已选择 Flow";
       const priceMismatch = flowLearningPriceMismatch();
       acceptDetectedPriceStageButton.hidden = !priceMismatch;
@@ -4783,6 +4864,7 @@
         ? `用 ${priceMismatch.detected.replace(/^step_(\d+)$/i, "Step $1")} 继续`
         : "使用 AI 识别的价格 Step";
       beginnerConfirmButton.hidden = !ready || learning.owner_approved === true;
+      scheduleFlowLearningAutoRetry(learning);
       renderBeginnerNextGate();
       renderBeginnerReviewContract();
     }
@@ -4815,6 +4897,8 @@
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/learn-chatdaddy-flows`, {
           read_only: true,
           force: options.force === true,
+          automatic_retry: options.automatic === true,
+          retry_reason: firstNonEmpty(options.retry_reason),
           updated_by: "owner_beginner_onboarding"
         });
         const learning = hydrateFlowLearning(data);
