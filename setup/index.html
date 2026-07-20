@@ -3733,7 +3733,8 @@
           && guideSummary.flow_selection_confirmed === true
           && Number(guideSummary.sales_steps_total || 0) > 0
           && Number(guideSummary.sales_steps_bound || 0) >= Number(guideSummary.sales_steps_total || 0)
-          && Number(guideSummary.payment_bound || 0) === 1
+          && Number(guideSummary.payment_total || 0) >= 1
+          && Number(guideSummary.payment_bound || 0) === Number(guideSummary.payment_total || 0)
           && Number(guideSummary.follow_ups_total || 0) >= 1
           && Number(guideSummary.follow_ups_total || 0) <= 10
           && Number(guideSummary.follow_ups_bound || 0) === Number(guideSummary.follow_ups_total || 0),
@@ -4254,7 +4255,8 @@
           && summary.flow_selection_confirmed === true
           && Number(summary.sales_steps_total || 0) > 0
           && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0)
-          && Number(summary.payment_bound || 0) === 1
+          && Number(summary.payment_total || 0) >= 1
+          && Number(summary.payment_bound || 0) === Number(summary.payment_total || 0)
           && Number(summary.follow_ups_total || 0) >= 1
           && Number(summary.follow_ups_total || 0) <= 10
           && Number(summary.follow_ups_bound || 0) === Number(summary.follow_ups_total || 0);
@@ -7090,7 +7092,7 @@
             ? "尚未确认 AI 要学习的 Flow。请核对销售 Step、价格 Step、Payment 与 Follow Up 后保存；系统不会根据旧绑定自动学习。"
             : blockers.length
               ? `仍有 ${blockers.length} 项阻塞。销售 Step Flow：${steps}。下一步：${blockers.slice(0, 3).map((item) => item.message || item.code).join("；")}`
-              : `学习 Flow 已确认。销售 Step：${steps}；Payment：1 / 1；Follow Up：${Number(summary.follow_ups_bound || 0)} / ${Number(summary.follow_ups_total || 0)}。`;
+              : `学习 Flow 已确认。销售 Step：${steps}；Payment：${Number(summary.payment_bound || 0)} / ${Number(summary.payment_total || 0)}；Follow Up：${Number(summary.follow_ups_bound || 0)} / ${Number(summary.follow_ups_total || 0)}。`;
           channelFlowStatus.textContent = !selectionConfirmed
             ? "尚未确认 Flow"
             : blockers.length ? `仍有 ${blockers.length} 项` : "学习 Flow 已确认";
@@ -7101,7 +7103,8 @@
           && selectionConfirmed
           && Number(summary.sales_steps_total || 0) > 0
           && Number(summary.sales_steps_bound || 0) >= Number(summary.sales_steps_total || 0)
-          && Number(summary.payment_bound || 0) === 1
+          && Number(summary.payment_total || 0) >= 1
+          && Number(summary.payment_bound || 0) === Number(summary.payment_total || 0)
           && Number(summary.follow_ups_total || 0) >= 1
           && Number(summary.follow_ups_bound || 0) === Number(summary.follow_ups_total || 0);
         if (
