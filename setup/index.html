@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>ReplyPilot AI 项目设置</title>
   <style>
     :root {
@@ -3281,7 +3284,7 @@
             <p>100 位不同顾客，使用当前项目真实 Flow、资料与 AI 大脑进行安全预演。</p>
           </div>
           <div class="onboarding-panel-controls">
-            <div class="status" id="practiceStatus">等待上线检查</div>
+            <div class="status" id="practiceStatus" role="status" aria-live="polite">等待上线检查</div>
             <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="practicePanelBody" aria-expanded="false">稍后</button>
           </div>
         </div>
@@ -3389,7 +3392,7 @@
           <div class="practice-result-actions">
             <div>
               <b>100 张场景卡片</b>
-              <span class="status" id="practiceResultSummary">尚未运行</span>
+              <span class="status" id="practiceResultSummary" role="status" aria-live="polite">尚未运行</span>
             </div>
             <div class="practice-pagination" id="practicePagination" hidden>
               <button class="btn" type="button" id="practicePrevButton">上一页</button>
@@ -3771,9 +3774,9 @@
     expectedPriceStage.addEventListener("change", handleExpectedTopologyChange);
     startReonboardingButton.addEventListener("click", startReonboardingDraft);
     learnChatdaddyFlowsButton.addEventListener("click", () => requestChatdaddyFlowLearning({ force: true }));
-    paidAiCancelButton.addEventListener("click", () => closePaidAiConfirmation(false));
-    paidAiApproveButton.addEventListener("click", () => closePaidAiConfirmation(true));
-    paidAiConfirmDialog.addEventListener("cancel", (event) => {
+    paidAiCancelButton?.addEventListener("click", () => closePaidAiConfirmation(false));
+    paidAiApproveButton?.addEventListener("click", () => closePaidAiConfirmation(true));
+    paidAiConfirmDialog?.addEventListener("cancel", (event) => {
       event.preventDefault();
       closePaidAiConfirmation(false);
     });
@@ -6250,12 +6253,43 @@
     function closePaidAiConfirmation(approved) {
       const resolve = state.paidAiConfirmationResolve;
       state.paidAiConfirmationResolve = null;
-      if (paidAiConfirmDialog.open) paidAiConfirmDialog.close();
+      if (paidAiConfirmDialog?.open) paidAiConfirmDialog.close();
       if (typeof resolve === "function") resolve(approved === true);
+    }
+
+    function paidAiConfirmationFallbackMessage(details = {}) {
+      return [
+        details.title || "确认付费 AI 操作",
+        "",
+        details.summary || "请确认本次处理范围。",
+        `处理范围：${details.scope || "当前项目"}`,
+        `预计调用：${details.calls || "至少 1 次付费模型调用"}`,
+        `使用模型：${details.model || "按当前项目 AI 设置"}`,
+        `重复保护：${details.cache || "已完成内容不会重复处理"}`,
+        "",
+        details.boundary || "不会发送顾客讯息、不会触发 Flow，也不会自动重试。",
+        "",
+        "按“确定”只执行一次；按“取消”不会产生费用。"
+      ].join("\n");
     }
 
     function requestPaidAiConfirmation(details = {}) {
       if (state.paidAiConfirmationResolve) closePaidAiConfirmation(false);
+      const dialogReady = Boolean(
+        paidAiConfirmDialog
+        && typeof paidAiConfirmDialog.showModal === "function"
+        && paidAiConfirmTitle
+        && paidAiConfirmSummary
+        && paidAiConfirmScope
+        && paidAiConfirmCalls
+        && paidAiConfirmModel
+        && paidAiConfirmCache
+        && paidAiConfirmBoundary
+        && paidAiApproveButton
+      );
+      if (!dialogReady) {
+        return Promise.resolve(window.confirm(paidAiConfirmationFallbackMessage(details)));
+      }
       paidAiConfirmTitle.textContent = details.title || "确认付费 AI 操作";
       paidAiConfirmSummary.textContent = details.summary || "请确认本次处理范围。";
       paidAiConfirmScope.textContent = details.scope || "当前项目";
@@ -6265,9 +6299,15 @@
       paidAiConfirmBoundary.textContent = details.boundary
         || "不会发送顾客讯息、不会触发 Flow，也不会自动重试。";
       paidAiApproveButton.textContent = details.confirmLabel || "确认并执行一次";
-      paidAiConfirmDialog.showModal();
       return new Promise((resolve) => {
         state.paidAiConfirmationResolve = resolve;
+        try {
+          if (paidAiConfirmDialog.open) paidAiConfirmDialog.close();
+          paidAiConfirmDialog.showModal();
+        } catch {
+          state.paidAiConfirmationResolve = null;
+          resolve(window.confirm(paidAiConfirmationFallbackMessage(details)));
+        }
       });
     }
 
@@ -9718,16 +9758,40 @@
         return;
       }
       const projectKey = currentProjectKey();
-      const approved = await requestPaidAiConfirmation({
-        title: "确认开始 100 题 AI 实战",
-        summary: "这是高消耗测试：AI 会扮演 100 位顾客并逐题生成回复。",
-        scope: "100 个不同顾客场景",
-        calls: "预计 US$6–US$15；极长回复的压力情形约 US$25。最多约 100 次付费模型调用",
-        model: "当前 AI Reply 路由模型",
-        cache: "只对本次草稿有效；设置未改变可查看旧成绩",
-        boundary: "全部是预演，不发真实讯息、不触发 Flow；失败不会自动重跑。",
-        confirmLabel: "确认费用并开始 100 题"
-      });
+      practiceStatus.textContent = "正在打开费用确认";
+      practiceStatus.className = "status";
+      practiceResultSummary.textContent = "请先确认预计费用；尚未调用付费 AI";
+      practiceResultSummary.className = "status";
+      runPracticeButton.disabled = true;
+      runPracticeButton.textContent = "正在准备费用确认…";
+      let approved = false;
+      let confirmationFailed = false;
+      try {
+        approved = await requestPaidAiConfirmation({
+          title: "确认开始 100 题 AI 实战",
+          summary: "这是高消耗测试：AI 会扮演 100 位顾客并逐题生成回复。",
+          scope: "100 个不同顾客场景",
+          calls: "预计 US$6–US$15；极长回复的压力情形约 US$25。最多约 100 次付费模型调用",
+          model: "当前 AI Reply 路由模型",
+          cache: "只对本次草稿有效；设置未改变可查看旧成绩",
+          boundary: "全部是预演，不发真实讯息、不触发 Flow；失败不会自动重跑。",
+          confirmLabel: "确认费用并开始 100 题"
+        });
+      } catch (error) {
+        confirmationFailed = true;
+        practiceStatus.textContent = "费用确认无法打开，请刷新后重试";
+        practiceStatus.className = "status bad";
+        practiceResultSummary.textContent = error?.message || "尚未调用付费 AI";
+        practiceResultSummary.className = "status bad";
+        return;
+      } finally {
+        runPracticeButton.textContent = "保存并开始付费 AI 实战";
+        if (!state.practiceBusy && !confirmationFailed) {
+          renderPracticeAvailability(currentPublishReadiness(), false);
+        } else if (confirmationFailed) {
+          runPracticeButton.disabled = false;
+        }
+      }
       if (!approved) {
         practiceStatus.textContent = "已取消，没有调用付费 AI";
         practiceStatus.className = "status";
