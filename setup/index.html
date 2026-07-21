@@ -3311,7 +3311,7 @@
             <div>
               <span class="practice-free-badge">US$0 · 不调用 OpenAI</span>
               <h3>先看 100 张预计结果卡片</h3>
-              <p>使用当前项目资料、真实 Flow 绑定与安全规则检查路线；不生成真实 AI 文案。</p>
+              <p>使用当前项目资料、真实 Flow 绑定与安全规则，直接显示 AI 回复与回复后的下一 Step。</p>
             </div>
             <button class="btn primary" type="button" id="runPracticePreflightButton">先做 US$0 预检</button>
           </div>
@@ -3382,9 +3382,9 @@
 
           <div class="practice-metrics" id="practiceMetrics">
             <div class="practice-metric"><span>已完成</span><strong>0</strong></div>
-            <div class="practice-metric"><span>可直接批准</span><strong>0</strong></div>
-            <div class="practice-metric"><span>建议 Flow</span><strong>0</strong></div>
-            <div class="practice-metric"><span>转人工</span><strong>0</strong></div>
+            <div class="practice-metric"><span>自动回复</span><strong>0</strong></div>
+            <div class="practice-metric"><span>自动接 Flow</span><strong>0</strong></div>
+            <div class="practice-metric"><span>客服核对</span><strong>0</strong></div>
             <div class="practice-metric"><span>失败</span><strong>0</strong></div>
             <div class="practice-metric"><span>API 费用</span><strong>US$0.00</strong></div>
           </div>
@@ -3550,7 +3550,7 @@
         }
       ]
     };
-    const PRACTICE_CARD_SCHEMA_VERSION = 2;
+    const PRACTICE_CARD_SCHEMA_VERSION = 3;
     const state = {
       template: null,
       preview: null,
@@ -9226,9 +9226,7 @@
           updated_at: new Date().toISOString()
         },
         metadata: {
-          ...(current.project_package.metadata || {}),
-          auto_send_enabled: false,
-          auto_trigger_flows_enabled: false
+          ...(current.project_package.metadata || {})
         }
       };
       const saved = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`, {
