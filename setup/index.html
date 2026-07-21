@@ -1750,6 +1750,54 @@
       content: "收起";
     }
 
+    .document-relearn-card {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+      padding: 18px;
+      border: 2px solid #f0c98b;
+      border-radius: 16px;
+      background: #fff9ef;
+    }
+
+    .document-relearn-card[hidden] {
+      display: none !important;
+    }
+
+    .document-relearn-card strong {
+      color: #123f3c;
+      font-size: 18px;
+    }
+
+    .document-relearn-card p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 750;
+      line-height: 1.55;
+    }
+
+    .document-relearn-card .actions {
+      margin-top: 2px;
+    }
+
+    .document-relearn-status {
+      color: #9b5d09;
+      font-weight: 850;
+    }
+
+    .document-relearn-status.ok {
+      color: var(--teal-deep);
+    }
+
+    .document-relearn-status.bad {
+      color: var(--red);
+    }
+
+    #businessPanel.document-relearn-mode .beginner-optional,
+    #businessPanel.document-relearn-mode .advanced-wrap {
+      display: none !important;
+    }
+
     .advanced-wrap {
       margin-top: 18px;
       padding-top: 18px;
@@ -2621,7 +2669,16 @@
         </div>
         <div class="flow-understanding-grid" id="flowUnderstandingGrid" hidden></div>
         <div class="flow-learning-exceptions" id="flowLearningExceptions" hidden></div>
-        <details class="section beginner-optional">
+        <div class="document-relearn-card" id="documentRelearnCard" hidden>
+          <span class="eyebrow">只差这一份文件</span>
+          <strong id="documentRelearnName">项目文件</strong>
+          <p>平台不会保存你电脑里的原始 PDF。请重新选择同一份文件；选择后先显示费用预估，确认才调用 OpenAI。</p>
+          <div class="actions">
+            <button class="btn primary" type="button" id="documentRelearnButton">选择同名文件并补学</button>
+          </div>
+          <div class="document-relearn-status" id="documentRelearnStatus">尚未选择文件。</div>
+        </div>
+        <details class="section beginner-optional" id="beginnerSupplement">
           <summary>补充资料（可选）</summary>
           <div style="padding: 0 20px 20px;">
             <form class="form" id="setupForm"></form>
@@ -3265,6 +3322,8 @@
       flowLearningAutoRetryKey: "",
       flowLearningRetryProgressTimer: null,
       paidAiConfirmationResolve: null,
+      documentRelearnMode: false,
+      documentRelearnTarget: "",
       protectedSourceRevision: "",
       onboardingHydrated: false,
       onboardingPhaseDone: { flow: false, teach: false, review: false, use: false, practice: false },
@@ -3292,6 +3351,11 @@
     const beginnerLearningResult = document.getElementById("beginnerLearningResult");
     const beginnerUpload = document.getElementById("beginnerUpload");
     const beginnerSourceActions = document.getElementById("beginnerSourceActions");
+    const beginnerSupplement = document.getElementById("beginnerSupplement");
+    const documentRelearnCard = document.getElementById("documentRelearnCard");
+    const documentRelearnName = document.getElementById("documentRelearnName");
+    const documentRelearnButton = document.getElementById("documentRelearnButton");
+    const documentRelearnStatus = document.getElementById("documentRelearnStatus");
     const advancedModeButton = document.getElementById("advancedModeButton");
     const resultLog = document.getElementById("resultLog");
     const previewMetrics = document.getElementById("previewMetrics");
@@ -3414,6 +3478,8 @@
     prepareOnboardingPanelDisclosure();
     document.addEventListener("DOMContentLoaded", init);
     beginnerLearnButton.addEventListener("click", runBeginnerLearning);
+    documentRelearnButton.addEventListener("click", chooseDocumentForRelearning);
+    projectDocumentFile.addEventListener("change", handleProjectDocumentSelection);
     beginnerConfirmButton.addEventListener("click", confirmBeginnerUnderstanding);
     protectedSourceCopyConfirm.addEventListener("change", updateBeginnerConfirmAvailability);
     advancedModeButton.addEventListener("click", toggleAdvancedMode);
@@ -6144,16 +6210,21 @@
         if (!faqUrl && !file && teachingText.length < 80 && !hasBusinessAnswer) {
           throw new Error("请至少贴一份 FAQ、加入一个文件，或写下你知道的项目内容。");
         }
-        const paidApproved = await requestPaidAiConfirmation({
-          title: "确认整理补充资料",
-          summary: "AI 会读取你这次提供的 FAQ、文件或项目说明，并保存为待检查草稿。",
-          scope: [faqUrl ? "FAQ" : "", file ? `文件 ${file.name}` : "", teachingText.length >= 80 ? "项目说明" : ""]
-            .filter(Boolean).join(" + ") || "补充资料",
-          calls: "按本次新增资料调用；未改变的 FAQ 会跳过",
-          model: "项目学习模型",
-          cache: "相同 FAQ 版本和已完成资料不会重复学习",
-          boundary: "只生成草稿；不发讯息、不触发 Flow、不发布，失败不自动重试。"
-        });
+        const genericLearningScope = [faqUrl ? "FAQ" : "", teachingText.length >= 80 ? "项目说明" : ""]
+          .filter(Boolean).join(" + ");
+        const paidApproved = genericLearningScope
+          ? await requestPaidAiConfirmation({
+            title: "确认整理补充资料",
+            summary: file
+              ? "先整理 FAQ / 项目说明；文件会在读取页数后另外显示准确范围与费用预估。"
+              : "AI 会读取你这次提供的资料，并保存为待检查草稿。",
+            scope: genericLearningScope,
+            calls: "按本次新增资料调用；未改变的 FAQ 会跳过",
+            model: "项目学习模型",
+            cache: "相同 FAQ 版本和已完成资料不会重复学习",
+            boundary: "只生成草稿；不发讯息、不触发 Flow、不发布，失败不自动重试。"
+          })
+          : true;
         if (!paidApproved) {
           beginnerLearningResult.textContent = "已取消，没有调用付费 AI。";
           return;
@@ -6732,6 +6803,112 @@
       ).trim();
     }
 
+    function currentDocumentRelearnTarget() {
+      const tests = Array.isArray(state.mockResult?.tests) ? state.mockResult.tests : [];
+      const test = tests.find((item) => String(item?.name || "") === "document_learning_current_model_valid" && item?.passed === false);
+      if (!test) return "";
+      const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
+      const sources = Array.isArray(packageData.source_documents) ? packageData.source_documents : [];
+      const ids = [...new Set((Array.isArray(test.actual) ? test.actual : [])
+        .map((item) => String(item || "").split(":").slice(1).join(":"))
+        .filter((item) => item && item !== "unknown"))];
+      const names = ids
+        .map((id) => sources.find((source) => String(source?.id || "") === id))
+        .filter(Boolean)
+        .map((source) => String(source?.title || source?.file_name || source?.name || "").trim())
+        .filter(Boolean);
+      if (names.length) return names[0];
+      const fix = String(test.fix || "");
+      const match = fix.match(/重新学习文件[：:]\s*(.+?)(?:。|$)/);
+      return String(match?.[1] || "").split("、")[0].trim();
+    }
+
+    function showDocumentRelearnTarget() {
+      const target = currentDocumentRelearnTarget();
+      state.documentRelearnMode = true;
+      state.documentRelearnTarget = target;
+      state.onboardingManualPhase = "teach";
+      const panel = document.getElementById("businessPanel");
+      syncOnboardingPanels(state.onboardingPhaseDone, state.onboardingCurrentPhase);
+      panel?.classList.add("document-relearn-mode");
+      beginnerSupplement.open = false;
+      documentRelearnCard.hidden = false;
+      documentRelearnName.textContent = target || "需要补学的项目文件";
+      documentRelearnStatus.textContent = target
+        ? `请重新选择「${target}」。不会要求你重做六问。`
+        : "请重新选择上线检查列出的项目文件。";
+      documentRelearnStatus.className = "document-relearn-status";
+      window.setTimeout(() => documentRelearnCard.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
+    }
+
+    function chooseDocumentForRelearning() {
+      state.documentRelearnMode = true;
+      documentRelearnStatus.textContent = state.documentRelearnTarget
+        ? `请选择「${state.documentRelearnTarget}」。`
+        : "请选择需要补学的文件。";
+      projectDocumentFile.value = "";
+      projectDocumentFile.click();
+    }
+
+    async function handleProjectDocumentSelection() {
+      if (!state.documentRelearnMode) return;
+      const file = projectDocumentFile.files?.[0] || null;
+      if (!file) return;
+      const expected = String(state.documentRelearnTarget || "").trim();
+      if (expected && file.name.trim().toLowerCase() !== expected.toLowerCase()) {
+        documentRelearnStatus.textContent = `选错文件了：需要「${expected}」，你选择的是「${file.name}」。`;
+        documentRelearnStatus.className = "document-relearn-status bad";
+        projectDocumentFile.value = "";
+        return;
+      }
+      documentRelearnStatus.textContent = "正在读取文件并计算费用预估…";
+      documentRelearnStatus.className = "document-relearn-status";
+      const result = await analyzeProjectDocument({
+        force: false,
+        expectedFileName: expected,
+        relearnDocument: true
+      });
+      if (!result) return;
+      state.documentRelearnMode = false;
+      document.getElementById("businessPanel")?.classList.remove("document-relearn-mode");
+      documentRelearnStatus.textContent = "文件已用当前学习模型补学；正在自动重跑免费上线检查。";
+      documentRelearnStatus.className = "document-relearn-status ok";
+      projectDocumentFile.value = "";
+      await runReplyContractMock();
+    }
+
+    function documentLearningCostForecast(extracted = {}) {
+      const pages = Math.max(1, Number(extracted.document_page_count || 0));
+      const media = Array.isArray(extracted.document_media) ? extracted.document_media.length : 0;
+      const units = Math.max(pages, media, 1);
+      return {
+        low: Number((0.35 + units * 0.04).toFixed(2)),
+        high: Number((2.25 + units * 0.25).toFixed(2)),
+        pages,
+        media
+      };
+    }
+
+    function confirmDocumentLearningCost(preflight = {}, file = {}, extracted = {}, options = {}) {
+      const local = documentLearningCostForecast(extracted);
+      const estimate = preflight.estimated_cost || {};
+      const low = Math.max(0, Number(estimate.low_usd ?? local.low));
+      const high = Math.max(low, Number(estimate.high_usd ?? local.high));
+      const pages = Math.max(1, Number(preflight.page_count || local.pages));
+      const media = Math.max(0, Number(preflight.media_count ?? local.media));
+      const model = preflight.models?.document_analysis || {};
+      return requestPaidAiConfirmation({
+        title: options.relearnDocument ? "确认补学这个文件" : "确认分析项目文件",
+        summary: `预计 US$${low.toFixed(2)}–US$${high.toFixed(2)}。确认后才调用 OpenAI；实际费用以 API 账单为准。`,
+        scope: file.name || preflight.file_name || "当前文件",
+        calls: `${pages} 页 · ${media} 个页面媒体 · 执行 1 次文件学习`,
+        model: `${model.model || "gpt-5.6-sol"} · ${model.reasoning_effort || "当前项目学习等级"}`,
+        cache: options.relearnDocument ? "只替换这份文件的旧模型学习记录" : "相同文件且已用当前模型学完时不会重跑",
+        boundary: "只生成草稿；不发讯息、不触发 Flow、不发布，失败不自动重试。",
+        confirmLabel: "确认费用并补学一次"
+      });
+    }
+
     async function analyzeProjectDocument(options = {}) {
       const projectKey = currentProjectKey();
       const file = projectDocumentFile.files?.[0];
@@ -6743,36 +6920,72 @@
         setDocumentStatus("请选择资料文件", "bad");
         return null;
       }
-      if (options.paidConfirmed !== true) {
-        const approved = await requestPaidAiConfirmation({
-          title: "确认分析项目文件",
-          summary: "AI 会提取文件里的文字和媒体，并生成项目学习草稿。",
-          scope: file.name,
-          calls: "按文件页数和媒体数量调用",
-          model: "项目学习模型 + 媒体轻量模型",
-          cache: "只处理这次选择的文件",
-          boundary: "只生成草稿；不发讯息、不触发 Flow、不发布。"
-        });
-        if (!approved) {
-          setDocumentStatus("已取消，没有调用付费 AI", "");
-          return null;
+      const expectedFileName = String(options.expectedFileName || "").trim();
+      if (expectedFileName && file.name.trim().toLowerCase() !== expectedFileName.toLowerCase()) {
+        const message = `需要重新学习「${expectedFileName}」，目前选择的是「${file.name}」。`;
+        setDocumentStatus("文件不一致", "bad");
+        documentResult.textContent = message;
+        if (options.relearnDocument) {
+          documentRelearnStatus.textContent = message;
+          documentRelearnStatus.className = "document-relearn-status bad";
         }
+        return null;
+      }
+      let extracted = options.extracted || null;
+      try {
+        setDocumentStatus("正在计算费用", "");
+        extracted = extracted || await extractProjectDocumentContent(file);
+      } catch (error) {
+        setDocumentStatus("无法读取文件", "bad");
+        documentResult.textContent = ownerFacingLearningError(error);
+        if (options.relearnDocument) {
+          documentRelearnStatus.textContent = ownerFacingLearningError(error);
+          documentRelearnStatus.className = "document-relearn-status bad";
+        }
+        return null;
       }
       const previous = analyzeDocumentButton.textContent;
       try {
         analyzeDocumentButton.disabled = true;
+        if (options.relearnDocument) {
+          documentRelearnButton.disabled = true;
+          documentRelearnButton.textContent = "正在补学…";
+        }
         analyzeDocumentButton.textContent = "正在提取与分析…";
         setDocumentStatus("读取文件中", "");
-        const extracted = await extractProjectDocumentContent(file);
+        extracted = extracted || await extractProjectDocumentContent(file);
         setDocumentStatus("生成学习草稿中", "");
-        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/analyze-document`, {
+        const endpoint = `/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/analyze-document`;
+        const payload = {
           file_name: file.name,
           file_type: file.type,
           extracted_text: extracted.extracted_text,
           document_media: extracted.document_media,
           document_page_count: Number(extracted.document_page_count || 0),
+          force: options.force === true,
           updated_by: "owner_onboarding"
-        });
+        };
+        let data;
+        try {
+          data = await apiPost(endpoint, payload);
+        } catch (error) {
+          if (error?.data?.error !== "paid_ai_confirmation_required" || !error?.data?.cost_preflight) throw error;
+          const approved = await confirmDocumentLearningCost(error.data.cost_preflight, file, extracted, options);
+          if (!approved) {
+            setDocumentStatus("已取消，没有调用付费 AI", "");
+            if (options.relearnDocument) {
+              documentRelearnStatus.textContent = "已取消，没有调用 OpenAI，也没有本次学习费用。";
+              documentRelearnStatus.className = "document-relearn-status";
+            }
+            return null;
+          }
+          data = await apiPost(endpoint, {
+            ...payload,
+            confirm_paid_ai: true,
+            cost_confirmation_nonce: error.data.cost_preflight.confirmation_nonce,
+            cost_confirmation_fingerprint: error.data.cost_preflight.confirmation_fingerprint
+          });
+        }
         state.documentKnowledge = data;
         // The analyze endpoint returns a learning-focused projection rather than the
         // full project package. Reload the canonical package before later saves so
@@ -6789,10 +7002,18 @@
       } catch (error) {
         setDocumentStatus("资料处理失败", "bad");
         documentResult.textContent = ownerFacingLearningError(error);
+        if (options.relearnDocument) {
+          documentRelearnStatus.textContent = ownerFacingLearningError(error);
+          documentRelearnStatus.className = "document-relearn-status bad";
+        }
         return null;
       } finally {
         analyzeDocumentButton.disabled = false;
         analyzeDocumentButton.textContent = previous;
+        if (options.relearnDocument) {
+          documentRelearnButton.disabled = false;
+          documentRelearnButton.textContent = "选择同名文件并补学";
+        }
       }
     }
 
@@ -8229,6 +8450,10 @@
         runReplyContractMock();
         return;
       }
+      if (button.dataset.fixAction === "relearn_document") {
+        showDocumentRelearnTarget();
+        return;
+      }
       const targetId = button.dataset.fixTarget;
       const phase = button.dataset.fixPhase;
       if (button.dataset.fixAdvanced === "true") {
@@ -8256,13 +8481,16 @@
       const failedTests = readiness.tests.filter((test) => test?.passed === false);
       const rawIssues = [
         state.publishError ? publishReadinessIssue(state.publishError) : null,
-        ...(readiness.issues || []),
+        ...(readiness.issues || []).filter((issue) => !(
+          failedTests.length > 0
+          && /上线检查还有\s*\d+\s*项未通过/.test(String(issue?.message || ""))
+        )),
         ...rawBlockers.map((item) => publishReadinessIssue(item?.message || item?.code)),
         ...failedTests.map((test) => {
           const text = test?.fix || test?.label || test?.name;
           const issue = publishReadinessIssue(text);
           if (String(test?.name || "") === "document_learning_current_model_valid") {
-            return { ...issue, target: "businessPanel", phase: "teach", label: "去补学文件" };
+            return { ...issue, target: "", phase: "", action: "relearn_document", label: "补学这份文件" };
           }
           if (String(test?.group || "").includes("infrastructure") || String(test?.name || "").includes("learning")) {
             return { ...issue, target: "learningReviewPanel", phase: "review", label: "去完成确认" };
