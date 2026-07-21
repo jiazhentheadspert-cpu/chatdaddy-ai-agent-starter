@@ -7893,23 +7893,10 @@
         setReplyContractStatus("需要项目代码", "bad");
         return;
       }
-      const approved = await requestPaidAiConfirmation({
-        title: "确认运行 AI 上线检查",
-        summary: "系统会用当前草稿运行合成顾客场景；本次只检查，不会触达真实顾客。",
-        scope: "当前回复规则与测试场景",
-        calls: "按本轮 Mock Test 场景数量调用",
-        model: "当前 AI Reply 路由模型",
-        cache: "草稿改变后才需要重跑",
-        boundary: "不发讯息、不触发 Flow、不发布；失败不会自动重跑。"
-      });
-      if (!approved) {
-        setReplyContractStatus("已取消，没有调用付费 AI", "");
-        return;
-      }
       try {
         setReplyContractBusy(true);
         setReplyContractStatus("运行 Mock Test", "");
-        contentMockStatus.textContent = "正在运行合成场景";
+        contentMockStatus.textContent = "正在检查（不调用 OpenAI）";
         contentMockStatus.className = "status";
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/test-cases/run`, {});
         const attestedVersionNo = Number(data?.version_no || data?.package_version_no || 0);
