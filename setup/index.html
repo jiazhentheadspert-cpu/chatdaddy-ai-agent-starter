@@ -9381,7 +9381,9 @@
               custom_fields: { price_seen: group.price_seen === true },
               metadata: mediaAnalysis ? { media_analysis: mediaAnalysis } : {},
               practice_mode: true,
-              use_model: true
+              use_model: true,
+              simulate_auto_send_enabled: true,
+              simulate_auto_trigger_flows_enabled: true
             }
           });
         });
@@ -9399,7 +9401,7 @@
       const semanticReady = flowLearningSemanticReady();
       const customization = currentPracticeCustomization();
       const customInstructionConflict = /因人而异|不保证|不能保证|不一定|可能没效果|降低效果|弱化/i.test(customization.custom_instructions || "");
-      const paymentNeedsReview = /付款截图|已经付款|paid already|confirm|没有订购|转账失败|地址|下单/i.test(scenario.text || "");
+      const paymentNeedsReview = /付款截图|收据|receipt|已经付款|已付款|paid already|payment sent|没有订购|转账失败|付款失败|收件地址|完整地址|确认订单|订单号|tracking/i.test(scenario.text || "");
       const stopFollowUp = /不要再跟进|不要再发|stop|unsubscribe/i.test(scenario.text || "");
       const notes = [];
       let route = "direct";
@@ -9485,11 +9487,66 @@
 
     function practiceRouteLabel(route) {
       return ({
-        direct: "预计直接回复",
-        flow: "预计接 Flow",
-        human: "应转人工",
-        attention: "需留意"
-      })[route] || "正式 AI 待验证";
+        direct: "自动回复",
+        flow: "自动回复 + 自动接 Flow",
+        human: "需要客服核对",
+        attention: "需要调整"
+      })[route] || "等待实战验证";
+    }
+
+    function practiceStageLabel(stageKey = "", projectPackage = {}) {
+      const stages = Array.isArray(projectPackage?.sales_process?.stages)
+        ? projectPackage.sales_process.stages.filter((stage) => stage?.active !== false)
+        : [];
+      const stage = stages.find((item) => String(item?.stage_key || "") === String(stageKey || ""));
+      const order = stage ? Math.max(1, stages.indexOf(stage) + 1) : 0;
+      const title = firstNonEmpty(stage?.title, stage?.purpose);
+      if (order && title) return `Step ${order} · ${title}`;
+      if (order) return `Step ${order}`;
+      const match = String(stageKey || "").match(/(?:step[_\s-]*)(\d+)/i);
+      return match ? `Step ${match[1]}` : "当前阶段";
+    }
+
+    function practiceNextStageContext(result = {}, projectPackage = {}) {
+      const stages = Array.isArray(projectPackage?.sales_process?.stages)
+        ? projectPackage.sales_process.stages.filter((stage) => stage?.active !== false)
+        : [];
+      const currentKey = String(result?.scenario?.stage || "");
+      const currentIndex = stages.findIndex((stage) => String(stage?.stage_key || "") === currentKey);
+      const byFlow = result.flow_key
+        ? stages.find((stage) => String(stage?.flow_key || "") === String(result.flow_key || ""))
+        : null;
+      const nextStage = byFlow || (currentIndex >= 0 ? stages[currentIndex + 1] : null);
+      const flowName = firstNonEmpty(
+        nextStage?.selected_flow_title,
+        nextStage?.flow_name,
+        nextStage?.provider_flow_name,
+        nextStage?.title
+      );
+      return {
+        current_label: practiceStageLabel(currentKey, projectPackage),
+        next_label: nextStage ? practiceStageLabel(nextStage.stage_key, projectPackage) : "继续当前成交阶段",
+        flow_name: flowName
+      };
+    }
+
+    function practiceBusinessNextAction(result = {}, projectPackage = {}) {
+      const context = practiceNextStageContext(result, projectPackage);
+      if (result.route === "flow" || result.flow_recommended) {
+        return context.flow_name
+          ? `AI 回答后自动进入 ${context.next_label}，并发送「${context.flow_name}」`
+          : `AI 回答后自动进入 ${context.next_label}`;
+      }
+      if (result.route === "human" || result.needs_human) {
+        if (result.scenario?.unreadable_media) return "媒体看不清：请顾客重发；仍无法确认才由客服接手";
+        if (/(付款|订单|退款|投诉|律师|不舒服|孕妇|吃药|电话)/i.test(result.scenario?.text || "")) {
+          return "涉及健康、付款核验、退款、投诉或隐私：由客服核对后处理";
+        }
+        return "只有资料无法确认时才由客服接手";
+      }
+      if (result.route === "attention") return "先修正这张卡片的资料或 Flow 绑定，再开启全自动";
+      if (result.scenario?.price_seen) return "AI 回答后继续成交：给信心 → 1 个明确 CTA";
+      return `AI 回答后继续 ${context.current_label}`;
     }
 
     function runFreePracticePreflight() {
@@ -9541,13 +9598,14 @@
       const flowRecommended = Boolean(decision.flow_key)
         || /flow/i.test(String(decision.next_action || ""));
       const hasUsefulOutcome = Boolean(replyText || needsHuman);
-      const humanExpectationMet = scenario.expect_human !== true || needsHuman;
-      const flowExpectationMet = scenario.expect_flow !== true || flowRecommended || needsHuman;
+      const humanExpectationMet = scenario.expect_human === true ? needsHuman : !needsHuman;
+      const flowExpectationMet = scenario.expect_flow !== true || (flowRecommended && !needsHuman);
       const passed = data?.ok === true && safe && hasUsefulOutcome && humanExpectationMet && flowExpectationMet;
       const notes = [];
       if (!safe) notes.push("安全边界失败");
       if (!hasUsefulOutcome) notes.push("没有回复或转人工决定");
       if (!humanExpectationMet) notes.push("高风险场景没有转人工");
+      if (scenario.expect_human !== true && needsHuman) notes.push("普通问题被错误转人工");
       if (!flowExpectationMet) notes.push("回答后没有建议接下一 Flow");
       if (scenario.unreadable_media && !needsHuman) notes.push("看不清媒体却没有转人工");
       const route = needsHuman ? "human" : flowRecommended ? "flow" : passed ? "direct" : "attention";
@@ -9583,10 +9641,10 @@
         state.practiceUsage = { calls: 0, input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0 };
         practiceMetrics.innerHTML = [
           ["场景卡片", completed],
-          ["预计直接回复", direct],
-          ["预计接 Flow", flow],
-          ["应转人工", human],
-          ["需留意", attention],
+          ["自动回复", direct],
+          ["自动回复 + Flow", flow],
+          ["客服核对", human],
+          ["需要调整", attention],
           ["API 费用", "US$0.00"]
         ].map(([label, value]) => `<div class="practice-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`).join("");
         return;
@@ -9607,9 +9665,9 @@
       state.practiceUsage = usage;
       practiceMetrics.innerHTML = [
         ["已完成", completed],
-        ["可直接批准", passed],
-        ["建议 Flow", flow],
-        ["转人工", human],
+        ["可全自动", passed],
+        ["自动接 Flow", flow],
+        ["客服核对", human],
         ["失败", failed],
         ["API 费用", `US$${usage.estimated_cost_usd.toFixed(2)}`]
       ].map(([label, value]) => `<div class="practice-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`).join("");
@@ -9628,11 +9686,11 @@
       };
       const filterLabels = {
         all: "全部",
-        direct: "预计直接回复",
-        flow: "预计接 Flow",
-        human: "应转人工",
-        attention: "需留意",
-        ai_check: "正式 AI 待验证"
+        direct: "自动回复",
+        flow: "自动回复 + Flow",
+        human: "客服核对",
+        attention: "需要调整",
+        ai_check: "等待实战验证"
       };
       practiceFilters.hidden = !results.length;
       practiceFilters.querySelectorAll("[data-practice-filter]").forEach((button) => {
@@ -9663,20 +9721,21 @@
       }
       practiceResultList.innerHTML = visible.map((result) => {
         const scenario = result.scenario;
-        const brain = result.ai_brain || {};
         const route = result.route || (result.needs_human ? "human" : result.flow_recommended ? "flow" : result.passed ? "direct" : "attention");
         const routeLabel = result.route_label || practiceRouteLabel(route);
-        const brainLabel = result.uses_openai
-          ? `${brain.tier || "AI"} · ${brain.model || "当前模型"}`
-          : result.forecast ? "US$0 规则预检" : "规则大脑";
+        const projectPackage = state.salesPackageResponse?.project_package
+          || state.existingPackageResponse?.project_package
+          || {};
+        const stageContext = practiceNextStageContext(result, projectPackage);
         const initials = String(scenario.customer_name || "顾客").replace(/\s+/g, "").slice(0, 2).toUpperCase();
         const chips = [
-          scenario.stage ? `阶段 ${scenario.stage}` : "",
-          scenario.media_type ? `${scenario.media_type}${scenario.unreadable_media ? "不可读" : "已读"}` : "文字",
-          result.flow_recommended ? "建议 Flow" : "",
-          result.needs_human ? "人工接管" : "",
-          result.ai_check ? "正式 AI 待验证" : ""
+          stageContext.current_label,
+          scenario.media_type ? `${scenario.media_type}${scenario.unreadable_media ? "看不清" : "已理解"}` : "文字"
         ].filter(Boolean);
+        const businessNextAction = practiceBusinessNextAction({ ...result, route }, projectPackage);
+        const replyFallback = result.needs_human
+          ? "这题需要客服核对资料后回复。"
+          : "等待正式 AI 生成回复。";
         return `
           <article class="practice-result-card route-${escapeHtml(route)} ${result.passed ? "" : "failed"}">
             <div class="practice-card-head">
@@ -9696,19 +9755,11 @@
             <div class="practice-chips">
               ${chips.map((chip) => `<span class="practice-chip">${escapeHtml(chip)}</span>`).join("")}
             </div>
-            ${result.forecast ? "" : `<div><p><b>AI 回复</b></p><p class="practice-reply">${escapeHtml(result.reply_text || "交由人工处理")}</p></div>`}
-            <div class="practice-expected-action">${escapeHtml(result.next_action || "等待正式 AI 实战验证回复与动作。")}</div>
-            <details class="practice-details">
-              <summary>查看判断依据</summary>
-              <div class="practice-details-body">
-                <p>风险：${escapeHtml(result.risk_level || "未标记")}</p>
-                <p>Flow：${escapeHtml(result.flow_key || (result.flow_recommended ? "建议继续" : "不建议"))}</p>
-                <p>大脑：${escapeHtml(brainLabel)}</p>
-                ${result.source_label ? `<p>依据：${escapeHtml(result.source_label)}</p>` : ""}
-                ${result.uses_openai ? `<p>费用：US$${Math.max(0, Number(brain.estimated_cost_usd || 0)).toFixed(4)}</p>` : ""}
-                ${result.notes.length ? `<p>${escapeHtml(result.notes.join("；"))}</p>` : ""}
-              </div>
-            </details>
+            ${result.forecast ? "" : `<div><p><b>AI 回复</b></p><p class="practice-reply">${escapeHtml(result.reply_text || replyFallback)}</p></div>`}
+            <div class="practice-expected-action"><b>回复后下一步</b><br>${escapeHtml(businessNextAction)}</div>
+            ${(route === "human" || route === "attention") && result.notes.length
+              ? `<div class="practice-business-note">${escapeHtml(result.notes.join("；"))}</div>`
+              : ""}
           </article>`;
       }).join("");
     }
