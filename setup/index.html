@@ -1793,6 +1793,46 @@
       color: var(--red);
     }
 
+    .document-job-progress {
+      display: grid;
+      gap: 7px;
+      margin-top: 4px;
+    }
+
+    .document-job-progress-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #7b5318;
+      font-size: 13px;
+    }
+
+    .document-job-progress-track {
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(165, 105, 24, 0.16);
+    }
+
+    .document-job-progress-track > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background-color: var(--amber);
+      background-image: repeating-linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.34) 0 8px,
+        rgba(255, 255, 255, 0.05) 8px 16px
+      );
+      background-size: 28px 28px;
+      animation: flowLearningStripeMove 0.75s linear infinite, flowLearningPulse 1.8s ease-in-out infinite;
+      transition: width 240ms ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .document-job-progress-track > span { animation: none; }
+    }
+
     #businessPanel.document-relearn-mode .beginner-optional,
     #businessPanel.document-relearn-mode .advanced-wrap {
       display: none !important;
@@ -3324,6 +3364,7 @@
       paidAiConfirmationResolve: null,
       documentRelearnMode: false,
       documentRelearnTarget: "",
+      documentLearningJobPromise: null,
       protectedSourceRevision: "",
       onboardingHydrated: false,
       onboardingPhaseDone: { flow: false, teach: false, review: false, use: false, practice: false },
@@ -6860,7 +6901,140 @@
         ? `请重新选择「${target}」。不会要求你重做六问。`
         : "请重新选择上线检查列出的项目文件。");
       documentRelearnStatus.className = `document-relearn-status${rememberedError ? " bad" : ""}`;
+      void resumeProjectDocumentLearningJob();
       window.setTimeout(() => documentRelearnCard.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
+    }
+
+    function renderProjectDocumentLearningJob(job = {}) {
+      const progress = job?.progress && typeof job.progress === "object" ? job.progress : {};
+      const percent = Math.max(2, Math.min(100, Number(progress.percent || 0) || 2));
+      const status = String(job?.status || "queued");
+      const label = status === "queued"
+        ? "安全排队中"
+        : status === "running"
+          ? "AI 正在后台学习"
+          : status === "succeeded"
+            ? "学习完成"
+            : "需要处理";
+      const message = String(progress.message || (status === "running"
+        ? "正在读取页面并整合项目知识。"
+        : "等待后台任务状态。"));
+      documentRelearnStatus.className = `document-relearn-status${status === "succeeded" ? " ok" : ["dead_letter", "cancelled"].includes(status) ? " bad" : ""}`;
+      documentRelearnStatus.innerHTML = `
+        <div class="document-job-progress">
+          <div class="document-job-progress-head"><b>${escapeHtml(label)}</b><span>${escapeHtml(String(Math.round(percent)))}%</span></div>
+          <div class="document-job-progress-track"><span style="width:${escapeHtml(String(percent))}%"></span></div>
+          <small>${escapeHtml(message)}${job?.active ? " 可关闭页面，后台不会中断。" : ""}</small>
+        </div>`;
+    }
+
+    function projectDocumentJobError(job = {}) {
+      const details = job?.error_details && typeof job.error_details === "object" ? job.error_details : {};
+      const error = new Error(String(details.message || job?.progress?.message || job?.error || "文件学习未完成"));
+      error.data = {
+        error: String(details.error || job?.error || "document_learning_job_failed"),
+        analysis_mode: String(details.analysis_mode || ""),
+        failed_stage: String(details.failed_stage || ""),
+        failed_batch: Number(details.failed_batch || 0) || null,
+        total_batches: Number(details.total_batches || 0) || null
+      };
+      return error;
+    }
+
+    async function canonicalDocumentLearningResult(projectKey, job = {}, extracted = {}) {
+      const canonicalPackage = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+      state.salesPackageResponse = canonicalPackage;
+      state.existingPackageResponse = canonicalPackage;
+      hydrateBrainVersionStatus(canonicalPackage);
+      const analyses = Array.isArray(canonicalPackage?.project_package?.document_analyses)
+        ? canonicalPackage.project_package.document_analyses
+        : [];
+      const analysis = analyses.find((item) => String(item?.source_revision || "") === String(job?.source_revision || ""))
+        || analyses.find((item) => String(item?.file_name || "").trim().toLowerCase() === String(job?.file_name || "").trim().toLowerCase())
+        || null;
+      const data = {
+        ...canonicalPackage,
+        analysis,
+        uses_openai: analysis?.uses_openai === true,
+        counts: {
+          source_documents: Array.isArray(canonicalPackage?.project_package?.source_documents)
+            ? canonicalPackage.project_package.source_documents.length
+            : 0
+        }
+      };
+      state.documentKnowledge = data;
+      markOnboardingDraft();
+      renderDocumentKnowledge(data, job?.file_name || "项目资料", extracted);
+      await loadLearningReview();
+      updateOnboardingProgress();
+      return data;
+    }
+
+    async function waitForProjectDocumentLearningJob(initialJob = {}, extracted = {}) {
+      if (state.documentLearningJobPromise) return state.documentLearningJobPromise;
+      const projectKey = currentProjectKey();
+      state.documentLearningJobPromise = (async () => {
+        let job = initialJob;
+        const deadline = Date.now() + (35 * 60 * 1000);
+        while (Date.now() < deadline) {
+          renderProjectDocumentLearningJob(job);
+          if (job?.status === "succeeded") {
+            rememberDocumentRelearnError("");
+            return canonicalDocumentLearningResult(projectKey, job, extracted);
+          }
+          if (["dead_letter", "cancelled"].includes(String(job?.status || ""))) {
+            throw projectDocumentJobError(job);
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 2500));
+          try {
+            const status = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/analyze-document`);
+            job = status?.learning_job || job;
+          } catch (error) {
+            documentRelearnStatus.className = "document-relearn-status";
+            documentRelearnStatus.textContent = "页面暂时断线；后台任务仍保留。正在重新连接查询进度，不会重新收费。";
+          }
+        }
+        throw new Error("后台学习仍在运行；可关闭页面，稍后回来会自动恢复进度。");
+      })().finally(() => {
+        state.documentLearningJobPromise = null;
+      });
+      return state.documentLearningJobPromise;
+    }
+
+    async function resumeProjectDocumentLearningJob() {
+      const projectKey = currentProjectKey();
+      if (!projectKey || state.documentLearningJobPromise) return null;
+      try {
+        const status = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/analyze-document`);
+        const job = status?.learning_job || {};
+        const target = String(state.documentRelearnTarget || "").trim().toLowerCase();
+        const jobFile = String(job?.file_name || "").trim().toLowerCase();
+        if (!job?.id || (target && jobFile && target !== jobFile)) return null;
+        if (job.active || job.status === "succeeded") {
+          const result = await waitForProjectDocumentLearningJob(job, {});
+          if (result) {
+            state.documentRelearnMode = false;
+            document.getElementById("businessPanel")?.classList.remove("document-relearn-mode");
+            documentRelearnStatus.textContent = "文件已完成学习；正在重新运行免费上线检查。";
+            documentRelearnStatus.className = "document-relearn-status ok";
+            await runReplyContractMock();
+          }
+          return result;
+        }
+        if (["dead_letter", "cancelled"].includes(String(job.status || ""))) {
+          const ownerError = ownerFacingLearningError(projectDocumentJobError(job));
+          rememberDocumentRelearnError(ownerError);
+          documentRelearnStatus.textContent = ownerError;
+          documentRelearnStatus.className = "document-relearn-status bad";
+        }
+      } catch (error) {
+        if (error?.code !== "network_fetch_failed") {
+          const ownerError = ownerFacingLearningError(error);
+          documentRelearnStatus.textContent = ownerError;
+          documentRelearnStatus.className = "document-relearn-status bad";
+        }
+      }
+      return null;
     }
 
     function chooseDocumentForRelearning() {
@@ -7019,12 +7193,24 @@
               : "正在用当前学习模型分析这份文件；失败不会写入草稿。";
             documentRelearnStatus.className = "document-relearn-status";
           }
-          data = await apiPost(endpoint, {
-            ...payload,
-            confirm_paid_ai: true,
-            cost_confirmation_nonce: error.data.cost_preflight.confirmation_nonce,
-            cost_confirmation_fingerprint: error.data.cost_preflight.confirmation_fingerprint
-          });
+          try {
+            data = await apiPost(endpoint, {
+              ...payload,
+              confirm_paid_ai: true,
+              cost_confirmation_nonce: error.data.cost_preflight.confirmation_nonce,
+              cost_confirmation_fingerprint: error.data.cost_preflight.confirmation_fingerprint
+            });
+          } catch (paidRequestError) {
+            if (paidRequestError?.code !== "network_fetch_failed") throw paidRequestError;
+            // The connection may have dropped after the durable job was saved.
+            // Query status with a safe GET before ever asking the Owner to pay again.
+            const status = await apiGet(endpoint);
+            if (!status?.learning_job?.id) throw paidRequestError;
+            data = status;
+          }
+        }
+        if (data?.learning_job?.id) {
+          data = await waitForProjectDocumentLearningJob(data.learning_job, extracted);
         }
         state.documentKnowledge = data;
         // The analyze endpoint returns a learning-focused projection rather than the
@@ -9342,8 +9528,11 @@
       }
 
       if (!response) {
-        const error = new Error("网络暂时无法连接正式 API，系统已自动重试。");
+        const error = new Error(canRetry
+          ? "网络暂时无法连接正式 API，读取请求已安全重试。"
+          : "网络连接中断；写入或付费动作没有自动重试，以避免重复执行。");
         error.code = "network_fetch_failed";
+        error.method = method;
         error.cause = lastNetworkError;
         throw error;
       }
