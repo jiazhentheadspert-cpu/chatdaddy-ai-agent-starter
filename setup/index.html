@@ -2996,6 +2996,11 @@
               <h3>项目方可以调整</h3>
               <p>人设、语气、长度、Emoji、CTA 与额外规则。安全边界、真实价格和不可改原话不能被覆盖。</p>
             </div>
+            <div class="practice-card">
+              <h3>本轮费用预估</h3>
+              <p><strong>约 US$6–US$15</strong>（100 题，按当前 Sol / Terra 路由保守估算；极长回复上限约 US$25）。</p>
+              <div class="boundary-note">开始前会再次确认；完成后显示本轮实际 Token 与费用。不会发送讯息或触发 Flow。</div>
+            </div>
           </div>
 
           <form class="practice-card practice-controls" id="practiceCustomizationForm">
@@ -3068,6 +3073,7 @@
             <div class="practice-metric"><span>建议 Flow</span><strong>0</strong></div>
             <div class="practice-metric"><span>转人工</span><strong>0</strong></div>
             <div class="practice-metric"><span>失败</span><strong>0</strong></div>
+            <div class="practice-metric"><span>API 费用</span><strong>US$0.00</strong></div>
           </div>
 
           <div class="practice-result-actions">
@@ -3267,6 +3273,7 @@
       onboardingPhaseSignature: "",
       practiceBusy: false,
       practiceResults: [],
+      practiceUsage: { calls: 0, input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0 },
       practicePage: 1,
       practicePassed: false,
       practiceAttestedVersionNo: 0,
@@ -8129,9 +8136,17 @@
     function currentPublishReadiness() {
       const pending = Number(state.learningReview?.summary?.pending_items || 0);
       const blockers = Array.isArray(state.connectionGuide?.readiness?.blockers) ? state.connectionGuide.readiness.blockers.length : 1;
-      const failed = Number(state.mockResult?.suites?.owner_content?.failed_count ?? state.mockResult?.owner_content?.failed_count ?? 1);
-      const tests = state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || [];
+      const ownerTests = state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || [];
+      const tests = Array.isArray(state.mockResult?.tests) && state.mockResult.tests.length
+        ? state.mockResult.tests
+        : ownerTests;
       const hasTests = tests.length > 0;
+      const failed = hasTests
+        ? tests.filter((test) => test?.passed === false).length
+        : Number(state.mockResult?.failed_count
+          ?? state.mockResult?.suites?.owner_content?.failed_count
+          ?? state.mockResult?.owner_content?.failed_count
+          ?? 1);
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
       const currentVersionNo = Math.max(
         Number(state.salesPackageResponse?.version_no || 0),
@@ -8164,7 +8179,7 @@
       if (blockers > 0) reasons.push(`ChatDaddy 连接或 Flow 仍有 ${blockers} 项未完成`);
       if (!hasTests) reasons.push("尚未运行上线检查");
       if (hasTests && failed > 0) reasons.push(`上线检查还有 ${failed} 项未通过`);
-      if (hasTests && !mockBoundToCurrentVersion) reasons.push("当前草稿已更新，请重新运行上线检查");
+      if (hasTests && failed === 0 && !mockBoundToCurrentVersion) reasons.push("当前草稿已更新，请重新运行上线检查");
       const issues = reasons.map((message) => publishReadinessIssue(message));
       return {
         ready,
@@ -8673,12 +8688,23 @@
       const flow = results.filter((result) => result.flow_recommended).length;
       const human = results.filter((result) => result.needs_human).length;
       const failed = results.filter((result) => !result.passed).length;
+      const usage = results.reduce((summary, result) => {
+        const brain = result.ai_brain || {};
+        summary.calls += result.uses_openai ? 1 : 0;
+        summary.input_tokens += Math.max(0, Number(brain.input_tokens || 0));
+        summary.cached_input_tokens += Math.max(0, Number(brain.cached_input_tokens || 0));
+        summary.output_tokens += Math.max(0, Number(brain.output_tokens || 0));
+        summary.estimated_cost_usd += Math.max(0, Number(brain.estimated_cost_usd || 0));
+        return summary;
+      }, { calls: 0, input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0 });
+      state.practiceUsage = usage;
       practiceMetrics.innerHTML = [
         ["已完成", completed],
         ["可直接批准", passed],
         ["建议 Flow", flow],
         ["转人工", human],
-        ["失败", failed]
+        ["失败", failed],
+        ["API 费用", `US$${usage.estimated_cost_usd.toFixed(2)}`]
       ].map(([label, value]) => `<div class="practice-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`).join("");
     }
 
@@ -8722,6 +8748,7 @@
               <span>风险：${escapeHtml(result.risk_level || "未标记")}</span>
               <span>人工：${result.needs_human ? "需要" : "不需要"}</span>
               <span>大脑：${escapeHtml(brainLabel)}</span>
+              ${result.uses_openai ? `<span>费用：US$${Math.max(0, Number(brain.estimated_cost_usd || 0)).toFixed(4)}</span>` : ""}
               ${result.notes.length ? `<span>${escapeHtml(result.notes.join("；"))}</span>` : ""}
             </div>
           </article>`;
@@ -8769,7 +8796,7 @@
         title: "确认开始 100 题 AI 实战",
         summary: "这是高消耗测试：AI 会扮演 100 位顾客并逐题生成回复。",
         scope: "100 个不同顾客场景",
-        calls: "最多约 101 次模型调用（含必要的上线检查）",
+        calls: "预计 US$6–US$15；极长回复上限约 US$25。最多约 100 次付费模型调用",
         model: "当前 AI Reply 路由模型",
         cache: "只对本次草稿有效；设置未改变可查看旧成绩",
         boundary: "全部是预演，不发真实讯息、不触发 Flow；失败不会自动重跑。",
@@ -8785,6 +8812,7 @@
         state.practicePassed = false;
         state.practiceAttestedVersionNo = 0;
         state.practiceResults = [];
+        state.practiceUsage = { calls: 0, input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0 };
         state.practicePage = 1;
         publishConfirm.checked = false;
         renderPracticeAvailability(initialReadiness, false);
@@ -8852,8 +8880,8 @@
         practiceResultSummary.className = `status ${state.practicePassed ? "ok" : "bad"}`;
         practiceProgressLabel.textContent = state.practicePassed ? "100 题实战完成" : "实战完成，发现需要调整的场景";
         practiceProgressNote.textContent = state.practicePassed
-          ? "所有场景保持零发送、零 Flow 触发；Owner 可确认上线。"
-          : "请查看失败场景，调整客服设置或项目资料后重新运行。";
+          ? `所有场景保持零发送、零 Flow 触发；本轮实际约 US$${Number(state.practiceUsage?.estimated_cost_usd || 0).toFixed(2)}，Owner 可确认上线。`
+          : `本轮实际约 US$${Number(state.practiceUsage?.estimated_cost_usd || 0).toFixed(2)}；请查看失败场景，调整设置或资料后重新运行。`;
         renderPracticeResults();
       } catch (error) {
         practiceResultSummary.textContent = error.message || "AI 实战暂时无法运行";
