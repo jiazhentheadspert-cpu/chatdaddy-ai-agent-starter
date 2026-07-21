@@ -5190,6 +5190,32 @@
         .filter(Boolean))];
     }
 
+    function flowLearningMediaKindLabel(kind = "") {
+      const value = String(kind || "").toLowerCase();
+      if (value === "image") return "图片";
+      if (value === "audio" || value === "voice") return "语音";
+      if (value === "video") return "视频";
+      return "媒体";
+    }
+
+    function flowLearningPlatformIssueMessage(item = {}) {
+      const targetLabel = firstNonEmpty(item?.target_label, item?.flow_label, item?.flow_key, "这个 Flow");
+      const mediaKind = flowLearningMediaKindLabel(firstNonEmpty(item?.media_kind, item?.source_kind, item?.kind));
+      const errorCode = firstNonEmpty(item?.error_code, item?.code, item?.message);
+      if (/(?:insufficient_quota|billing_hard_limit)/i.test(errorCode)) {
+        return `${targetLabel} 的${mediaKind}需要 OpenAI 学习额度处理；平台管理员需检查 API 账单或额度，项目方无需修改 Flow。`;
+      }
+      if (/(?:invalid_api_key|account_deactivated|organization_restricted)/i.test(errorCode)) {
+        return `${targetLabel} 的${mediaKind}无法使用当前 OpenAI API Key 处理；平台管理员需检查 API Key 或项目权限，项目方无需修改 Flow。`;
+      }
+      return firstNonEmpty(
+        item?.public_message,
+        targetLabel && mediaKind
+          ? `${targetLabel} 的${mediaKind}处理失败已记录，平台技术人员会处理；项目方无需修改 Flow。`
+          : "系统学习异常已记录，平台技术人员会处理；项目方无需修改 Flow。"
+      );
+    }
+
     function flowLearningDisplayIssues(learning = {}, exceptions = []) {
       const activeRegistryIssues = (Array.isArray(learning.issue_log) ? learning.issue_log : [])
         .filter((item) => item?.status && item.status !== "resolved");
@@ -5202,7 +5228,9 @@
           messages.push(`系统正在自动重新处理 ${systemRetrying.length} 个媒体内容，项目方无需操作。`);
         }
         if (systemAdmin.length) {
-          messages.push(`${systemAdmin.length} 个系统异常已自动记录，平台技术人员会处理；项目方无需修改 Flow。`);
+          messages.push(...systemAdmin
+            .map(flowLearningPlatformIssueMessage)
+            .filter(Boolean));
         }
         messages.push(...ownerActions
           .map((item) => firstNonEmpty(item?.public_message, "有一项 Flow 资料需要项目负责人处理。"))
@@ -5578,12 +5606,14 @@
         : '<div class="review-empty">没有异常。</div>';
       flowLearningExceptions.innerHTML = `${warningMarkup}${issueMarkup}`;
       flowLearningIssueSummary.hidden = issueMessages.length === 0;
+      const activeIssueMessages = flowLearningDisplayIssues(learning, exceptions);
+      const firstSystemAdminMessage = activeIssueMessages.find((message) => /平台|OpenAI|API|技术人员/.test(message)) || "";
       flowLearningIssueHeadline.textContent = ownerActionCount > 0
         ? `需要项目方处理 ${ownerActionCount} 项`
         : systemRetryingCount > 0
           ? `系统正在自动处理 ${systemRetryingCount} 项`
-          : systemAdminCount > 0
-            ? `平台已记录 ${systemAdminCount} 项系统异常`
+        : systemAdminCount > 0
+            ? firstSystemAdminMessage || `平台已记录 ${systemAdminCount} 项系统异常`
             : issueMessages.length === 1
               ? "还有 1 项需要处理"
               : `还有 ${issueMessages.length} 项需要处理`;
