@@ -6823,6 +6823,27 @@
       return String(match?.[1] || "").split("、")[0].trim();
     }
 
+    function documentRelearnErrorStorageKey() {
+      return `replypilot_document_relearn_error:${currentProjectKey() || "unknown"}`;
+    }
+
+    function rememberedDocumentRelearnError() {
+      try {
+        return String(sessionStorage.getItem(documentRelearnErrorStorageKey()) || "").trim();
+      } catch {
+        return "";
+      }
+    }
+
+    function rememberDocumentRelearnError(message = "") {
+      try {
+        if (message) sessionStorage.setItem(documentRelearnErrorStorageKey(), String(message));
+        else sessionStorage.removeItem(documentRelearnErrorStorageKey());
+      } catch {
+        // Browser storage is optional; the visible page still keeps the current error.
+      }
+    }
+
     function showDocumentRelearnTarget() {
       const target = currentDocumentRelearnTarget();
       state.documentRelearnMode = true;
@@ -6834,10 +6855,11 @@
       beginnerSupplement.open = false;
       documentRelearnCard.hidden = false;
       documentRelearnName.textContent = target || "需要补学的项目文件";
-      documentRelearnStatus.textContent = target
+      const rememberedError = rememberedDocumentRelearnError();
+      documentRelearnStatus.textContent = rememberedError || (target
         ? `请重新选择「${target}」。不会要求你重做六问。`
-        : "请重新选择上线检查列出的项目文件。";
-      documentRelearnStatus.className = "document-relearn-status";
+        : "请重新选择上线检查列出的项目文件。");
+      documentRelearnStatus.className = `document-relearn-status${rememberedError ? " bad" : ""}`;
       window.setTimeout(() => documentRelearnCard.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
     }
 
@@ -6870,6 +6892,7 @@
       });
       if (!result) return;
       state.documentRelearnMode = false;
+      rememberDocumentRelearnError("");
       document.getElementById("businessPanel")?.classList.remove("document-relearn-mode");
       documentRelearnStatus.textContent = "文件已用当前学习模型补学；正在自动重跑免费上线检查。";
       documentRelearnStatus.className = "document-relearn-status ok";
@@ -6897,11 +6920,18 @@
       const pages = Math.max(1, Number(preflight.page_count || local.pages));
       const media = Math.max(0, Number(preflight.media_count ?? local.media));
       const model = preflight.models?.document_analysis || {};
+      const paidCalls = preflight.estimated_paid_calls || {};
+      const mediaBatches = Math.max(0, Number(paidCalls.media_batches || 0));
+      const finalIntegrations = Math.max(0, Number(paidCalls.final_integration || 0));
+      const totalCalls = Math.max(1, Number(paidCalls.total || 0));
+      const callDescription = mediaBatches
+        ? `${pages} 页 · ${media} 个页面媒体 · ${mediaBatches} 批视觉理解 + ${finalIntegrations} 次统一整合（共 ${totalCalls} 次付费调用）`
+        : `${pages} 页 · ${media} 个页面媒体 · 共 ${totalCalls} 次付费调用`;
       return requestPaidAiConfirmation({
         title: options.relearnDocument ? "确认补学这个文件" : "确认分析项目文件",
         summary: `预计 US$${low.toFixed(2)}–US$${high.toFixed(2)}。确认后才调用 OpenAI；实际费用以 API 账单为准。`,
         scope: file.name || preflight.file_name || "当前文件",
-        calls: `${pages} 页 · ${media} 个页面媒体 · 执行 1 次文件学习`,
+        calls: callDescription,
         model: `${model.model || "gpt-5.6-sol"} · ${model.reasoning_effort || "当前项目学习等级"}`,
         cache: options.relearnDocument ? "只替换这份文件的旧模型学习记录" : "相同文件且已用当前模型学完时不会重跑",
         boundary: "只生成草稿；不发讯息、不触发 Flow、不发布，失败不自动重试。",
@@ -6937,9 +6967,11 @@
         extracted = extracted || await extractProjectDocumentContent(file);
       } catch (error) {
         setDocumentStatus("无法读取文件", "bad");
-        documentResult.textContent = ownerFacingLearningError(error);
+        const ownerError = ownerFacingLearningError(error);
+        documentResult.textContent = ownerError;
         if (options.relearnDocument) {
-          documentRelearnStatus.textContent = ownerFacingLearningError(error);
+          rememberDocumentRelearnError(ownerError);
+          documentRelearnStatus.textContent = ownerError;
           documentRelearnStatus.className = "document-relearn-status bad";
         }
         return null;
@@ -6979,6 +7011,14 @@
             }
             return null;
           }
+          if (options.relearnDocument) {
+            const calls = error.data.cost_preflight.estimated_paid_calls || {};
+            const batches = Math.max(0, Number(calls.media_batches || 0));
+            documentRelearnStatus.textContent = batches
+              ? `正在执行 ${batches} 批页面视觉理解，完成后再统一整合；失败不会写入草稿。`
+              : "正在用当前学习模型分析这份文件；失败不会写入草稿。";
+            documentRelearnStatus.className = "document-relearn-status";
+          }
           data = await apiPost(endpoint, {
             ...payload,
             confirm_paid_ai: true,
@@ -7001,9 +7041,11 @@
         return data;
       } catch (error) {
         setDocumentStatus("资料处理失败", "bad");
-        documentResult.textContent = ownerFacingLearningError(error);
+        const ownerError = ownerFacingLearningError(error);
+        documentResult.textContent = ownerError;
         if (options.relearnDocument) {
-          documentRelearnStatus.textContent = ownerFacingLearningError(error);
+          rememberDocumentRelearnError(ownerError);
+          documentRelearnStatus.textContent = ownerError;
           documentRelearnStatus.className = "document-relearn-status bad";
         }
         return null;
@@ -7054,11 +7096,36 @@
 
     function ownerFacingLearningError(error) {
       const code = String(error?.data?.error || error?.data?.code || error?.message || error || "");
+      const data = error?.data || {};
+      const mode = String(data.analysis_mode || "");
       if (code.includes("source_brand_conflict")) {
         return "已阻止 · 品牌冲突：这份资料可能属于另一个项目，请确认来源后再学习。";
       }
       if (/source_copy_weakening_forbidden|protected_claim_weakening|protected_claim_weakened/.test(code)) {
         return "已阻止 · 原话被弱化：效果、CTA、价格或配套原话不能被降低强度或改写。";
+      }
+      if (code.includes("document_media_analysis_failed")) {
+        const reason = /openai_http_429|insufficient_quota|rate_limit/i.test(mode)
+          ? "OpenAI 额度或速率限制"
+          : /openai_http_400/i.test(mode)
+            ? "模型拒绝了这批输入"
+            : /openai_incomplete:max_output_tokens/i.test(mode)
+              ? "模型输出达到上限"
+              : /coverage_incomplete/i.test(mode)
+                ? "页面覆盖不完整"
+                : /SyntaxError/i.test(mode)
+                  ? "模型返回格式不完整"
+                  : "模型分析中断";
+        const failedStage = String(data.failed_stage || "");
+        if (failedStage === "page_vision_batch") {
+          const failedBatch = Number(data.failed_batch || 0);
+          const totalBatches = Number(data.total_batches || 0);
+          return `补学未完成 · 第 ${failedBatch || "?"}/${totalBatches || "?"} 批页面视觉理解失败（${reason}）。没有写入学习草稿，也没有自动重试或产生额外发送。`;
+        }
+        if (failedStage === "final_integration") {
+          return `补学未完成 · 页面已经读取，但统一整合失败（${reason}）。没有写入学习草稿，也没有发送或触发 Flow。`;
+        }
+        return `补学未完成 · 文件分析失败（${reason}）。没有写入学习草稿，也没有发送或触发 Flow。`;
       }
       return error?.message || String(error);
     }
