@@ -3402,11 +3402,11 @@
           </div>
           <div class="practice-filters" id="practiceFilters" hidden>
             <button class="practice-filter active" type="button" data-practice-filter="all">全部 0</button>
-            <button class="practice-filter" type="button" data-practice-filter="direct">预计直接回复 0</button>
-            <button class="practice-filter" type="button" data-practice-filter="flow">预计接 Flow 0</button>
-            <button class="practice-filter" type="button" data-practice-filter="human">应转人工 0</button>
-            <button class="practice-filter" type="button" data-practice-filter="attention">需留意 0</button>
-            <button class="practice-filter" type="button" data-practice-filter="ai_check">正式 AI 待验证 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="direct">自动回复 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="flow">自动回复 + Flow 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="human">客服核对 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="attention">需要调整 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="ai_check">等待实战验证 0</button>
           </div>
           <div class="practice-result-list" id="practiceResultList">
             <div class="practice-empty">先做 US$0 预检；确认路线后再开始付费 AI 实战。</div>
@@ -3414,7 +3414,7 @@
 
           <label class="confirm" id="beginnerPublishConfirmWrap" hidden>
             <input id="publishConfirm" type="checkbox">
-            我已查看 AI 实战结果；启用后 AI Reply 仍按当前客服审批模式运行。
+            我已查看 AI 实战结果；启用后普通问题会自动回复，并在价格前自动接下一条真实 ChatDaddy Flow；健康、付款、退款、投诉、隐私与看不清媒体仍交由客服核对。
           </label>
           <div class="actions" id="beginnerPublishActions" hidden>
             <button class="btn primary" type="button" id="publishProjectButton" disabled>确认上线并进入 AI Reply</button>
@@ -3550,6 +3550,7 @@
         }
       ]
     };
+    const PRACTICE_CARD_SCHEMA_VERSION = 2;
     const state = {
       template: null,
       preview: null,
@@ -3603,7 +3604,8 @@
       practicePage: 1,
       practicePassed: false,
       practiceAttestedVersionNo: 0,
-      practiceCustomizationLoaded: false
+      practiceCustomizationLoaded: false,
+      practiceForecastAutoBuilt: false
     };
 
     const setupForm = document.getElementById("setupForm");
@@ -9137,7 +9139,12 @@
       if (!state.practicePassed && currentVersion > 0) {
         try {
           const stored = JSON.parse(localStorage.getItem(`replypilot_practice:${currentProjectKey()}:${currentVersion}`) || "null");
-          if (stored?.passed === true && Number(stored?.sample_count || 0) === 100 && Number(stored?.failed_count || 0) === 0) {
+          if (
+            Number(stored?.schema_version || 0) === PRACTICE_CARD_SCHEMA_VERSION
+            && stored?.passed === true
+            && Number(stored?.sample_count || 0) === 100
+            && Number(stored?.failed_count || 0) === 0
+          ) {
             state.practicePassed = true;
             state.practiceAttestedVersionNo = currentVersion;
             practiceResultSummary.textContent = "100 / 100 已通过（本草稿版本）";
@@ -9170,6 +9177,20 @@
       } else {
         practiceStatus.textContent = "可以开始";
         practiceStatus.className = "status";
+      }
+      const hasLegacyPracticeCards = state.practiceResults.some((result) => (
+        String(result?.next_action || "") === "create_approval_case"
+        || String(result?.route_label || "") === "应转人工"
+        || (result?.forecast === true && !String(result?.reply_text || "").trim())
+      ));
+      if (
+        canPreflight
+        && !state.practiceBusy
+        && !state.practiceForecastAutoBuilt
+        && (state.practiceResults.length !== 100 || hasLegacyPracticeCards)
+      ) {
+        state.practiceForecastAutoBuilt = true;
+        queueMicrotask(() => runFreePracticePreflight());
       }
     }
 
@@ -9461,6 +9482,7 @@
       }
 
       const predictedReady = route !== "attention";
+      const previewReply = practiceSourceBackedPreviewReply(scenario, route, projectPackage);
       return {
         scenario,
         data: {},
@@ -9471,18 +9493,82 @@
         predicted_ready: predictedReady,
         passed: predictedReady,
         safe: true,
-        reply_text: "",
+        reply_text: previewReply,
         needs_human: route === "human",
         flow_recommended: route === "flow",
         flow_key: flowKey,
         next_action: expectedAction,
         risk_level: route === "human" ? "需人工" : route === "attention" ? "需留意" : "规则可覆盖",
         uses_openai: false,
-        ai_check: route !== "human",
+        ai_check: false,
         ai_brain: {},
         source_label: "Project Brain + 真实 Flow 绑定 + 安全规则",
         notes
       };
+    }
+
+    function practiceSourceBackedPreviewReply(scenario = {}, route = "direct", projectPackage = {}) {
+      const text = String(scenario.text || "").trim();
+      const lower = text.toLowerCase();
+      const brandName = firstNonEmpty(
+        projectPackage?.brand_brain?.brand_name,
+        projectPackage?.brand_brain?.project_name,
+        projectPackage?.project_name,
+        "Beyoute Plus+"
+      );
+      if (route === "human") {
+        if (scenario.unreadable_media) return "这段图片、语音或视频目前看不清楚，麻烦你重发清楚一点；如果还是无法确认，我马上请客服接手。";
+        if (/退款|投诉|律师|refund|complaint/i.test(text)) return "收到，我先停止自动跟进，并请客服马上核对你的退款或投诉资料。";
+        if (/付款|已付款|收据|receipt|订单|tracking|地址|cod|grabpay/i.test(lower)) return "收到，我先请客服核对你的付款、订单或收件资料，确认后马上回复你。";
+        if (/孕妇|怀孕|备孕|哺乳|吃药|疾病|不舒服|副作用|过敏|高血压|糖尿病|pregnan|medication/i.test(lower)) return "这个情况涉及个人健康与用药，我先请客服按项目批准资料帮你核对，不会直接猜答案。";
+        return "收到，我马上请客服接手这段对话。";
+      }
+      if (scenario.media_type) {
+        return `我已经看懂你发来的${scenario.media_type === "image" ? "图片" : scenario.media_type === "audio" ? "语音" : "视频"}，会直接按画面或内容回答你的问题。`;
+      }
+      if (/饭前|before\s*meal|sebelum\s*makan/i.test(lower)) {
+        return "建议饭前 15–30 分钟，用冷水或室温水冲泡后饮用。";
+      }
+      if (/一天.*几次|喝几次|every\s*day|berapa\s*kali/i.test(lower)) {
+        return "按照项目资料，一天饮用 1 次；建议饭前 15–30 分钟冲泡饮用。";
+      }
+      if (/怎样喝|怎么喝|cara\s*minum|cara\s*bancuh|冷水/i.test(lower)) {
+        return "用冷水或室温水冲泡就可以，建议饭前 15–30 分钟饮用。";
+      }
+      if (/多久.*效果|多久.*见效|how\s*long/i.test(lower)) {
+        return "项目资料说明是一个月内见效；我也会继续跟进你的体重、腹部、肤色和排便变化。";
+      }
+      if (/少运动|不运动|rarely\s*exercise/i.test(lower)) {
+        return "可以，项目资料的定位就是日常保养型饮品；按照建议冲泡和饮用就可以。";
+      }
+      if (/适合什么人|for\s*weight\s*management|产品.*什么|是什么来的|untuk\s*apa/i.test(lower)) {
+        return `${brandName} 是加强版 Kombucha 日常保养饮品，项目资料主打瘦身、排毒、美白和食欲管理。`;
+      }
+      if (/先简单介绍|第一次看到|first\s*time/i.test(lower)) {
+        return `${brandName} 是加强版 Kombucha 冲泡饮品，项目资料主打瘦身、排毒、美白和食欲管理；你现在最想改善哪一个问题？`;
+      }
+      if (/瘦\s*5\s*kg|目标|哪里开始|where\s*to\s*start/i.test(lower)) {
+        return "可以先从你目前的体重、目标公斤数和最想改善的部位开始，我会按你的目标继续介绍下一步。";
+      }
+      if (/成分|ingredient/i.test(lower)) {
+        return "项目资料说明配方在法国研发，并包含白芸豆、水溶性膳食纤维、藤黄果等成分。";
+      }
+      if (/节食|diet/i.test(lower)) {
+        return "项目资料的原话是不需要节食；照建议饮用，再维持正常饮食习惯就可以。";
+      }
+      if (/反弹/i.test(lower)) {
+        return "项目资料的原话是不容易反弹；AI 会保留这个表达，不会自行弱化或偷换意思。";
+      }
+      if (/价格|多少钱|配套|优惠|贵|price|harga|package|shopee/i.test(lower)) {
+        return "我会直接依据当前已绑定的真实价格图、配套与优惠回答，并继续推进下一步。";
+      }
+      if (/不要再|停止跟进|stop|unsubscribe/i.test(lower)) {
+        return "好的，我会停止后续跟进，不再发送下一条 Flow。";
+      }
+      if (/ok|可以|还有呢|send\s*me\s*next|boleh\s*sambung|\?/i.test(lower)) {
+        return "可以，我继续接着你目前的 Step 往下说明。";
+      }
+      return "我会直接按照已经学完并发布的项目资料回答这道问题，不新增未批准承诺。";
     }
 
     function practiceRouteLabel(route) {
@@ -9755,7 +9841,7 @@
             <div class="practice-chips">
               ${chips.map((chip) => `<span class="practice-chip">${escapeHtml(chip)}</span>`).join("")}
             </div>
-            ${result.forecast ? "" : `<div><p><b>AI 回复</b></p><p class="practice-reply">${escapeHtml(result.reply_text || replyFallback)}</p></div>`}
+            <div><p><b>${result.forecast ? "AI 回复（已学资料预览）" : "AI 回复"}</b></p><p class="practice-reply">${escapeHtml(result.reply_text || replyFallback)}</p></div>
             <div class="practice-expected-action"><b>回复后下一步</b><br>${escapeHtml(businessNextAction)}</div>
             ${(route === "human" || route === "attention") && result.notes.length
               ? `<div class="practice-business-note">${escapeHtml(result.notes.join("；"))}</div>`
@@ -9914,6 +10000,7 @@
             `replypilot_practice:${projectKey}:${state.practiceAttestedVersionNo}`,
             JSON.stringify({
               passed: true,
+              schema_version: PRACTICE_CARD_SCHEMA_VERSION,
               sample_count: 100,
               failed_count: 0,
               completed_at: new Date().toISOString()
