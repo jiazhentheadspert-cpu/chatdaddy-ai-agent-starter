@@ -3550,7 +3550,7 @@
         }
       ]
     };
-    const PRACTICE_CARD_SCHEMA_VERSION = 3;
+    const PRACTICE_CARD_SCHEMA_VERSION = 4;
     const state = {
       template: null,
       preview: null,
@@ -9363,7 +9363,10 @@
         group.messages.forEach((message, index) => {
           const profile = profiles[index % profiles.length];
           const mediaType = group.media_type || "";
-          const unreadableMedia = mediaType && [5, 7].includes(index);
+          const unreadableMedia = Boolean(
+            mediaType
+            && /(?:看不清|声音太小|太模糊|无法确认)/i.test(message)
+          );
           const attachments = mediaType ? [{
             type: mediaType,
             name: `practice-${groupIndex + 1}-${index + 1}.${mediaType === "image" ? "jpg" : mediaType === "audio" ? "ogg" : "mp4"}`
@@ -9514,6 +9517,9 @@
         projectPackage?.project_name,
         "Beyoute Plus+"
       );
+      if (/(?:会不会|有没有|是否有|any).{0,12}(?:副作用|side\s*effect)|(?:副作用|side\s*effect).{0,8}(?:吗|么|\?|？)/i.test(lower)) {
+        return "项目资料的原话是无副作用、不容易反弹、素食友好、无防腐剂；我会保留这个表达。";
+      }
       if (route === "human") {
         if (scenario.unreadable_media) return "这段图片、语音或视频目前看不清楚，麻烦你重发清楚一点；如果还是无法确认，我马上请客服接手。";
         if (/退款|投诉|律师|refund|complaint/i.test(text)) return "收到，我先停止自动跟进，并请客服马上核对你的退款或投诉资料。";
@@ -9547,6 +9553,9 @@
       }
       if (/瘦\s*5\s*kg|目标|哪里开始|where\s*to\s*start/i.test(lower)) {
         return "可以先从你目前的体重、目标公斤数和最想改善的部位开始，我会按你的目标继续介绍下一步。";
+      }
+      if (/肚子.*难瘦|腹部.*难瘦|顽固腹部|顽固肚腩/i.test(lower)) {
+        return "可以，Beyoute Plus+ 的项目资料包含腹部与体重管理方向；我先了解你的目前体重、目标公斤数和最想改善的部位，再继续下一步。";
       }
       if (/成分|ingredient/i.test(lower)) {
         return "项目资料说明配方在法国研发，并包含白芸豆、水溶性膳食纤维、藤黄果等成分。";
