@@ -1434,6 +1434,31 @@
       transition: width 240ms ease;
     }
 
+    @keyframes flowLearningStripeMove {
+      from { background-position: 0 0; }
+      to { background-position: 28px 0; }
+    }
+
+    @keyframes flowLearningPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(165, 105, 24, 0.08); }
+      50% { box-shadow: 0 0 0 4px rgba(165, 105, 24, 0.14); }
+    }
+
+    .flow-learning-retry-track.is-active > span {
+      background-color: var(--amber);
+      background-image: repeating-linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.3) 0 8px,
+        rgba(255, 255, 255, 0.05) 8px 16px
+      );
+      background-size: 28px 28px;
+      animation: flowLearningStripeMove 0.75s linear infinite, flowLearningPulse 1.8s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flow-learning-retry-track.is-active > span { animation: none; }
+    }
+
     .flow-learning-retry-progress small {
       color: var(--muted);
       font-size: 11px;
@@ -3227,6 +3252,7 @@
       flowLearningBusy: false,
       flowLearningJob: null,
       flowLearningJobPollTimer: null,
+      flowLearningJobMotionTimer: null,
       flowLearningJobProjectKey: "",
       flowLearningAutoRequested: false,
       flowLearningAutoRetryTimer: null,
@@ -5470,17 +5496,47 @@
       }
       state.flowLearningRetryProgressTimer = null;
       flowLearningRetryProgress.hidden = true;
+      flowLearningRetryTrack.classList.remove("is-active");
     }
 
     function flowLearningJobActive(job = state.flowLearningJob) {
       return Boolean(job?.active) && ["queued", "running", "failed"].includes(String(job?.status || ""));
     }
 
+    function compactElapsed(ms = 0) {
+      const seconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+      if (seconds < 60) return `${seconds}秒`;
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}分${String(seconds % 60).padStart(2, "0")}秒`;
+      return `${Math.floor(minutes / 60)}小时${minutes % 60}分`;
+    }
+
+    function formatEstimatedUsd(value) {
+      const amount = Number(value || 0);
+      if (!Number.isFinite(amount) || amount <= 0) return "";
+      return `US$${amount < 0.01 ? amount.toFixed(4) : amount.toFixed(2)}`;
+    }
+
+    function flowLearningPreflightCostText(job = state.flowLearningJob) {
+      const estimate = job?.paid_ai_preflight?.estimated_cost || {};
+      const mediaCount = Math.max(0, Number(job?.paid_ai_preflight?.media_to_process_count || 0));
+      const low = Number(estimate.low_usd || (0.05 + mediaCount * 0.001));
+      const high = Number(estimate.high_usd || (1.25 + mediaCount * 0.04));
+      return low > 0 && high >= low
+        ? `预计 ${formatEstimatedUsd(low)}–${formatEstimatedUsd(high)}`
+        : "";
+    }
+
     function stopFlowLearningJobPolling() {
       if (state.flowLearningJobPollTimer) {
         clearInterval(state.flowLearningJobPollTimer);
       }
+      if (state.flowLearningJobMotionTimer) {
+        clearInterval(state.flowLearningJobMotionTimer);
+      }
       state.flowLearningJobPollTimer = null;
+      state.flowLearningJobMotionTimer = null;
+      flowLearningRetryTrack.classList.remove("is-active");
     }
 
     function renderFlowLearningJobProgress(job = state.flowLearningJob) {
@@ -5499,14 +5555,27 @@
         retrying: "等待负责人确认"
       };
       flowLearningRetryProgress.hidden = false;
-      flowLearningRetryAttempt.textContent = `AI 学习进度 ${Math.round(percent)}%`;
-      flowLearningRetryCountdown.textContent = phaseLabels[progress.phase] || "处理中";
+      flowLearningRetryTrack.classList.add("is-active");
+      const startedMs = Date.parse(job?.started_at || job?.created_at || "");
+      const updatedMs = Date.parse(progress.updated_at || job?.updated_at || "");
+      const elapsedText = Number.isFinite(startedMs) ? compactElapsed(Date.now() - startedMs) : "";
+      const heartbeatText = Number.isFinite(updatedMs) ? compactElapsed(Date.now() - updatedMs) : "";
+      const runningCost = formatEstimatedUsd(job?.api_usage?.estimated_cost_usd || progress.estimated_cost_usd);
+      const costText = runningCost ? `本次已用约 ${runningCost}` : flowLearningPreflightCostText(job);
+      flowLearningRetryAttempt.textContent = `AI 学习进度 ${Math.round(percent)}%${elapsedText ? ` · 已运行 ${elapsedText}` : ""}`;
+      flowLearningRetryCountdown.textContent = `${phaseLabels[progress.phase] || "处理中"} · 运行中`;
       flowLearningRetryTrack.setAttribute("aria-valuemin", "0");
       flowLearningRetryTrack.setAttribute("aria-valuemax", "100");
       flowLearningRetryTrack.setAttribute("aria-valuenow", String(Math.round(percent)));
       flowLearningRetryFill.style.width = `${Math.max(2, percent)}%`;
-      flowLearningRetryNote.textContent = progress.message
+      const baseNote = progress.message
         || (total > 0 ? `已完成 ${completed}/${total} 项；关闭页面也会继续。` : "关闭页面也会继续，不会重复收费。");
+      flowLearningRetryNote.textContent = [
+        baseNote,
+        heartbeatText ? `最近更新 ${heartbeatText}前` : "",
+        costText,
+        runningCost ? "账单以 OpenAI Billing 为准" : ""
+      ].filter(Boolean).join(" · ");
       return true;
     }
 
@@ -5556,6 +5625,9 @@
       state.flowLearningJobPollTimer = setInterval(() => {
         refreshFlowLearningJobStatus({ silent: true });
       }, 4000);
+      state.flowLearningJobMotionTimer = setInterval(() => {
+        renderFlowLearningJobProgress(state.flowLearningJob);
+      }, 1000);
     }
 
     function flowLearningRetryCountdownText(nextRetryAt = "") {
@@ -5637,7 +5709,9 @@
         flowLearningSubline.textContent = hasActiveJob
           ? "后台会继续读取 Step、价格、Payment、Follow Up 与媒体。"
           : "读取 Step 1 至价格后的 Follow Up。";
-        flowLearningMediaLine.textContent = "";
+        const activeCost = formatEstimatedUsd(state.flowLearningJob?.api_usage?.estimated_cost_usd);
+        flowLearningMediaLine.hidden = !activeCost;
+        flowLearningMediaLine.textContent = activeCost ? `本次学习已用约 ${activeCost}（OpenAI Billing 为准）` : "";
         flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml();
         flowLearningStatus.textContent = hasActiveJob || state.flowLearningBusy ? "AI 学习中" : "等待连接";
         flowLearningStatus.className = "status";
@@ -5705,7 +5779,14 @@
       flowLearningSubline.textContent = selectionChanged
         ? `${selectedSalesStepCount} 个销售 Step · 价格在 ${selectedPreview?.priceStageKey || "待识别"} · 价格后 ${selectedFollowUpCount} 个 Follow Up`
         : `${summary.sales_step_count || learning.sales_steps.length} 个销售 Step · 价格在 ${summary.price_stage_key || "待识别"} · 价格后 ${summary.follow_up_count || learning.follow_ups.length} 个 Follow Up`;
-      flowLearningMediaLine.textContent = "";
+      const completedCost = formatEstimatedUsd(
+        learning.raw?.api_usage?.estimated_cost_usd
+        || state.flowLearningJob?.api_usage?.estimated_cost_usd
+      );
+      flowLearningMediaLine.hidden = !completedCost;
+      flowLearningMediaLine.textContent = completedCost
+        ? `本次学习已用约 ${completedCost}（OpenAI Billing 为准）`
+        : "";
       flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml(selectionChanged ? null : learning);
       flowLearningStatus.textContent = statusText;
       flowLearningStatus.className = `status ${ready ? "ok" : selectionChanged || learning.content_status === "content_unavailable" || issueMessages.length ? "bad" : ""}`;
@@ -5831,15 +5912,19 @@
       const finalModel = preflight.models?.final_integration || {};
       const mediaModel = preflight.models?.media || {};
       const mediaCountKnown = Number(preflight.known_media_count || 0) > 0;
+      const estimate = preflight.estimated_cost || {};
+      const estimateLow = Number(estimate.low_usd || (0.05 + mediaCalls * 0.001));
+      const estimateHigh = Number(estimate.high_usd || (1.25 + mediaCalls * 0.04));
+      const estimatedRange = `预计 ${formatEstimatedUsd(estimateLow)}–${formatEstimatedUsd(estimateHigh)} · `;
       return requestPaidAiConfirmation({
         title: preflight.action === "retry_failed_media_and_integrate"
           ? "确认重试未完成媒体"
           : "确认开始 AI 学习",
         summary: "只有点击确认后才会调用付费模型。本次确认只执行一次，失败不会自动再次收费。",
         scope: `${selectedFlows || "已选择"} 个 Flow${mediaCalls ? ` · ${mediaCalls} 个未完成媒体` : ""}`,
-        calls: mediaCountKnown
+        calls: `${estimatedRange}${mediaCountKnown
           ? `${mediaCalls} 次媒体处理 + 1 次大脑整合`
-          : "读取后按未缓存媒体数处理 + 1 次大脑整合",
+          : "读取后按未缓存媒体数处理 + 1 次大脑整合"}`,
         model: `${finalModel.model || "项目学习模型"} · ${finalModel.reasoning_effort || "默认"}`,
         cache: mediaCountKnown
           ? `${Number(preflight.cached_media_count || 0)} 个媒体已缓存；媒体用 ${mediaModel.model || "轻量模型"}`
