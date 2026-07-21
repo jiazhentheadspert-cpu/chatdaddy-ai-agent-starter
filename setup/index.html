@@ -4340,16 +4340,23 @@
       const reviewSummary = state.learningReview?.summary || {};
       const guideSummary = state.connectionGuide?.summary || {};
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
-      const salesValidationReady = Boolean(packageData?.metadata?.sales_journey_owner_reviewed_at)
-        && Array.isArray(packageData?.sales_process?.stages)
-        && packageData.sales_process.stages.length > 0;
+      const salesValidationReady = Array.isArray(packageData?.sales_process?.stages)
+        && packageData.sales_process.stages.length > 0
+        && (
+          Boolean(packageData?.metadata?.sales_journey_owner_reviewed_at)
+          || packageData?.sales_flow_learning?.owner_review?.approved === true
+        );
       const contractErrors = Array.isArray(state.replyContract?.validation?.errors) ? state.replyContract.validation.errors.length : null;
       const mockTests = state.mockResult?.owner_content?.tests || state.mockResult?.suites?.owner_content?.tests || [];
       const mockFailed = Number(state.mockResult?.suites?.owner_content?.failed_count ?? state.mockResult?.owner_content?.failed_count ?? 0);
       const technicalDone = {
         business: Boolean(state.created?.project_key || state.existingProject?.project_key),
         materials: Number(state.documentKnowledge?.counts?.source_documents || packageData?.source_documents?.length || 0) > 0,
-        review: Number(reviewSummary.total_items || 0) > 0 && Number(reviewSummary.pending_items || 0) === 0,
+        review: Number(reviewSummary.pending_items || 0) === 0
+          && (
+            Number(reviewSummary.total_items || 0) > 0
+            || state.flowLearning?.owner_approved === true
+          ),
         sales: salesValidationReady,
         contract: contractErrors === 0,
         channel: guideSummary.api_connected === true
@@ -4370,9 +4377,7 @@
       const teachReady = flowReady && understandingReady;
       const reviewReady = teachReady
         && state.flowLearning?.owner_approved === true
-        && technicalDone.review
-        && technicalDone.sales
-        && technicalDone.contract;
+        && technicalDone.review;
       const revisionState = currentBrainRevisionState();
       const launchReadiness = currentPublishReadiness();
       const currentRevisionActive = state.activation?.ready_for_ai_reply === true
@@ -6256,7 +6261,11 @@
         }
         beginnerConfirmButton.hidden = true;
         flowConfirmationResult.textContent = "检查完成，进入第 4 步。";
+        state.onboardingManualPhase = "use";
         updateOnboardingProgress();
+        window.setTimeout(() => {
+          document.getElementById("learningLoopPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 40);
       } catch (error) {
         flowConfirmationResult.textContent = `还不能确认：${error.message || error}`;
       } finally {
@@ -8145,9 +8154,12 @@
       );
       const mockBoundToCurrentVersion = currentVersionNo > 0
         && Number(state.mockAttestedVersionNo || 0) === currentVersionNo;
-      const salesReviewed = Boolean(packageData?.metadata?.sales_journey_owner_reviewed_at)
-        && Array.isArray(packageData?.sales_process?.stages)
-        && packageData.sales_process.stages.length > 0;
+      const salesReviewed = Array.isArray(packageData?.sales_process?.stages)
+        && packageData.sales_process.stages.length > 0
+        && (
+          Boolean(packageData?.metadata?.sales_journey_owner_reviewed_at)
+          || packageData?.sales_flow_learning?.owner_review?.approved === true
+        );
       const contractReady = Array.isArray(state.replyContract?.validation?.errors)
         && state.replyContract.validation.errors.length === 0;
       const ready = pending === 0
