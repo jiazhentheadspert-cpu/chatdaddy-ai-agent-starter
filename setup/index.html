@@ -5519,9 +5519,22 @@
 
     function flowLearningPreflightCostText(job = state.flowLearningJob) {
       const estimate = job?.paid_ai_preflight?.estimated_cost || {};
-      const mediaCount = Math.max(0, Number(job?.paid_ai_preflight?.media_to_process_count || 0));
-      const low = Number(estimate.low_usd || (0.05 + mediaCount * 0.001));
-      const high = Number(estimate.high_usd || (1.25 + mediaCount * 0.04));
+      const mediaCount = Math.max(0, Number(
+        job?.paid_ai_preflight?.estimated_media_count
+        || job?.paid_ai_preflight?.media_to_process_count
+        || 0
+      ));
+      const selectedFlowCount = Math.max(0, Number(job?.paid_ai_preflight?.selected_flow_count || 0));
+      const mediaModel = String(job?.paid_ai_preflight?.models?.media?.model || "");
+      const solVision = /^gpt-5\.6-sol(?:-|$)/i.test(mediaModel);
+      const fallbackLow = solVision
+        ? 0.35 + (selectedFlowCount * 0.01) + (mediaCount * 0.04)
+        : 0.05 + (selectedFlowCount * 0.003) + (mediaCount * 0.005);
+      const fallbackHigh = solVision
+        ? 2.25 + (selectedFlowCount * 0.05) + (mediaCount * 0.25)
+        : 1.25 + (selectedFlowCount * 0.02) + (mediaCount * 0.04);
+      const low = Number(estimate.low_usd || fallbackLow);
+      const high = Number(estimate.high_usd || fallbackHigh);
       return low > 0 && high >= low
         ? `预计 ${formatEstimatedUsd(low)}–${formatEstimatedUsd(high)}`
         : "";
