@@ -5783,10 +5783,15 @@
         learning.raw?.api_usage?.estimated_cost_usd
         || state.flowLearningJob?.api_usage?.estimated_cost_usd
       );
-      flowLearningMediaLine.hidden = !completedCost;
+      const completedEstimate = !completedCost && state.flowLearningJob?.id
+        ? flowLearningPreflightCostText(state.flowLearningJob)
+        : "";
+      flowLearningMediaLine.hidden = !completedCost && !completedEstimate;
       flowLearningMediaLine.textContent = completedCost
         ? `本次学习已用约 ${completedCost}（OpenAI Billing 为准）`
-        : "";
+        : completedEstimate
+          ? `${completedEstimate}（旧任务未保存 usage；OpenAI Billing 为准）`
+          : "";
       flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml(selectionChanged ? null : learning);
       flowLearningStatus.textContent = statusText;
       flowLearningStatus.className = `status ${ready ? "ok" : selectionChanged || learning.content_status === "content_unavailable" || issueMessages.length ? "bad" : ""}`;
