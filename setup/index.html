@@ -1076,6 +1076,41 @@
       gap: 16px;
     }
 
+    .practice-free-preflight {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px;
+      border: 1px solid rgba(0, 168, 150, 0.3);
+      border-radius: 12px;
+      background: linear-gradient(135deg, #effdfa, #f4f8ff);
+    }
+
+    .practice-free-preflight h3,
+    .practice-free-preflight p {
+      margin: 0;
+    }
+
+    .practice-free-preflight p {
+      margin-top: 7px;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .practice-free-badge {
+      display: inline-flex;
+      margin-bottom: 9px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: #087c70;
+      background: #dcf8f3;
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0.02em;
+    }
+
     .practice-card,
     .practice-result-card {
       padding: 18px;
@@ -1147,7 +1182,7 @@
 
     .practice-metrics {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 10px;
     }
 
@@ -1176,19 +1211,179 @@
 
     .practice-result-list {
       display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
     }
 
     .practice-result-card {
-      display: grid;
-      grid-template-columns: 210px minmax(0, 1fr) 190px;
-      gap: 16px;
-      border-left: 5px solid var(--teal);
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 13px;
+      border-top: 5px solid var(--teal);
+      box-shadow: 0 10px 28px rgba(9, 53, 58, 0.06);
+    }
+
+    .practice-result-card.route-flow {
+      border-top-color: var(--blue);
+    }
+
+    .practice-result-card.route-human {
+      border-top-color: #b8730e;
+      background: #fffaf1;
+    }
+
+    .practice-result-card.route-attention {
+      border-top-color: var(--danger);
+      background: #fff7f7;
     }
 
     .practice-result-card.failed {
-      border-left-color: var(--danger);
+      border-top-color: var(--danger);
       background: #fffafa;
+    }
+
+    .practice-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .practice-customer-wrap {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .practice-avatar {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid #a8e1ee;
+      border-radius: 12px;
+      color: #073c42;
+      background: #e7f9ff;
+      font-weight: 950;
+    }
+
+    .practice-route-label {
+      flex: 0 0 auto;
+      padding: 6px 9px;
+      border-radius: 999px;
+      color: #087c70;
+      background: #e4faf5;
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .route-flow .practice-route-label {
+      color: #225dc2;
+      background: #eaf1ff;
+    }
+
+    .route-human .practice-route-label {
+      color: #8b560d;
+      background: #fff0d7;
+    }
+
+    .route-attention .practice-route-label {
+      color: #a53030;
+      background: #ffe4e4;
+    }
+
+    .practice-last-message {
+      min-height: 116px;
+      padding: 14px;
+      border: 1px solid #dce9e9;
+      border-radius: 10px;
+      background:
+        linear-gradient(rgba(12, 107, 117, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(12, 107, 117, 0.045) 1px, transparent 1px),
+        #fbfefe;
+      background-size: 28px 28px;
+    }
+
+    .practice-last-message span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .practice-last-message strong {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+      font-size: 17px;
+      line-height: 1.4;
+    }
+
+    .practice-chips,
+    .practice-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .practice-chip,
+    .practice-filter {
+      padding: 6px 9px;
+      border: 1px solid #bde8df;
+      border-radius: 999px;
+      color: #087c70;
+      background: #effcf8;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .practice-filter {
+      cursor: pointer;
+    }
+
+    .practice-filter.active {
+      color: white;
+      border-color: #08696d;
+      background: #08696d;
+    }
+
+    .practice-expected-action {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--ink);
+      font-weight: 900;
+      line-height: 1.45;
+    }
+
+    .practice-details {
+      border-radius: 9px;
+      color: var(--muted);
+      background: #f6f9f9;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .practice-details summary {
+      padding: 10px 12px;
+      cursor: pointer;
+      color: var(--ink);
+      font-weight: 900;
+    }
+
+    .practice-details-body {
+      display: grid;
+      gap: 7px;
+      padding: 0 12px 12px;
+    }
+
+    .practice-details-body p {
+      margin: 0;
     }
 
     .practice-customer {
@@ -2313,6 +2508,10 @@
       .flow-learning-route {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
+
+      .practice-result-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     @media (max-width: 980px) {
@@ -2376,8 +2575,13 @@
       }
 
       .practice-intro,
-      .practice-result-card {
+      .practice-result-list {
         grid-template-columns: 1fr;
+      }
+
+      .practice-free-preflight {
+        align-items: flex-start;
+        flex-direction: column;
       }
 
       .practice-metrics {
@@ -3100,6 +3304,15 @@
             </div>
           </div>
 
+          <div class="practice-free-preflight">
+            <div>
+              <span class="practice-free-badge">US$0 · 不调用 OpenAI</span>
+              <h3>先看 100 张预计结果卡片</h3>
+              <p>使用当前项目资料、真实 Flow 绑定与安全规则检查路线；不生成真实 AI 文案。</p>
+            </div>
+            <button class="btn primary" type="button" id="runPracticePreflightButton">先做 US$0 预检</button>
+          </div>
+
           <form class="practice-card practice-controls" id="practiceCustomizationForm">
             <label>
               客服人设
@@ -3149,7 +3362,7 @@
             </label>
             <div class="actions full">
               <button class="btn" type="button" id="savePracticeCustomizationButton">只保存设置</button>
-              <button class="btn primary" type="button" id="runPracticeButton">保存并开始 100 题实战</button>
+              <button class="btn primary" type="button" id="runPracticeButton">保存并开始付费 AI 实战</button>
             </div>
           </form>
 
@@ -3175,7 +3388,7 @@
 
           <div class="practice-result-actions">
             <div>
-              <b>实战结果</b>
+              <b>100 张场景卡片</b>
               <span class="status" id="practiceResultSummary">尚未运行</span>
             </div>
             <div class="practice-pagination" id="practicePagination" hidden>
@@ -3184,8 +3397,16 @@
               <button class="btn" type="button" id="practiceNextButton">下一页</button>
             </div>
           </div>
+          <div class="practice-filters" id="practiceFilters" hidden>
+            <button class="practice-filter active" type="button" data-practice-filter="all">全部 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="direct">预计直接回复 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="flow">预计接 Flow 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="human">应转人工 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="attention">需留意 0</button>
+            <button class="practice-filter" type="button" data-practice-filter="ai_check">正式 AI 待验证 0</button>
+          </div>
           <div class="practice-result-list" id="practiceResultList">
-            <div class="practice-empty">完成上线检查后，点击「保存并开始 100 题实战」。</div>
+            <div class="practice-empty">先做 US$0 预检；确认路线后再开始付费 AI 实战。</div>
           </div>
 
           <label class="confirm" id="beginnerPublishConfirmWrap" hidden>
@@ -3374,6 +3595,8 @@
       practiceBusy: false,
       practiceResults: [],
       practiceUsage: { calls: 0, input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0 },
+      practiceMode: "empty",
+      practiceFilter: "all",
       practicePage: 1,
       practicePassed: false,
       practiceAttestedVersionNo: 0,
@@ -3501,6 +3724,7 @@
     const practiceHandoffMode = document.getElementById("practiceHandoffMode");
     const practiceCustomInstructions = document.getElementById("practiceCustomInstructions");
     const savePracticeCustomizationButton = document.getElementById("savePracticeCustomizationButton");
+    const runPracticePreflightButton = document.getElementById("runPracticePreflightButton");
     const runPracticeButton = document.getElementById("runPracticeButton");
     const practiceProgress = document.getElementById("practiceProgress");
     const practiceProgressLabel = document.getElementById("practiceProgressLabel");
@@ -3510,6 +3734,7 @@
     const practiceProgressNote = document.getElementById("practiceProgressNote");
     const practiceMetrics = document.getElementById("practiceMetrics");
     const practiceResultSummary = document.getElementById("practiceResultSummary");
+    const practiceFilters = document.getElementById("practiceFilters");
     const practiceResultList = document.getElementById("practiceResultList");
     const practicePagination = document.getElementById("practicePagination");
     const practicePrevButton = document.getElementById("practicePrevButton");
@@ -3558,7 +3783,9 @@
     publishConfirm.addEventListener("change", updatePublishButton);
     publishProjectButton.addEventListener("click", publishCurrentProjectBrain);
     savePracticeCustomizationButton.addEventListener("click", savePracticeCustomization);
+    runPracticePreflightButton.addEventListener("click", runFreePracticePreflight);
     runPracticeButton.addEventListener("click", runAiPractice);
+    practiceFilters.addEventListener("click", handlePracticeFilter);
     practicePrevButton.addEventListener("click", () => changePracticePage(-1));
     practiceNextButton.addEventListener("click", () => changePracticePage(1));
     beginnerGoLiveIssues.addEventListener("click", handleGoLiveIssueAction);
@@ -4621,6 +4848,8 @@
       state.practicePassed = false;
       state.practiceAttestedVersionNo = 0;
       state.practiceResults = [];
+      state.practiceMode = "empty";
+      state.practiceFilter = "all";
       state.practicePage = 1;
       publishConfirm.checked = false;
     }
@@ -8879,6 +9108,8 @@
         }
       }
       const ready = readiness.ready || published;
+      const canPreflight = Boolean(currentProjectKey()) && Object.keys(packageData).length > 0;
+      runPracticePreflightButton.disabled = state.practiceBusy || !canPreflight;
       savePracticeCustomizationButton.disabled = state.practiceBusy || !ready || published;
       runPracticeButton.disabled = state.practiceBusy || !ready || published;
       if (published) {
@@ -8892,6 +9123,9 @@
         practiceStatus.className = "status";
       } else if (state.practicePassed) {
         practiceStatus.textContent = "100 题已完成";
+        practiceStatus.className = "status ok";
+      } else if (state.practiceMode === "forecast" && state.practiceResults.length === 100) {
+        practiceStatus.textContent = "US$0 预检完成";
         practiceStatus.className = "status ok";
       } else {
         practiceStatus.textContent = "可以开始";
@@ -9115,6 +9349,138 @@
       return scenarios.slice(0, 100);
     }
 
+    function forecastPracticeScenario(scenario, projectPackage = {}) {
+      const process = projectPackage?.sales_process || {};
+      const stages = Array.isArray(process.stages) ? process.stages.filter((item) => item?.active !== false) : [];
+      const currentStageIndex = stages.findIndex((item) => String(item?.stage_key || "") === String(scenario.stage || ""));
+      const nextStage = currentStageIndex >= 0 ? stages[currentStageIndex + 1] : null;
+      const gate = flowLearningNextGateState();
+      const selectionReady = flowSelectionConfirmed();
+      const semanticReady = flowLearningSemanticReady();
+      const customization = currentPracticeCustomization();
+      const customInstructionConflict = /因人而异|不保证|不能保证|不一定|可能没效果|降低效果|弱化/i.test(customization.custom_instructions || "");
+      const paymentNeedsReview = /付款截图|已经付款|paid already|confirm|没有订购|转账失败|地址|下单/i.test(scenario.text || "");
+      const stopFollowUp = /不要再跟进|不要再发|stop|unsubscribe/i.test(scenario.text || "");
+      const notes = [];
+      let route = "direct";
+      let expectedAction = "回答顾客当前问题，并保持项目人设与已批准原话。";
+      let flowKey = "";
+
+      if (scenario.expect_human || scenario.unreadable_media || paymentNeedsReview) {
+        route = "human";
+        expectedAction = scenario.unreadable_media
+          ? "媒体内容无法可靠读取，请顾客重发或由客服接手。"
+          : paymentNeedsReview
+            ? "涉及付款、订单或顾客资料，由客服核对后处理。"
+            : "命中健康、退款、投诉、隐私或指定人工边界，直接转人工。";
+        notes.push("安全边界要求人工确认");
+      } else if (stopFollowUp) {
+        route = "direct";
+        expectedAction = "确认停止跟进；不再发送下一 Flow 或 Follow Up。";
+        notes.push("顾客明确要求停止跟进");
+      } else if (scenario.expect_flow) {
+        flowKey = firstNonEmpty(nextStage?.selected_flow_title, nextStage?.title, nextStage?.purpose, nextStage?.stage_key);
+        if (!selectionReady || !semanticReady || !flowKey) {
+          route = "attention";
+          expectedAction = "应先回答问题再接下一 Flow，但当前绑定或内容理解仍需检查。";
+          if (!selectionReady) notes.push("Flow 选择尚未完整确认");
+          if (!semanticReady) notes.push("Flow 媒体或语义理解尚未完整");
+          if (!flowKey) notes.push("找不到当前 Step 对应的下一 Flow");
+        } else {
+          route = "flow";
+          expectedAction = `先回答顾客问题，再建议接「${flowKey}」；此预检不会真的触发。`;
+          notes.push("销售路线要求回答后进入下一 Step");
+        }
+      } else if ((scenario.price_seen || /价格 Step/.test(scenario.category)) && !gate.hasPriceEvidence) {
+        route = "attention";
+        expectedAction = "价格或配套回复需要真实价格证据；当前不能可靠判断。";
+        notes.push("尚未找到价格证据");
+      } else if (scenario.media_type && !semanticReady) {
+        route = "attention";
+        expectedAction = "需要先确认图片、语音或视频内容已被完整理解。";
+        notes.push("媒体语义学习尚未完成");
+      } else if (scenario.price_seen) {
+        expectedAction = "回答异议 → 给信心 → 一个明确 CTA，避免重播已经看过的价格 Flow。";
+        notes.push("顾客已看价格，进入成交推进阶段");
+      } else if (/价格 Step/.test(scenario.category)) {
+        expectedAction = "依据真实价格图回答配套与优惠，并推进下一成交动作。";
+        notes.push(`价格证据来自 ${gate.priceStageKey || process.price_stage_key || "价格 Step"}`);
+      } else if (scenario.media_type) {
+        expectedAction = "先说明已理解的媒体内容，再回答顾客问题；不把媒体统称为附件。";
+        notes.push(`${scenario.media_type} 内容已具备可读摘要`);
+      } else {
+        notes.push("可由当前 Project Brain 与回复规则覆盖");
+      }
+
+      if (customInstructionConflict && route !== "human") {
+        route = "attention";
+        expectedAction = "额外回复规则可能弱化 ChatDaddy 原意，请先删除冲突内容。";
+        notes.push("检测到可能弱化原话的自定义规则");
+      }
+
+      const predictedReady = route !== "attention";
+      return {
+        scenario,
+        data: {},
+        decision: {},
+        forecast: true,
+        route,
+        route_label: practiceRouteLabel(route),
+        predicted_ready: predictedReady,
+        passed: predictedReady,
+        safe: true,
+        reply_text: "",
+        needs_human: route === "human",
+        flow_recommended: route === "flow",
+        flow_key: flowKey,
+        next_action: expectedAction,
+        risk_level: route === "human" ? "需人工" : route === "attention" ? "需留意" : "规则可覆盖",
+        uses_openai: false,
+        ai_check: route !== "human",
+        ai_brain: {},
+        source_label: "Project Brain + 真实 Flow 绑定 + 安全规则",
+        notes
+      };
+    }
+
+    function practiceRouteLabel(route) {
+      return ({
+        direct: "预计直接回复",
+        flow: "预计接 Flow",
+        human: "应转人工",
+        attention: "需留意"
+      })[route] || "正式 AI 待验证";
+    }
+
+    function runFreePracticePreflight() {
+      if (state.practiceBusy) return;
+      const projectPackage = state.salesPackageResponse?.project_package
+        || state.existingPackageResponse?.project_package
+        || null;
+      if (!projectPackage) {
+        practiceResultSummary.textContent = "请先完成项目资料读取";
+        practiceResultSummary.className = "status bad";
+        return;
+      }
+      state.practiceMode = "forecast";
+      state.practiceFilter = "all";
+      state.practicePage = 1;
+      state.practicePassed = false;
+      state.practiceAttestedVersionNo = 0;
+      state.practiceUsage = { calls: 0, input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0 };
+      const scenarios = buildPracticeScenarios(projectPackage);
+      state.practiceResults = scenarios.map((scenario) => forecastPracticeScenario(scenario, projectPackage));
+      const attentionCount = state.practiceResults.filter((result) => result.route === "attention").length;
+      updatePracticeProgress(100, 100, "US$0 路线预检完成");
+      practiceProgressNote.textContent = "未调用 OpenAI · 未发送顾客讯息 · 未触发 Flow · 未修改项目状态。";
+      practiceResultSummary.textContent = attentionCount
+        ? `100 张卡片已建立 · ${attentionCount} 张需留意`
+        : "100 张卡片已建立 · 路线规则未发现阻塞";
+      practiceResultSummary.className = `status ${attentionCount ? "bad" : "ok"}`;
+      renderPracticeResults();
+      renderPracticeAvailability(currentPublishReadiness(), false);
+    }
+
     function updatePracticeProgress(completed, total, label = "") {
       const percent = total ? Math.round((completed / total) * 100) : 0;
       practiceProgress.hidden = false;
@@ -9144,10 +9510,13 @@
       if (!humanExpectationMet) notes.push("高风险场景没有转人工");
       if (!flowExpectationMet) notes.push("回答后没有建议接下一 Flow");
       if (scenario.unreadable_media && !needsHuman) notes.push("看不清媒体却没有转人工");
+      const route = needsHuman ? "human" : flowRecommended ? "flow" : passed ? "direct" : "attention";
       return {
         scenario,
         data,
         decision,
+        route,
+        route_label: practiceRouteLabel(route),
         passed,
         safe,
         reply_text: replyText,
@@ -9157,6 +9526,7 @@
         next_action: decision.next_action || "",
         risk_level: decision.risk_level || "",
         uses_openai: data?.uses_openai === true,
+        ai_check: false,
         ai_brain: data?.ai_brain || decision?.flat_decision?.ai_brain || {},
         notes
       };
@@ -9165,6 +9535,22 @@
     function renderPracticeMetrics() {
       const results = state.practiceResults.filter(Boolean);
       const completed = results.length;
+      if (state.practiceMode === "forecast") {
+        const direct = results.filter((result) => result.route === "direct").length;
+        const flow = results.filter((result) => result.route === "flow").length;
+        const human = results.filter((result) => result.route === "human").length;
+        const attention = results.filter((result) => result.route === "attention").length;
+        state.practiceUsage = { calls: 0, input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0 };
+        practiceMetrics.innerHTML = [
+          ["场景卡片", completed],
+          ["预计直接回复", direct],
+          ["预计接 Flow", flow],
+          ["应转人工", human],
+          ["需留意", attention],
+          ["API 费用", "US$0.00"]
+        ].map(([label, value]) => `<div class="practice-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`).join("");
+        return;
+      }
       const passed = results.filter((result) => result.passed).length;
       const flow = results.filter((result) => result.flow_recommended).length;
       const human = results.filter((result) => result.needs_human).length;
@@ -9192,48 +9578,107 @@
     function renderPracticeResults() {
       renderPracticeMetrics();
       const results = state.practiceResults.filter(Boolean);
-      const pageSize = 10;
-      const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
+      const counts = {
+        all: results.length,
+        direct: results.filter((result) => result.route === "direct").length,
+        flow: results.filter((result) => result.route === "flow" || (!result.forecast && result.flow_recommended)).length,
+        human: results.filter((result) => result.route === "human" || (!result.forecast && result.needs_human)).length,
+        attention: results.filter((result) => result.route === "attention" || (!result.forecast && !result.passed)).length,
+        ai_check: results.filter((result) => result.ai_check === true).length
+      };
+      const filterLabels = {
+        all: "全部",
+        direct: "预计直接回复",
+        flow: "预计接 Flow",
+        human: "应转人工",
+        attention: "需留意",
+        ai_check: "正式 AI 待验证"
+      };
+      practiceFilters.hidden = !results.length;
+      practiceFilters.querySelectorAll("[data-practice-filter]").forEach((button) => {
+        const filter = button.dataset.practiceFilter || "all";
+        button.classList.toggle("active", filter === state.practiceFilter);
+        button.textContent = `${filterLabels[filter] || filter} ${counts[filter] || 0}`;
+      });
+      const filtered = results.filter((result) => {
+        if (state.practiceFilter === "all") return true;
+        if (state.practiceFilter === "flow") return result.route === "flow" || (!result.forecast && result.flow_recommended);
+        if (state.practiceFilter === "human") return result.route === "human" || (!result.forecast && result.needs_human);
+        if (state.practiceFilter === "attention") return result.route === "attention" || (!result.forecast && !result.passed);
+        if (state.practiceFilter === "ai_check") return result.ai_check === true;
+        return result.route === state.practiceFilter;
+      });
+      const pageSize = 12;
+      const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
       state.practicePage = Math.max(1, Math.min(state.practicePage, pageCount));
       const start = (state.practicePage - 1) * pageSize;
-      const visible = results.slice(start, start + pageSize);
-      practicePagination.hidden = results.length <= pageSize;
+      const visible = filtered.slice(start, start + pageSize);
+      practicePagination.hidden = filtered.length <= pageSize;
       practicePageLabel.textContent = `${state.practicePage} / ${pageCount}`;
       practicePrevButton.disabled = state.practicePage <= 1;
       practiceNextButton.disabled = state.practicePage >= pageCount;
       if (!visible.length) {
-        practiceResultList.innerHTML = '<div class="practice-empty">尚未产生实战结果。</div>';
+        practiceResultList.innerHTML = '<div class="practice-empty">这个筛选暂时没有卡片。</div>';
         return;
       }
       practiceResultList.innerHTML = visible.map((result) => {
         const scenario = result.scenario;
         const brain = result.ai_brain || {};
+        const route = result.route || (result.needs_human ? "human" : result.flow_recommended ? "flow" : result.passed ? "direct" : "attention");
+        const routeLabel = result.route_label || practiceRouteLabel(route);
         const brainLabel = result.uses_openai
           ? `${brain.tier || "AI"} · ${brain.model || "当前模型"}`
-          : "规则大脑";
+          : result.forecast ? "US$0 规则预检" : "规则大脑";
+        const initials = String(scenario.customer_name || "顾客").replace(/\s+/g, "").slice(0, 2).toUpperCase();
+        const chips = [
+          scenario.stage ? `阶段 ${scenario.stage}` : "",
+          scenario.media_type ? `${scenario.media_type}${scenario.unreadable_media ? "不可读" : "已读"}` : "文字",
+          result.flow_recommended ? "建议 Flow" : "",
+          result.needs_human ? "人工接管" : "",
+          result.ai_check ? "正式 AI 待验证" : ""
+        ].filter(Boolean);
         return `
-          <article class="practice-result-card ${result.passed ? "" : "failed"}">
-            <div>
-              <h3>${escapeHtml(scenario.category)}</h3>
-              <p class="practice-customer">${escapeHtml(scenario.customer_name)} · ${escapeHtml(scenario.profile.style)}</p>
-              <p><b>顾客：</b>${escapeHtml(scenario.text)}</p>
-              ${scenario.media_type ? `<p><b>媒体：</b>${escapeHtml(scenario.media_type)}${scenario.unreadable_media ? " · 无法可靠读取" : " · 已理解"}</p>` : ""}
+          <article class="practice-result-card route-${escapeHtml(route)} ${result.passed ? "" : "failed"}">
+            <div class="practice-card-head">
+              <div class="practice-customer-wrap">
+                <div class="practice-avatar" aria-hidden="true">${escapeHtml(initials)}</div>
+                <div>
+                  <h3>${escapeHtml(scenario.customer_name)}</h3>
+                  <p class="practice-customer">${escapeHtml(scenario.category)} · ${escapeHtml(scenario.profile.style)}</p>
+                </div>
+              </div>
+              <span class="practice-route-label">${escapeHtml(routeLabel)}</span>
             </div>
-            <div>
-              <p><b>AI 回复</b></p>
-              <p class="practice-reply">${escapeHtml(result.reply_text || "交由人工处理")}</p>
+            <div class="practice-last-message">
+              <span>顾客最后一句</span>
+              <strong>${escapeHtml(scenario.text)}</strong>
             </div>
-            <div class="practice-verdict">
-              <span>${result.passed ? "✓ 通过" : "需要调整"}</span>
-              <span>Flow：${escapeHtml(result.flow_key || (result.flow_recommended ? "建议继续" : "不建议"))}</span>
-              <span>风险：${escapeHtml(result.risk_level || "未标记")}</span>
-              <span>人工：${result.needs_human ? "需要" : "不需要"}</span>
-              <span>大脑：${escapeHtml(brainLabel)}</span>
-              ${result.uses_openai ? `<span>费用：US$${Math.max(0, Number(brain.estimated_cost_usd || 0)).toFixed(4)}</span>` : ""}
-              ${result.notes.length ? `<span>${escapeHtml(result.notes.join("；"))}</span>` : ""}
+            <div class="practice-chips">
+              ${chips.map((chip) => `<span class="practice-chip">${escapeHtml(chip)}</span>`).join("")}
             </div>
+            ${result.forecast ? "" : `<div><p><b>AI 回复</b></p><p class="practice-reply">${escapeHtml(result.reply_text || "交由人工处理")}</p></div>`}
+            <div class="practice-expected-action">${escapeHtml(result.next_action || "等待正式 AI 实战验证回复与动作。")}</div>
+            <details class="practice-details">
+              <summary>查看判断依据</summary>
+              <div class="practice-details-body">
+                <p>风险：${escapeHtml(result.risk_level || "未标记")}</p>
+                <p>Flow：${escapeHtml(result.flow_key || (result.flow_recommended ? "建议继续" : "不建议"))}</p>
+                <p>大脑：${escapeHtml(brainLabel)}</p>
+                ${result.source_label ? `<p>依据：${escapeHtml(result.source_label)}</p>` : ""}
+                ${result.uses_openai ? `<p>费用：US$${Math.max(0, Number(brain.estimated_cost_usd || 0)).toFixed(4)}</p>` : ""}
+                ${result.notes.length ? `<p>${escapeHtml(result.notes.join("；"))}</p>` : ""}
+              </div>
+            </details>
           </article>`;
       }).join("");
+    }
+
+    function handlePracticeFilter(event) {
+      const button = event.target.closest("[data-practice-filter]");
+      if (!button) return;
+      state.practiceFilter = button.dataset.practiceFilter || "all";
+      state.practicePage = 1;
+      renderPracticeResults();
     }
 
     function changePracticePage(delta) {
@@ -9293,6 +9738,8 @@
         state.practicePassed = false;
         state.practiceAttestedVersionNo = 0;
         state.practiceResults = [];
+        state.practiceMode = "paid";
+        state.practiceFilter = "all";
         state.practiceUsage = { calls: 0, input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, estimated_cost_usd: 0 };
         state.practicePage = 1;
         publishConfirm.checked = false;
@@ -9318,6 +9765,8 @@
                 scenario,
                 data: error?.data || {},
                 decision: {},
+                route: "attention",
+                route_label: practiceRouteLabel("attention"),
                 passed: false,
                 safe: true,
                 reply_text: "",
@@ -9327,6 +9776,7 @@
                 next_action: "",
                 risk_level: "",
                 uses_openai: false,
+                ai_check: false,
                 ai_brain: {},
                 notes: [error.message || "预演失败"]
               };
