@@ -8183,6 +8183,9 @@
       if (/六问业务教学|业务资料|项目资料/i.test(text)) {
         return { message: text, target: "businessPanel", phase: "teach", label: "去补项目资料" };
       }
+      if (/ppt|pdf|文件|document.*learning|current model|current reasoning/i.test(text)) {
+        return { message: text, target: "businessPanel", phase: "teach", label: "去补学文件" };
+      }
       if (/资料需要确认|owner 验收|学习审核/i.test(text)) {
         return { message: text, target: "learningReviewPanel", phase: "review", label: "去确认资料" };
       }
@@ -8243,6 +8246,9 @@
         ...failedTests.map((test) => {
           const text = test?.fix || test?.label || test?.name;
           const issue = publishReadinessIssue(text);
+          if (String(test?.name || "") === "document_learning_current_model_valid") {
+            return { ...issue, target: "businessPanel", phase: "teach", label: "去补学文件" };
+          }
           if (String(test?.group || "").includes("infrastructure") || String(test?.name || "").includes("learning")) {
             return { ...issue, target: "learningReviewPanel", phase: "review", label: "去完成确认" };
           }
