@@ -528,6 +528,105 @@
       opacity: 0.58;
     }
 
+    .paid-ai-dialog {
+      width: min(620px, calc(100vw - 32px));
+      padding: 0;
+      border: 0;
+      border-radius: 16px;
+      color: var(--ink);
+      background: white;
+      box-shadow: 0 24px 80px rgba(3, 38, 45, 0.28);
+    }
+
+    .paid-ai-dialog::backdrop {
+      background: rgba(3, 24, 29, 0.58);
+      backdrop-filter: blur(3px);
+    }
+
+    .paid-ai-dialog-body {
+      display: grid;
+      gap: 16px;
+      padding: 24px;
+    }
+
+    .paid-ai-dialog-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .paid-ai-dialog-head h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .paid-ai-badge {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: 1px solid #efc982;
+      border-radius: 999px;
+      color: #9a5b00;
+      background: #fff8e9;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .paid-ai-summary {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.55;
+    }
+
+    .paid-ai-facts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0;
+    }
+
+    .paid-ai-facts div {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f8fbfb;
+    }
+
+    .paid-ai-facts dt {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .paid-ai-facts dd {
+      margin: 5px 0 0;
+      font-weight: 950;
+      line-height: 1.4;
+    }
+
+    .paid-ai-boundary {
+      padding: 12px 14px;
+      border-left: 4px solid var(--teal);
+      border-radius: 8px;
+      color: #075666;
+      background: #ecfbff;
+      font-weight: 850;
+      line-height: 1.5;
+    }
+
+    .paid-ai-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    @media (max-width: 620px) {
+      .paid-ai-facts { grid-template-columns: 1fr; }
+      .paid-ai-dialog-actions { flex-direction: column-reverse; }
+      .paid-ai-dialog-actions .btn { width: 100%; }
+    }
+
     .confirm {
       display: flex;
       align-items: center;
@@ -2416,21 +2515,21 @@
               <span id="flowLearningIssueHeadline">还有内容需要处理</span>
               <div class="flow-learning-retry-progress" id="flowLearningRetryProgress" hidden>
                 <div class="flow-learning-retry-meta">
-                  <b id="flowLearningRetryAttempt">自动处理轮次</b>
-                  <span id="flowLearningRetryCountdown">等待系统处理</span>
+                  <b id="flowLearningRetryAttempt">待确认处理</b>
+                  <span id="flowLearningRetryCountdown">不会自动收费</span>
                 </div>
                 <div
                   class="flow-learning-retry-track"
                   id="flowLearningRetryTrack"
                   role="progressbar"
-                  aria-label="系统媒体自动处理轮次"
+                  aria-label="未完成媒体处理状态"
                   aria-valuemin="1"
                   aria-valuemax="4"
                   aria-valuenow="1"
                 >
                   <span id="flowLearningRetryFill"></span>
                 </div>
-                <small id="flowLearningRetryNote">系统会自动完成，项目方无需操作。</small>
+                <small id="flowLearningRetryNote">需要负责人确认费用后才会重试。</small>
               </div>
             </div>
             <button class="btn" type="button" id="showFlowLearningIssuesButton" aria-expanded="false" aria-controls="flowLearningIssueList">查看缺什么</button>
@@ -2974,6 +3073,29 @@
     </main>
   </div>
 
+  <dialog class="paid-ai-dialog" id="paidAiConfirmDialog" aria-labelledby="paidAiConfirmTitle">
+    <div class="paid-ai-dialog-body">
+      <div class="paid-ai-dialog-head">
+        <div>
+          <h2 id="paidAiConfirmTitle">确认付费 AI 操作</h2>
+        </div>
+        <span class="paid-ai-badge">会消耗 API 额度</span>
+      </div>
+      <p class="paid-ai-summary" id="paidAiConfirmSummary">请确认本次处理范围。</p>
+      <dl class="paid-ai-facts">
+        <div><dt>处理范围</dt><dd id="paidAiConfirmScope">—</dd></div>
+        <div><dt>预计调用</dt><dd id="paidAiConfirmCalls">—</dd></div>
+        <div><dt>最终整合模型</dt><dd id="paidAiConfirmModel">—</dd></div>
+        <div><dt>重复保护</dt><dd id="paidAiConfirmCache">已完成内容不会重跑</dd></div>
+      </dl>
+      <div class="paid-ai-boundary" id="paidAiConfirmBoundary">不会发送顾客讯息、不会触发 Flow，也不会自动重试。</div>
+      <div class="paid-ai-dialog-actions">
+        <button class="btn" type="button" id="paidAiCancelButton">取消</button>
+        <button class="btn primary" type="button" id="paidAiApproveButton">确认并执行一次</button>
+      </div>
+    </div>
+  </dialog>
+
   <script>
     const params = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -3110,6 +3232,7 @@
       flowLearningAutoRetryTimer: null,
       flowLearningAutoRetryKey: "",
       flowLearningRetryProgressTimer: null,
+      paidAiConfirmationResolve: null,
       protectedSourceRevision: "",
       onboardingHydrated: false,
       onboardingPhaseDone: { flow: false, teach: false, review: false, use: false, practice: false },
@@ -3178,6 +3301,16 @@
     const reonboardingResult = document.getElementById("reonboardingResult");
     const currentFlowTopology = document.getElementById("currentFlowTopology");
     const learnChatdaddyFlowsButton = document.getElementById("learnChatdaddyFlowsButton");
+    const paidAiConfirmDialog = document.getElementById("paidAiConfirmDialog");
+    const paidAiConfirmTitle = document.getElementById("paidAiConfirmTitle");
+    const paidAiConfirmSummary = document.getElementById("paidAiConfirmSummary");
+    const paidAiConfirmScope = document.getElementById("paidAiConfirmScope");
+    const paidAiConfirmCalls = document.getElementById("paidAiConfirmCalls");
+    const paidAiConfirmModel = document.getElementById("paidAiConfirmModel");
+    const paidAiConfirmCache = document.getElementById("paidAiConfirmCache");
+    const paidAiConfirmBoundary = document.getElementById("paidAiConfirmBoundary");
+    const paidAiCancelButton = document.getElementById("paidAiCancelButton");
+    const paidAiApproveButton = document.getElementById("paidAiApproveButton");
     const acceptDetectedPriceStageButton = document.getElementById("acceptDetectedPriceStageButton");
     const flowLearningHeadline = document.getElementById("flowLearningHeadline");
     const flowLearningSubline = document.getElementById("flowLearningSubline");
@@ -3273,6 +3406,12 @@
     expectedPriceStage.addEventListener("change", handleExpectedTopologyChange);
     startReonboardingButton.addEventListener("click", startReonboardingDraft);
     learnChatdaddyFlowsButton.addEventListener("click", () => requestChatdaddyFlowLearning({ force: true }));
+    paidAiCancelButton.addEventListener("click", () => closePaidAiConfirmation(false));
+    paidAiApproveButton.addEventListener("click", () => closePaidAiConfirmation(true));
+    paidAiConfirmDialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closePaidAiConfirmation(false);
+    });
     showFlowLearningIssuesButton.addEventListener("click", toggleFlowLearningIssues);
     acceptDetectedPriceStageButton.addEventListener("click", acceptDetectedPriceStage);
     refreshReadinessButton.addEventListener("click", refreshConnectionReadiness);
@@ -5225,7 +5364,7 @@
         const systemAdmin = activeRegistryIssues.filter((item) => item.status === "system_admin_required");
         const ownerActions = activeRegistryIssues.filter((item) => item.status === "owner_action_required");
         if (systemRetrying.length) {
-          messages.push(`系统正在自动重新处理 ${systemRetrying.length} 个媒体内容，项目方无需操作。`);
+          messages.push(`${systemRetrying.length} 个媒体内容尚未完成；确认费用后只重试这些项目。`);
         }
         if (systemAdmin.length) {
           messages.push(...systemAdmin
@@ -5357,11 +5496,11 @@
         understanding_media: "正在理解图片、语音或视频",
         semantic_analysis: "AI 理解成交路线",
         saving_draft: "保存学习草稿",
-        retrying: "后台自动重试"
+        retrying: "等待负责人确认"
       };
       flowLearningRetryProgress.hidden = false;
       flowLearningRetryAttempt.textContent = `AI 学习进度 ${Math.round(percent)}%`;
-      flowLearningRetryCountdown.textContent = phaseLabels[progress.phase] || "后台处理中";
+      flowLearningRetryCountdown.textContent = phaseLabels[progress.phase] || "处理中";
       flowLearningRetryTrack.setAttribute("aria-valuemin", "0");
       flowLearningRetryTrack.setAttribute("aria-valuemax", "100");
       flowLearningRetryTrack.setAttribute("aria-valuenow", String(Math.round(percent)));
@@ -5404,7 +5543,7 @@
         if (!options.silent) {
           flowLearningHeadline.textContent = "暂时无法读取学习进度";
           flowLearningSubline.textContent = error.message || String(error);
-          flowLearningStatus.textContent = "自动重试";
+          flowLearningStatus.textContent = "请重试读取";
           flowLearningStatus.className = "status bad";
         }
         return null;
@@ -5421,7 +5560,7 @@
 
     function flowLearningRetryCountdownText(nextRetryAt = "") {
       const targetMs = Date.parse(nextRetryAt || "");
-      if (!Number.isFinite(targetMs)) return "等待系统自动重试";
+      if (!Number.isFinite(targetMs)) return "等待负责人确认";
       const seconds = Math.max(0, Math.ceil((targetMs - Date.now()) / 1000));
       if (seconds <= 0) return state.flowLearningBusy ? "正在执行当前轮" : "后台正在处理";
       const minutes = Math.floor(seconds / 60);
@@ -5468,11 +5607,11 @@
           : flowLearningRetryCountdownText(summary.next_retry_at);
       };
       flowLearningRetryProgress.hidden = false;
-      flowLearningRetryAttempt.textContent = `自动处理轮次 ${currentAttempt}/${totalAttempts}`;
+      flowLearningRetryAttempt.textContent = `历史处理轮次 ${currentAttempt}/${totalAttempts}`;
       flowLearningRetryTrack.setAttribute("aria-valuemax", String(totalAttempts));
       flowLearningRetryTrack.setAttribute("aria-valuenow", String(currentAttempt));
       flowLearningRetryFill.style.width = `${attemptPercent}%`;
-      flowLearningRetryNote.textContent = `本轮已完成 ${completedMedia}/${totalMedia} 个媒体；页面关闭也会继续，超过重试次数会转交平台技术处理。`;
+      flowLearningRetryNote.textContent = `本轮已完成 ${completedMedia}/${totalMedia} 个媒体；剩余项目不会自动收费，需负责人确认后再处理。`;
       updateCountdown();
       state.flowLearningRetryProgressTimer = setInterval(updateCountdown, 1000);
     }
@@ -5611,7 +5750,7 @@
       flowLearningIssueHeadline.textContent = ownerActionCount > 0
         ? `需要项目方处理 ${ownerActionCount} 项`
         : systemRetryingCount > 0
-          ? `系统正在自动处理 ${systemRetryingCount} 项`
+          ? `${systemRetryingCount} 项等待确认后处理`
         : systemAdminCount > 0
             ? firstSystemAdminMessage || `平台已记录 ${systemAdminCount} 项系统异常`
             : issueMessages.length === 1
@@ -5661,6 +5800,55 @@
       renderBeginnerReviewContract();
     }
 
+    function closePaidAiConfirmation(approved) {
+      const resolve = state.paidAiConfirmationResolve;
+      state.paidAiConfirmationResolve = null;
+      if (paidAiConfirmDialog.open) paidAiConfirmDialog.close();
+      if (typeof resolve === "function") resolve(approved === true);
+    }
+
+    function requestPaidAiConfirmation(details = {}) {
+      if (state.paidAiConfirmationResolve) closePaidAiConfirmation(false);
+      paidAiConfirmTitle.textContent = details.title || "确认付费 AI 操作";
+      paidAiConfirmSummary.textContent = details.summary || "请确认本次处理范围。";
+      paidAiConfirmScope.textContent = details.scope || "当前项目";
+      paidAiConfirmCalls.textContent = details.calls || "至少 1 次付费模型调用";
+      paidAiConfirmModel.textContent = details.model || "按当前项目 AI 设置";
+      paidAiConfirmCache.textContent = details.cache || "已完成内容不会重复处理";
+      paidAiConfirmBoundary.textContent = details.boundary
+        || "不会发送顾客讯息、不会触发 Flow，也不会自动重试。";
+      paidAiApproveButton.textContent = details.confirmLabel || "确认并执行一次";
+      paidAiConfirmDialog.showModal();
+      return new Promise((resolve) => {
+        state.paidAiConfirmationResolve = resolve;
+      });
+    }
+
+    async function confirmFlowLearningCost(preflight = {}) {
+      const paidCalls = preflight.estimated_paid_calls || {};
+      const mediaCalls = Number(paidCalls.known_media_processing || 0);
+      const selectedFlows = Number(preflight.selected_flow_count || 0);
+      const finalModel = preflight.models?.final_integration || {};
+      const mediaModel = preflight.models?.media || {};
+      const mediaCountKnown = Number(preflight.known_media_count || 0) > 0;
+      return requestPaidAiConfirmation({
+        title: preflight.action === "retry_failed_media_and_integrate"
+          ? "确认重试未完成媒体"
+          : "确认开始 AI 学习",
+        summary: "只有点击确认后才会调用付费模型。本次确认只执行一次，失败不会自动再次收费。",
+        scope: `${selectedFlows || "已选择"} 个 Flow${mediaCalls ? ` · ${mediaCalls} 个未完成媒体` : ""}`,
+        calls: mediaCountKnown
+          ? `${mediaCalls} 次媒体处理 + 1 次大脑整合`
+          : "读取后按未缓存媒体数处理 + 1 次大脑整合",
+        model: `${finalModel.model || "项目学习模型"} · ${finalModel.reasoning_effort || "默认"}`,
+        cache: mediaCountKnown
+          ? `${Number(preflight.cached_media_count || 0)} 个媒体已缓存；媒体用 ${mediaModel.model || "轻量模型"}`
+          : `已有缓存会复用；媒体用 ${mediaModel.model || "轻量模型"}`,
+        boundary: "只读取并生成 Project Brain 草稿；不发讯息、不触发 Flow、不发布，失败不自动重试。",
+        confirmLabel: "确认费用并执行一次"
+      });
+    }
+
     async function requestChatdaddyFlowLearning(options = {}) {
       if (state.flowLearningBusy) return state.flowLearning;
       const projectKey = currentProjectKey();
@@ -5691,6 +5879,9 @@
           force: options.force === true,
           automatic_retry: options.automatic === true,
           retry_reason: firstNonEmpty(options.retry_reason),
+          confirm_paid_ai: options.confirmPaidAi === true,
+          cost_confirmation_nonce: firstNonEmpty(options.costConfirmationNonce),
+          cost_confirmation_fingerprint: firstNonEmpty(options.costConfirmationFingerprint),
           updated_by: "owner_beginner_onboarding"
         });
         if (data?.learning_job) {
@@ -5721,6 +5912,25 @@
         updateOnboardingProgress();
         return state.flowLearning;
       } catch (error) {
+        if (error?.data?.error === "paid_ai_confirmation_required" && error?.data?.cost_preflight) {
+          state.flowLearningBusy = false;
+          renderFlowLearning();
+          const approved = await confirmFlowLearningCost(error.data.cost_preflight);
+          if (approved) {
+            return requestChatdaddyFlowLearning({
+              ...options,
+              automatic: false,
+              confirmPaidAi: true,
+              costConfirmationNonce: error.data.cost_preflight.confirmation_nonce,
+              costConfirmationFingerprint: error.data.cost_preflight.confirmation_fingerprint
+            });
+          }
+          flowLearningHeadline.textContent = "已取消付费 AI 学习";
+          flowLearningSubline.textContent = "没有调用模型，也没有扣除本次学习费用。";
+          flowLearningStatus.textContent = "未执行";
+          flowLearningStatus.className = "status";
+          return null;
+        }
         const blockedLearning = hydrateFlowLearning(error?.data || {});
         if (blockedLearning) {
           updateOnboardingProgress();
@@ -5819,6 +6029,20 @@
         if (!faqUrl && !file && teachingText.length < 80 && !hasBusinessAnswer) {
           throw new Error("请至少贴一份 FAQ、加入一个文件，或写下你知道的项目内容。");
         }
+        const paidApproved = await requestPaidAiConfirmation({
+          title: "确认整理补充资料",
+          summary: "AI 会读取你这次提供的 FAQ、文件或项目说明，并保存为待检查草稿。",
+          scope: [faqUrl ? "FAQ" : "", file ? `文件 ${file.name}` : "", teachingText.length >= 80 ? "项目说明" : ""]
+            .filter(Boolean).join(" + ") || "补充资料",
+          calls: "按本次新增资料调用；未改变的 FAQ 会跳过",
+          model: "项目学习模型",
+          cache: "相同 FAQ 版本和已完成资料不会重复学习",
+          boundary: "只生成草稿；不发讯息、不触发 Flow、不发布，失败不自动重试。"
+        });
+        if (!paidApproved) {
+          beginnerLearningResult.textContent = "已取消，没有调用付费 AI。";
+          return;
+        }
 
         const saved = await createProject({ allowDraft: true, ownerApproved: false });
         if (!saved) throw new Error("项目学习草稿还没有保存成功。");
@@ -5834,7 +6058,7 @@
           }
         }
         if (file) {
-          const fileStudy = await analyzeProjectDocument();
+          const fileStudy = await analyzeProjectDocument({ paidConfirmed: true });
           if (fileStudy) learned.push(`文件：${file.name}`);
           else attention.push(`文件：${file.name} 尚未完成分析`);
         } else if (!faqUrl && teachingText.length >= 80) {
@@ -6389,7 +6613,7 @@
       ).trim();
     }
 
-    async function analyzeProjectDocument() {
+    async function analyzeProjectDocument(options = {}) {
       const projectKey = currentProjectKey();
       const file = projectDocumentFile.files?.[0];
       if (!projectKey) {
@@ -6399,6 +6623,21 @@
       if (!file) {
         setDocumentStatus("请选择资料文件", "bad");
         return null;
+      }
+      if (options.paidConfirmed !== true) {
+        const approved = await requestPaidAiConfirmation({
+          title: "确认分析项目文件",
+          summary: "AI 会提取文件里的文字和媒体，并生成项目学习草稿。",
+          scope: file.name,
+          calls: "按文件页数和媒体数量调用",
+          model: "项目学习模型 + 媒体轻量模型",
+          cache: "只处理这次选择的文件",
+          boundary: "只生成草稿；不发讯息、不触发 Flow、不发布。"
+        });
+        if (!approved) {
+          setDocumentStatus("已取消，没有调用付费 AI", "");
+          return null;
+        }
       }
       const previous = analyzeDocumentButton.textContent;
       try {
@@ -7542,6 +7781,19 @@
         setReplyContractStatus("需要项目代码", "bad");
         return;
       }
+      const approved = await requestPaidAiConfirmation({
+        title: "确认运行 AI 上线检查",
+        summary: "系统会用当前草稿运行合成顾客场景；本次只检查，不会触达真实顾客。",
+        scope: "当前回复规则与测试场景",
+        calls: "按本轮 Mock Test 场景数量调用",
+        model: "当前 AI Reply 路由模型",
+        cache: "草稿改变后才需要重跑",
+        boundary: "不发讯息、不触发 Flow、不发布；失败不会自动重跑。"
+      });
+      if (!approved) {
+        setReplyContractStatus("已取消，没有调用付费 AI", "");
+        return;
+      }
       try {
         setReplyContractBusy(true);
         setReplyContractStatus("运行 Mock Test", "");
@@ -8405,6 +8657,21 @@
         return;
       }
       const projectKey = currentProjectKey();
+      const approved = await requestPaidAiConfirmation({
+        title: "确认开始 100 题 AI 实战",
+        summary: "这是高消耗测试：AI 会扮演 100 位顾客并逐题生成回复。",
+        scope: "100 个不同顾客场景",
+        calls: "最多约 101 次模型调用（含必要的上线检查）",
+        model: "当前 AI Reply 路由模型",
+        cache: "只对本次草稿有效；设置未改变可查看旧成绩",
+        boundary: "全部是预演，不发真实讯息、不触发 Flow；失败不会自动重跑。",
+        confirmLabel: "确认费用并开始 100 题"
+      });
+      if (!approved) {
+        practiceStatus.textContent = "已取消，没有调用付费 AI";
+        practiceStatus.className = "status";
+        return;
+      }
       try {
         state.practiceBusy = true;
         state.practicePassed = false;
