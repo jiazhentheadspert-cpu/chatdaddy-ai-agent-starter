@@ -14373,9 +14373,76 @@
       return [...merged.values()];
     }
 
+    function approvalInboundTurnKey(item = {}) {
+      const conversationKey = approvalConversationKey(item);
+      const providerMessageId = firstContextText(
+        item.inbound?.provider_message_id,
+        item.inbound?.event_id,
+        item.raw_approval?.trigger_message_id,
+        item.raw?.trigger_message_id,
+        item.trigger_message_id
+      );
+      if (providerMessageId) return `${conversationKey}|provider:${providerMessageId}`;
+      const messageAt = firstContextText(
+        item.inbound?.message_at,
+        item.inbound?.at,
+        item.latest_customer_message?.message_at,
+        item.latest_customer_message?.at
+      );
+      const text = firstContextText(
+        item.inbound?.text,
+        item.latest_customer_message?.text,
+        item.last_message
+      ).toLowerCase().replace(/\s+/g, " ").trim();
+      return messageAt && text ? `${conversationKey}|fallback:${messageAt}|${text.slice(0, 240)}` : "";
+    }
+
+    function approvalItemResolvesInboundTurn(item = {}) {
+      const values = [item.status, item.source_status, approvalStatus(item)]
+        .map((value) => String(value || "").trim().toLowerCase());
+      return values.some((value) => [
+        "manual_resolved",
+        "auto_sent",
+        "sent",
+        "resolved",
+        "completed",
+        "purchase_confirmed",
+        "external_flow_continued"
+      ].includes(value));
+    }
+
+    function approvalItemNeedsInboundTurnAttention(item = {}) {
+      if (approvalItemResolvesInboundTurn(item)) return false;
+      const values = [item.status, item.source_status, approvalStatus(item)]
+        .map((value) => String(value || "").trim().toLowerCase());
+      return values.some((value) => [
+        "pending",
+        "approval_required",
+        "human_required",
+        "needs_approval",
+        "handoff",
+        "returned_ai",
+        "returned_to_ai",
+        "send_failed"
+      ].includes(value));
+    }
+
+    function projectApprovalsToLatestInboundTurn(items = []) {
+      const resolvedTurnKeys = new Set((items || [])
+        .filter(approvalItemResolvesInboundTurn)
+        .map(approvalInboundTurnKey)
+        .filter(Boolean));
+      if (!resolvedTurnKeys.size) return items || [];
+      return (items || []).filter((item) => {
+        if (!approvalItemNeedsInboundTurnAttention(item)) return true;
+        const key = approvalInboundTurnKey(item);
+        return !key || !resolvedTurnKeys.has(key);
+      });
+    }
+
     function compactApprovalsByConversation(items = []) {
       const groups = new Map();
-      for (const item of items) {
+      for (const item of projectApprovalsToLatestInboundTurn(items)) {
         const key = `${approvalConversationKey(item)}|${approvalConversationBucket(item)}`;
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
