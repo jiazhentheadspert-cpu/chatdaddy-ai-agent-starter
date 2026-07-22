@@ -7258,6 +7258,9 @@
       ].filter(Boolean);
       buttons.forEach((button) => {
         if (operation) {
+          if (button.dataset.paidAiLocked !== "true") {
+            button.dataset.paidAiPreviousDisabled = button.disabled ? "true" : "false";
+          }
           button.disabled = true;
           button.dataset.paidAiLocked = "true";
           button.setAttribute("aria-busy", "true");
@@ -7265,7 +7268,9 @@
         } else {
           button.removeAttribute("aria-busy");
           if (button.dataset.paidAiLocked === "true") {
+            button.disabled = button.dataset.paidAiPreviousDisabled === "true";
             delete button.dataset.paidAiLocked;
+            delete button.dataset.paidAiPreviousDisabled;
             button.removeAttribute("title");
           }
         }
