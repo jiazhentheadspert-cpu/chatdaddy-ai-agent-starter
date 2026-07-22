@@ -1040,6 +1040,40 @@
       line-height: 1.5;
     }
 
+    .optional-practice-choice {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      margin-top: 16px;
+      padding: 18px 20px;
+      border: 1px solid rgba(0, 168, 150, 0.3);
+      border-left: 5px solid var(--teal);
+      border-radius: 10px;
+      background: #effcf9;
+    }
+
+    .optional-practice-choice[hidden] {
+      display: none;
+    }
+
+    .optional-practice-choice h3,
+    .optional-practice-choice p {
+      margin: 0;
+    }
+
+    .optional-practice-choice p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .optional-practice-choice .actions {
+      margin: 0;
+      flex-wrap: nowrap;
+    }
+
     .beginner-go-live-issues {
       display: grid;
       gap: 8px;
@@ -3029,6 +3063,61 @@
             AI 不得弱化、改数字或偷换意思。
           </div>
         </div>
+        <form class="practice-card practice-controls" id="practiceCustomizationForm">
+          <div class="full">
+            <h3>回复设置</h3>
+            <p>确认人设、语气与成交方式；之后仍可回来调整。</p>
+          </div>
+          <label>
+            客服人设
+            <input id="practicePersona" placeholder="例如：马来西亚华人客服，亲切、自然、不油腻">
+          </label>
+          <label>
+            回复语气
+            <select id="practiceTone">
+              <option value="friendly_natural">亲切自然</option>
+              <option value="professional_concise">专业简洁</option>
+              <option value="warm_supportive">温柔陪伴</option>
+            </select>
+          </label>
+          <label>
+            回复长度
+            <select id="practiceReplyLength">
+              <option value="short">短</option>
+              <option value="standard" selected>标准</option>
+              <option value="detailed">详细</option>
+            </select>
+          </label>
+          <label>
+            Emoji
+            <select id="practiceEmojiLevel">
+              <option value="none">不用</option>
+              <option value="light" selected>少量</option>
+              <option value="natural">自然使用</option>
+            </select>
+          </label>
+          <label>
+            CTA 风格
+            <select id="practiceCtaStyle">
+              <option value="soft" selected>温和推进</option>
+              <option value="direct">明确成交</option>
+            </select>
+          </label>
+          <label>
+            转人工边界
+            <select id="practiceHandoffMode">
+              <option value="safe">安全优先</option>
+              <option value="balanced" selected>平衡</option>
+            </select>
+          </label>
+          <label class="full">
+            额外回复规则（可选）
+            <textarea id="practiceCustomInstructions" placeholder="例如：先回答问题，再给一个信心点；不要长篇大论。不能修改 ChatDaddy 原话、价格、疗程、数量或赠品。"></textarea>
+          </label>
+          <div class="actions full">
+            <button class="btn" type="button" id="savePracticeCustomizationButton">保存回复设置</button>
+          </div>
+        </form>
         <div class="actions">
           <button class="btn primary" type="button" id="beginnerConfirmButton" hidden>完成检查，进入第 4 步</button>
         </div>
@@ -3272,8 +3361,17 @@
           我已确认当前资料、销售路线与上线检查结果。
         </label>
         <div class="actions" id="beginnerPublishActions" hidden>
-          <button class="btn primary" type="button" id="publishProjectButton" disabled>确认上线并进入 AI Reply</button>
-          <a class="btn primary" id="aiReplyDashboardLink" href="../dashboard/index.html?view=cases" hidden>进入 AI Reply</a>
+          <button class="btn primary" type="button" id="publishProjectButton" disabled>确认上线</button>
+        </div>
+        <div class="optional-practice-choice" id="optionalPracticeChoice" hidden>
+          <div>
+            <h3>要继续做 Step 5 AI 实战吗？</h3>
+            <p>这是可选测试；也可以直接进入 AI Reply。</p>
+          </div>
+          <div class="actions">
+            <button class="btn primary" type="button" id="continueToPracticeButton">继续 Step 5</button>
+            <a class="btn" id="aiReplyDashboardLink" href="../dashboard/index.html?view=cases" hidden>跳过，进入 AI Reply</a>
+          </div>
         </div>
         <div class="final-grid expert-only">
           <div class="final-card"><b>每日</b><p>看待批准、人工接管、失败与重复追问；先修 FAQ / SOP / Flow 绑定，再考虑扩大自动回复。</p></div>
@@ -3304,10 +3402,6 @@
               <p>查看每题的 AI 回复、当前 Step 与下一步。</p>
             </div>
             <div class="practice-card">
-              <h3>可调整</h3>
-              <p>人设、语气、长度、Emoji 与 CTA。</p>
-            </div>
-            <div class="practice-card">
               <h3>费用预估</h3>
               <p><strong>约 US$6–US$15</strong>，开始前确认。</p>
             </div>
@@ -3322,58 +3416,9 @@
             <button class="btn primary" type="button" id="runPracticePreflightButton">免费预览</button>
           </div>
 
-          <form class="practice-card practice-controls" id="practiceCustomizationForm">
-            <label>
-              客服人设
-              <input id="practicePersona" placeholder="例如：马来西亚华人客服，亲切、自然、不油腻">
-            </label>
-            <label>
-              回复语气
-              <select id="practiceTone">
-                <option value="friendly_natural">亲切自然</option>
-                <option value="professional_concise">专业简洁</option>
-                <option value="warm_supportive">温柔陪伴</option>
-              </select>
-            </label>
-            <label>
-              回复长度
-              <select id="practiceReplyLength">
-                <option value="short">短</option>
-                <option value="standard" selected>标准</option>
-                <option value="detailed">详细</option>
-              </select>
-            </label>
-            <label>
-              Emoji
-              <select id="practiceEmojiLevel">
-                <option value="none">不用</option>
-                <option value="light" selected>少量</option>
-                <option value="natural">自然使用</option>
-              </select>
-            </label>
-            <label>
-              CTA 风格
-              <select id="practiceCtaStyle">
-                <option value="soft" selected>温和推进</option>
-                <option value="direct">明确成交</option>
-              </select>
-            </label>
-            <label>
-              转人工边界
-              <select id="practiceHandoffMode">
-                <option value="safe">安全优先</option>
-                <option value="balanced" selected>平衡</option>
-              </select>
-            </label>
-            <label class="full">
-              额外回复规则（可选）
-              <textarea id="practiceCustomInstructions" placeholder="例如：先回答问题，再给一个信心点；不要长篇大论。不能修改 ChatDaddy 原话、价格、疗程、数量或赠品。"></textarea>
-            </label>
-            <div class="actions full">
-              <button class="btn" type="button" id="savePracticeCustomizationButton">只保存设置</button>
-              <button class="btn primary" type="button" id="runPracticeButton">开始 100 题实战</button>
-            </div>
-          </form>
+          <div class="actions">
+            <button class="btn primary" type="button" id="runPracticeButton">开始 100 题实战</button>
+          </div>
 
           <div class="practice-progress" id="practiceProgress" hidden>
             <div class="practice-progress-head">
@@ -3724,6 +3769,8 @@
     const beginnerPublishActions = document.getElementById("beginnerPublishActions");
     const publishConfirm = document.getElementById("publishConfirm");
     const publishProjectButton = document.getElementById("publishProjectButton");
+    const optionalPracticeChoice = document.getElementById("optionalPracticeChoice");
+    const continueToPracticeButton = document.getElementById("continueToPracticeButton");
     const practiceStatus = document.getElementById("practiceStatus");
     const skipPracticeButton = document.getElementById("skipPracticeButton");
     const practiceCustomizationForm = document.getElementById("practiceCustomizationForm");
@@ -3801,6 +3848,7 @@
     savePracticeCustomizationButton.addEventListener("click", savePracticeCustomization);
     runPracticePreflightButton.addEventListener("click", runFreePracticePreflight);
     runPracticeButton.addEventListener("click", runAiPractice);
+    continueToPracticeButton?.addEventListener("click", continueToOptionalPractice);
     skipPracticeButton?.addEventListener("click", skipOptionalPractice);
     practiceFilters.addEventListener("click", handlePracticeFilter);
     practicePrevButton.addEventListener("click", () => changePracticePage(-1));
@@ -9326,12 +9374,13 @@
       runReplyContractMockButton.hidden = published;
       runReplyContractMockButton.textContent = readiness.hasTests ? "重新运行上线检查" : "运行上线检查";
       beginnerPublishConfirmWrap.hidden = !readiness.ready || published;
-      beginnerPublishActions.hidden = !readiness.ready && !published;
+      beginnerPublishActions.hidden = !readiness.ready || published;
       publishProjectButton.hidden = published;
+      optionalPracticeChoice.hidden = !published;
 
       if (published) {
         beginnerGoLiveTitle.textContent = "上线检查已完成";
-        beginnerGoLiveText.textContent = "AI Reply 已启用，可以进入客服工作台。";
+        beginnerGoLiveText.textContent = "AI Reply 已启用，请选择继续 Step 5 或直接进入客服工作台。";
         contentMockStatus.textContent = "已启用";
         contentMockStatus.className = "status ok";
       } else if (state.publishError) {
@@ -9431,7 +9480,7 @@
       const ready = readiness.ready || published;
       const canPreflight = Boolean(currentProjectKey()) && Object.keys(packageData).length > 0;
       runPracticePreflightButton.disabled = state.practiceBusy || !canPreflight;
-      savePracticeCustomizationButton.disabled = state.practiceBusy || !ready;
+      savePracticeCustomizationButton.disabled = state.practiceBusy || !canPreflight;
       runPracticeButton.disabled = state.practiceBusy || !ready || Boolean(paidAiActiveOperation());
       if (published) {
         practiceStatus.textContent = "AI Reply 已启用";
@@ -10152,6 +10201,12 @@
       document.getElementById("learningLoopPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
+    function continueToOptionalPractice() {
+      state.onboardingManualPhase = "practice";
+      syncOnboardingPanels(state.onboardingPhaseDone, state.onboardingCurrentPhase);
+      document.getElementById("practicePanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     async function ensurePracticeMockAttestation(projectKey) {
       const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
       if (Number(state.mockAttestedVersionNo || 0) === Number(latest.version_no || 0)) return latest;
@@ -10480,11 +10535,12 @@
         document.getElementById("learningLoopStatus").textContent = state.published ? "AI Reply 已可用 · Approval-first" : "Owner / Admin 专用";
         document.getElementById("learningLoopStatus").className = `status ${state.published ? "ok" : ""}`;
         updateOnboardingProgress();
-        const aiReplyLink = document.getElementById("aiReplyDashboardLink");
-        if (state.published && aiReplyLink) {
-          contentMockStatus.textContent = "Onboarding 已完成，正在进入 AI Reply 工作台…";
+        if (state.published) {
+          contentMockStatus.textContent = "已上线，请选择下一步";
           contentMockStatus.className = "status ok";
-          window.setTimeout(() => window.location.assign(aiReplyLink.href), 900);
+          state.onboardingManualPhase = "use";
+          syncOnboardingPanels(state.onboardingPhaseDone, state.onboardingCurrentPhase);
+          optionalPracticeChoice?.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       } catch (error) {
         state.publishError = error.message || "发布失败";
