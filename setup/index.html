@@ -3605,8 +3605,16 @@
       practicePassed: false,
       practiceAttestedVersionNo: 0,
       practiceCustomizationLoaded: false,
-      practiceForecastAutoBuilt: false
+      practiceForecastAutoBuilt: false,
+      paidAiOperation: null,
+      paidAiOperationPollTimer: null,
+      paidAiLocalLock: null,
+      practiceRunLock: null,
+      practiceRunHeartbeatTimer: null
     };
+    const apiPostRequestsInFlight = new Map();
+    const PAID_AI_LOCAL_LOCK_TTL_MS = 5 * 60 * 1000;
+    const PAID_AI_OPERATION_POLL_MS = 3000;
 
     const setupForm = document.getElementById("setupForm");
     const formHelp = document.getElementById("formHelp");
@@ -3777,7 +3785,12 @@
     startReonboardingButton.addEventListener("click", startReonboardingDraft);
     learnChatdaddyFlowsButton.addEventListener("click", () => requestChatdaddyFlowLearning({ force: true }));
     paidAiCancelButton?.addEventListener("click", () => closePaidAiConfirmation(false));
-    paidAiApproveButton?.addEventListener("click", () => closePaidAiConfirmation(true));
+    paidAiApproveButton?.addEventListener("click", () => {
+      if (paidAiApproveButton.disabled) return;
+      paidAiApproveButton.disabled = true;
+      paidAiApproveButton.setAttribute("aria-busy", "true");
+      closePaidAiConfirmation(true);
+    });
     paidAiConfirmDialog?.addEventListener("cancel", (event) => {
       event.preventDefault();
       closePaidAiConfirmation(false);
@@ -3801,6 +3814,16 @@
     document.querySelectorAll("[data-onboarding-toggle]").forEach((button) => {
       button.addEventListener("click", handleOnboardingPanelToggle);
     });
+    window.addEventListener("storage", (event) => {
+      if (event.key !== paidAiLocalStorageKey()) return;
+      state.paidAiLocalLock = readPaidAiLocalLock();
+      syncPaidAiActionLocks();
+      void refreshPaidAiOperation({ silent: true });
+    });
+    window.addEventListener("pagehide", () => {
+      stopPaidAiOperationPolling();
+      stopPracticeRunHeartbeat();
+    });
 
     async function init() {
       document.body.classList.remove("show-advanced");
@@ -3810,9 +3833,14 @@
       state.moduleErrors = [];
       state.onboardingHydrated = false;
       stopFlowLearningJobPolling();
+      stopPaidAiOperationPolling();
+      stopPracticeRunHeartbeat();
       state.flowLearningJob = null;
       state.flowLearningJobProjectKey = "";
       state.flowLearningBusy = false;
+      state.paidAiOperation = null;
+      state.paidAiLocalLock = readPaidAiLocalLock();
+      state.practiceRunLock = null;
       setupModuleNotice.hidden = true;
       document.getElementById("authActions").hidden = true;
       document.getElementById("setupLoadErrorActions").hidden = true;
@@ -3878,7 +3906,8 @@
           loadReplyContract(),
           loadSalesJourney(),
           refreshConnectionReadiness({ silent: true }),
-          refreshFlowLearningJobStatus({ silent: true })
+          refreshFlowLearningJobStatus({ silent: true }),
+          refreshPaidAiOperation({ silent: true })
         ]);
         const accessFailure = moduleResults.find((result) => (
           result.status === "rejected" && isProjectAccessError(result.reason)
@@ -3892,7 +3921,7 @@
         }
         moduleResults.forEach((result, index) => {
           if (result.status !== "rejected") return;
-          const labels = ["学习审核", "回复规则", "销售路线", "ChatDaddy 连接", "AI 学习进度"];
+          const labels = ["学习审核", "回复规则", "销售路线", "ChatDaddy 连接", "AI 学习进度", "付费 AI 运行锁"];
           state.moduleErrors.push(`${labels[index]}：${result.reason?.message || result.reason || "读取失败"}`);
         });
       }
@@ -6092,10 +6121,11 @@
         showFlowLearningIssuesButton.textContent = "查看缺什么";
         flowLearningFixLink.hidden = true;
         flowLearningTechnical.textContent = "尚未读取。";
-        learnChatdaddyFlowsButton.disabled = state.flowLearningBusy;
+        learnChatdaddyFlowsButton.disabled = state.flowLearningBusy || Boolean(paidAiActiveOperation());
         acceptDetectedPriceStageButton.hidden = true;
         renderBeginnerNextGate();
         renderBeginnerReviewContract();
+        syncPaidAiActionLocks();
         return;
       }
       const summary = learning.summary || {};
@@ -6232,7 +6262,7 @@
       const apiConnected = state.connectionGuide?.summary?.api_connected === true;
       const apiDisconnected = apiConnectionKnown && !apiConnected;
       const selectionConfirmed = flowSelectionConfirmed();
-      learnChatdaddyFlowsButton.disabled = state.flowLearningBusy || !selectionConfirmed;
+      learnChatdaddyFlowsButton.disabled = state.flowLearningBusy || !selectionConfirmed || Boolean(paidAiActiveOperation());
       learnChatdaddyFlowsButton.textContent = state.flowLearningBusy
         ? "AI 正在学习…"
         : apiDisconnected ? "先连接 ChatDaddy API"
@@ -6250,6 +6280,7 @@
       scheduleFlowLearningAutoRetry(learning);
       renderBeginnerNextGate();
       renderBeginnerReviewContract();
+      syncPaidAiActionLocks();
     }
 
     function closePaidAiConfirmation(approved) {
@@ -6301,6 +6332,8 @@
       paidAiConfirmBoundary.textContent = details.boundary
         || "不会发送顾客讯息、不会触发 Flow，也不会自动重试。";
       paidAiApproveButton.textContent = details.confirmLabel || "确认并执行一次";
+      paidAiApproveButton.disabled = false;
+      paidAiApproveButton.removeAttribute("aria-busy");
       return new Promise((resolve) => {
         state.paidAiConfirmationResolve = resolve;
         try {
@@ -6344,6 +6377,15 @@
 
     async function requestChatdaddyFlowLearning(options = {}) {
       if (state.flowLearningBusy) return state.flowLearning;
+      const activePaidOperation = paidAiActiveOperation();
+      if (activePaidOperation) {
+        flowLearningHeadline.textContent = "已有付费 AI 任务正在处理";
+        flowLearningSubline.textContent = paidAiBusyMessage(activePaidOperation);
+        flowLearningStatus.textContent = "请等待完成";
+        flowLearningStatus.className = "status";
+        syncPaidAiActionLocks();
+        return null;
+      }
       const projectKey = currentProjectKey();
       if (state.authVerified !== true || !projectKey) {
         flowLearningHeadline.textContent = "请先登录并选择项目";
@@ -6363,6 +6405,8 @@
         flowLearningStatus.className = "status bad";
         return null;
       }
+      const localLock = setPaidAiLocalLock("flow_learning", "AI 正在启动 Flow 学习");
+      let requestAccepted = false;
       try {
         state.flowLearningBusy = true;
         if (options.automatic) state.flowLearningAutoRequested = true;
@@ -6378,6 +6422,7 @@
           updated_by: "owner_beginner_onboarding"
         });
         if (data?.learning_job) {
+          requestAccepted = true;
           state.flowLearningJob = data.learning_job;
           state.flowLearningJobProjectKey = projectKey;
           state.flowLearningBusy = flowLearningJobActive(data.learning_job);
@@ -6386,6 +6431,7 @@
           } else {
             await refreshFlowLearningJobStatus({ silent: true });
           }
+          await refreshPaidAiOperation({ silent: true });
           renderFlowLearning();
           return state.flowLearning;
         }
@@ -6406,6 +6452,7 @@
         return state.flowLearning;
       } catch (error) {
         if (error?.data?.error === "paid_ai_confirmation_required" && error?.data?.cost_preflight) {
+          clearPaidAiLocalLock(localLock.id);
           state.flowLearningBusy = false;
           renderFlowLearning();
           const approved = await confirmFlowLearningCost(error.data.cost_preflight);
@@ -6424,6 +6471,13 @@
           flowLearningStatus.className = "status";
           return null;
         }
+        if (adoptPaidAiOperationFromError(error)) {
+          flowLearningHeadline.textContent = "已有付费 AI 任务正在处理";
+          flowLearningSubline.textContent = paidAiBusyMessage();
+          flowLearningStatus.textContent = "请等待完成";
+          flowLearningStatus.className = "status";
+          return null;
+        }
         const blockedLearning = hydrateFlowLearning(error?.data || {});
         if (blockedLearning) {
           updateOnboardingProgress();
@@ -6436,7 +6490,9 @@
         return null;
       } finally {
         state.flowLearningBusy = flowLearningJobActive();
+        if (!requestAccepted && !state.paidAiOperation?.active) clearPaidAiLocalLock(localLock.id);
         renderFlowLearning();
+        syncPaidAiActionLocks();
       }
     }
 
@@ -6493,6 +6549,12 @@
     async function runBeginnerLearning() {
       if (state.authVerified !== true) {
         beginnerLearningResult.textContent = "请先登录。";
+        return;
+      }
+      const existingPaidOperation = paidAiActiveOperation();
+      if (existingPaidOperation) {
+        beginnerLearningResult.textContent = paidAiBusyMessage(existingPaidOperation);
+        syncPaidAiActionLocks();
         return;
       }
       const previous = beginnerLearnButton.textContent;
@@ -6603,8 +6665,9 @@
       } catch (error) {
         beginnerLearningResult.textContent = `还不能开始学习：${error.message || error}`;
       } finally {
-        beginnerLearnButton.disabled = false;
         beginnerLearnButton.textContent = previous;
+        syncPaidAiActionLocks();
+        beginnerLearnButton.disabled = Boolean(paidAiActiveOperation());
       }
     }
 
@@ -7115,6 +7178,152 @@
       ).trim();
     }
 
+    function paidAiLocalStorageKey(projectKey = currentProjectKey()) {
+      return `replypilot_paid_ai_lock:${String(projectKey || "unknown").trim().toLowerCase()}`;
+    }
+
+    function readPaidAiLocalLock(projectKey = currentProjectKey()) {
+      try {
+        const value = JSON.parse(localStorage.getItem(paidAiLocalStorageKey(projectKey)) || "null");
+        if (!value?.id || Number(value.expires_at || 0) <= Date.now()) {
+          localStorage.removeItem(paidAiLocalStorageKey(projectKey));
+          return null;
+        }
+        return value;
+      } catch {
+        return null;
+      }
+    }
+
+    function setPaidAiLocalLock(kind = "paid_ai", label = "付费 AI 正在启动") {
+      const lock = {
+        id: crypto.randomUUID(),
+        project_key: currentProjectKey(),
+        kind,
+        label,
+        created_at: Date.now(),
+        expires_at: Date.now() + PAID_AI_LOCAL_LOCK_TTL_MS
+      };
+      state.paidAiLocalLock = lock;
+      try {
+        localStorage.setItem(paidAiLocalStorageKey(), JSON.stringify(lock));
+      } catch {
+        // In-memory locking still protects the current page when storage is unavailable.
+      }
+      syncPaidAiActionLocks();
+      return lock;
+    }
+
+    function clearPaidAiLocalLock(lockId = "") {
+      const current = state.paidAiLocalLock || readPaidAiLocalLock();
+      if (lockId && current?.id && current.id !== lockId) return;
+      state.paidAiLocalLock = null;
+      try {
+        localStorage.removeItem(paidAiLocalStorageKey());
+      } catch {
+        // Ignore storage cleanup failures; the lock also expires by timestamp.
+      }
+      syncPaidAiActionLocks();
+    }
+
+    function paidAiActiveOperation() {
+      if (state.paidAiOperation?.active && state.paidAiOperation?.blocks_new_paid_ai !== false) {
+        return state.paidAiOperation;
+      }
+      const local = state.paidAiLocalLock || readPaidAiLocalLock();
+      state.paidAiLocalLock = local;
+      return local ? {
+        id: local.id,
+        active: true,
+        blocks_new_paid_ai: true,
+        label: local.label || "付费 AI 正在启动",
+        status: "starting",
+        local: true
+      } : null;
+    }
+
+    function paidAiBusyMessage(operation = paidAiActiveOperation()) {
+      const label = operation?.label || "付费 AI 正在处理";
+      return `${label}，完成前不能再次点击，以避免重复扣费。`;
+    }
+
+    function syncPaidAiActionLocks() {
+      const operation = paidAiActiveOperation();
+      const buttons = [
+        beginnerLearnButton,
+        learnChatdaddyFlowsButton,
+        analyzeDocumentButton,
+        documentRelearnButton,
+        runPracticeButton
+      ].filter(Boolean);
+      buttons.forEach((button) => {
+        if (operation) {
+          button.disabled = true;
+          button.dataset.paidAiLocked = "true";
+          button.setAttribute("aria-busy", "true");
+          button.title = paidAiBusyMessage(operation);
+        } else {
+          button.removeAttribute("aria-busy");
+          if (button.dataset.paidAiLocked === "true") {
+            delete button.dataset.paidAiLocked;
+            button.removeAttribute("title");
+          }
+        }
+      });
+    }
+
+    function stopPaidAiOperationPolling() {
+      if (state.paidAiOperationPollTimer) window.clearTimeout(state.paidAiOperationPollTimer);
+      state.paidAiOperationPollTimer = null;
+    }
+
+    function startPaidAiOperationPolling() {
+      stopPaidAiOperationPolling();
+      if (!paidAiActiveOperation()) return;
+      state.paidAiOperationPollTimer = window.setTimeout(async () => {
+        state.paidAiOperationPollTimer = null;
+        await refreshPaidAiOperation({ silent: true });
+      }, PAID_AI_OPERATION_POLL_MS);
+    }
+
+    async function refreshPaidAiOperation(options = {}) {
+      const projectKey = currentProjectKey();
+      if (!projectKey || state.authVerified !== true) {
+        syncPaidAiActionLocks();
+        return null;
+      }
+      try {
+        const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/paid-operation`);
+        state.paidAiOperation = data?.active_operation?.active ? data.active_operation : null;
+        if (state.paidAiOperation) {
+          clearPaidAiLocalLock();
+          startPaidAiOperationPolling();
+        } else {
+          stopPaidAiOperationPolling();
+          const local = readPaidAiLocalLock();
+          state.paidAiLocalLock = local;
+          if (local) startPaidAiOperationPolling();
+        }
+        syncPaidAiActionLocks();
+        return state.paidAiOperation;
+      } catch (error) {
+        if (!options.silent) throw error;
+        syncPaidAiActionLocks();
+        if (paidAiActiveOperation()) startPaidAiOperationPolling();
+        return state.paidAiOperation;
+      }
+    }
+
+    function adoptPaidAiOperationFromError(error) {
+      const operation = error?.data?.active_operation;
+      if (error?.data?.error !== "paid_ai_operation_in_progress" || !operation) return false;
+      state.paidAiOperation = operation;
+      clearPaidAiLocalLock();
+      syncPaidAiActionLocks();
+      startPaidAiOperationPolling();
+      return true;
+    }
+
     function currentDocumentRelearnTarget() {
       const tests = Array.isArray(state.mockResult?.tests) ? state.mockResult.tests : [];
       const test = tests.find((item) => String(item?.name || "") === "document_learning_current_model_valid" && item?.passed === false);
@@ -7387,6 +7596,14 @@
     async function analyzeProjectDocument(options = {}) {
       const projectKey = currentProjectKey();
       const file = projectDocumentFile.files?.[0];
+      const activeOperation = paidAiActiveOperation();
+      if (activeOperation) {
+        const message = paidAiBusyMessage(activeOperation);
+        setDocumentStatus("已有付费 AI 任务正在处理", "bad");
+        documentResult.textContent = message;
+        syncPaidAiActionLocks();
+        return null;
+      }
       if (!projectKey) {
         setDocumentStatus("请先保存项目草稿", "bad");
         return null;
@@ -7422,6 +7639,8 @@
         return null;
       }
       const previous = analyzeDocumentButton.textContent;
+      let paidAiLocalLock = null;
+      let requestAccepted = false;
       try {
         analyzeDocumentButton.disabled = true;
         if (options.relearnDocument) {
@@ -7444,9 +7663,15 @@
         };
         let data;
         try {
+          paidAiLocalLock = setPaidAiLocalLock(
+            options.relearnDocument ? "document_relearning" : "document_learning",
+            options.relearnDocument ? "AI 正在启动文件补学" : "AI 正在启动项目文件学习"
+          );
           data = await apiPost(endpoint, payload);
         } catch (error) {
           if (error?.data?.error !== "paid_ai_confirmation_required" || !error?.data?.cost_preflight) throw error;
+          clearPaidAiLocalLock(paidAiLocalLock?.id || "");
+          paidAiLocalLock = null;
           const approved = await confirmDocumentLearningCost(error.data.cost_preflight, file, extracted, options);
           if (!approved) {
             setDocumentStatus("已取消，没有调用付费 AI", "");
@@ -7465,6 +7690,10 @@
             documentRelearnStatus.className = "document-relearn-status";
           }
           try {
+            paidAiLocalLock = setPaidAiLocalLock(
+              options.relearnDocument ? "document_relearning" : "document_learning",
+              options.relearnDocument ? "AI 正在启动文件补学" : "AI 正在启动项目文件学习"
+            );
             data = await apiPost(endpoint, {
               ...payload,
               confirm_paid_ai: true,
@@ -7481,6 +7710,8 @@
           }
         }
         if (data?.learning_job?.id) {
+          requestAccepted = true;
+          await refreshPaidAiOperation({ silent: true });
           data = await waitForProjectDocumentLearningJob(data.learning_job, extracted);
         }
         state.documentKnowledge = data;
@@ -7497,6 +7728,12 @@
         updateOnboardingProgress();
         return data;
       } catch (error) {
+        if (adoptPaidAiOperationFromError(error)) {
+          const message = paidAiBusyMessage(state.paidAiOperation);
+          setDocumentStatus("已有付费 AI 任务正在处理", "bad");
+          documentResult.textContent = message;
+          return null;
+        }
         setDocumentStatus("资料处理失败", "bad");
         const ownerError = ownerFacingLearningError(error);
         documentResult.textContent = ownerError;
@@ -7507,12 +7744,17 @@
         }
         return null;
       } finally {
-        analyzeDocumentButton.disabled = false;
+        if (!requestAccepted && !state.paidAiOperation) {
+          clearPaidAiLocalLock(paidAiLocalLock?.id || "");
+        }
+        void refreshPaidAiOperation({ silent: true });
+        analyzeDocumentButton.disabled = Boolean(paidAiActiveOperation());
         analyzeDocumentButton.textContent = previous;
         if (options.relearnDocument) {
-          documentRelearnButton.disabled = false;
+          documentRelearnButton.disabled = Boolean(paidAiActiveOperation());
           documentRelearnButton.textContent = "选择同名文件并补学";
         }
+        syncPaidAiActionLocks();
       }
     }
 
@@ -9158,7 +9400,7 @@
       const canPreflight = Boolean(currentProjectKey()) && Object.keys(packageData).length > 0;
       runPracticePreflightButton.disabled = state.practiceBusy || !canPreflight;
       savePracticeCustomizationButton.disabled = state.practiceBusy || !ready || published;
-      runPracticeButton.disabled = state.practiceBusy || !ready || published;
+      runPracticeButton.disabled = state.practiceBusy || !ready || published || Boolean(paidAiActiveOperation());
       if (published) {
         practiceStatus.textContent = "AI Reply 已启用";
         practiceStatus.className = "status ok";
@@ -9192,6 +9434,7 @@
         state.practiceForecastAutoBuilt = true;
         queueMicrotask(() => runFreePracticePreflight());
       }
+      syncPaidAiActionLocks();
     }
 
     async function savePracticeCustomization(options = {}) {
@@ -9892,8 +10135,85 @@
       return rebound;
     }
 
+    function stopPracticeRunHeartbeat() {
+      if (state.practiceRunHeartbeatTimer) window.clearInterval(state.practiceRunHeartbeatTimer);
+      state.practiceRunHeartbeatTimer = null;
+    }
+
+    function practiceRunUsagePayload() {
+      const usage = state.practiceUsage || {};
+      return {
+        input_tokens: Math.max(0, Number(usage.input_tokens || 0)),
+        output_tokens: Math.max(0, Number(usage.output_tokens || 0)),
+        cached_input_tokens: Math.max(0, Number(usage.cached_input_tokens || 0)),
+        estimated_cost_usd: Math.max(0, Number(usage.estimated_cost_usd || 0))
+      };
+    }
+
+    async function heartbeatPracticeRunLock() {
+      const lock = state.practiceRunLock;
+      if (!lock?.jobId || !lock?.runNonce) return;
+      const completed = Math.max(0, Math.min(100, Number(lock.completedItems || 0)));
+      try {
+        const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/onboarding/practice-run-lock`, {
+          action: "heartbeat",
+          job_id: lock.jobId,
+          run_nonce: lock.runNonce,
+          completed_items: completed,
+          percent: Math.max(1, Math.min(99, completed)),
+          message: `正在完成第 ${Math.max(1, completed)} / 100 题。`,
+          api_usage: practiceRunUsagePayload()
+        });
+        if (data?.operation?.active) state.paidAiOperation = data.operation;
+        syncPaidAiActionLocks();
+      } catch {
+        // The durable server lock remains authoritative. A transient heartbeat
+        // failure must never start a replacement paid run from the browser.
+      }
+    }
+
+    function startPracticeRunHeartbeat() {
+      stopPracticeRunHeartbeat();
+      state.practiceRunHeartbeatTimer = window.setInterval(() => {
+        void heartbeatPracticeRunLock();
+      }, 10000);
+    }
+
+    async function finishPracticeRunLock(options = {}) {
+      const lock = state.practiceRunLock;
+      stopPracticeRunHeartbeat();
+      if (!lock?.jobId || !lock?.runNonce) return;
+      try {
+        await apiPost(`/api/hermas/projects/${encodeURIComponent(currentProjectKey())}/onboarding/practice-run-lock`, {
+          action: "finish",
+          job_id: lock.jobId,
+          run_nonce: lock.runNonce,
+          succeeded: options.succeeded === true,
+          error: options.error || "",
+          completed_items: Math.max(0, Math.min(100, Number(lock.completedItems || 0))),
+          percent: Math.max(1, Math.min(99, Number(lock.completedItems || 0))),
+          api_usage: practiceRunUsagePayload()
+        });
+      } catch {
+        // Keep the backend lock until its heartbeat timeout if the finish request
+        // cannot reach the server. This is safer than allowing a duplicate run.
+      } finally {
+        state.practiceRunLock = null;
+        await refreshPaidAiOperation({ silent: true });
+      }
+    }
+
     async function runAiPractice() {
       if (state.practiceBusy) return;
+      const activeOperation = paidAiActiveOperation();
+      if (activeOperation) {
+        practiceStatus.textContent = "已有付费 AI 任务正在处理";
+        practiceStatus.className = "status bad";
+        practiceResultSummary.textContent = paidAiBusyMessage(activeOperation);
+        practiceResultSummary.className = "status bad";
+        syncPaidAiActionLocks();
+        return;
+      }
       const initialReadiness = currentPublishReadiness();
       if (!initialReadiness.ready) {
         practiceStatus.textContent = "请先完成上线检查";
@@ -9939,6 +10259,53 @@
       if (!approved) {
         practiceStatus.textContent = "已取消，没有调用付费 AI";
         practiceStatus.className = "status";
+        return;
+      }
+      let paidAiLocalLock = setPaidAiLocalLock("ai_practice_run", "AI 正在启动 100 题实战");
+      let practiceRunSucceeded = false;
+      let practiceRunError = "practice_run_stopped";
+      try {
+        const versionNo = Math.max(0, Number(
+          state.salesPackageResponse?.version_no
+          || state.existingPackageResponse?.version_no
+          || state.mockAttestedVersionNo
+          || 0
+        ));
+        const runNonce = crypto.randomUUID();
+        const lockData = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding/practice-run-lock`, {
+          action: "start",
+          run_nonce: runNonce,
+          version_no: versionNo,
+          paid_ai_preflight: {
+            estimated_cost: { low_usd: 6, high_usd: 15, currency: "USD" },
+            estimated_paid_calls: { total: 100 },
+            automatic_paid_retry: false
+          }
+        });
+        const operation = lockData?.operation;
+        if (!operation?.id) throw new Error("无法建立 100 题付费运行锁，已停止执行。");
+        state.practiceRunLock = {
+          jobId: operation.id,
+          runNonce,
+          completedItems: 0
+        };
+        state.paidAiOperation = operation;
+        clearPaidAiLocalLock(paidAiLocalLock?.id || "");
+        paidAiLocalLock = null;
+        startPracticeRunHeartbeat();
+        startPaidAiOperationPolling();
+        syncPaidAiActionLocks();
+      } catch (error) {
+        clearPaidAiLocalLock(paidAiLocalLock?.id || "");
+        paidAiLocalLock = null;
+        if (adoptPaidAiOperationFromError(error)) {
+          practiceResultSummary.textContent = paidAiBusyMessage(state.paidAiOperation);
+        } else {
+          practiceResultSummary.textContent = error.message || "无法安全启动 AI 实战";
+        }
+        practiceResultSummary.className = "status bad";
+        practiceStatus.textContent = "AI 实战没有启动";
+        practiceStatus.className = "status bad";
         return;
       }
       try {
@@ -9990,6 +10357,7 @@
               };
             }
             completed += 1;
+            if (state.practiceRunLock) state.practiceRunLock.completedItems = completed;
             updatePracticeProgress(completed, scenarios.length, `正在实战：${scenario.category}`);
             renderPracticeMetrics();
             if (completed % 10 === 0 || completed === scenarios.length) {
@@ -9999,6 +10367,8 @@
         };
         await Promise.all(Array.from({ length: 4 }, () => runOne()));
         state.practiceResults = state.practiceResults.filter(Boolean);
+        practiceRunSucceeded = state.practiceResults.length === 100;
+        practiceRunError = practiceRunSucceeded ? "" : "practice_run_incomplete";
         const failed = state.practiceResults.filter((result) => !result.passed).length;
         state.practicePassed = state.practiceResults.length === 100 && failed === 0;
         state.practiceAttestedVersionNo = state.practicePassed ? Number(state.mockAttestedVersionNo || 0) : 0;
@@ -10024,12 +10394,15 @@
           : `本轮实际约 US$${Number(state.practiceUsage?.estimated_cost_usd || 0).toFixed(2)}；请查看失败场景，调整设置或资料后重新运行。`;
         renderPracticeResults();
       } catch (error) {
+        practiceRunError = error?.message || "practice_run_failed";
         practiceResultSummary.textContent = error.message || "AI 实战暂时无法运行";
         practiceResultSummary.className = "status bad";
         practiceProgressLabel.textContent = "AI 实战已停止";
         practiceProgressNote.textContent = "没有发送顾客讯息，也没有触发 Flow。";
         if (error?.data) renderReplyContractMock(error.data);
       } finally {
+        await finishPracticeRunLock({ succeeded: practiceRunSucceeded, error: practiceRunError });
+        clearPaidAiLocalLock(paidAiLocalLock?.id || "");
         state.practiceBusy = false;
         renderPracticeAvailability(currentPublishReadiness(), false);
         updatePublishButton();
@@ -10137,11 +10510,21 @@
     }
 
     async function apiPost(path, body) {
-      return apiFetch(path, {
+      const requestBody = JSON.stringify(body);
+      const requestKey = `${currentProjectKey()}:${path}:${requestBody}`;
+      const existing = apiPostRequestsInFlight.get(requestKey);
+      if (existing) return existing;
+      const pending = apiFetch(path, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(body)
+        body: requestBody
+      }).finally(() => {
+        if (apiPostRequestsInFlight.get(requestKey) === pending) {
+          apiPostRequestsInFlight.delete(requestKey);
+        }
       });
+      apiPostRequestsInFlight.set(requestKey, pending);
+      return pending;
     }
 
     async function apiFetch(path, options) {
