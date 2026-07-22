@@ -22381,7 +22381,8 @@
 	        return !(outbound && compactCompareText(messageDisplayText(msg)) === compactCompareText(decision.reply_message || ""));
 	      }).map((msg) => {
         const cancelled = contextMessageWasCancelled(msg);
-        const klass = cancelled ? "cancelled" : msg.direction === "outbound" ? "out" : "in";
+        const normalizedMessage = normalizeDashboardMessageDirection(msg);
+        const klass = cancelled ? "cancelled" : normalizedMessage.direction === "outbound" ? "out" : "in";
         const cancelledLabel = cancelled
           ? `<span class="bubble-state">未发送 · 顾客回复后 ChatDaddy 自动取消</span>`
           : "";
@@ -29380,13 +29381,36 @@
 	function mergeReturnedCaseMessages(...groups) {
 	  const merged = new Map();
 	  groups.flat().filter((message) => message && typeof message === "object").forEach((message, index) => {
-	    const key = messageMergeKey(message) || `message:${index}`;
+	    const normalizedMessage = normalizeDashboardMessageDirection(message);
+	    const key = messageMergeKey(normalizedMessage) || `message:${index}`;
 	    merged.set(key, {
 	      ...(merged.get(key) || {}),
-	      ...message,
+	      ...normalizedMessage,
 	    });
 	  });
 	  return [...merged.values()].sort((left, right) => messageTimeMs(left) - messageTimeMs(right));
+	}
+
+	function normalizeDashboardMessageDirection(message = {}) {
+	  const providerMessageId = firstContextText(
+	    message.provider_message_id,
+	    message.providerMessageId,
+	    message.message_id,
+	    message.messageId
+	  );
+	  const rawDirection = String(
+	    message.direction || message.role || message.sender_type || message.from || ""
+	  ).trim().toLowerCase();
+	  const outbound = ["outbound", "out", "agent", "assistant", "bot", "business", "staff", "operator"].includes(rawDirection)
+	    || message.fromMe === true
+	    || message.from_me === true
+	    || message.is_from_me === true
+	    || /^3EB0[A-F0-9]{8,}(?:\|\d+)?$/i.test(providerMessageId);
+	  return {
+	    ...message,
+	    direction: outbound ? "outbound" : "inbound",
+	    role: outbound ? "agent" : "customer",
+	  };
 	}
 
 	function normalizeReturnedCase(record = {}, existing = null) {
@@ -29396,29 +29420,33 @@
 	  const normalized = alreadyNormalized
 	    ? record
 	    : approvalToCase(record, state.contactNames || {});
-	  if (!existing) return normalized;
+	  const normalizedWithDirections = {
+	    ...normalized,
+	    messages: mergeReturnedCaseMessages(normalized.messages || []),
+	  };
+	  if (!existing) return normalizedWithDirections;
 
 	  const previousRaw = existing.raw_approval && typeof existing.raw_approval === "object"
 	    ? existing.raw_approval
 	    : {};
-	  const nextRaw = normalized.raw_approval && typeof normalized.raw_approval === "object"
-	    ? normalized.raw_approval
+	  const nextRaw = normalizedWithDirections.raw_approval && typeof normalizedWithDirections.raw_approval === "object"
+	    ? normalizedWithDirections.raw_approval
 	    : record;
 	  return {
 	    ...existing,
-	    ...normalized,
+	    ...normalizedWithDirections,
 	    contact: {
 	      ...(existing.contact || {}),
-	      ...(normalized.contact || {}),
+	      ...(normalizedWithDirections.contact || {}),
 	    },
 	    latest_decision: {
 	      ...(existing.latest_decision || {}),
-	      ...(normalized.latest_decision || {}),
+	      ...(normalizedWithDirections.latest_decision || {}),
 	    },
-	    messages: mergeReturnedCaseMessages(existing.messages || [], normalized.messages || []),
+	    messages: mergeReturnedCaseMessages(existing.messages || [], normalizedWithDirections.messages || []),
 	    history: [
 	      ...(existing.history || []),
-	      ...(normalized.history || []),
+	      ...(normalizedWithDirections.history || []),
 	    ].filter((event, index, rows) => {
 	      const key = `${event?.type || ""}|${event?.at || ""}|${event?.note || ""}`;
 	      return rows.findIndex((candidate) => `${candidate?.type || ""}|${candidate?.at || ""}|${candidate?.note || ""}` === key) === index;
@@ -29700,10 +29728,13 @@
 	      $("markPurchaseBtn").disabled = isBusy || !showPurchasePanel || purchaseActionComplete;
 	      const conversationLocked = readOnly && !canManualSend;
 	      $("applyQuickReplyBtn").disabled = isBusy || conversationLocked;
-	      $("triggerFlowBtn").disabled = isBusy || readOnly;
+	      // A closed/read-only Case still needs to support a new staff-initiated
+	      // Flow in the same conversation. Reply editing stays locked; only the
+	      // explicit Flow controls remain available and require confirmation.
+	      $("triggerFlowBtn").disabled = isBusy;
 	      $("quickReplySelect").disabled = isBusy || conversationLocked;
-	      $("flowSelect").disabled = isBusy || readOnly;
-	      $("flowSearchInput").disabled = isBusy || readOnly;
+	      $("flowSelect").disabled = isBusy;
+	      $("flowSearchInput").disabled = isBusy;
 	      $("paymentFlowSelect").disabled = true;
 	      setExternalFlowFieldsDisabled(isBusy || $("externalFlowPanel").classList.contains("hidden"));
 	      updateExternalFlowButtonState(state.active);
