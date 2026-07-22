@@ -2674,7 +2674,7 @@
           <span>设置进度</span>
           <strong id="railProgressSummary">读取中</strong>
         </div>
-        <nav class="onboarding-rail" id="onboardingRail" aria-label="Onboarding 五步路线">
+        <nav class="onboarding-rail" id="onboardingRail" aria-label="Onboarding 设置路线">
           <a class="onboarding-rail-step" href="#channelFlowPanel" data-progress-phase="flow">
             <span class="rail-marker">1</span>
             <span><b>连接 ChatDaddy</b><small data-phase-label>读取中</small></span>
@@ -2693,14 +2693,14 @@
           </a>
           <a class="onboarding-rail-step" href="#practicePanel" data-progress-phase="practice">
             <span class="rail-marker">5</span>
-            <span><b>AI 实战</b><small data-phase-label>等待</small></span>
+            <span><b>AI 实战（可选）</b><small data-phase-label>可跳过</small></span>
           </a>
         </nav>
       </div>
 
       <div class="side-card expert-only" hidden>
-        <h2 id="setupSideTitle">5 步完成</h2>
-        <p id="setupSideDescription">连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 上线检查 → AI 实战</p>
+        <h2 id="setupSideTitle">4 步上线</h2>
+        <p id="setupSideDescription">连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 上线检查；AI 实战可选</p>
       </div>
 
       <div class="side-card">
@@ -2717,7 +2717,7 @@
           <a class="side-link" href="#learningLoopPanel"><span>4. 上线检查</span><strong>→</strong></a>
           <a class="side-link" href="#practicePanel"><span>5. AI 实战</span><strong>→</strong></a>
         </div>
-        <button class="side-link" id="advancedModeButton" type="button" aria-expanded="false"><span>高级设置</span><strong>＋</strong></button>
+        <button class="side-link" id="advancedModeButton" type="button" aria-expanded="false" hidden><span>高级设置</span><strong>＋</strong></button>
       </div>
     </aside>
 
@@ -2740,7 +2740,7 @@
         <div class="progress-head">
           <div>
             <strong id="progressProjectName">未选择项目</strong>
-            <div id="progressSummary">0 / 5 完成</div>
+            <div id="progressSummary">0 / 4 完成</div>
           </div>
           <div class="status" id="progressStatus">未开始</div>
         </div>
@@ -2750,7 +2750,7 @@
           <a class="progress-step" href="#businessPanel" data-progress-phase="teach"><b>2 AI 自动学习</b><span class="expert-only">理解卖什么与怎么卖</span></a>
           <a class="progress-step" href="#learningReviewPanel" data-progress-phase="review"><b>3 确认 AI 理解</b><span class="expert-only">只看异常与不确定内容</span></a>
           <a class="progress-step" href="#learningLoopPanel" data-progress-phase="use"><b>4 上线检查</b><span class="expert-only">修复所有阻塞</span></a>
-          <a class="progress-step" href="#practicePanel" data-progress-phase="practice"><b>5 AI 实战</b><span class="expert-only">100 位顾客安全预演</span></a>
+          <a class="progress-step" href="#practicePanel" data-progress-phase="practice"><b>5 AI 实战（可选）</b><span class="expert-only">100 位顾客安全预演</span></a>
         </nav>
       </section>
 
@@ -2797,7 +2797,7 @@
           <div class="final-card">
             <b>当前项目与真实 Flow</b>
             <p id="channelProjectIdentity">请先完成项目草稿。</p>
-            <p id="currentFlowTopology">登录后读取当前 Project Brain 的 Step 与已绑定 Flow。</p>
+            <p id="currentFlowTopology">登录后读取当前销售 Step 与已绑定 Flow。</p>
           </div>
           <div class="final-card">
             <b>安全边界</b>
@@ -2888,7 +2888,7 @@
           </label>
         </div>
         <div class="actions">
-          <a class="btn primary" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">连接 ChatDaddy API</a>
+          <a class="btn primary" id="channelSetupLink" href="../channel-setup/index.html" target="_blank" rel="noreferrer">连接 ChatDaddy</a>
           <button class="btn" type="button" id="learnChatdaddyFlowsButton" disabled>尚未确认 Flow</button>
           <button class="btn primary" type="button" id="acceptDetectedPriceStageButton" hidden>使用 AI 识别的价格 Step</button>
           <button class="btn expert-only" type="button" id="startReonboardingButton">手动确认路线</button>
@@ -2919,7 +2919,7 @@
         <div class="document-relearn-card" id="documentRelearnCard" hidden>
           <span class="eyebrow">只差这一份文件</span>
           <strong id="documentRelearnName">项目文件</strong>
-          <p>平台不会保存你电脑里的原始 PDF。请重新选择同一份文件；选择后先显示费用预估，确认才调用 OpenAI。</p>
+          <p>平台不会保存你电脑里的原始 PDF。请重新选择同一份文件；确认费用后才开始学习。</p>
           <div class="actions">
             <button class="btn primary" type="button" id="documentRelearnButton">选择同名文件并补学</button>
           </div>
@@ -3101,7 +3101,7 @@
         <div class="toolbar">
           <div>
             <h2>5. Reply Contract：教 AI 怎样收尾</h2>
-            <p>把“信心内容、下一步 CTA、方案选择”绑定到 Owner 已批准的真实资料。这里只保存项目草稿；预览和 Mock Test 都不会发讯息或触发 Flow。</p>
+            <p>把信心内容、下一步 CTA 和方案选择绑定到已确认的真实资料。这里只保存草稿，预览和上线检查都不会发讯息或触发 Flow。</p>
           </div>
           <div class="status" id="replyContractStatus">尚未加载</div>
         </div>
@@ -3248,7 +3248,7 @@
         <div class="toolbar">
           <div>
             <h2>4. 上线检查</h2>
-            <p>每个问题都能直接去处理；全部通过后进入 AI 实战。</p>
+            <p>处理完所有问题，即可上线。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status" id="contentMockStatus">尚未检查</div>
@@ -3267,6 +3267,14 @@
           </div>
           <div class="boundary-note">上线检查与发布不会在这里发送顾客讯息，也不会触发 ChatDaddy Flow。</div>
         </div>
+        <label class="confirm" id="beginnerPublishConfirmWrap" hidden>
+          <input id="publishConfirm" type="checkbox">
+          我已确认当前资料、销售路线与上线检查结果。
+        </label>
+        <div class="actions" id="beginnerPublishActions" hidden>
+          <button class="btn primary" type="button" id="publishProjectButton" disabled>确认上线并进入 AI Reply</button>
+          <a class="btn primary" id="aiReplyDashboardLink" href="../dashboard/index.html?view=cases" hidden>进入 AI Reply</a>
+        </div>
         <div class="final-grid expert-only">
           <div class="final-card"><b>每日</b><p>看待批准、人工接管、失败与重复追问；先修 FAQ / SOP / Flow 绑定，再考虑扩大自动回复。</p></div>
           <div class="final-card"><b>每周</b><p>复盘准确率、成交推进、转人工原因、未覆盖问题、资料过期和敏感内容；所有学习保留 Case 来源。</p></div>
@@ -3280,40 +3288,38 @@
       <section class="panel onboarding-step-panel is-collapsed" id="practicePanel" data-onboarding-panel data-onboarding-phase="practice">
         <div class="toolbar">
           <div>
-            <h2>5. AI 实战</h2>
-            <p>100 位不同顾客，使用当前项目真实 Flow、资料与 AI 大脑进行安全预演。</p>
+            <h2>5. AI 实战（可选）</h2>
+            <p>测试 100 个顾客场景，也可以跳过，之后随时回来。</p>
           </div>
-          <div class="onboarding-panel-controls">
-            <div class="status" id="practiceStatus" role="status" aria-live="polite">等待上线检查</div>
-            <button class="onboarding-panel-toggle" type="button" data-onboarding-toggle aria-controls="practicePanelBody" aria-expanded="false">稍后</button>
-          </div>
+        </div>
+        <div id="practiceStatus" role="status" aria-live="polite" hidden></div>
+        <div class="actions">
+          <button class="btn" type="button" id="skipPracticeButton">跳过，返回上线</button>
         </div>
 
         <div class="practice-shell">
           <div class="practice-intro">
             <div class="practice-card">
-              <h3>100 个真实场景</h3>
-              <p>覆盖 Step 1、Step 2、价格 Step、价格后成交、图片、语音、视频、付款、退款、投诉、健康敏感与转人工。</p>
-              <div class="boundary-note">每题只预览：不发送顾客讯息、不执行付款、不触发 ChatDaddy Flow。</div>
+              <h3>100 个场景</h3>
+              <p>查看每题的 AI 回复、当前 Step 与下一步。</p>
             </div>
             <div class="practice-card">
-              <h3>项目方可以调整</h3>
-              <p>人设、语气、长度、Emoji、CTA 与额外规则。安全边界、真实价格和不可改原话不能被覆盖。</p>
+              <h3>可调整</h3>
+              <p>人设、语气、长度、Emoji 与 CTA。</p>
             </div>
             <div class="practice-card">
-              <h3>本轮费用预估</h3>
-              <p><strong>约 US$6–US$15</strong>（100 题，按当前 Sol / Terra 路由保守估算；极长回复的压力情形约 US$25）。</p>
-              <div class="boundary-note">开始前会再次确认；完成后显示本轮实际 Token 与费用。不会发送讯息或触发 Flow。</div>
+              <h3>费用预估</h3>
+              <p><strong>约 US$6–US$15</strong>，开始前确认。</p>
             </div>
           </div>
 
           <div class="practice-free-preflight">
             <div>
-              <span class="practice-free-badge">US$0 · 不调用 OpenAI</span>
-              <h3>先看 100 张预计结果卡片</h3>
-              <p>使用当前项目资料、真实 Flow 绑定与安全规则，直接显示 AI 回复与回复后的下一 Step。</p>
+              <span class="practice-free-badge">免费预览</span>
+              <h3>先看 100 张卡片</h3>
+              <p>检查回复与下一步，不产生费用。</p>
             </div>
-            <button class="btn primary" type="button" id="runPracticePreflightButton">先做 US$0 预检</button>
+            <button class="btn primary" type="button" id="runPracticePreflightButton">免费预览</button>
           </div>
 
           <form class="practice-card practice-controls" id="practiceCustomizationForm">
@@ -3365,7 +3371,7 @@
             </label>
             <div class="actions full">
               <button class="btn" type="button" id="savePracticeCustomizationButton">只保存设置</button>
-              <button class="btn primary" type="button" id="runPracticeButton">保存并开始付费 AI 实战</button>
+              <button class="btn primary" type="button" id="runPracticeButton">开始 100 题实战</button>
             </div>
           </form>
 
@@ -3386,7 +3392,7 @@
             <div class="practice-metric"><span>自动接 Flow</span><strong>0</strong></div>
             <div class="practice-metric"><span>客服核对</span><strong>0</strong></div>
             <div class="practice-metric"><span>失败</span><strong>0</strong></div>
-            <div class="practice-metric"><span>API 费用</span><strong>US$0.00</strong></div>
+            <div class="practice-metric"><span>本轮费用</span><strong>US$0.00</strong></div>
           </div>
 
           <div class="practice-result-actions">
@@ -3409,16 +3415,7 @@
             <button class="practice-filter" type="button" data-practice-filter="ai_check">等待实战验证 0</button>
           </div>
           <div class="practice-result-list" id="practiceResultList">
-            <div class="practice-empty">先做 US$0 预检；确认路线后再开始付费 AI 实战。</div>
-          </div>
-
-          <label class="confirm" id="beginnerPublishConfirmWrap" hidden>
-            <input id="publishConfirm" type="checkbox">
-            我已查看 AI 实战结果；启用后普通问题会自动回复，并在价格前自动接下一条真实 ChatDaddy Flow；健康、付款、退款、投诉、隐私与看不清媒体仍交由客服核对。
-          </label>
-          <div class="actions" id="beginnerPublishActions" hidden>
-            <button class="btn primary" type="button" id="publishProjectButton" disabled>确认上线并进入 AI Reply</button>
-            <a class="btn primary" id="aiReplyDashboardLink" href="../dashboard/index.html?view=cases" hidden>进入 AI Reply</a>
+            <div class="practice-empty">尚未运行。可先免费预览，或直接跳过。</div>
           </div>
         </div>
       </section>
@@ -3429,16 +3426,16 @@
     <div class="paid-ai-dialog-body">
       <div class="paid-ai-dialog-head">
         <div>
-          <h2 id="paidAiConfirmTitle">确认付费 AI 操作</h2>
+          <h2 id="paidAiConfirmTitle">确认本次费用</h2>
         </div>
-        <span class="paid-ai-badge">会消耗 API 额度</span>
+        <span class="paid-ai-badge">会产生费用</span>
       </div>
       <p class="paid-ai-summary" id="paidAiConfirmSummary">请确认本次处理范围。</p>
       <dl class="paid-ai-facts">
         <div><dt>处理范围</dt><dd id="paidAiConfirmScope">—</dd></div>
-        <div><dt>预计调用</dt><dd id="paidAiConfirmCalls">—</dd></div>
-        <div><dt>最终整合模型</dt><dd id="paidAiConfirmModel">—</dd></div>
-        <div><dt>重复保护</dt><dd id="paidAiConfirmCache">已完成内容不会重跑</dd></div>
+        <div><dt>预计处理</dt><dd id="paidAiConfirmCalls">—</dd></div>
+        <div class="expert-only"><dt>处理方式</dt><dd id="paidAiConfirmModel">—</dd></div>
+        <div><dt>避免重复收费</dt><dd id="paidAiConfirmCache">已完成内容不会重跑</dd></div>
       </dl>
       <div class="paid-ai-boundary" id="paidAiConfirmBoundary">不会发送顾客讯息、不会触发 Flow，也不会自动重试。</div>
       <div class="paid-ai-dialog-actions">
@@ -3728,6 +3725,7 @@
     const publishConfirm = document.getElementById("publishConfirm");
     const publishProjectButton = document.getElementById("publishProjectButton");
     const practiceStatus = document.getElementById("practiceStatus");
+    const skipPracticeButton = document.getElementById("skipPracticeButton");
     const practiceCustomizationForm = document.getElementById("practiceCustomizationForm");
     const practicePersona = document.getElementById("practicePersona");
     const practiceTone = document.getElementById("practiceTone");
@@ -3803,6 +3801,7 @@
     savePracticeCustomizationButton.addEventListener("click", savePracticeCustomization);
     runPracticePreflightButton.addEventListener("click", runFreePracticePreflight);
     runPracticeButton.addEventListener("click", runAiPractice);
+    skipPracticeButton?.addEventListener("click", skipOptionalPractice);
     practiceFilters.addEventListener("click", handlePracticeFilter);
     practicePrevButton.addEventListener("click", () => changePracticePage(-1));
     practiceNextButton.addEventListener("click", () => changePracticePage(1));
@@ -3827,6 +3826,7 @@
 
     async function init() {
       document.body.classList.remove("show-advanced");
+      advancedModeButton.hidden = !adminToken;
       localStorage.setItem("hermas_setup_api", apiBase);
       state.authVerified = false;
       state.authState = "loading";
@@ -4011,7 +4011,7 @@
       document.getElementById("setupLoadErrorText").textContent = accessError
         ? "你已经登录，但这个账号不能打开当前项目。请切换到有权限的账号，或请管理员加入项目。"
         : networkError
-          ? "系统已自动切换到正式 API 并重试。请点击「重新读取」；仍无法连接时可先返回项目列表。"
+          ? "系统已自动重试连接。请点击「重新读取」；仍无法连接时可先返回项目列表。"
           : `这不是登录问题：${error?.message || error || "服务暂时不可用"}。`;
       const switchAccountLink = document.getElementById("setupSwitchAccountLink");
       switchAccountLink.hidden = !accessError;
@@ -4037,8 +4037,8 @@
       const projectLabel = projectKey.toLowerCase() === "beyoute" ? "Beyoute" : projectKey;
       document.getElementById("setupHeroTitle").textContent = `重新设置 ${projectLabel}`;
       document.getElementById("setupHeroDescription").textContent = "给资料，AI 整理；你只确认异常。";
-      document.getElementById("setupSideTitle").textContent = "5 步完成";
-      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 上线检查 → AI 实战";
+      document.getElementById("setupSideTitle").textContent = "4 步上线";
+      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 上线检查；AI 实战可选";
     }
 
     function applyExpectedTopologyDefaults() {
@@ -4224,7 +4224,7 @@
       const canonical = canonicalTopology(projectPackage);
       const issues = [];
       if (canonical.step_count !== Number(expected.expected_step_count || 0)) {
-        issues.push(`当前 Project Brain 是 ${canonical.step_count || 0} Step，你确认的是 ${expected.expected_step_count} Step`);
+        issues.push(`当前销售路线是 ${canonical.step_count || 0} Step，你确认的是 ${expected.expected_step_count} Step`);
       }
       if (canonical.price_stage_key !== String(expected.expected_price_stage_key || "")) {
         issues.push(`当前价格阶段是 ${canonical.price_stage_key || "未设置"}，你确认的是 ${expected.expected_price_stage_key}`);
@@ -4266,8 +4266,8 @@
         return `Step ${index + 1}${providerId ? `（${providerId}）` : "（未绑定）"}`;
       }).join("、");
       currentFlowTopology.textContent = canonical.step_count
-        ? `当前 Project Brain：${canonical.step_count} Step，价格在 ${canonical.price_stage_key || "未设置"}。${stageSummary || "尚未绑定真实 Flow。"}`
-        : "当前 Project Brain 还没有可确认的销售 Step。";
+        ? `当前销售路线：${canonical.step_count} Step，价格在 ${canonical.price_stage_key || "未设置"}。${stageSummary || "尚未绑定真实 Flow。"}`
+        : "当前项目还没有可确认的销售 Step。";
 
       const expected = selectedExpectedTopology();
       const selectionMessage = topologySelectionMessage(expected);
@@ -4325,7 +4325,7 @@
         reonboardingResult.textContent = "正在确认路线…";
 
         const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
-        if (!latest?.project_package) throw new Error("无法读取当前 Project Brain，已停止建立草稿。");
+        if (!latest?.project_package) throw new Error("无法读取当前项目资料，已停止建立草稿。");
         const expected = selectedTopology;
         const existingReonboarding = latest.project_package?.metadata?.reonboarding || {};
         const alreadyMatching = existingReonboarding.status === "in_progress"
@@ -4538,11 +4538,12 @@
       if (sideProjectName) sideProjectName.textContent = projectKey || "新项目";
       const channelIdentity = document.getElementById("channelProjectIdentity");
       if (channelIdentity) channelIdentity.textContent = projectKey
-        ? `${projectKey}（Channel 页面将锁定此 Project Key）`
-        : "请先完成项目草稿；没有项目代码时不会打开任何默认项目。";
+        ? `当前项目：${projectKey}`
+        : "请先选择项目。";
     }
 
     const ONBOARDING_PHASE_ORDER = ["flow", "teach", "review", "use", "practice"];
+    const ONBOARDING_REQUIRED_PHASES = ["flow", "teach", "review", "use"];
     const ONBOARDING_PANEL_IDS = {
       flow: "channelFlowPanel",
       teach: "businessPanel",
@@ -4577,17 +4578,20 @@
       state.onboardingPhaseDone = done;
       state.onboardingCurrentPhase = currentPhase || "";
       state.onboardingPhaseSignature = signature;
-      const fallbackPhase = done.practice === true
-        ? "practice"
-        : done.use === true
-          ? "practice"
-          : (state.authVerified === true ? "flow" : "");
+      const fallbackPhase = done.use === true
+        ? "use"
+        : (state.authVerified === true ? "flow" : "");
+      const practiceAvailable = done.use === true;
       const manualPhase = ONBOARDING_PHASE_ORDER.includes(state.onboardingManualPhase)
-        && (done[state.onboardingManualPhase] === true || state.onboardingManualPhase === currentPhase)
+        && (
+          done[state.onboardingManualPhase] === true
+          || state.onboardingManualPhase === currentPhase
+          || (state.onboardingManualPhase === "practice" && practiceAvailable)
+        )
         ? state.onboardingManualPhase
         : null;
       const openPhase = manualPhase || currentPhase || fallbackPhase;
-      const workflowCurrentPhase = currentPhase || (!currentPhase && done.practice === true ? "practice" : "");
+      const workflowCurrentPhase = currentPhase || "";
 
       document.querySelectorAll("[data-onboarding-panel][data-onboarding-phase]").forEach((panel) => {
         const phase = panel.dataset.onboardingPhase;
@@ -4605,7 +4609,10 @@
         const toggle = panel.querySelector("[data-onboarding-toggle]");
         if (!toggle) return;
         toggle.setAttribute("aria-expanded", String(isOpen));
-        if (isCurrent) {
+        if (phase === "practice" && practiceAvailable) {
+          toggle.disabled = false;
+          toggle.textContent = isDone ? "已完成" : isOpen ? "返回上线" : "可选";
+        } else if (isCurrent) {
           toggle.disabled = true;
           toggle.textContent = done[phase] ? "已完成" : "当前步骤";
         } else if (isDone) {
@@ -4625,10 +4632,15 @@
         item.classList.toggle("done", isDone);
         item.classList.toggle("current", isViewing);
         item.setAttribute("aria-current", isViewing ? "step" : "false");
-        item.setAttribute("aria-disabled", String(!isDone && !isWorkflowCurrent));
+        const isPracticeAvailable = phase === "practice" && practiceAvailable;
+        item.setAttribute("aria-disabled", String(!isDone && !isWorkflowCurrent && !isPracticeAvailable));
         const label = item.querySelector("[data-phase-label]");
         if (label) {
-          label.textContent = manualPhase && isViewing
+          label.textContent = phase === "practice" && isDone
+            ? "已完成"
+            : phase === "practice" && practiceAvailable
+              ? "可跳过"
+              : manualPhase && isViewing
             ? "查看中"
             : manualPhase && isWorkflowCurrent
               ? "待继续"
@@ -4653,7 +4665,7 @@
       const phase = link.dataset.progressPhase;
       const isDone = state.onboardingPhaseDone?.[phase] === true;
       const isCurrent = phase === state.onboardingCurrentPhase
-        || (!state.onboardingCurrentPhase && phase === "practice" && state.onboardingPhaseDone?.practice === true);
+        || (phase === "practice" && state.onboardingPhaseDone?.use === true);
       if (!isDone && !isCurrent) {
         event.preventDefault();
         return;
@@ -4668,10 +4680,11 @@
       const panel = event.currentTarget.closest("[data-onboarding-panel][data-onboarding-phase]");
       if (!panel) return;
       const phase = panel.dataset.onboardingPhase;
-      if (state.onboardingPhaseDone?.[phase] !== true) return;
+      const practiceAvailable = phase === "practice" && state.onboardingPhaseDone?.use === true;
+      if (state.onboardingPhaseDone?.[phase] !== true && !practiceAvailable) return;
       state.onboardingManualPhase = state.onboardingManualPhase === phase ? null : phase;
       syncOnboardingPanels(state.onboardingPhaseDone, state.onboardingCurrentPhase);
-      const targetPhase = state.onboardingManualPhase || state.onboardingCurrentPhase || "practice";
+      const targetPhase = state.onboardingManualPhase || state.onboardingCurrentPhase || "use";
       document.getElementById(ONBOARDING_PANEL_IDS[targetPhase])?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
@@ -4764,12 +4777,12 @@
         teach: teachReady,
         review: reviewReady,
         use: reviewReady && (launchReadiness.ready || currentRevisionActive),
-        practice: reviewReady && currentRevisionActive
+        practice: state.practicePassed === true
       };
-      const count = Object.values(phaseDone).filter(Boolean).length;
-      const currentPhase = ONBOARDING_PHASE_ORDER.find((phase, index) => (
+      const count = ONBOARDING_REQUIRED_PHASES.filter((phase) => phaseDone[phase] === true).length;
+      const currentPhase = ONBOARDING_REQUIRED_PHASES.find((phase, index) => (
         phaseDone[phase] !== true
-        && ONBOARDING_PHASE_ORDER.slice(0, index).every((previousPhase) => phaseDone[previousPhase] === true)
+        && ONBOARDING_REQUIRED_PHASES.slice(0, index).every((previousPhase) => phaseDone[previousPhase] === true)
       )) || "";
       if (state.onboardingHydrated) {
         syncOnboardingPanels(phaseDone, currentPhase);
@@ -4777,13 +4790,13 @@
         state.onboardingPhaseDone = phaseDone;
         state.onboardingCurrentPhase = currentPhase;
       }
-      document.getElementById("progressBar").style.width = `${(count / 5) * 100}%`;
-      document.getElementById("progressSummary").textContent = `${count} / 5 完成`;
-      document.getElementById("railProgressSummary").textContent = `${count} / 5`;
-      document.getElementById("progressStatus").textContent = phaseDone.practice
-          ? "可以开始使用"
+      document.getElementById("progressBar").style.width = `${(count / 4) * 100}%`;
+      document.getElementById("progressSummary").textContent = `${count} / 4 完成`;
+      document.getElementById("railProgressSummary").textContent = `${count} / 4`;
+      document.getElementById("progressStatus").textContent = currentRevisionActive
+          ? "已上线"
           : phaseDone.use
-            ? "等待 AI 实战"
+            ? "可以上线"
           : reviewReady && revisionState.draftDiffersFromPublished
             ? "新草稿待测试与发布"
           : !technicalDone.channel
@@ -4793,7 +4806,7 @@
               : !state.flowLearning?.owner_approved
                 ? "等待确认 AI 理解"
                 : state.published ? "资料已保存" : "设置中";
-      document.getElementById("progressStatus").className = `status ${phaseDone.practice ? "ok" : ""}`;
+      document.getElementById("progressStatus").className = `status ${phaseDone.use ? "ok" : ""}`;
       updateProjectLinks();
       updatePublishButton();
     }
@@ -4816,14 +4829,14 @@
       renderReonboardingTopology(packageResponse);
       document.getElementById("setupHeroTitle").textContent = `重新设置 ${existingProject.name || projectKey}`;
       document.getElementById("setupHeroDescription").textContent = "AI 自动学习；你只确认异常。";
-      document.getElementById("setupSideTitle").textContent = "5 步完成";
-      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 上线检查 → AI 实战";
+      document.getElementById("setupSideTitle").textContent = "4 步上线";
+      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 上线检查；AI 实战可选";
       document.querySelector("#setupForm .section-title").textContent = "项目资料";
-      document.getElementById("channelSetupLink").textContent = "连接 ChatDaddy API";
+      document.getElementById("channelSetupLink").textContent = "连接 ChatDaddy";
       createButton.textContent = "Owner 验收并保存重新 Onboard 草稿";
       formHelp.textContent = "AI 自动整理销售逻辑。";
       setStatus("等待重新 Onboard", "");
-      addLog("已载入现有项目", `${projectKey} 当前编辑版本 ${packageResponse.version_no || "-"}。本轮只建立新草稿，不会覆盖已发布 Runtime。`);
+      addLog("已载入现有项目", `${projectKey} 当前编辑版本 ${packageResponse.version_no || "-"}。本轮只建立新草稿，不会影响当前线上版本。`);
       updateOnboardingProgress();
     }
 
@@ -5750,16 +5763,16 @@
       const mediaKind = flowLearningMediaKindLabel(firstNonEmpty(item?.media_kind, item?.source_kind, item?.kind));
       const errorCode = firstNonEmpty(item?.error_code, item?.code, item?.message);
       if (/(?:insufficient_quota|billing_hard_limit)/i.test(errorCode)) {
-        return `${targetLabel} 的${mediaKind}需要 OpenAI 学习额度处理；平台管理员需检查 API 账单或额度，项目方无需修改 Flow。`;
+        return `${targetLabel} 的${mediaKind}暂时无法完成，平台正在处理；项目方无需修改 Flow。`;
       }
       if (/(?:invalid_api_key|account_deactivated|organization_restricted)/i.test(errorCode)) {
-        return `${targetLabel} 的${mediaKind}无法使用当前 OpenAI API Key 处理；平台管理员需检查 API Key 或项目权限，项目方无需修改 Flow。`;
+        return `${targetLabel} 的${mediaKind}暂时无法完成，平台正在处理；项目方无需修改 Flow。`;
       }
       return firstNonEmpty(
         item?.public_message,
         targetLabel && mediaKind
-          ? `${targetLabel} 的${mediaKind}处理失败已记录，平台技术人员会处理；项目方无需修改 Flow。`
-          : "系统学习异常已记录，平台技术人员会处理；项目方无需修改 Flow。"
+          ? `${targetLabel} 的${mediaKind}处理失败已记录，系统会继续处理；项目方无需修改 Flow。`
+          : "学习异常已记录，系统会继续处理；项目方无需修改 Flow。"
       );
     }
 
@@ -5969,7 +5982,7 @@
         baseNote,
         heartbeatText ? `最近更新 ${heartbeatText}前` : "",
         costText,
-        runningCost ? "账单以 OpenAI Billing 为准" : ""
+        runningCost ? "费用以本轮账单为准" : ""
       ].filter(Boolean).join(" · ");
       return true;
     }
@@ -6029,12 +6042,12 @@
       const targetMs = Date.parse(nextRetryAt || "");
       if (!Number.isFinite(targetMs)) return "等待负责人确认";
       const seconds = Math.max(0, Math.ceil((targetMs - Date.now()) / 1000));
-      if (seconds <= 0) return state.flowLearningBusy ? "正在执行当前轮" : "后台正在处理";
+      if (seconds <= 0) return state.flowLearningBusy ? "正在执行当前轮" : "系统正在处理";
       const minutes = Math.floor(seconds / 60);
       const remainder = seconds % 60;
       return minutes > 0
-        ? `${minutes}:${String(remainder).padStart(2, "0")} 后后台处理`
-        : `${seconds} 秒后后台处理`;
+        ? `${minutes}:${String(remainder).padStart(2, "0")} 后继续处理`
+        : `${seconds} 秒后继续处理`;
     }
 
     function renderFlowLearningRetryProgress(learning = state.flowLearning) {
@@ -6102,11 +6115,11 @@
           ? "AI 正在学习完整销售路线"
           : "正在读取 ChatDaddy 销售路线";
         flowLearningSubline.textContent = hasActiveJob
-          ? "后台会继续读取 Step、价格、Payment、Follow Up 与媒体。"
+          ? "系统会继续读取 Step、价格、Payment、Follow Up 与媒体。"
           : "读取 Step 1 至价格后的 Follow Up。";
         const activeCost = formatEstimatedUsd(state.flowLearningJob?.api_usage?.estimated_cost_usd);
         flowLearningMediaLine.hidden = !activeCost;
-        flowLearningMediaLine.textContent = activeCost ? `本次学习已用约 ${activeCost}（OpenAI Billing 为准）` : "";
+        flowLearningMediaLine.textContent = activeCost ? `本次学习已用约 ${activeCost}（以本轮账单为准）` : "";
         flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml();
         flowLearningStatus.textContent = hasActiveJob || state.flowLearningBusy ? "AI 学习中" : "等待连接";
         flowLearningStatus.className = "status";
@@ -6184,9 +6197,9 @@
         : "";
       flowLearningMediaLine.hidden = !completedCost && !completedEstimate;
       flowLearningMediaLine.textContent = completedCost
-        ? `本次学习已用约 ${completedCost}（OpenAI Billing 为准）`
+        ? `本次学习已用约 ${completedCost}（以本轮账单为准）`
         : completedEstimate
-          ? `${completedEstimate}（旧任务未保存 usage；OpenAI Billing 为准）`
+          ? `${completedEstimate}（旧任务未保存明细；以本轮账单为准）`
           : "";
       flowLearningMediaGrid.innerHTML = flowLearningMediaGridHtml(selectionChanged ? null : learning);
       flowLearningStatus.textContent = statusText;
@@ -6265,8 +6278,8 @@
       learnChatdaddyFlowsButton.disabled = state.flowLearningBusy || !selectionConfirmed || Boolean(paidAiActiveOperation());
       learnChatdaddyFlowsButton.textContent = state.flowLearningBusy
         ? "AI 正在学习…"
-        : apiDisconnected ? "先连接 ChatDaddy API"
-          : !apiConnectionKnown && !selectionConfirmed ? "正在确认 ChatDaddy API"
+        : apiDisconnected ? "先连接 ChatDaddy"
+          : !apiConnectionKnown && !selectionConfirmed ? "正在确认 ChatDaddy 连接"
           : !selectionConfirmed ? "尚未确认 Flow"
           : systemRetryingCount > 0 ? "立即重新处理未读媒体"
           : ready ? "重新学习已选择 Flow" : "学习已选择 Flow";
@@ -6370,7 +6383,7 @@
         cache: mediaCountKnown
           ? `${Number(preflight.cached_media_count || 0)} 个媒体已缓存；媒体用 ${mediaModel.model || "轻量模型"}`
           : `已有缓存会复用；媒体用 ${mediaModel.model || "轻量模型"}`,
-        boundary: "只读取并生成 Project Brain 草稿；不发讯息、不触发 Flow、不发布，失败不自动重试。",
+        boundary: "只读取并生成 AI 学习草稿；不发讯息、不触发 Flow、不发布，失败不自动重试。",
         confirmLabel: "确认费用并执行一次"
       });
     }
@@ -6379,7 +6392,7 @@
       if (state.flowLearningBusy) return state.flowLearning;
       const activePaidOperation = paidAiActiveOperation();
       if (activePaidOperation) {
-        flowLearningHeadline.textContent = "已有付费 AI 任务正在处理";
+        flowLearningHeadline.textContent = "已有付费学习正在处理";
         flowLearningSubline.textContent = paidAiBusyMessage(activePaidOperation);
         flowLearningStatus.textContent = "请等待完成";
         flowLearningStatus.className = "status";
@@ -6397,10 +6410,10 @@
         const apiConnected = state.connectionGuide?.summary?.api_connected === true;
         flowLearningHeadline.textContent = apiConnected
           ? "请先选择 AI 要学习的 Flow"
-          : "请先连接 ChatDaddy API";
+          : "请先连接 ChatDaddy";
         flowLearningSubline.textContent = apiConnected
           ? "销售 Step、价格 Step、Payment 与 Follow Up 尚未确认；系统不会开始学习。"
-          : "API 未验证前，Flow 选择、AI 学习与下一步全部锁定。";
+          : "ChatDaddy 尚未验证前，Flow 选择、AI 学习与下一步全部锁定。";
         flowLearningStatus.textContent = apiConnected ? "尚未确认" : "尚未连接";
         flowLearningStatus.className = "status bad";
         return null;
@@ -6465,14 +6478,14 @@
               costConfirmationFingerprint: error.data.cost_preflight.confirmation_fingerprint
             });
           }
-          flowLearningHeadline.textContent = "已取消付费 AI 学习";
+          flowLearningHeadline.textContent = "已取消付费学习";
           flowLearningSubline.textContent = "没有调用模型，也没有扣除本次学习费用。";
           flowLearningStatus.textContent = "未执行";
           flowLearningStatus.className = "status";
           return null;
         }
         if (adoptPaidAiOperationFromError(error)) {
-          flowLearningHeadline.textContent = "已有付费 AI 任务正在处理";
+          flowLearningHeadline.textContent = "已有付费学习正在处理";
           flowLearningSubline.textContent = paidAiBusyMessage();
           flowLearningStatus.textContent = "请等待完成";
           flowLearningStatus.className = "status";
@@ -6534,6 +6547,7 @@
     }
 
     function toggleAdvancedMode() {
+      if (!adminToken) return;
       const enabled = document.body.classList.toggle("show-advanced");
       advancedModeButton.setAttribute("aria-expanded", String(enabled));
       advancedModeButton.querySelector("span").textContent = enabled ? "收起高级设置" : "高级设置";
@@ -6600,7 +6614,7 @@
           })
           : true;
         if (!paidApproved) {
-          beginnerLearningResult.textContent = "已取消，没有调用付费 AI。";
+          beginnerLearningResult.textContent = "已取消，没有开始付费学习。";
           return;
         }
 
@@ -6843,12 +6857,12 @@
             ? state.existingPackageResponse
             : await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
           if (!currentPackageResponse?.project_package) {
-            throw new Error(`无法读取项目 ${projectKey} 的当前 Project Brain，已停止保存。`);
+            throw new Error(`无法读取项目 ${projectKey} 的当前资料，已停止保存。`);
           }
           if (explicitOwnerApproval) {
             const topologyMismatch = topologyMismatchMessage(currentPackageResponse.project_package);
             if (topologyMismatch) {
-              throw new Error(`Owner 验收前必须先对齐真实 Flow 路线：${topologyMismatch}。已发布 Runtime 没有改变。`);
+              throw new Error(`确认前必须先对齐真实 Flow 路线：${topologyMismatch}。当前线上版本没有改变。`);
             }
           }
           addLog("准备保存现有项目迁移草稿", `项目 ${projectKey} 的旧 FAQ、SOP、Flow 和自动化设置会原样保留。`);
@@ -6894,7 +6908,7 @@
           ownerApproved
             ? (existingProject ? "Owner 已确认，现有项目学习草稿已保存" : "Owner 已确认，项目草稿已创建")
             : "项目学习草稿已保存，AI 可以开始整理",
-          `Project: ${data.project_key || projectKey}，草稿版本 ${data.version_no || "-"}。旧资料与自动化设置没有被覆盖；必须重新通过 Mock Test 才能发布。`
+          `${data.project_key || projectKey} 草稿版本 ${data.version_no || "-"}。旧资料与自动化设置没有被覆盖；必须重新通过上线检查才能发布。`
         );
         previewMetrics.innerHTML = [
           metricHtml("项目", projectKey),
@@ -7161,8 +7175,8 @@
           missing_required: [],
           warnings: [
             "Owner 尚未验收",
-            "Mock Test 尚未执行",
-            "Runtime 尚未发布",
+            "上线检查尚未执行",
+            "项目尚未发布",
             "渠道与 Flow 尚未连接"
           ]
         }
@@ -7397,19 +7411,19 @@
       const label = status === "queued"
         ? "安全排队中"
         : status === "running"
-          ? "AI 正在后台学习"
+          ? "AI 正在学习"
           : status === "succeeded"
             ? "学习完成"
             : "需要处理";
       const message = String(progress.message || (status === "running"
         ? "正在读取页面并整合项目知识。"
-        : "等待后台任务状态。"));
+        : "等待学习状态。"));
       documentRelearnStatus.className = `document-relearn-status${status === "succeeded" ? " ok" : ["dead_letter", "cancelled"].includes(status) ? " bad" : ""}`;
       documentRelearnStatus.innerHTML = `
         <div class="document-job-progress">
           <div class="document-job-progress-head"><b>${escapeHtml(label)}</b><span>${escapeHtml(String(Math.round(percent)))}%</span></div>
           <div class="document-job-progress-track"><span style="width:${escapeHtml(String(percent))}%"></span></div>
-          <small>${escapeHtml(message)}${job?.active ? " 可关闭页面，后台不会中断。" : ""}</small>
+          <small>${escapeHtml(message)}${job?.active ? " 可关闭页面，学习不会中断。" : ""}</small>
         </div>`;
     }
 
@@ -7476,10 +7490,10 @@
             job = status?.learning_job || job;
           } catch (error) {
             documentRelearnStatus.className = "document-relearn-status";
-            documentRelearnStatus.textContent = "页面暂时断线；后台任务仍保留。正在重新连接查询进度，不会重新收费。";
+            documentRelearnStatus.textContent = "页面暂时断线；学习任务仍保留。正在重新连接查询进度，不会重新收费。";
           }
         }
-        throw new Error("后台学习仍在运行；可关闭页面，稍后回来会自动恢复进度。");
+        throw new Error("AI 学习仍在运行；可关闭页面，稍后回来会自动恢复进度。");
       })().finally(() => {
         state.documentLearningJobPromise = null;
       });
@@ -7588,7 +7602,7 @@
         : `${pages} 页 · ${media} 个页面媒体 · 共 ${totalCalls} 次付费调用`;
       return requestPaidAiConfirmation({
         title: options.relearnDocument ? "确认补学这个文件" : "确认分析项目文件",
-        summary: `预计 US$${low.toFixed(2)}–US$${high.toFixed(2)}。确认后才调用 OpenAI；实际费用以 API 账单为准。`,
+        summary: `预计 US$${low.toFixed(2)}–US$${high.toFixed(2)}。确认后才开始学习；实际费用以本轮账单为准。`,
         scope: file.name || preflight.file_name || "当前文件",
         calls: callDescription,
         model: `${model.model || "gpt-5.6-sol"} · ${model.reasoning_effort || "当前项目学习等级"}`,
@@ -7604,7 +7618,7 @@
       const activeOperation = paidAiActiveOperation();
       if (activeOperation) {
         const message = paidAiBusyMessage(activeOperation);
-        setDocumentStatus("已有付费 AI 任务正在处理", "bad");
+        setDocumentStatus("已有付费学习正在处理", "bad");
         documentResult.textContent = message;
         syncPaidAiActionLocks();
         return null;
@@ -7679,9 +7693,9 @@
           paidAiLocalLock = null;
           const approved = await confirmDocumentLearningCost(error.data.cost_preflight, file, extracted, options);
           if (!approved) {
-            setDocumentStatus("已取消，没有调用付费 AI", "");
+            setDocumentStatus("已取消，没有开始付费学习", "");
             if (options.relearnDocument) {
-              documentRelearnStatus.textContent = "已取消，没有调用 OpenAI，也没有本次学习费用。";
+              documentRelearnStatus.textContent = "已取消，没有开始学习，也没有本次学习费用。";
               documentRelearnStatus.className = "document-relearn-status";
             }
             return null;
@@ -7735,7 +7749,7 @@
       } catch (error) {
         if (adoptPaidAiOperationFromError(error)) {
           const message = paidAiBusyMessage(state.paidAiOperation);
-          setDocumentStatus("已有付费 AI 任务正在处理", "bad");
+          setDocumentStatus("已有付费学习正在处理", "bad");
           documentResult.textContent = message;
           return null;
         }
@@ -7810,7 +7824,7 @@
       }
       if (code.includes("document_media_analysis_failed")) {
         const reason = /openai_http_429|insufficient_quota|rate_limit/i.test(mode)
-          ? "OpenAI 额度或速率限制"
+          ? "学习额度或处理频率限制"
           : /openai_http_400/i.test(mode)
             ? "模型拒绝了这批输入"
             : /openai_incomplete:max_output_tokens/i.test(mode)
@@ -8894,18 +8908,18 @@
       }
       try {
         setReplyContractBusy(true);
-        setReplyContractStatus("运行 Mock Test", "");
-        contentMockStatus.textContent = "正在检查（不调用 OpenAI）";
+        setReplyContractStatus("运行上线检查", "");
+        contentMockStatus.textContent = "正在检查（不产生模型费用）";
         contentMockStatus.className = "status";
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/test-cases/run`, {});
         const attestedVersionNo = Number(data?.version_no || data?.package_version_no || 0);
         if (!attestedVersionNo) {
-          throw new Error("Mock Test 没有返回本轮草稿版本，不能沿用旧成绩。");
+          throw new Error("上线检查没有返回本轮草稿版本，不能沿用旧成绩。");
         }
         state.mockAttestedVersionNo = attestedVersionNo;
         const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
         if (Number(latest?.version_no || 0) !== attestedVersionNo) {
-          throw new Error("Mock Test 成绩与当前草稿版本不一致，请重新测试。");
+          throw new Error("上线检查结果与当前草稿版本不一致，请重新检查。");
         }
         state.salesPackageResponse = latest;
         state.existingPackageResponse = latest;
@@ -8915,8 +8929,8 @@
         if (error.data?.tests || error.data?.blockers) {
           renderReplyContractMock(error.data);
         } else {
-          setReplyContractStatus(error.message || "Mock Test 失败", "bad");
-          contentMockStatus.textContent = error.message || "Mock Test 失败";
+          setReplyContractStatus(error.message || "上线检查失败", "bad");
+          contentMockStatus.textContent = error.message || "上线检查失败";
           contentMockStatus.className = "status bad";
           state.mockResult = {
             blockers: [{ message: error.message || "上线检查失败，请重试。" }],
@@ -9079,10 +9093,10 @@
         const selectionConfirmed = summary.flow_selection_confirmed === true;
         const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
         const topologyMismatch = topologyMismatchMessage(packageData);
-        channelSetupLink.textContent = apiConnected ? "查看 / 选择当前项目真实 Flow" : "连接 ChatDaddy API";
+        channelSetupLink.textContent = apiConnected ? "查看 / 选择当前项目真实 Flow" : "连接 ChatDaddy";
         if (!apiConnected) {
-          readinessResult.textContent = "请先连接并验证当前项目的 ChatDaddy API。连接成功并读取实时 Flow 后，系统才会开放 Flow 选择、AI 学习和下一步。";
-          channelFlowStatus.textContent = "先连接 API";
+          readinessResult.textContent = "请先连接并验证当前项目的 ChatDaddy。连接成功并读取实时 Flow 后，系统才会开放 Flow 选择、AI 学习和下一步。";
+          channelFlowStatus.textContent = "先连接 ChatDaddy";
           channelFlowStatus.className = "status bad";
         } else if (topologyMismatch) {
           readinessResult.textContent = `当前连接页只验证了旧路线 ${steps}，不能当作本轮 Onboarding 已完成：${topologyMismatch}。请打开真实 Flow 页面选择缺少的 Step；系统不会伪造 Flow ID。`;
@@ -9187,31 +9201,44 @@
 
     function publishReadinessIssue(message = "") {
       const text = String(message || "").trim();
+      const publicMessage = (() => {
+        if (/flow_learning_current_revision_valid|chatdaddy_flow_changed_requires_relearning/i.test(text)) {
+          return "ChatDaddy Flow 已更新，请重新学习。";
+        }
+        if (/document_learning_current_model_valid/i.test(text)) {
+          return "补充文件需要重新学习。";
+        }
+        if (/^[a-z0-9_.-]+$/i.test(text)) return "系统检查尚未完成。";
+        return text
+          .replace(/OpenAI/gi, "AI")
+          .replace(/API\s*(Key|Token|额度|账单)?/gi, "学习服务")
+          .replace(/Runtime/gi, "服务");
+      })();
       if (/六问业务教学|业务资料|项目资料/i.test(text)) {
-        return { message: text, target: "businessPanel", phase: "teach", label: "去补项目资料" };
+        return { message: publicMessage, target: "businessPanel", phase: "teach", label: "去补项目资料" };
       }
       if (/ppt|pdf|文件|document.*learning|current model|current reasoning/i.test(text)) {
-        return { message: text, target: "businessPanel", phase: "teach", label: "去补学文件" };
+        return { message: publicMessage, target: "businessPanel", phase: "teach", label: "去补学文件" };
       }
       if (/资料需要确认|owner 验收|学习审核/i.test(text)) {
-        return { message: text, target: "learningReviewPanel", phase: "review", label: "去确认资料" };
+        return { message: publicMessage, target: "learningReviewPanel", phase: "review", label: "去确认资料" };
       }
       if (/销售路线|price stage|step|follow up|flow.*绑定/i.test(text)) {
-        return { message: text, target: "channelFlowPanel", phase: "flow", label: "检查 Flow 路线" };
+        return { message: publicMessage, target: "channelFlowPanel", phase: "flow", label: "检查 Flow 路线" };
       }
       if (/回复规则|reply contract/i.test(text)) {
-        return { message: text, target: "replyContractPanel", advanced: true, label: "去检查回复规则" };
+        return { message: publicMessage, target: "replyContractPanel", advanced: true, label: "去检查回复规则" };
       }
       if (/chatdaddy|连接|flow 仍有|api/i.test(text)) {
-        return { message: text, target: "channelFlowPanel", phase: "flow", label: "去处理连接" };
+        return { message: publicMessage, target: "channelFlowPanel", phase: "flow", label: "去处理连接" };
       }
       if (/当前草稿已更新|尚未运行上线检查/i.test(text)) {
-        return { message: text, action: "rerun", label: "立即重新检查" };
+        return { message: publicMessage, action: "rerun", label: "立即重新检查" };
       }
       if (/上线检查.*未通过|mock|test/i.test(text)) {
-        return { message: text, target: "contentMockPanel", advanced: true, label: "查看失败详情" };
+        return { message: publicMessage, target: "contentMockPanel", advanced: true, label: "查看失败详情" };
       }
-      return { message: text, target: "learningReviewPanel", phase: "review", label: "去处理" };
+      return { message: publicMessage, target: "learningReviewPanel", phase: "review", label: "去处理" };
     }
 
     function handleGoLiveIssueAction(event) {
@@ -9228,6 +9255,7 @@
       const targetId = button.dataset.fixTarget;
       const phase = button.dataset.fixPhase;
       if (button.dataset.fixAdvanced === "true") {
+        if (!adminToken) return;
         document.body.classList.add("show-advanced");
         advancedModeButton.setAttribute("aria-expanded", "true");
         advancedModeButton.querySelector("span").textContent = "收起高级设置";
@@ -9287,17 +9315,19 @@
             <button
               class="btn"
               type="button"
+              ${issue.advanced && !adminToken ? "disabled" : ""}
               ${issue.target ? `data-fix-target="${escapeHtml(issue.target)}"` : ""}
               ${issue.phase ? `data-fix-phase="${escapeHtml(issue.phase)}"` : ""}
               ${issue.advanced ? 'data-fix-advanced="true"' : ""}
               ${issue.action ? `data-fix-action="${escapeHtml(issue.action)}"` : ""}
-            >${escapeHtml(issue.label || "去处理")}</button>
+            >${escapeHtml(issue.advanced && !adminToken ? "由平台处理" : issue.label || "去处理")}</button>
           </div>`)
         .join("");
       runReplyContractMockButton.hidden = published;
       runReplyContractMockButton.textContent = readiness.hasTests ? "重新运行上线检查" : "运行上线检查";
-      beginnerPublishConfirmWrap.hidden = !state.practicePassed || published;
-      beginnerPublishActions.hidden = !state.practicePassed || published;
+      beginnerPublishConfirmWrap.hidden = !readiness.ready || published;
+      beginnerPublishActions.hidden = !readiness.ready && !published;
+      publishProjectButton.hidden = published;
 
       if (published) {
         beginnerGoLiveTitle.textContent = "上线检查已完成";
@@ -9311,7 +9341,7 @@
         contentMockStatus.className = "status bad";
       } else if (readiness.ready) {
         beginnerGoLiveTitle.textContent = "上线检查已通过";
-        beginnerGoLiveText.textContent = "下一步会用 100 位不同顾客实战测试当前 AI Reply。";
+        beginnerGoLiveText.textContent = "可以直接上线；AI 实战可跳过，之后随时回来测试。";
         contentMockStatus.textContent = "检查通过";
         contentMockStatus.className = "status ok";
       } else if (readiness.hasTests || rawBlockers.length > 0) {
@@ -9333,10 +9363,7 @@
     function updatePublishButton() {
       if (!publishProjectButton || !publishConfirm) return;
       const readiness = currentPublishReadiness();
-      const practiceBound = state.practicePassed === true
-        && Number(state.practiceAttestedVersionNo || 0) > 0
-        && Number(state.practiceAttestedVersionNo || 0) === Number(state.mockAttestedVersionNo || 0);
-      publishProjectButton.disabled = !(publishConfirm.checked && readiness.ready && practiceBound);
+      publishProjectButton.disabled = !(publishConfirm.checked && readiness.ready);
       renderBeginnerGoLiveState(readiness);
     }
 
@@ -9404,8 +9431,8 @@
       const ready = readiness.ready || published;
       const canPreflight = Boolean(currentProjectKey()) && Object.keys(packageData).length > 0;
       runPracticePreflightButton.disabled = state.practiceBusy || !canPreflight;
-      savePracticeCustomizationButton.disabled = state.practiceBusy || !ready || published;
-      runPracticeButton.disabled = state.practiceBusy || !ready || published || Boolean(paidAiActiveOperation());
+      savePracticeCustomizationButton.disabled = state.practiceBusy || !ready;
+      runPracticeButton.disabled = state.practiceBusy || !ready || Boolean(paidAiActiveOperation());
       if (published) {
         practiceStatus.textContent = "AI Reply 已启用";
         practiceStatus.className = "status ok";
@@ -9422,7 +9449,7 @@
         practiceStatus.textContent = "US$0 预检完成";
         practiceStatus.className = "status ok";
       } else {
-        practiceStatus.textContent = "可以开始";
+        practiceStatus.textContent = "可选";
         practiceStatus.className = "status";
       }
       const hasLegacyPracticeCards = state.practiceResults.some((result) => (
@@ -9446,7 +9473,7 @@
       const projectKey = currentProjectKey();
       if (!projectKey) throw new Error("请先选择项目。");
       const current = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
-      if (!current?.project_package) throw new Error("无法读取当前 Project Brain。");
+      if (!current?.project_package) throw new Error("无法读取当前项目资料。");
       const nextCustomization = currentPracticeCustomization();
       const currentCustomization = current.project_package.ai_reply_customization || {};
       const comparable = (value) => JSON.stringify({
@@ -9721,7 +9748,7 @@
         expectedAction = "先说明已理解的媒体内容，再回答顾客问题；不把媒体统称为附件。";
         notes.push(`${scenario.media_type} 内容已具备可读摘要`);
       } else {
-        notes.push("可由当前 Project Brain 与回复规则覆盖");
+        notes.push("可由当前项目资料与回复规则覆盖");
       }
 
       if (customInstructionConflict && route !== "human") {
@@ -9751,7 +9778,7 @@
         uses_openai: false,
         ai_check: false,
         ai_brain: {},
-        source_label: "Project Brain + 真实 Flow 绑定 + 安全规则",
+        source_label: "项目资料 + 真实 Flow + 安全规则",
         notes
       };
     }
@@ -9910,7 +9937,7 @@
       state.practiceResults = scenarios.map((scenario) => forecastPracticeScenario(scenario, projectPackage));
       const attentionCount = state.practiceResults.filter((result) => result.route === "attention").length;
       updatePracticeProgress(100, 100, "US$0 路线预检完成");
-      practiceProgressNote.textContent = "未调用 OpenAI · 未发送顾客讯息 · 未触发 Flow · 未修改项目状态。";
+      practiceProgressNote.textContent = "US$0 · 未发送顾客讯息 · 未触发 Flow · 未修改项目状态。";
       practiceResultSummary.textContent = attentionCount
         ? `100 张卡片已建立 · ${attentionCount} 张需留意`
         : "100 张卡片已建立 · 路线规则未发现阻塞";
@@ -9986,7 +10013,7 @@
           ["自动回复 + Flow", flow],
           ["客服核对", human],
           ["需要调整", attention],
-          ["API 费用", "US$0.00"]
+          ["本轮费用", "US$0.00"]
         ].map(([label, value]) => `<div class="practice-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`).join("");
         return;
       }
@@ -10010,7 +10037,7 @@
         ["自动接 Flow", flow],
         ["客服核对", human],
         ["失败", failed],
-        ["API 费用", `US$${usage.estimated_cost_usd.toFixed(2)}`]
+        ["本轮费用", `US$${usage.estimated_cost_usd.toFixed(2)}`]
       ].map(([label, value]) => `<div class="practice-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`).join("");
     }
 
@@ -10119,6 +10146,12 @@
       practiceResultList.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
+    function skipOptionalPractice() {
+      state.onboardingManualPhase = "use";
+      syncOnboardingPanels(state.onboardingPhaseDone, state.onboardingCurrentPhase);
+      document.getElementById("learningLoopPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     async function ensurePracticeMockAttestation(projectKey) {
       const latest = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
       if (Number(state.mockAttestedVersionNo || 0) === Number(latest.version_no || 0)) return latest;
@@ -10212,7 +10245,7 @@
       if (state.practiceBusy) return;
       const activeOperation = paidAiActiveOperation();
       if (activeOperation) {
-        practiceStatus.textContent = "已有付费 AI 任务正在处理";
+        practiceStatus.textContent = "已有付费实战正在处理";
         practiceStatus.className = "status bad";
         practiceResultSummary.textContent = paidAiBusyMessage(activeOperation);
         practiceResultSummary.className = "status bad";
@@ -10229,7 +10262,7 @@
       const projectKey = currentProjectKey();
       practiceStatus.textContent = "正在打开费用确认";
       practiceStatus.className = "status";
-      practiceResultSummary.textContent = "请先确认预计费用；尚未调用付费 AI";
+      practiceResultSummary.textContent = "请先确认预计费用；尚未开始付费实战";
       practiceResultSummary.className = "status";
       runPracticeButton.disabled = true;
       runPracticeButton.textContent = "正在准备费用确认…";
@@ -10250,11 +10283,11 @@
         confirmationFailed = true;
         practiceStatus.textContent = "费用确认无法打开，请刷新后重试";
         practiceStatus.className = "status bad";
-        practiceResultSummary.textContent = error?.message || "尚未调用付费 AI";
+        practiceResultSummary.textContent = error?.message || "尚未开始付费实战";
         practiceResultSummary.className = "status bad";
         return;
       } finally {
-        runPracticeButton.textContent = "保存并开始付费 AI 实战";
+        runPracticeButton.textContent = "开始 100 题实战";
         if (!state.practiceBusy && !confirmationFailed) {
           renderPracticeAvailability(currentPublishReadiness(), false);
         } else if (confirmationFailed) {
@@ -10262,7 +10295,7 @@
         }
       }
       if (!approved) {
-        practiceStatus.textContent = "已取消，没有调用付费 AI";
+        practiceStatus.textContent = "已取消，没有开始付费实战";
         practiceStatus.className = "status";
         return;
       }
@@ -10421,20 +10454,17 @@
       try {
         state.publishError = "";
         publishProjectButton.disabled = true;
-        publishProjectButton.textContent = "正在执行发布 Gate…";
+        publishProjectButton.textContent = "正在上线…";
         const packageState = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
         if (!state.mockAttestedVersionNo || Number(packageState.version_no || 0) !== Number(state.mockAttestedVersionNo)) {
-          throw new Error("当前草稿不是刚通过 Mock Test 的版本，请重新测试后再发布。");
-        }
-        if (!state.practicePassed || Number(state.practiceAttestedVersionNo || 0) !== Number(packageState.version_no || 0)) {
-          throw new Error("请先完成绑定当前草稿版本的 100 题 AI 实战。");
+          throw new Error("当前草稿已更新，请重新运行上线检查。" );
         }
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package/publish`, {
           version_no: Number(state.mockAttestedVersionNo)
         });
         if (data.sends_messages !== false || data.triggers_flows !== false) throw new Error("发布边界不完整，已停止显示成功状态。");
         if (data.ai_reply_ready !== true || data.activation?.ready_for_ai_reply !== true) {
-          throw new Error("Project Brain 已通过，但 AI Reply Runtime 尚未就绪；系统不会把未完成项目显示为上线。");
+          throw new Error("项目资料已通过，但 AI Reply 尚未就绪；系统不会把未完成项目显示为上线。");
         }
         state.published = data.published === true;
         state.activation = data.activation;
@@ -10576,7 +10606,7 @@
 
       if (!response) {
         const error = new Error(canRetry
-          ? "网络暂时无法连接正式 API，读取请求已安全重试。"
+          ? "网络暂时无法连接项目服务，读取请求已安全重试。"
           : "网络连接中断；写入或付费动作没有自动重试，以避免重复执行。");
         error.code = "network_fetch_failed";
         error.method = method;
