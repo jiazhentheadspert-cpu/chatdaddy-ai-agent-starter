@@ -6734,6 +6734,10 @@
       margin: 0 !important;
     }
 
+    .payment-menu-panel .after-payment-action {
+      grid-column: 1 / -1;
+    }
+
 	    .payment-menu-panel .purchase-note {
 	      margin-top: 0;
 	      font-size: 11px;
@@ -9289,19 +9293,24 @@
 	      </summary>
 	      <div class="payment-menu-panel">
 	        <div class="operation-copy">
-	          <span>确认付款并接 After Payment Flow</span>
-	          <small>先核对金额和配套，再一次完成</small>
+	          <span>订单与收款</span>
+	          <small>先发付款 Flow；确认到账后才接售后 Flow</small>
 	        </div>
 	        <label class="purchase-flow-wrap">
-	          <span>自动匹配配套 / Flow</span>
-	          <select id="paymentFlowSelect" aria-label="按付款金额自动匹配的付款后 Flow" disabled></select>
+	          <span>顾客确认配套 · Payment Flow</span>
+	          <select id="paymentFlowSelect" aria-label="按订单金额自动匹配的 Payment Flow" disabled></select>
 	        </label>
 	        <label class="purchase-input-wrap">
 	          <span>RM</span>
 	          <input id="purchaseAmountInput" inputmode="decimal" autocomplete="off" placeholder="金额" />
 	        </label>
-	        <button class="btn primary" id="markPurchaseBtn" type="button">确认付款并接 Flow</button>
-	        <div class="purchase-note" id="purchaseNote">只有已核对付款和配套才按；系统会触发所选 ChatDaddy Flow。</div>
+	        <button class="btn primary" id="sendPaymentFlowBtn" type="button">发付款 Flow</button>
+	        <label class="purchase-flow-wrap">
+	          <span>已确认到账 · After Payment Flow</span>
+	          <select id="afterPaymentFlowSelect" aria-label="付款确认后的 After Payment Flow"></select>
+	        </label>
+	        <button class="btn primary after-payment-action" id="markPurchaseBtn" type="button">确认已付款并接售后 Flow</button>
+	        <div class="purchase-note" id="purchaseNote">发付款 Flow 不会记作已收款；只有确认到账才记录成交。</div>
 	      </div>
 	    </details>
 	  </div>
@@ -10118,6 +10127,7 @@
 	    $("noReplyNeededBtn").addEventListener("click", recordNoReplyActive);
 	    $("returnAiBtn").addEventListener("click", returnAiActive);
 		    $("handoffBtn").addEventListener("click", handoffActive);
+		    $("sendPaymentFlowBtn").addEventListener("click", sendPaymentFlowActive);
 		    $("markPurchaseBtn").addEventListener("click", markPurchaseActive);
 		    $("purchaseAmountInput").addEventListener("input", () => autoSelectPaymentFlowByAmount());
 		    $("applyQuickReplyBtn").addEventListener("click", applyQuickReplyActive);
@@ -22529,6 +22539,8 @@
 	      updatePurchaseNote(item);
 	      updateExternalFlowPanel(item, readOnly);
 	      $("markPurchaseBtn").disabled = state.actionBusy || !showPurchasePanel || purchaseActionComplete;
+	      $("sendPaymentFlowBtn").disabled = state.actionBusy || !showPurchasePanel;
+	      $("afterPaymentFlowSelect").disabled = state.actionBusy || !showPurchasePanel;
       $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(item, canResendPurchase);
 	      $("caseDetails").innerHTML = caseDetailsHtml(item);
 
@@ -22910,7 +22922,7 @@
 	      if (item.flow_trigger_retry_required === true) return "重试 After Payment Flow";
 	      if (canResendPurchase) return "补回流广告";
 	      if (item.status === "purchase_confirmed") return "已确认付款";
-	      return "确认付款并接 Flow";
+	      return "确认已付款并接售后 Flow";
 	    }
 
 	    function hasPurchaseActionContext(item = {}) {
@@ -22938,26 +22950,6 @@
 	      return /(order|receipt|payment|paid|cod|bank|card|purchase|付款|付钱|付錢|已付|汇款|匯款|收据|收據|截图|截圖|银行|銀行|银行卡|銀行卡|信用卡|订单|訂單|下单|下單|成交|审款|審款)/i.test(combined);
 	    }
 
-	function fallbackBeyouteFlowCatalog() {
-	  return [
-	    { flow_key: "payment_meta_3_rm378", title: "Payment Flow Meta 3盒送1盒 RM378", flow_kind: "payment", stage_key: "after_payment", package_code: "3_box_rm378", amount_rm: 378, configured: false },
-	    { flow_key: "payment_meta_4_rm508", title: "Payment Flow Meta 4盒送2盒 RM508", flow_kind: "payment", stage_key: "after_payment", package_code: "4_box_rm508", amount_rm: 508, configured: false },
-	    { flow_key: "payment_meta_5_rm658", title: "Payment Flow Meta 5盒送3盒 RM658", flow_kind: "payment", stage_key: "after_payment", package_code: "5_box_rm658", amount_rm: 658, configured: false },
-	    { flow_key: "after_payment_group", title: "WA AFTER PAYMENT 进群", flow_kind: "payment", stage_key: "after_payment", package_code: "after_payment_group", configured: false },
-	    { flow_key: "after_payment_refund_policy", title: "WA AFTER PAYMENT 无效退款", flow_kind: "payment", stage_key: "after_payment_policy", package_code: "after_payment_refund_policy", configured: false },
-	    { flow_key: "payment", title: "Payment / Order / Receipt（旧通用流程）", flow_kind: "payment", stage_key: "payment", package_code: "generic_payment", configured: Boolean(BEYOUTE_DEFAULT_SETTINGS.flowMap.payment), provider_bot_id: BEYOUTE_DEFAULT_SETTINGS.flowMap.payment }
-	  ];
-	}
-
-	function fallbackBeyouteQuickReplies() {
-	  return [
-	    { key: "payment_received", label: "收到付款", text: "谢谢亲爱的，这里已经收到你的付款了❤️ 我现在帮你接上付款后的安排。" },
-	    { key: "need_package", label: "确认配套", text: "亲爱的，我先确认一下你付款的是哪个配套和金额，确认后马上帮你接上付款后的安排❤️" },
-	    { key: "need_receipt", label: "补付款截图", text: "亲爱的，方便把付款截图发我一下吗？我核对好金额后马上帮你安排❤️" },
-	    { key: "cod_confirm", label: "COD 已确认", text: "好的亲爱的，COD 订单已经帮你确认了❤️ 接下来我帮你安排订单流程。" }
-	  ];
-	}
-
 	async function loadFlowCatalog() {
 	  const api = apiUrlEl.value.trim().replace(/\/$/, "");
 	  const project = projectKeyEl.value.trim() || "beyoute";
@@ -22977,14 +22969,10 @@
 	    state.flowCatalogLiveCount = Number(data.live_flow_count || 0);
 	    if (data.live_catalog_error) state.flowCatalogError = String(data.live_catalog_error);
 	  } catch (error) {
-	    const allowBeyouteFallback = String(project || "").trim().toLowerCase() === "beyoute";
-	    state.flowCatalog = allowBeyouteFallback ? fallbackBeyouteFlowCatalog() : [];
-	    state.quickReplies = allowBeyouteFallback ? fallbackBeyouteQuickReplies() : [];
+	    state.flowCatalog = [];
+	    state.quickReplies = [];
 	    state.flowCatalogError = error?.message || String(error);
 	  } finally {
-	    const allowBeyouteFallback = String(project || "").trim().toLowerCase() === "beyoute";
-	    if (!state.flowCatalog.length && allowBeyouteFallback) state.flowCatalog = fallbackBeyouteFlowCatalog();
-	    if (!state.quickReplies.length && allowBeyouteFallback) state.quickReplies = fallbackBeyouteQuickReplies();
 	    state.flowCatalogLoaded = true;
 	    if (state.active) renderChannelActions(state.active);
 	  }
@@ -23674,7 +23662,7 @@
 	  const amount = casePurchaseAmount(item);
 	  const text = caseFlowMatchText(item);
 	  const definitions = state.flowCatalog
-	    .filter((flow) => isPaymentFlowEntry(flow) && flow.configured === true)
+	    .filter((flow) => isPaymentRequestFlowEntry(flow) && flow.configured === true)
 	    .map((flow) => ({
 	      ...flow,
 	      amount_rm: normalizedPurchaseAmount(flow.amount_rm),
@@ -23706,13 +23694,31 @@
 	    || dashboardHasExplicitPaymentReceiptEvidence(item);
 	}
 
-	function isPaymentFlowEntry(flow = {}) {
-	  return /payment|after[_\s-]?payment|付款|收款/i.test([
+	function paymentFlowPhase(flow = {}) {
+	  const explicit = String(flow.flow_phase || "").trim().toLowerCase();
+	  if (["payment_request", "after_payment"].includes(explicit)) return explicit;
+	  const combined = [
 	    flow.flow_kind,
 	    flow.stage_key,
 	    flow.flow_key,
 	    flow.title,
-	  ].filter(Boolean).join(" "));
+	    flow.folder_name,
+	  ].filter(Boolean).join(" ").normalize("NFKC").toLowerCase();
+	  if (/(?:after[\s_-]*payment|payment[\s_-]*(?:confirmed|received)|付款后|付后|收款后|已付款后|已收款后)/i.test(combined)) return "after_payment";
+	  if (/(?:payment|付款|收款|receipt|order|订单|訂單)/i.test(combined)) return "payment_request";
+	  return "";
+	}
+
+	function isPaymentFlowEntry(flow = {}) {
+	  return Boolean(paymentFlowPhase(flow));
+	}
+
+	function isPaymentRequestFlowEntry(flow = {}) {
+	  return paymentFlowPhase(flow) === "payment_request";
+	}
+
+	function isAfterPaymentFlowEntry(flow = {}) {
+	  return paymentFlowPhase(flow) === "after_payment";
 	}
 
 	function recommendedFlowForCase(item = {}) {
@@ -23773,7 +23779,7 @@
 	  const normalizedAmount = normalizedPurchaseAmount(amount);
 	  if (!normalizedAmount) return [];
 	  return projectMappedFlowCatalog(state.active)
-	    .filter((flow) => isPaymentFlowEntry(flow) && flow.configured === true)
+	    .filter((flow) => isPaymentRequestFlowEntry(flow) && flow.configured === true)
 	    .filter((flow) => {
 	      const flowAmount = normalizedPurchaseAmount(flow.amount_rm);
 	      return flowAmount && Math.abs(flowAmount - normalizedAmount) < 0.01;
@@ -23788,14 +23794,14 @@
 	  const matches = mappedPaymentFlowsForAmount(amount);
 	  if (matches.length === 1) {
 	    select.value = matches[0].flow_key;
-	    if (note) note.textContent = `已按 RM ${amount.toFixed(2)} 匹配：${matches[0].package_label || matches[0].title}。确认付款后会自动发送对应 Flow。`;
+	    if (note) note.textContent = `已按 RM ${amount.toFixed(2)} 匹配：${matches[0].package_label || matches[0].title}。发出后不会标记为已付款。`;
 	    return matches[0];
 	  }
 	  select.value = "";
 	  if (note && amount) {
 	    note.textContent = matches.length > 1
-	      ? `RM ${amount.toFixed(2)} 对应多个 Flow，请先修正 Onboarding 配套映射。`
-	      : `RM ${amount.toFixed(2)} 尚未绑定 After Payment Flow，不会自动发送。`;
+	      ? `RM ${amount.toFixed(2)} 对应多个 Payment Flow，请先修正 Onboarding 配套映射。`
+	      : `RM ${amount.toFixed(2)} 尚未绑定 Payment Flow，不会发送。`;
 	  }
 	  return null;
 	}
@@ -23808,9 +23814,14 @@
 	  }
 	  const recommended = recommendedFlowForCase(item);
 	  renderFlowPickerOptions(item, recommended?.configured ? recommended.flow_key : "");
-	  const paymentFlows = projectMappedFlowCatalog(item)
-	    .filter((flow) => flow.flow_kind === "payment" || String(flow.stage_key || "").startsWith("after_payment"));
-	  fillFlowSelect($("paymentFlowSelect"), paymentFlows, recommended?.configured ? recommended.flow_key : "");
+	  const paymentFlows = projectMappedFlowCatalog(item).filter((flow) => isPaymentRequestFlowEntry(flow));
+	  const afterPaymentFlows = projectMappedFlowCatalog(item).filter((flow) => isAfterPaymentFlowEntry(flow));
+	  fillFlowSelect($("paymentFlowSelect"), paymentFlows, "");
+	  fillFlowSelect(
+	    $("afterPaymentFlowSelect"),
+	    afterPaymentFlows,
+	    recommended?.configured && isAfterPaymentFlowEntry(recommended) ? recommended.flow_key : (afterPaymentFlows.length === 1 ? afterPaymentFlows[0].flow_key : "")
+	  );
 	  const packageMatch = inferPaidPackage(item);
 	  if (packageMatch && !$("purchaseAmountInput").value) $("purchaseAmountInput").value = String(packageMatch.amount_rm);
 	  autoSelectPaymentFlowByAmount();
@@ -28252,6 +28263,51 @@
       });
     }
 
+	    async function sendPaymentFlowActive() {
+	      if (!state.active || state.actionBusy) return;
+	      const amount = normalizedPurchaseAmount($("purchaseAmountInput").value);
+	      if (!amount) {
+	        showToast("先输入顾客确认的配套金额。");
+	        $("purchaseAmountInput").focus();
+	        return;
+	      }
+	      const amountMatches = mappedPaymentFlowsForAmount(amount);
+	      if (amountMatches.length !== 1) {
+	        showToast(amountMatches.length > 1
+	          ? "这个金额对应多个 Payment Flow，请先修正 Onboarding 配套映射。"
+	          : "这个金额还没有对应的 Payment Flow，请先完成 Onboarding 配套映射。");
+	        return;
+	      }
+	      const flow = amountMatches[0];
+	      $("paymentFlowSelect").value = flow.flow_key;
+	      if (flow.configured !== true) {
+	        alert(`${flow.title} 还没有接入 ChatDaddy Bot ID，系统不会触发。`);
+	        return;
+	      }
+	      if (!(await confirmFlowTrigger(flow, state.active, { amount, confirmOrder: true }))) return;
+	      const result = await postCaseAction(state.active.id, "trigger_flow", {
+	        flow_key: flow.flow_key,
+	        flow_title: flow.title,
+	        flow_phase: "payment_request",
+	        provider_bot_id: flow.provider_bot_id || "",
+	        provider_flow_id: flow.provider_flow_id || "",
+	        package_code: flow.package_code || "",
+	        package_label: flow.package_label || "",
+	        amount_rm: amount,
+	        currency: "MYR",
+	        confirm_order: true,
+	        confirm_payment: false,
+	        confirmFlowTrigger: true,
+	        confirmedBy: state.session.displayName || roleName(state.role),
+	        source: "staff_dashboard_confirm_order_and_trigger_payment_flow",
+	      });
+	      if (result?.flow_trigger?.sent || result?.triggered) {
+	        showToast(`已发 ${flow.title}；订单没有被标记为已付款。`);
+	      } else {
+	        showToast(`已提交；请检查 ${flow.title} 的发送状态。`);
+	      }
+	    }
+
 	    async function markPurchaseActive() {
 	      if (!state.active) return;
 	      const paymentAlreadyRecorded = state.active.purchase_confirmed === true || state.active.status === "purchase_confirmed";
@@ -28283,16 +28339,12 @@
 	    showToast(meta?.sent ? `已补回流 Meta RM ${amount.toFixed(2)}。` : `成交已记录；请检查 Meta 回流状态。`);
 	    return;
 	  }
-	  const amountMatches = mappedPaymentFlowsForAmount(amount);
-	  if (amountMatches.length !== 1) {
-	    showToast(amountMatches.length > 1
-	      ? "这个金额对应多个 After Payment Flow，请先修正 Onboarding 配套映射。"
-	      : "这个金额还没有对应的 After Payment Flow，请先完成 Onboarding 配套映射。");
-	    $("purchaseAmountInput").focus();
+	  const flow = flowCatalogEntry($("afterPaymentFlowSelect").value);
+	  if (!flow || !isAfterPaymentFlowEntry(flow)) {
+	    showToast("先选择已确认收款后要接的 After Payment Flow。");
+	    $("afterPaymentFlowSelect").focus();
 	    return;
 	  }
-	  const flow = amountMatches[0];
-	  $("paymentFlowSelect").value = flow.flow_key;
 	  if (flow.configured !== true) {
 	    alert(`${flow.title} 还没有接入 ChatDaddy Bot ID，系统不会冒险触发。`);
 	    return;
@@ -28302,6 +28354,7 @@
 	  const result = await postCaseAction(state.active.id, "trigger_flow", {
 	    flow_key: flow.flow_key,
 	    flow_title: flow.title,
+	    flow_phase: "after_payment",
 	    provider_bot_id: flow.provider_bot_id || "",
 	    provider_flow_id: flow.provider_flow_id || "",
 	    package_code: flow.package_code || "",
@@ -28331,6 +28384,7 @@
 	async function confirmFlowTrigger(flow, item, options = {}) {
 	  if (state.demoMode) return true;
 	  const name = customerDisplayLabel(item) || "这位顾客";
+	  const confirmOrder = options.confirmOrder === true;
 	  const confirmPayment = options.confirmPayment === true;
 	  return showSaasConfirm({
 	    eyebrow: "ChatDaddy Flow",
@@ -28339,12 +28393,14 @@
 	    lead: flow.title,
 	    facts: [
 	      { label: "顾客消息", value: "Flow 会真实发送" },
-	      { label: "付款记录", value: options.paymentAlreadyRecorded ? "已经记录，不会重复" : (confirmPayment ? `同时记录 RM ${Number(options.amount || 0).toFixed(2)}` : "不会变更") },
-	      { label: "配套匹配", value: confirmPayment ? (flow.package_label || flow.package_code || "按金额精准匹配") : "当前阶段已确认" },
+	      { label: "付款记录", value: options.paymentAlreadyRecorded ? "已经记录，不会重复" : (confirmPayment ? `同时记录 RM ${Number(options.amount || 0).toFixed(2)}` : "不会标记已付款") },
+	      { label: "配套匹配", value: confirmOrder || confirmPayment ? (flow.package_label || flow.package_code || `RM ${Number(options.amount || 0).toFixed(2)}`) : "当前阶段已确认" },
 	    ],
 	    note: confirmPayment
 	      ? "系统只会发送这个金额唯一对应的 After Payment Flow；发出后不能从 Dashboard 撤回。"
-	      : "Flow 发出后不能从 Dashboard 撤回，请先确认顾客选择和当前阶段。",
+	      : confirmOrder
+	        ? "这是向顾客收款的 Payment Flow，不会记录成交；发出后不能从 Dashboard 撤回。"
+	        : "Flow 发出后不能从 Dashboard 撤回，请先确认顾客选择和当前阶段。",
 	    cancelLabel: "返回检查",
 	    confirmLabel: "确认接 Flow",
 	  });
@@ -29883,6 +29939,7 @@
 	      $("caseOptimizerRecordBtn").disabled = isBusy;
 	      $("caseOptimizerApplyBtn").disabled = isBusy;
 	      $("markPurchaseBtn").disabled = isBusy || !showPurchasePanel || purchaseActionComplete;
+	      $("sendPaymentFlowBtn").disabled = isBusy || !showPurchasePanel;
 	      const conversationLocked = readOnly && !canManualSend;
 	      $("applyQuickReplyBtn").disabled = isBusy || conversationLocked;
 	      // A closed/read-only Case still needs to support a new staff-initiated
@@ -29893,6 +29950,7 @@
 	      $("flowSelect").disabled = isBusy;
 	      $("flowSearchInput").disabled = isBusy;
 	      $("paymentFlowSelect").disabled = true;
+	      $("afterPaymentFlowSelect").disabled = isBusy || !showPurchasePanel;
 	      setExternalFlowFieldsDisabled(isBusy || $("externalFlowPanel").classList.contains("hidden"));
 	      updateExternalFlowButtonState(state.active);
 	      if (isBusy) {
@@ -29904,6 +29962,7 @@
 	        $("noReplyNeededBtn").textContent = label;
 	        $("returnAiBtn").textContent = label;
 	        $("markPurchaseBtn").textContent = label;
+	        $("sendPaymentFlowBtn").textContent = label;
 	        $("triggerFlowBtn").textContent = label;
 	        $("externalFlowRecordBtn").textContent = label;
 	        syncWhatsappComposer();
@@ -29917,6 +29976,7 @@
 	      $("noReplyNeededBtn").textContent = "无需回复";
 	      $("returnAiBtn").textContent = approvalGuard.blocked ? "让 AI 重写" : readOnly ? "已记录" : "让 AI 重写";
 	      $("markPurchaseBtn").textContent = purchaseButtonLabelForCase(state.active, canResendPurchase);
+	      $("sendPaymentFlowBtn").textContent = "发付款 Flow";
 	      $("triggerFlowBtn").textContent = "确认并接 Flow";
 	      $("externalFlowRecordBtn").textContent = "标记为自动 Flow 已处理";
 	      updateExternalFlowButtonState(state.active);
