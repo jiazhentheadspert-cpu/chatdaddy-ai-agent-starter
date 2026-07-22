@@ -8766,7 +8766,7 @@
               <i class="bi bi-list-check" aria-hidden="true"></i>
               <span>
                 <strong id="projectSwitcherOnboardingTitle">继续当前项目 Onboarding</strong>
-                <small id="projectSwitcherOnboardingSummary">读取 8 步进度</small>
+                <small id="projectSwitcherOnboardingSummary">读取 Onboarding 进度</small>
               </span>
               <b id="projectSwitcherOnboardingBadge">…</b>
             </a>
@@ -8808,18 +8808,6 @@
               <span class="side-label"><em>项目 Onboarding</em></span>
               <small id="navOnboardingBadge">读取中</small>
             </a>
-            <button aria-label="聊天工具链接" title="聊天工具链接" data-short="聊" data-side-key="step_1" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="1">
-              <span class="side-label"><em>聊天工具链接</em></span>
-              <small id="navStep1Badge">待连接</small>
-            </button>
-            <button aria-label="回复设置" title="回复设置" data-short="回" data-side-key="step_2" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="2">
-              <span class="side-label"><em>回复设置</em></span>
-              <small id="navStep2Badge">待完成</small>
-            </button>
-            <button aria-label="知识库" title="知识库" data-short="知" data-side-key="step_3" data-side-filter="all" data-workspace-target="operations" data-step-nav data-step-view="3">
-              <span class="side-label"><em>知识库</em></span>
-              <small id="navStep3Badge">待完成</small>
-            </button>
           </div>
         </div>
       </nav>
@@ -10599,15 +10587,16 @@
       const status = state.projectOnboardingStatus;
       const currentProject = projectDisplayName(String(projectKeyEl.value || "").trim());
       const completed = Number(status?.completed_count || 0);
-      const total = Number(status?.total_count || 8);
-      const progressLabel = status ? `${completed}/${total}` : state.projectOnboardingStatusError ? "重试" : "…";
       const canManage = state.role !== "staff";
       const runtimeReady = status?.ready_for_ai_reply === true;
       const revisionComplete = status?.revision_complete === true;
+      const progressLabel = status
+        ? revisionComplete ? "已完成" : "进行中"
+        : state.projectOnboardingStatusError ? "重试" : "…";
       const summary = !status
-        ? state.projectOnboardingStatusError ? "暂时无法读取进度" : "正在读取 8 步进度"
+        ? state.projectOnboardingStatusError ? "暂时无法读取进度" : "正在读取 Onboarding 进度"
         : revisionComplete
-          ? "8 步完成 · AI Reply 可直接使用"
+          ? "Onboarding 已完成 · AI Reply 可直接使用"
           : runtimeReady
             ? `AI Reply 使用已发布版本 · ${Number(status.pending_owner_review_count || 0)} 条更新待验收`
             : `继续第 ${Number(status.steps?.find((step) => step.key === status.current_step_key)?.order || completed + 1)} 步`;
@@ -11561,7 +11550,7 @@
         },
         operations: {
           title: state.activeSetupStep === "7" ? "Segment" : "设置",
-          subtitle: state.activeSetupStep === "7" ? "按分群看顾客。" : "聊天工具、回复成交和知识库。",
+          subtitle: state.activeSetupStep === "7" ? "按分群看顾客。" : "查看项目状态与运行记录。",
         },
         learning: {
           title: "复盘",
@@ -11579,7 +11568,7 @@
         : activationReady ? "AI Reply 可用" : "Onboarding 未完成";
       const activationTone = activationReady ? "" : "warn";
       const onboardingLabel = onboarding
-        ? `Onboarding ${Number(onboarding.completed_count || 0)}/${Number(onboarding.total_count || 8)}`
+        ? onboarding.revision_complete === true ? "Onboarding 已完成" : "Onboarding 进行中"
         : "Onboarding 读取中";
       const onboardingTone = onboarding?.revision_complete === true ? "" : "warn";
       return `
@@ -16379,7 +16368,7 @@
       setBadge(
         "navOnboardingBadge",
         state.projectOnboardingStatus
-          ? `${Number(state.projectOnboardingStatus.completed_count || 0)}/${Number(state.projectOnboardingStatus.total_count || 8)}`
+          ? state.projectOnboardingStatus.revision_complete === true ? "已完成" : "进行中"
           : state.projectOnboardingStatusError ? "重试" : "读取中"
       );
       const setupCompletion = projectSettingsCompletion();
