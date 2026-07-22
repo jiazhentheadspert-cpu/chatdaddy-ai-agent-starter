@@ -13374,6 +13374,37 @@
       ];
     }
 
+    function reconcileApprovalCasesWithLiveConversations(approvalCases = [], liveItems = []) {
+      const liveByIdentity = new Map();
+      (Array.isArray(liveItems) ? liveItems : []).forEach((item) => {
+        const identity = inboxConversationIdentity(item);
+        if (!identity) return;
+        const current = liveByIdentity.get(identity);
+        const itemAt = new Date(item.latest_at || 0).getTime();
+        const currentAt = new Date(current?.latest_at || 0).getTime();
+        if (!current || itemAt > currentAt) liveByIdentity.set(identity, item);
+      });
+      return (Array.isArray(approvalCases) ? approvalCases : []).map((item) => {
+        if (isCaseReadOnly(item)) return item;
+        const identity = caseChatIdForSync(item);
+        const live = identity ? liveByIdentity.get(identity) : null;
+        if (!live || !dashboardConversationIsNoIntervention(live)) return item;
+        const liveAt = new Date(live.latest_at || 0).getTime();
+        const triggerAt = new Date(firstContextText(
+          item.raw_approval?.inbound?.message_at,
+          item.raw_approval?.created_at,
+          item.created_at
+        ) || 0).getTime();
+        if (!Number.isFinite(liveAt) || (Number.isFinite(triggerAt) && triggerAt > 0 && liveAt < triggerAt)) return item;
+        return {
+          ...dashboardConversationToNoInterventionCase(live),
+          reconciled_case_id: item.id,
+          raw_approval: item.raw_approval || item,
+          live_channel_reconciled: true,
+        };
+      });
+    }
+
     async function loadCases(options = {}) {
       errorEl.textContent = "";
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
@@ -13506,6 +13537,7 @@
 	        if (!options.silent || queueChanged) render();
 
         const [historyResults, noInterventionResults] = await Promise.all([historyPromise, noInterventionPromise]);
+        let liveConversationItemsForReconcile = [];
         if (requestSeq !== state.queueRequestSeq) return;
         if (historyResults.length) {
           const nextHistoryItems = { ...(state.queueHistoryItems || { auto: [], records: [] }) };
@@ -13549,6 +13581,7 @@
           const [storedResult, liveResult] = noInterventionResults;
           const storedItems = storedResult?.ok && Array.isArray(storedResult.data?.items) ? storedResult.data.items : [];
           const liveConversationItems = liveResult?.ok && Array.isArray(liveResult.data?.items) ? liveResult.data.items : [];
+          liveConversationItemsForReconcile = liveConversationItems;
           if (storedResult?.ok || liveResult?.ok) {
             state.queueNoInterventionCases = dashboardNoInterventionConversationItems(storedItems, liveConversationItems);
             state.queueNoInterventionCacheKey = project;
@@ -13556,7 +13589,10 @@
           }
         }
         state.cases = dashboardCasesWithNoIntervention(
-          compactLiveItems.map((item) => approvalToCase(item, knownContactNames))
+          reconcileApprovalCasesWithLiveConversations(
+            compactLiveItems.map((item) => approvalToCase(item, knownContactNames)),
+            liveConversationItemsForReconcile
+          )
         );
         if (!options.silent || Array.isArray(noInterventionResults)) render();
         if (!searchQuery) {
@@ -13586,9 +13622,12 @@
           if (requestSeq !== state.queueRequestSeq) return;
           if (!contactNames || !Object.keys(contactNames).length) return;
           state.contactNames = contactNames;
-	          state.cases = dashboardCasesWithNoIntervention(
-	            compactLiveItems.map((item) => approvalToCase(item, contactNames))
-	          );
+		          state.cases = dashboardCasesWithNoIntervention(
+		            reconcileApprovalCasesWithLiveConversations(
+		              compactLiveItems.map((item) => approvalToCase(item, contactNames)),
+		              liveConversationItemsForReconcile
+		            )
+		          );
           render();
         }).catch(() => {});
 
@@ -13814,7 +13853,7 @@
 	// IDs are checked at most once every five minutes. Opening a Case still
 	// performs a direct refresh, so the operator sees current ChatDaddy state.
 	const CASE_CONVERSATION_SYNC_TTL_MS = 5 * 60 * 1000;
-	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 2;
+	const CASE_CONVERSATION_SYNC_BATCH_SIZE = 3;
 
 	function scheduleAllCaseConversationSync(options = {}) {
 	  if (state.demoMode || document.hidden) {
