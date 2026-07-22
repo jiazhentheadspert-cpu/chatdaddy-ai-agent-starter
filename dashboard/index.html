@@ -8808,6 +8808,10 @@
               <span class="side-label"><em>项目 Onboarding</em></span>
               <small id="navOnboardingBadge">读取中</small>
             </a>
+            <a class="side-settings-onboarding" id="projectBillingLink" href="?view=billing">
+              <span class="side-label"><em>费用与用量</em></span>
+              <small id="navBillingBadge">Billing</small>
+            </a>
           </div>
         </div>
       </nav>
@@ -8893,6 +8897,7 @@
       </section>
       <section class="workspace-view hidden" id="operationsView" aria-label="运营设置"></section>
       <section class="workspace-view hidden" id="learningView" aria-label="AI 复盘"></section>
+      <section class="workspace-view hidden" id="billingView" aria-label="费用与用量"></section>
 
       <section class="workbench-card" id="caseWorkbench">
         <div class="queue-head">
@@ -9475,6 +9480,8 @@
       agentPaused: false,
 	      contactStats: {},
 	      usageSummary: null,
+	      usageSummaryLoading: false,
+	      usageSummaryError: "",
 	      metaCapiStatus: null,
 	      adsConnection: null,
 	      contactNames: {},
@@ -9591,6 +9598,7 @@
     const projectSwitcherOnboardingBadgeEl = $("projectSwitcherOnboardingBadge");
     const projectSwitcherNewProjectEl = $("projectSwitcherNewProject");
     const projectOnboardingLinkEl = $("projectOnboardingLink");
+    const projectBillingLinkEl = $("projectBillingLink");
     const adminTokenEl = { value: "", placeholder: "" };
     const casesEl = $("cases");
     const errorEl = $("error");
@@ -9870,7 +9878,7 @@
       : requestedView;
     state.workspaceView = staffLegacyCaseLanding
       ? "inbox"
-      : ["inbox", "cases", "learning", "operations"].includes(requestedWorkspaceView)
+      : ["inbox", "cases", "learning", "operations", "billing"].includes(requestedWorkspaceView)
         ? requestedWorkspaceView
         : state.role === "staff" ? "inbox" : state.workspaceView;
     const requestedSetupStep = String(params.get("setup") || "");
@@ -10193,6 +10201,16 @@
       });
     });
 
+    if (projectBillingLinkEl) {
+      projectBillingLinkEl.addEventListener("click", (event) => {
+        event.preventDefault();
+        state.settingsExpanded = true;
+        syncSettingsDisclosure();
+        history.replaceState({}, "", currentProjectBillingUrl());
+        setWorkspaceView("billing");
+      });
+    }
+
     document.querySelectorAll("[data-side-key]").forEach((button) => {
       button.addEventListener("click", () => {
         const optionalModule = button.dataset.optionalUiModule;
@@ -10248,6 +10266,12 @@
     });
 
     document.addEventListener("click", (event) => {
+      const billingRefresh = event.target.closest("[data-billing-refresh]");
+      if (billingRefresh) {
+        event.preventDefault();
+        if (!state.usageSummaryLoading) loadUsageSummary(adminTokenEl.value.trim(), { force: true }).catch(() => null);
+        return;
+      }
       const faqAction = event.target.closest("[data-project-faq-action]");
       if (faqAction) {
         event.preventDefault();
@@ -10583,6 +10607,17 @@
       return url.toString();
     }
 
+    function currentProjectBillingUrl() {
+      const url = new URL(window.location.href);
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const projectKey = String(projectKeyEl.value || "").trim();
+      url.search = "";
+      if (api) url.searchParams.set("api", api);
+      if (projectKey) url.searchParams.set("project_key", projectKey);
+      url.searchParams.set("view", "billing");
+      return url.toString();
+    }
+
     function syncProjectOnboardingEntry() {
       const status = state.projectOnboardingStatus;
       const currentProject = projectDisplayName(String(projectKeyEl.value || "").trim());
@@ -10601,6 +10636,7 @@
             ? `AI Reply 使用已发布版本 · ${Number(status.pending_owner_review_count || 0)} 条更新待验收`
             : `继续第 ${Number(status.steps?.find((step) => step.key === status.current_step_key)?.order || completed + 1)} 步`;
       if (projectOnboardingLinkEl) projectOnboardingLinkEl.href = currentProjectOnboardingUrl();
+      if (projectBillingLinkEl) projectBillingLinkEl.href = currentProjectBillingUrl();
       if ($("navOnboardingBadge")) $("navOnboardingBadge").textContent = progressLabel;
       if (projectSwitcherCurrentOnboardingEl) {
         projectSwitcherCurrentOnboardingEl.href = canManage ? currentProjectOnboardingUrl() : "#";
@@ -11140,9 +11176,9 @@
 
       $("sessionTitle").textContent = titleParts.join(" · ");
       $("sessionSubtitle").textContent = roleSubtitle(state.role);
-      $("modeTag").textContent = state.workspaceView === "inbox" ? "最新讯息" : state.workspaceView === "learning" ? "复盘" : state.workspaceView === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
-
-      $("dashboardSubtitle").textContent = state.workspaceView === "inbox" ? "按日期查看新对话。" : "只看需要处理的顾客。";
+      const shellMeta = workspaceMeta(state.workspaceView);
+      $("modeTag").textContent = shellMeta.title;
+      $("dashboardSubtitle").textContent = shellMeta.subtitle;
 
       $("setupPanel").classList.toggle("hidden", true);
       renderProjectSwitcher();
@@ -11233,6 +11269,8 @@
         // Entering the Case workspace is a user-visible load. It must run the
         // ChatDaddy classification preflight before any pending card appears.
         loadCases().catch(() => null);
+      } else if (state.workspaceView === "billing" && !state.demoMode && !state.usageSummaryLoading) {
+        loadUsageSummary(adminTokenEl.value.trim(), { force: true }).catch(() => null);
       }
     }
 
@@ -11491,6 +11529,7 @@
         brand_brain: "operations",
         content: "overview",
         logs: "learning",
+        billing: "billing",
       };
       return map[key] || "cases";
     }
@@ -11507,13 +11546,14 @@
       const isCases = view === "cases";
       const isInbox = view === "inbox";
       const isOverview = view === "overview";
+      const isBilling = view === "billing";
       const viewMeta = workspaceMeta(view);
 
       document.querySelectorAll("[data-workspace-view]").forEach((item) => {
         item.classList.toggle("active", item.dataset.workspaceView === view);
       });
 
-      $("modeTag").textContent = isInbox ? "最新讯息" : view === "learning" ? "复盘" : view === "operations" ? (state.activeSetupStep === "7" ? "Segment" : "设置") : "操作台";
+      $("modeTag").textContent = viewMeta.title;
       $("workspaceTitle").textContent = viewMeta.title;
       $("dashboardSubtitle").textContent = viewMeta.subtitle;
       document.body.classList.toggle("cases-view", isCases);
@@ -11532,6 +11572,7 @@
       $("inboxView").classList.toggle("hidden", !isInbox);
       $("operationsView").classList.toggle("hidden", view !== "operations");
       $("learningView").classList.toggle("hidden", view !== "learning");
+      $("billingView").classList.toggle("hidden", !isBilling);
     }
 
     function workspaceMeta(view) {
@@ -11555,6 +11596,10 @@
         learning: {
           title: "复盘",
           subtitle: "规则记录。",
+        },
+        billing: {
+          title: "费用与用量",
+          subtitle: "查看本项目的 Forecast 与 Actual。",
         },
       };
       return meta[view] || meta.overview;
@@ -13949,23 +13994,32 @@
       return dashboardQueueStatusForFilter(state.filter, state.role);
     }
 
-    async function loadUsageSummary(token) {
+    async function loadUsageSummary(token, options = {}) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
       if (!api || state.role === "staff" || (!token && !hasAccountSession())) {
         state.usageSummary = null;
+        state.usageSummaryLoading = false;
+        state.usageSummaryError = "";
         return null;
       }
+      if (state.usageSummaryLoading && options.force !== true) return state.usageSummary;
+      state.usageSummaryLoading = true;
+      state.usageSummaryError = "";
+      if (state.workspaceView === "billing") render();
       try {
-        const endpoint = `${api}/api/usage/summary?project_key=${encodeURIComponent(project)}`;
+        const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/usage-summary`;
         const res = await fetch(endpoint, authRequestOptions(token));
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         state.usageSummary = data;
         return data;
-      } catch (_error) {
-        state.usageSummary = null;
+      } catch (error) {
+        state.usageSummaryError = String(error?.message || error || "暂时无法读取费用记录");
         return null;
+      } finally {
+        state.usageSummaryLoading = false;
+        if (state.workspaceView === "billing") render();
       }
     }
 
@@ -16366,6 +16420,16 @@
       setBadge("navLogBadge", learned || "记录");
       setBadge("navConfigureBadge", "✅");
       setBadge(
+        "navBillingBadge",
+        state.usageSummaryLoading
+          ? "读取中"
+          : state.usageSummaryError
+            ? "重试"
+            : state.usageSummary
+              ? formatUsageUsd(state.usageSummary.month?.actual_cost_usd ?? state.usageSummary.month?.estimated_cost_usd)
+              : "Billing"
+      );
+      setBadge(
         "navOnboardingBadge",
         state.projectOnboardingStatus
           ? state.projectOnboardingStatus.revision_complete === true ? "已完成" : "进行中"
@@ -17011,6 +17075,109 @@
       element.innerHTML = "";
     }
 
+    function formatUsageUsd(value) {
+      const amount = Number(value || 0);
+      const decimals = amount > 0 && amount < 0.01 ? 4 : 2;
+      return `US$${amount.toFixed(decimals)}`;
+    }
+
+    function billingOperationLabel(operation) {
+      const key = String(operation || "").toLowerCase();
+      if (/(onboard|learn|brain|pdf|document|flow)/.test(key)) return "Onboarding 学习";
+      if (/(mock|practice|scenario|test)/.test(key)) return "AI 实战";
+      if (/(media|vision|image|audio|video|transcri)/.test(key)) return "媒体理解";
+      if (/(reply|decision|message|draft)/.test(key)) return "AI Reply";
+      return "其他 AI 用量";
+    }
+
+    function billingGroupedRowsHtml(rows = [], kind = "category") {
+      const merged = new Map();
+      rows.forEach((row) => {
+        const rawKey = String(row?.key || "").trim();
+        const label = kind === "category" ? billingOperationLabel(rawKey) : (rawKey || "未记录模型");
+        const current = merged.get(label) || { label, calls: 0, cost: 0 };
+        current.calls += Number(row?.calls || row?.units || row?.records || 0);
+        current.cost += Number(row?.actual_cost_usd ?? row?.estimated_cost_usd ?? 0);
+        merged.set(label, current);
+      });
+      return Array.from(merged.values())
+        .sort((a, b) => b.cost - a.cost || b.calls - a.calls)
+        .map((row) => compactRow(row.label, `${row.calls} 次`, formatUsageUsd(row.cost)))
+        .join("") || compactRow("本月暂无记录", "付费动作完成后自动出现", formatUsageUsd(0));
+    }
+
+    function billingRecentRowsHtml(rows = []) {
+      return rows.slice(0, 12).map((row) => {
+        const label = billingOperationLabel(row.operation);
+        const day = String(row.usage_date || "").trim() || "日期待同步";
+        const calls = Number(row.units || 0) || 1;
+        return compactRow(`${day} · ${label}`, `${calls} 次`, formatUsageUsd(row.cost_usd));
+      }).join("") || compactRow("暂无费用记录", "页面只读，不会产生费用", formatUsageUsd(0));
+    }
+
+    function billingDashboardHtml() {
+      const projectName = projectDisplayName(String(projectKeyEl.value || "").trim());
+      const summary = state.usageSummary;
+      const month = summary?.month || summary?.usage?.month || {};
+      const today = summary?.today || summary?.usage?.today || {};
+      const monthActual = month.actual_cost_usd ?? month.estimated_cost_usd ?? 0;
+      const todayActual = today.actual_cost_usd ?? today.estimated_cost_usd ?? 0;
+
+      if (state.usageSummaryLoading && !summary) {
+        return `<section class="command-panel accent"><div class="command-kicker">BILLING</div><strong class="command-title">正在读取 ${escapeHtml(projectName)} 费用记录…</strong><p class="muted">这里只读取记录，不会调用付费 AI。</p></section>`;
+      }
+
+      if (state.usageSummaryError && !summary) {
+        return `<section class="command-panel accent"><div class="command-kicker">BILLING</div><strong class="command-title">暂时无法读取费用</strong><p class="muted">请重新读取；不会重复执行任何付费动作。</p><div class="quick-actions"><button class="quick-action primary" type="button" data-billing-refresh>重新读取</button></div></section>`;
+      }
+
+      return `
+        <div class="executive-grid">
+          <section class="command-panel accent hero">
+            <div>
+              <div class="command-kicker">${escapeHtml(projectName)} · 本月 ACTUAL</div>
+              <strong class="command-title">${formatUsageUsd(monthActual)}</strong>
+              <div class="priority-lanes">
+                ${laneCard("blue", Number(month.calls || month.records || 0), "本月调用", "")}
+                ${laneCard("good", Number(today.calls || today.records || 0), "今日调用", "")}
+                ${laneCard("warn", Number(month.tokens_input || 0) + Number(month.tokens_output || 0), "Token", "")}
+              </div>
+            </div>
+            <div class="quick-actions">
+              <button class="quick-action primary" type="button" data-billing-refresh ${state.usageSummaryLoading ? "disabled" : ""}>${state.usageSummaryLoading ? "读取中…" : "刷新 Actual"}</button>
+            </div>
+          </section>
+          <section class="command-panel">
+            <div class="command-kicker">TODAY</div>
+            <strong class="command-title">${formatUsageUsd(todayActual)}</strong>
+            <div class="summary-stack">
+              ${summaryLine("1", "Forecast", "付费动作前确认", "blue")}
+              ${summaryLine("2", "Actual", "完成后自动入账", "good")}
+              ${summaryLine("3", "页面", "只读，不产生费用", "good")}
+            </div>
+          </section>
+        </div>
+        <div class="command-grid">
+          <section class="command-panel">
+            <div class="command-kicker">费用分类</div>
+            <strong class="command-title">花在哪里</strong>
+            <div class="compact-list">${billingGroupedRowsHtml(summary?.categories || [], "category")}</div>
+          </section>
+          <section class="command-panel">
+            <div class="command-kicker">模型分类</div>
+            <strong class="command-title">由什么模型产生</strong>
+            <div class="compact-list">${billingGroupedRowsHtml(summary?.models || [], "model")}</div>
+          </section>
+        </div>
+        <section class="command-panel">
+          <div class="command-kicker">最近记录</div>
+          <strong class="command-title">每一笔 Actual</strong>
+          <div class="compact-list">${billingRecentRowsHtml(summary?.records || [])}</div>
+          <p class="muted">费用按当前项目独立统计。打开或刷新本页不会调用 OpenAI、发送顾客讯息或触发 ChatDaddy Flow。</p>
+        </section>
+      `;
+    }
+
     function renderWorkspaceViews(cases, counts, learned) {
       const next = viewCopy("needs_attention", counts);
       const recent = recentEvents(cases);
@@ -17124,6 +17291,7 @@
 	        </div>
 	      `;
 	      $("learningView").innerHTML = `${ownerDecisionSignoffGateHtml()}${ownerTodaySequenceHtml()}${autoReplyReadinessDashboardHtml()}${l1UnlockChecklistHtml()}${qualityScorecardHtml()}${quantifiedImprovementPlanHtml()}${handoffSelfOptimizationFunnelHtml()}${automationTierPolicyHtml()}${handoffLearningReviewHtml()}${learningNotesHtml()}${learningBaseHtml}`;
+	      $("billingView").innerHTML = billingDashboardHtml();
 	    }
 
 	    function previousAgentTextFromApproval(item = {}, signals = {}) {
