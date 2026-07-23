@@ -10337,7 +10337,6 @@
     const inboxLoadEarlierDateBtnEl = $("inboxLoadEarlierDateBtn");
     const inboxRefreshBtnEl = $("inboxRefreshBtn");
     const inboxLoadMoreEl = $("inboxLoadMore");
-    const todayISO = localDateIso();
     const INBOX_BUSINESS_TIME_ZONE = "Asia/Kuala_Lumpur";
     const INBOX_DATE_PARTS_FORMATTER = new Intl.DateTimeFormat("en-CA", {
       timeZone: INBOX_BUSINESS_TIME_ZONE,
@@ -10345,6 +10344,7 @@
       month: "2-digit",
       day: "2-digit",
     });
+    const todayISO = localDateIso();
 
     const DEMO_SCENARIOS = {
       ecommerce: [
@@ -12037,8 +12037,12 @@
 	    function localDateIso(value = new Date()) {
 	      const date = value instanceof Date ? value : new Date(value);
 	      if (!Number.isFinite(date.getTime())) return "";
-	      const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-	      return local.toISOString().slice(0, 10);
+	      const parts = Object.fromEntries(
+	        INBOX_DATE_PARTS_FORMATTER.formatToParts(date).map((part) => [part.type, part.value])
+	      );
+	      return parts.year && parts.month && parts.day
+	        ? `${parts.year}-${parts.month}-${parts.day}`
+	        : "";
 	    }
 
 	    function localDateTimeInputValue(value = new Date()) {
@@ -12178,9 +12182,8 @@
       const text = String(value || "").trim();
       if (!text) return "";
       // Preserve an explicit date-only value, but convert real timestamps to
-      // the operator local date. Taking the YYYY-MM-DD substring from a UTC
-      // timestamp assigns events between 00:00 and 07:59 Malaysia time to the
-      // previous day.
+      // the project's Malaysia business date. Browser/device time zones are
+      // not authoritative for queue grouping.
       if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
       const local = localDateIso(text);
       if (local) return local;
