@@ -9629,7 +9629,7 @@
             <button class="pill" data-filter="approval_required">待批准</button>
             <button class="pill" data-filter="human_first">人工回复</button>
             <button class="pill" data-filter="auto" id="autoFilterBtn">无需介入</button>
-            <button class="pill" data-filter="records" id="recordsFilterBtn" aria-label="AI 自动回复记录">自动记录</button>
+            <button class="pill" data-filter="records" id="recordsFilterBtn" aria-label="AI 自动发送记录">AI 自动发送</button>
           </div>
           <div class="selection-tools hidden" aria-label="快速选择">
             <button class="btn" id="selectVisibleBtn" type="button">选择当前</button>
@@ -11969,7 +11969,7 @@
       if (normalized === "needs_attention") return "待处理";
       if (normalized === "human_first") return "人工回复";
       if (normalized === "auto") return "无需介入";
-      if (normalized === "records") return "自动记录";
+      if (normalized === "records") return "AI 自动发送";
       return "待批准";
     }
 
@@ -17667,7 +17667,7 @@
       if (filter === "needs_attention") {
         return staffCaseSectionHtml({
           title: "全部待处理",
-          body: "合并显示待批准与人工回复；无需介入和 AI 自动回复记录不会混进来。",
+          body: "合并显示待批准与人工回复；无需介入和 AI 自动发送记录不会混进来。",
           items: visible,
           countLabel: `${visible.length} 位 · ${Number(counts.needs || visible.length)} 条`,
           emptyText: "当前没有未完成的待处理顾客。",
@@ -17710,10 +17710,10 @@
       }
       if (filter === "records") {
         return staffCaseSectionHtml({
-          title: "AI 自动回复记录",
-          body: "只显示 AI 已经自动回复并成功处理的 Case，方便检查回复质量和复盘。",
+          title: "AI 自动发送",
+          body: "只显示 ReplyPilot AI 无需人工确认、已经成功发送给顾客的 Case。",
           items: visible,
-          emptyText: "当前范围没有 AI 自动处理记录。",
+          emptyText: "当前范围没有 AI 自动发送记录。",
         });
       }
 
@@ -17740,8 +17740,8 @@
       }
       if (aiHandled.length) {
         sections.push(staffCaseSectionHtml({
-          title: "AI 自动回复记录",
-          body: "AI 已自动回复成功，只读留档供复盘。",
+          title: "AI 自动发送",
+          body: "ReplyPilot AI 已自动发送成功，只读留档供复盘。",
           items: aiHandled,
           countLabel: `${aiHandled.length} 位 · ${Number(counts.records || aiHandled.length)} 条`,
         }));
@@ -17981,16 +17981,20 @@
         approval_required: ["待批准", counts.approval],
         human_first: ["人工回复", humanWork],
         auto: ["无需介入", historyBadge("auto", counts.auto)],
-        records: ["AI 自动回复记录", historyBadge("records", counts.records)],
+        records: ["AI 自动发送", historyBadge("records", counts.records)],
       };
       document.querySelectorAll("[data-filter]").forEach((button) => {
         const [label, value] = labels[button.dataset.filter] || [button.textContent || "", ""];
         const displayLabel = button.dataset.filter === "needs_attention"
           ? "待处理"
           : button.dataset.filter === "records"
-            ? "自动记录"
+            ? "AI 自动发送"
             : label;
         button.innerHTML = `${escapeHtml(displayLabel)}<span class="pill-count">${escapeHtml(value ?? 0)}</span>`;
+        if (button.dataset.filter === "records") {
+          const recordCount = Number(counts.records || 0);
+          button.classList.toggle("hidden", recordCount === 0 && state.filter !== "records");
+        }
         if (button.dataset.filter === "auto") {
           button.title = state.queueDateScope === "all_history"
             ? "显示所有日期的无需介入记录；全部只读。"
@@ -18317,9 +18321,9 @@
         },
         {
           action: "ai_records",
-          title: "AI 自动回复记录",
+          title: "AI 自动发送",
           body: Number(counts.records || 0) > 0
-            ? "AI 已自动回复，只读复盘"
+            ? "ReplyPilot AI 已自动发送，只读复盘"
             : `${scopeWord}无 AI 自动发送；AI 草稿/人工批准不算`,
           count: Number(counts.records || 0),
           tone: "good",
@@ -18504,7 +18508,7 @@
       }
       if (action === "ai_records") {
         setFilter("records");
-        showToast("AI 自动回复记录只显示已经自动回复成功的 Case；AI 草稿和人工发送不算。");
+        showToast("这里只显示 ReplyPilot AI 无人工确认、已经自动发送成功的 Case；AI 草稿和人工发送不算。");
       }
     }
 
@@ -22404,7 +22408,7 @@
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
-          body: "合并显示待批准和人工回复；不包含无需介入与 AI 自动回复记录。",
+          body: "合并显示待批准和人工回复；不包含无需介入与 AI 自动发送。",
         },
         approval_required: {
           title: `${counts.approval} 条回复可审核批准`,
@@ -22435,8 +22439,8 @@
           body: "只显示 Button / Flow 已继续且没有新问题，或有明确无需回复证据的 Case。只读，不会重复发送。",
         },
         records: {
-          title: `${counts.records || 0} 条 AI 自动回复记录`,
-          body: "只显示 AI 已经自动回复成功的 Case，方便检查回复质量。",
+          title: `${counts.records || 0} 条 AI 自动发送`,
+          body: "只显示 ReplyPilot AI 无需人工确认、已经成功发送给顾客的 Case。",
         },
       };
       return views[filter] || views.all;
@@ -31990,7 +31994,7 @@
       const historicalCount = historical === null || historical === undefined ? null : Number(historical);
       const latestDate = normalizeIsoDate(state.queueHistoryLatestDate?.records);
       if (Number.isFinite(historicalCount) && historicalCount > 0 && !useOpenBacklogDateScope()) {
-        return `${queueDateScopeLabel()}没有 AI 自动回复；全部历史共有 ${historicalCount} 条${latestDate ? `，最近一条在 ${latestDate}` : ""}。用上方日期选择器可查看；人工批准或客服发送不会算进这里。`;
+        return `${queueDateScopeLabel()}没有 AI 自动发送；全部历史共有 ${historicalCount} 条${latestDate ? `，最近一条在 ${latestDate}` : ""}。用上方日期选择器可查看；人工批准或客服发送不会算进这里。`;
       }
       if (runtime.loaded && !runtime.autoSendEffective) {
         const requestedNote = runtime.autoSendRequested && Number(runtime.activeApprovedRuleCount || 0) === 0
@@ -31998,9 +32002,9 @@
           : runtime.autoSendRequested
             ? "项目已请求开启，但当前执行条件未通过，所以实际不会自动发送。"
             : "线上 AI 自动发送目前没有开启。";
-        return `${queueDateScopeLabel()}没有 AI 自动回复记录；${requestedNote}AI 草稿、人工批准或客服发送都不算 AI 自动处理。`;
+        return `${queueDateScopeLabel()}没有 AI 自动发送记录；${requestedNote}ChatDaddy Flow、AI 草稿、人工批准或客服发送都不算。`;
       }
-      return `${queueDateScopeLabel()}没有 AI 自动回复记录；这里只统计 AI 已经自动回复成功的 Case，AI 草稿、人工批准或客服发送不会算进来。`;
+      return `${queueDateScopeLabel()}没有 AI 自动发送记录；这里只统计 ReplyPilot AI 无人工确认且发送成功的 Case。ChatDaddy Flow、AI 草稿、人工批准或客服发送不会算进来。`;
     }
 
     function demoCase(config) {
