@@ -15984,12 +15984,13 @@
       updated.textContent = state.inboxUpdatedAt
         ? `${firstPaintStatus}当前显示 ${visible.length} 条 · ${visibleDateGroups.length} 个日期 · 已缓存 ${all.length}${state.inboxHasMore ? "+" : ""} 条${providerTotalKnown ? ` · ChatDaddy 非归档 ${providerTotal} 条` : ""}${dateAction.canLoad && !query ? "，可按日期继续" : ""} · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
         : state.inboxLoading ? "正在同步" : "等待同步";
+      const summaryLoading = state.inboxLoading && !all.length;
       summary.innerHTML = [
         [visible.length, `当前显示（${visibleDateGroups.length} 个日期）`],
         [counts.needs_attention, "当前显示要处理"],
         [counts.customer_latest, "当前显示顾客最后发"],
         [counts.outbound_latest, "当前显示客服 / Flow 最后发"],
-      ].map(([value, label]) => `<div class="inbox-summary-item"><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span></div>`).join("");
+      ].map(([value, label]) => `<div class="inbox-summary-item"><b>${escapeHtml(summaryLoading ? "—" : value)}</b><span>${escapeHtml(label)}</span></div>`).join("");
       renderInboxLoadMore(query, visible.length, dateGroups);
 
       if (state.inboxLoading && !all.length) {
