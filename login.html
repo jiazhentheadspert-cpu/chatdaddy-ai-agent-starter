@@ -403,6 +403,19 @@
       return ["admin", "owner", "super_admin"].includes(String(role || "").toLowerCase()) ? "admin" : "staff";
     }
 
+    function loginInternalProject(project = {}) {
+      const key = String(project?.project_key || "").trim().toLowerCase();
+      const name = String(project?.project_name || project?.name || "").trim().toLowerCase();
+      if (["demo", "replypilot-demo"].includes(key) || name === "demo") return true;
+      const settings = project?.settings && typeof project.settings === "object" ? project.settings : {};
+      return settings.internal_project === true
+        || settings.system_generated === true
+        || settings.qa_project === true
+        || ["internal", "test", "qa"].includes(String(
+          settings.project_visibility || settings.visibility || settings.project_type || ""
+        ).trim().toLowerCase());
+    }
+
     function setMessage(text = "", tone = "") {
       message.textContent = text;
       message.className = `message ${tone}`.trim();
@@ -453,7 +466,8 @@
           throw loginError;
         }
 
-        const projects = Array.isArray(data.projects) ? data.projects : [];
+        const projects = (Array.isArray(data.projects) ? data.projects : [])
+          .filter((project) => !loginInternalProject(project));
         const selectedProject = projects.find((item) => item.project_key === requestedProject)
           || projects[0];
         if (!selectedProject?.project_key) {
