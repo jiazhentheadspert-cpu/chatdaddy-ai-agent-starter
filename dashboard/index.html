@@ -10284,24 +10284,13 @@
       },
     };
 
-    const BEYOUTE_DEFAULT_SETTINGS = {
-      ...clone(DEFAULT_SETTINGS),
-      brandVoice: "马来西亚华人客服语气：自然、直接、有温度。广告关键词由 ChatDaddy 自动进入 Step 1；顾客后续只要提问或有顾虑，先进入待批准。",
-      brandKb: "产品卖点、价格、常见问题、信心证明、禁忌、订单资料和付款规则。",
-      flowMap: {
-        ...DEFAULT_SETTINGS.flowMap,
-        s1: "bot_b420c7c1986ebbce",
-        s2: "bot_5ce201ce96116e07",
-        s3: "bot_29650314b584a2ee",
-        s4: "bot_29650314b584a2ee",
-        payment: "bot_75cf1a1139688a88",
-      },
-    };
-
     function defaultSettingsForProject(project = "") {
-      return String(project || "").trim().toLowerCase() === "beyoute"
-        ? clone(BEYOUTE_DEFAULT_SETTINGS)
-        : clone(DEFAULT_SETTINGS);
+      // Project-specific voice, knowledge and Flow IDs must only come from
+      // that project's published Project Brain. A brand fallback here can
+      // silently route a new project to another project's old Bot IDs when
+      // settings fail to load.
+      void project;
+      return clone(DEFAULT_SETTINGS);
     }
 
     const $ = (id) => document.getElementById(id);
@@ -14094,7 +14083,7 @@
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
-    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 10;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 11;
     const DASHBOARD_INBOX_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
     const DASHBOARD_INBOX_SNAPSHOT_VERSION = 3;
     const DASHBOARD_INBOX_LIVE_TIMEOUT_MS = 5000;
@@ -14332,7 +14321,7 @@
       return `${api}/api/approvals/pending?${params.toString()}`;
     }
 
-    function dashboardNoInterventionCurrentStateUrl(api = "", project = "") {
+    function dashboardNoInterventionCurrentStateUrl(api = "", project = "", offset = 0) {
       const params = new URLSearchParams({
         project_key: project,
         status: "auto",
@@ -14340,8 +14329,73 @@
         summary_only: "1",
         limit: "300",
         scan_limit: "300",
+        offset: String(Math.max(0, Number(offset || 0))),
       });
       return `${api}/api/approvals/pending?${params.toString()}`;
+    }
+
+    async function fetchDashboardNoInterventionCurrentState(api = "", project = "", token = "") {
+      const pageLimit = 300;
+      const maxPages = 10;
+      const items = [];
+      const changes = [];
+      let offset = 0;
+      let lastData = null;
+      for (let page = 0; page < maxPages; page += 1) {
+        const result = await fetchDashboardQueueResult(
+          dashboardNoInterventionCurrentStateUrl(api, project, offset),
+          token,
+          DASHBOARD_NO_INTERVENTION_REQUEST_TIMEOUT_MS
+        );
+        if (!result?.ok) {
+          // Keep a complete earlier snapshot instead of replacing it with an
+          // incomplete page set when a later Current State page times out.
+          return { ...(result || {}), partial_items: items, partial_changes: changes };
+        }
+        lastData = result.data || {};
+        const pageItems = Array.isArray(lastData.items) ? lastData.items : [];
+        const pageChanges = Array.isArray(lastData.changes) ? lastData.changes : [];
+        items.push(...pageItems);
+        changes.push(...pageChanges);
+        const nextOffset = Number(lastData.next_offset);
+        if (lastData.has_more !== true || !Number.isFinite(nextOffset) || nextOffset <= offset || pageItems.length === 0) {
+          return {
+            ...result,
+            data: {
+              ...lastData,
+              items,
+              changes,
+              count: items.length,
+              raw_count: items.length,
+              offset: 0,
+              next_offset: null,
+              has_more: false,
+              pages_loaded: page + 1,
+              pagination_complete: true,
+            },
+          };
+        }
+        offset = nextOffset;
+      }
+      return {
+        ok: false,
+        response: null,
+        data: {
+          ...(lastData || {}),
+          items,
+          changes,
+          count: items.length,
+          raw_count: items.length,
+          offset: 0,
+          next_offset: offset,
+          has_more: true,
+          pages_loaded: maxPages,
+          pagination_complete: false,
+        },
+        error: new Error(`Current State 超过 ${pageLimit * maxPages} 条，已保留上次完整资料，避免显示不完整总数。`),
+        partial_items: items,
+        partial_changes: changes,
+      };
     }
 
     function dashboardConversationIsNoIntervention(item = {}) {
@@ -14650,11 +14704,7 @@
           ? Promise.resolve(null)
           : noInterventionCacheFresh
           ? Promise.resolve(null)
-          : fetchDashboardQueueResult(
-              dashboardNoInterventionCurrentStateUrl(api, project),
-              token,
-              DASHBOARD_NO_INTERVENTION_REQUEST_TIMEOUT_MS
-            );
+          : fetchDashboardNoInterventionCurrentState(api, project, token);
         // Start the independent Current State read immediately. The operation
         // queue's primary `all_cases` request intentionally includes only
         // conversations with a Case, while unanswered Flow/Button states
