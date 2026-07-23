@@ -4401,6 +4401,29 @@
       gap: 10px;
     }
 
+    .queue-filter-stack {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .replied-source-filters {
+      align-items: center;
+      gap: 6px;
+    }
+
+    .replied-source-filters::before {
+      content: "来源";
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .replied-source-filters .pill {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
     .selection-tools {
       display: flex;
       flex-wrap: wrap;
@@ -8809,15 +8832,102 @@
       white-space: nowrap;
     }
 
-    .composer-secondary-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+	    .composer-secondary-actions {
+	      display: grid;
+	      grid-template-columns: repeat(3, minmax(0, 1fr));
+	    }
 
-    .composer-secondary-actions .btn {
-      min-height: 42px;
-      margin: 0;
-    }
+	    .composer-secondary-actions .btn {
+	      min-height: 42px;
+	      margin: 0;
+	    }
+
+	    .media-reply-preview {
+	      order: 2;
+	      min-width: 0;
+	      display: grid;
+	      grid-template-columns: 48px minmax(0, 1fr) auto;
+	      align-items: center;
+	      gap: 10px;
+	      border: 1px solid rgba(0, 168, 132, .24);
+	      border-radius: 16px;
+	      background: #f7fbfa;
+	      padding: 8px 10px;
+	      box-shadow: 0 8px 22px rgba(8, 23, 29, .07);
+	    }
+
+	    .media-reply-preview.hidden {
+	      display: none !important;
+	    }
+
+	    .media-reply-thumb {
+	      width: 48px;
+	      height: 48px;
+	      display: grid;
+	      place-items: center;
+	      overflow: hidden;
+	      border-radius: 12px;
+	      background: #e8f4f1;
+	      color: #087c69;
+	      font-size: 20px;
+	    }
+
+	    .media-reply-thumb img {
+	      width: 100%;
+	      height: 100%;
+	      display: block;
+	      object-fit: cover;
+	    }
+
+	    .media-reply-copy {
+	      min-width: 0;
+	      display: grid;
+	      gap: 2px;
+	    }
+
+	    .media-reply-copy strong,
+	    .media-reply-copy span {
+	      overflow: hidden;
+	      text-overflow: ellipsis;
+	      white-space: nowrap;
+	    }
+
+	    .media-reply-copy strong {
+	      color: var(--ink);
+	      font-size: 12px;
+	      font-weight: 950;
+	    }
+
+	    .media-reply-copy span {
+	      color: var(--muted);
+	      font-size: 10.5px;
+	      font-weight: 780;
+	    }
+
+	    .media-reply-remove {
+	      width: 36px;
+	      height: 36px;
+	      display: inline-grid;
+	      place-items: center;
+	      border: 1px solid rgba(92, 112, 121, .20);
+	      border-radius: 999px;
+	      background: #fff;
+	      color: #53656d;
+	      cursor: pointer;
+	    }
+
+	    .learning-after-send-purpose {
+	      width: min(100%, 460px);
+	      min-height: 38px;
+	      margin-top: 6px;
+	      border: 1px solid rgba(0, 168, 132, .28);
+	      border-radius: 10px;
+	      background: #fff;
+	      padding: 8px 10px;
+	      color: var(--ink);
+	      font: inherit;
+	      font-size: 12px;
+	    }
 
     #panel .reply-command-bar {
       grid-template-columns: minmax(0, 1fr);
@@ -9554,7 +9664,7 @@
       <div class="stats" id="statsPanel">
         <div class="stat"><b id="statAll">—</b><span>全部</span></div>
         <div class="stat"><b id="statApproval">—</b><span>待批准</span></div>
-        <div class="stat"><b id="statHuman">—</b><span>人工回复</span></div>
+        <div class="stat"><b id="statHuman">—</b><span>待人工回复</span></div>
         <div class="stat"><b id="statOrder">—</b><span>订单/付款</span></div>
         <div class="stat"><b id="statAuto">—</b><span>无需介入</span></div>
       </div>
@@ -9624,12 +9734,20 @@
           <div class="staff-cleanup-execution-strip" id="staffCleanupExecutionStrip" aria-label="清旧卡执行条"></div>
         </details>
         <div class="toolbar">
-          <div class="filters">
-            <button class="pill active" data-filter="needs_attention">待处理</button>
-            <button class="pill" data-filter="approval_required">待批准</button>
-            <button class="pill" data-filter="human_first">人工回复</button>
-            <button class="pill" data-filter="auto" id="autoFilterBtn">无需介入</button>
-            <button class="pill" data-filter="records" id="recordsFilterBtn" aria-label="AI 自动发送记录">AI 自动发送</button>
+          <div class="queue-filter-stack">
+            <div class="filters">
+              <button class="pill active" data-filter="needs_attention">待处理</button>
+              <button class="pill" data-filter="approval_required">待批准</button>
+              <button class="pill" data-filter="human_first">待人工回复</button>
+              <button class="pill" data-filter="replied" id="repliedFilterBtn" aria-label="已经由客服回复的 Case">已回复</button>
+              <button class="pill" data-filter="auto" id="autoFilterBtn">无需介入</button>
+              <button class="pill" data-filter="records" id="recordsFilterBtn" aria-label="AI 自动发送记录">AI 自动发送</button>
+            </div>
+            <div class="filters replied-source-filters hidden" id="repliedSourceFilters" aria-label="筛选已回复来源">
+              <button class="pill active" type="button" data-replied-source="all">全部</button>
+              <button class="pill" type="button" data-replied-source="dashboard">Dashboard 回复</button>
+              <button class="pill" type="button" data-replied-source="chatdaddy">ChatDaddy 回复</button>
+            </div>
           </div>
           <div class="selection-tools hidden" aria-label="快速选择">
             <button class="btn" id="selectVisibleBtn" type="button">选择当前</button>
@@ -9793,11 +9911,13 @@
 	        <div class="function-menu-title">
 	          <b>更多处理</b>
 	          <small>不会自动发送</small>
-	        </div>
-	        <div class="composer-secondary-actions" aria-label="话术、Flow 与收款工具">
-	          <button class="btn" id="composerChannelActionBtn" type="button">话术 / Flow</button>
-	          <button class="btn" id="composerPaymentActionBtn" type="button">收款 / COD</button>
-	        </div>
+		        </div>
+		        <div class="composer-secondary-actions" aria-label="话术、Flow 与收款工具">
+		          <button class="btn" id="composerChannelActionBtn" type="button">话术 / Flow</button>
+		          <button class="btn" id="composerPaymentActionBtn" type="button">收款 / COD</button>
+		          <button class="btn" id="composerAttachmentBtn" type="button">照片 / 文件</button>
+		          <input class="hidden" id="composerAttachmentInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,.xls,.xlsx,.ppt,.pptx" aria-label="选择要发送给顾客的照片或文件" />
+		        </div>
 	        <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
 	          <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
 	          <button class="btn" id="shortenAgainBtn" type="button">继续缩短</button>
@@ -9875,6 +9995,7 @@
 	        <span>已发送</span>
 	        <b>你修改了 AI 原稿，要教 AI 下次这样处理吗？</b>
 	        <small>只提交学习候选，Owner 审核后才会应用；不会再次发送，也不会直接开启自动回复。</small>
+	        <input class="learning-after-send-purpose hidden" id="learningAfterSendPurposeInput" type="text" maxlength="180" placeholder="用一句话说明这张图片要让 AI 学什么（不会发给顾客）" aria-label="图片学习用途说明" />
 	      </div>
 	      <div class="learning-after-send-actions">
 	        <button class="btn primary" id="learningAfterSendApplyBtn" type="button">教 AI 下次这样处理</button>
@@ -9947,7 +10068,7 @@
 	          <button class="reply-chip" data-reply-template="ask_phone" type="button">先问电话</button>
 	          <button class="reply-chip" data-reply-template="shorten" type="button">缩短</button>
 	        </div>
-	        <div class="voice-composer-panel hidden" id="voiceRecorderPanel" aria-live="polite">
+		        <div class="voice-composer-panel hidden" id="voiceRecorderPanel" aria-live="polite">
 	          <div class="voice-requesting-row hidden" id="voiceRequestingRow">
 	            <span class="voice-requesting-icon" aria-hidden="true"><i class="bi bi-arrow-repeat"></i></span>
 	            <div class="voice-recording-copy">
@@ -9977,9 +10098,17 @@
 	              <button class="voice-action-button icon-only" id="voiceDiscardBtn" type="button" aria-label="删除这段语音" title="删除这段语音"><i class="bi bi-trash3" aria-hidden="true"></i></button>
 	              <button class="voice-action-button" id="voiceRerecordBtn" type="button"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i><span>重录</span></button>
 	              <button class="voice-action-button send" id="voiceSendBtn" type="button"><i class="bi bi-send-fill" aria-hidden="true"></i><span>发送语音</span></button>
-	            </div>
-	          </div>
-	        </div>
+		          </div>
+		        </div>
+		        <div class="media-reply-preview hidden" id="mediaReplyPreview" aria-live="polite">
+		          <div class="media-reply-thumb" id="mediaReplyThumb" aria-hidden="true"><i class="bi bi-file-earmark"></i></div>
+		          <div class="media-reply-copy">
+		            <strong id="mediaReplyName">已选择文件</strong>
+		            <span id="mediaReplyMeta">确认后才会发送</span>
+		          </div>
+		          <button class="media-reply-remove" id="mediaReplyRemoveBtn" type="button" aria-label="移除已选择的照片或文件" title="移除"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+		        </div>
+		      </div>
 	      </div>
 	      <div class="reply-send-actions">
 	        <button class="btn primary composer-send-button composer-native-send" id="approveBtn" type="button" tabindex="-1" aria-hidden="true">批准并发送</button>
@@ -10109,10 +10238,10 @@
       inboxCurrentStateEventNo: 0,
       queueCurrentStateEventNo: 0,
       queueCurrentStateItems: [],
-      queueHistoryCounts: { auto: null, records: null },
-      queueHistoryLatestDate: { auto: "", records: "" },
+      queueHistoryCounts: { auto: null, replied: null, records: null },
+      queueHistoryLatestDate: { auto: "", replied: "", records: "" },
       queueHistoryLoaded: false,
-      queueHistoryItems: { auto: [], records: [] },
+      queueHistoryItems: { auto: [], replied: [], records: [] },
       queueHistoryCacheKey: "",
       queueHistoryFetchedAt: 0,
       queueAllCasesTotal: 0,
@@ -10130,6 +10259,7 @@
       inboxSnapshotRestoredAt: "",
       inboxSort: "customer_first",
       filter: "needs_attention",
+      repliedSource: "all",
       active: null,
       demoMode: false,
       scenario: "ecommerce",
@@ -10191,8 +10321,9 @@
       replyCompositionActive: false,
       learningAfterSendContext: null,
       pendingLearningAfterSendByCase: {},
-      learningAfterSendPromptByCase: {},
-      learningAfterSendBusyByCase: {},
+	      learningAfterSendPromptByCase: {},
+	      learningAfterSendBusyByCase: {},
+	      learningApplyBusyById: {},
       caseSplitSidebarWasCollapsed: null,
       actionBusy: false,
       bulkBusy: false,
@@ -10234,6 +10365,7 @@
 	const VOICE_MIN_DURATION_MS = 250;
 	const VOICE_MAX_DURATION_MS = 5 * 60 * 1000;
 	const VOICE_MAX_BYTES = 4 * 1024 * 1024;
+	const MEDIA_REPLY_MAX_BYTES = 8 * 1024 * 1024;
 	const voiceComposer = {
 	  phase: "idle",
 	  recorder: null,
@@ -10250,6 +10382,17 @@
 	  clientMessageId: "",
 	  cancelRequested: false,
 	  limitReached: false,
+	};
+	const mediaReplyComposer = {
+	  file: null,
+	  kind: "",
+	  mimeType: "",
+	  bytes: 0,
+	  filename: "",
+	  objectUrl: "",
+	  caseId: "",
+	  clientMessageId: "",
+	  sending: false,
 	};
 
     const DEFAULT_SETTINGS = {
@@ -10818,9 +10961,12 @@
     $("manualSendBtn").addEventListener("click", manualSendActive);
     $("learningAfterSendApplyBtn").addEventListener("click", teachAiFromLastSend);
     $("learningAfterSendDismissBtn").addEventListener("click", dismissLearningAfterSendPrompt);
-    $("composerChannelActionBtn").addEventListener("click", openComposerChannelActions);
-    $("composerPaymentActionBtn").addEventListener("click", openComposerPaymentActions);
-	$("composerMoreBtn").addEventListener("click", toggleComposerFunctionMenu);
+	    $("composerChannelActionBtn").addEventListener("click", openComposerChannelActions);
+	    $("composerPaymentActionBtn").addEventListener("click", openComposerPaymentActions);
+	    $("composerAttachmentBtn").addEventListener("click", openComposerAttachmentPicker);
+	    $("composerAttachmentInput").addEventListener("change", handleComposerAttachmentSelected);
+	    $("mediaReplyRemoveBtn").addEventListener("click", resetMediaReplyComposer);
+	    $("composerMoreBtn").addEventListener("click", toggleComposerFunctionMenu);
 	$("composerEmojiBtn").addEventListener("click", toggleComposerEmojiPanel);
 	$("composerPrimaryBtn").addEventListener("click", handleComposerPrimaryAction);
 	$("voiceRequestCancelBtn").addEventListener("click", resetVoiceComposer);
@@ -10905,7 +11051,10 @@
 	  syncWhatsappComposer();
     });
 
-	window.addEventListener("beforeunload", () => resetVoiceComposer({ sync: false }));
+	window.addEventListener("beforeunload", () => {
+	  resetVoiceComposer({ sync: false });
+	  resetMediaReplyComposer({ sync: false });
+	});
 	window.addEventListener("resize", () => {
 	  if ($("functionMenu").open) positionComposerFunctionMenuPanel();
 	  syncCaseSplitLayout();
@@ -10919,6 +11068,15 @@
     document.querySelectorAll("[data-filter]").forEach((button) => {
       button.addEventListener("click", () => {
         setFilter(button.dataset.filter, { announce: true });
+      });
+    });
+
+    document.querySelectorAll("[data-replied-source]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const requested = String(button.dataset.repliedSource || "all").toLowerCase();
+        state.repliedSource = ["dashboard", "chatdaddy"].includes(requested) ? requested : "all";
+        syncFilterControls();
+        render();
       });
     });
 
@@ -11050,15 +11208,23 @@
         return;
       }
 
-      const learningRecommendation = event.target.closest("[data-record-learning-recommendation]");
-      if (learningRecommendation) {
+	      const learningRecommendation = event.target.closest("[data-record-learning-recommendation]");
+	      if (learningRecommendation) {
         event.preventDefault();
         event.stopPropagation();
         recordLearningRecommendation(learningRecommendation.dataset.recordLearningRecommendation);
-        return;
-      }
+	        return;
+	      }
 
-      const ownerDecision = event.target.closest("[data-copy-owner-decision]");
+	      const learningApply = event.target.closest("[data-approve-apply-learning-note]");
+	      if (learningApply) {
+	        event.preventDefault();
+	        event.stopPropagation();
+	        approveAndApplyLearningNote(learningApply.dataset.approveApplyLearningNote);
+	        return;
+	      }
+
+	      const ownerDecision = event.target.closest("[data-copy-owner-decision]");
       if (ownerDecision) {
         event.preventDefault();
         event.stopPropagation();
@@ -11948,7 +12114,7 @@
     function normalizeStaffQueueFilter(filter = "") {
       const requested = String(filter || "").trim() || "needs_attention";
       if (state.role !== "staff") return requested;
-      return ["needs_attention", "approval_required", "human_first", "auto", "records"].includes(requested)
+      return ["needs_attention", "approval_required", "human_first", "replied", "auto", "records"].includes(requested)
         ? requested
         : "needs_attention";
     }
@@ -11956,7 +12122,8 @@
     function staffQueueFilterLabel(filter = "") {
       const normalized = normalizeStaffQueueFilter(filter);
       if (normalized === "needs_attention") return "待处理";
-      if (normalized === "human_first") return "人工回复";
+      if (normalized === "human_first") return "待人工回复";
+      if (normalized === "replied") return "已回复";
       if (normalized === "auto") return "无需介入";
       if (normalized === "records") return "AI 自动发送";
       return "待批准";
@@ -12186,7 +12353,7 @@
     }
 
     function caseDateKey(item = {}) {
-      const historicalRecord = ["auto", "records"].includes(staffBusinessCategory(item))
+      const historicalRecord = ["auto", "replied", "records"].includes(staffBusinessCategory(item))
         || ["auto_sent", "external_flow_continued"].includes(String(item.status || "").toLowerCase());
       const recordTimes = [
         item.updated_at,
@@ -12239,7 +12406,7 @@
       if (String(state.query || "").trim()) return cases;
       if (state.queueDateScope === "all_history") return cases;
       if (!useOpenBacklogDateScope()) return filterCasesBySelectedDate(cases);
-      if (["auto", "records"].includes(state.filter)) return cases;
+      if (["auto", "replied", "records"].includes(state.filter)) return cases;
       return cases.filter(isOpenBacklogCase);
     }
 
@@ -12247,12 +12414,18 @@
       document.querySelectorAll("[data-filter]").forEach((item) => {
         item.classList.toggle("active", item.dataset.filter === state.filter);
       });
+      const repliedSourceFilters = $("repliedSourceFilters");
+      if (repliedSourceFilters) repliedSourceFilters.classList.toggle("hidden", state.filter !== "replied");
+      document.querySelectorAll("[data-replied-source]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.repliedSource === state.repliedSource);
+      });
       syncSidebarControls();
     }
 
     function sidebarKeyForFilter(filter) {
       const map = {
         auto: "ai_reply",
+        replied: "ai_reply",
         order: "ai_reply",
         records: "ai_reply",
         human_required: "ai_reply",
@@ -12602,21 +12775,389 @@
 	  $("purchasePanel").open = true;
 	}
 
-	function learningAfterSendSnapshot(item = {}, sentText = "", mode = "") {
+	function mediaReplyKindForFile(file = {}) {
+	  return String(file.type || "").toLowerCase().startsWith("image/") ? "image" : "document";
+	}
+
+	function mediaReplyFileAllowed(file = {}) {
+	  const mime = String(file.type || "").toLowerCase();
+	  const name = String(file.name || "").toLowerCase();
+	  if (mime.startsWith("image/")) return ["image/jpeg", "image/png", "image/webp"].includes(mime);
+	  if (["application/pdf", "text/plain"].includes(mime)) return true;
+	  return /\.(?:pdf|txt|doc|docx|xls|xlsx|ppt|pptx)$/i.test(name);
+	}
+
+	function openComposerAttachmentPicker() {
+	  if (!state.active || state.actionBusy || $("replyBox")?.readOnly) return;
+	  $("functionMenu").open = false;
+	  $("channelActionPicker").open = false;
+	  $("purchasePanel").open = false;
+	  const input = $("composerAttachmentInput");
+	  if (input) {
+	    input.value = "";
+	    input.click();
+	  }
+	}
+
+	function handleComposerAttachmentSelected(event) {
+	  const file = event?.target?.files?.[0] || null;
+	  if (!file) return;
+	  if (!mediaReplyFileAllowed(file)) {
+	    event.target.value = "";
+	    showToast("目前支持 JPG、PNG、WebP、PDF 和常用办公文件。");
+	    return;
+	  }
+	  if (!file.size || file.size > MEDIA_REPLY_MAX_BYTES) {
+	    event.target.value = "";
+	    showToast("照片 / 文件必须小于 8 MB。");
+	    return;
+	  }
+	  resetMediaReplyComposer({ sync: false, keepInput: true });
+	  const kind = mediaReplyKindForFile(file);
+	  Object.assign(mediaReplyComposer, {
+	    file,
+	    kind,
+	    mimeType: file.type || (kind === "image" ? "image/jpeg" : "application/octet-stream"),
+	    bytes: file.size,
+	    filename: file.name || `${kind}-${Date.now()}`,
+	    objectUrl: kind === "image" ? URL.createObjectURL(file) : "",
+	    caseId: String(state.active?.id || ""),
+	    clientMessageId: createClientMessageId(),
+	    sending: false,
+	  });
+	  renderMediaReplyPreview();
+	  syncWhatsappComposer();
+	}
+
+	function renderMediaReplyPreview() {
+	  const preview = $("mediaReplyPreview");
+	  const thumb = $("mediaReplyThumb");
+	  if (!preview || !thumb) return;
+	  const active = Boolean(mediaReplyComposer.file);
+	  preview.classList.toggle("hidden", !active);
+	  if (!active) {
+	    thumb.innerHTML = '<i class="bi bi-file-earmark" aria-hidden="true"></i>';
+	    return;
+	  }
+	  if (mediaReplyComposer.kind === "image" && mediaReplyComposer.objectUrl) {
+	    thumb.innerHTML = `<img src="${escapeHtml(mediaReplyComposer.objectUrl)}" alt="" />`;
+	  } else {
+	    thumb.innerHTML = '<i class="bi bi-file-earmark" aria-hidden="true"></i>';
+	  }
+	  $("mediaReplyName").textContent = mediaReplyComposer.filename || "已选择文件";
+	  $("mediaReplyMeta").textContent = `${mediaReplyComposer.kind === "image" ? "照片" : "文件"} · ${formatVoiceBytes(mediaReplyComposer.bytes)} · 确认后才发送`;
+	  $("mediaReplyRemoveBtn").disabled = mediaReplyComposer.sending;
+	}
+
+	function resetMediaReplyComposer(options = {}) {
+	  const shouldSync = options?.sync !== false;
+	  const keepInput = options?.keepInput === true;
+	  if (mediaReplyComposer.objectUrl) URL.revokeObjectURL(mediaReplyComposer.objectUrl);
+	  Object.assign(mediaReplyComposer, {
+	    file: null,
+	    kind: "",
+	    mimeType: "",
+	    bytes: 0,
+	    filename: "",
+	    objectUrl: "",
+	    caseId: "",
+	    clientMessageId: "",
+	    sending: false,
+	  });
+	  if (!keepInput && $("composerAttachmentInput")) $("composerAttachmentInput").value = "";
+	  renderMediaReplyPreview();
+	  if (shouldSync) syncWhatsappComposer();
+	}
+
+	function mediaLearningReference(result = {}) {
+	  const publicResult = result?.result && typeof result.result === "object" ? result.result : {};
+	  const storage = publicResult.storage && typeof publicResult.storage === "object" ? publicResult.storage : {};
+	  const sendResult = publicResult.media_send && typeof publicResult.media_send === "object" ? publicResult.media_send : {};
+	  const returnedRef = result?.media_ref && typeof result.media_ref === "object" ? result.media_ref : {};
+	  return {
+	    kind: firstContextText(returnedRef.media_kind, mediaReplyComposer.kind),
+	    mime_type: firstContextText(returnedRef.mime_type, mediaReplyComposer.mimeType),
+	    bytes: mediaReplyComposer.bytes,
+	    filename: firstContextText(returnedRef.filename, mediaReplyComposer.filename),
+	    provider_message_id: firstContextText(
+	      returnedRef.provider_message_id,
+	      result?.provider_message_id,
+	      sendResult.provider_message_id,
+	      sendResult.message_id
+	    ),
+	    storage_bucket: firstContextText(returnedRef.storage_bucket, storage.bucket, result?.storage_bucket),
+	    storage_object_path: firstContextText(returnedRef.storage_object_path, storage.object_path, result?.storage_object_path),
+	  };
+	}
+
+	async function waitForMediaReplyConfirmation(api, token, project, caseId, clientMessageId, mediaRef) {
+	  const idempotencyKey = `replypilot:${project}:${caseId}:conversation-media-reply:${clientMessageId}`;
+	  for (let index = 0; index < 40; index += 1) {
+	    await new Promise((resolve) => setTimeout(resolve, index === 0 ? 1200 : 3000));
+	    try {
+	      const response = await fetch(
+	        `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/action-execution?idempotency_key=${encodeURIComponent(idempotencyKey)}`,
+	        authRequestOptions(token, { method: "GET" })
+	      );
+	      const status = await response.json().catch(() => ({}));
+	      if (response.ok && status.completed === true) {
+	        completeLearningAfterSend(caseId, learningDeliveryEvidence(status, { mediaRefs: [mediaRef] }));
+	        showToast("ChatDaddy 已确认照片 / 文件送达；可选择是否教 AI。");
+	        loadCases().catch(() => {});
+	        return;
+	      }
+	      if (status.retryable === true) {
+	        clearPendingLearningAfterSend(caseId);
+	        showToast("ChatDaddy 没有确认照片 / 文件送达，可以重新发送。");
+	        return;
+	      }
+	    } catch {}
+	  }
+	  clearPendingLearningAfterSend(caseId);
+	  showToast("仍在等 ChatDaddy 确认；尚未建立学习候选。");
+	}
+
+	async function sendMediaReplyMessage() {
+	  if (!state.active || !mediaReplyComposer.file || mediaReplyComposer.sending || state.actionBusy) return;
+	  const caseId = String(state.active.id || "");
+	  if (!caseId || mediaReplyComposer.caseId !== caseId) {
+	    resetMediaReplyComposer();
+	    showToast("Case 已切换，请重新选择照片 / 文件。");
+	    return;
+	  }
+	  const textAction = currentComposerTextActionButton();
+	  if (!textAction || textAction.disabled || $("replyBox")?.readOnly) {
+	    showToast("当前 Case 还不能发送，请先检查处理状态。");
+	    return;
+	  }
+	  const caption = String($("replyBox")?.value || "").trim();
+	  const confirmed = await showSaasConfirm({
+	    eyebrow: "真实发送照片 / 文件",
+	    title: `确认把这个${mediaReplyComposer.kind === "image" ? "照片" : "文件"}发送给顾客？`,
+	    subtitle: customerDisplayLabel(state.active) || "这位顾客",
+	    lead: mediaReplyComposer.filename,
+	    facts: [
+	      { label: "顾客消息", value: caption ? "附件和配文立即发送" : "只发送附件" },
+	      { label: "AI 学习", value: "送达后再由客服选择" },
+	      { label: "自动回复", value: "不会开启" },
+	      { label: "ChatDaddy Flow", value: "不会触发" },
+	    ],
+	    note: "只有 ChatDaddy 确认送达后才会出现学习选择；图片本身不会直接变成自动回复。",
+	    cancelLabel: "返回检查",
+	    confirmLabel: "确认发送",
+	  });
+	  if (!confirmed || !mediaReplyComposer.file || String(state.active?.id || "") !== caseId) return;
+	  if (state.demoMode) {
+	    showToast("演示模式不会发送真实照片 / 文件。");
+	    return;
+	  }
+
+	  const activeBeforeSend = state.active;
+	  const initialMediaRef = mediaLearningReference();
+	  const learningContext = queueLearningAfterSend(activeBeforeSend, caption, "media_send", {
+	    mediaRefs: [initialMediaRef],
+	  });
+	  const api = apiUrlEl.value.trim().replace(/\/$/, "");
+	  const project = projectKeyEl.value.trim() || "demo";
+	  const token = adminTokenEl.value.trim();
+	  mediaReplyComposer.sending = true;
+	  renderMediaReplyPreview();
+	  setPanelBusy(true, "照片 / 文件发送中...");
+	  syncWhatsappComposer();
+	  try {
+	    const dataBase64 = await blobToBase64(mediaReplyComposer.file);
+	    const response = await fetch(
+	      `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(caseId)}/conversation-media-reply`,
+	      authRequestOptions(token, {
+	        method: "POST",
+	        headers: { "content-type": "application/json" },
+	        body: JSON.stringify({
+	          confirmLiveSend: true,
+	          client_message_id: mediaReplyComposer.clientMessageId,
+	          media: {
+	            kind: mediaReplyComposer.kind,
+	            data_base64: dataBase64,
+	            mime_type: mediaReplyComposer.mimeType,
+	            bytes: mediaReplyComposer.bytes,
+	            filename: mediaReplyComposer.filename,
+	            caption,
+	          },
+	        }),
+	      })
+	    );
+	    const data = await response.json().catch(() => ({}));
+	    if (data.in_progress === true || data.accepted === true) {
+	      const pendingMediaRef = mediaLearningReference(data);
+	      const pendingClientMessageId = mediaReplyComposer.clientMessageId;
+	      resetMediaReplyComposer({ sync: false });
+	      clearRememberedReplyDraft(caseId);
+	      $("replyBox").value = "";
+	      state.replyDraftDirty = false;
+	      resizeReplyComposer();
+	      syncWhatsappComposer();
+	      waitForMediaReplyConfirmation(api, token, project, caseId, pendingClientMessageId, pendingMediaRef).catch(() => {});
+	      showToast("照片 / 文件已受理，正在等待 ChatDaddy 确认。");
+	      return;
+	    }
+	    if (data.partial_success === true && data.sends_messages === true) {
+	      clearPendingLearningAfterSend(caseId);
+	      resetMediaReplyComposer({ sync: false });
+	      await loadCases();
+	      alert("照片 / 文件已经发出，请勿重复发送。Case 保存未完成，因此尚未建立学习候选。");
+	      return;
+	    }
+	    if (!response.ok || !data.ok) throw new Error(caseActionErrorMessage(data, `HTTP ${response.status}`));
+	    const confirmedDelivery = data.completed === true
+	      || (data.sends_messages === true && data.partial_success !== true)
+	      || (data.already_handled === true && data.execution?.status === "completed");
+	    if (!confirmedDelivery) {
+	      clearPendingLearningAfterSend(caseId);
+	      throw new Error("ChatDaddy 尚未确认照片 / 文件送达");
+	    }
+	    const confirmedMediaRef = mediaLearningReference(data);
+	    if (learningContext) {
+	      completeLearningAfterSend(caseId, learningDeliveryEvidence(data, {
+	        mediaRefs: [confirmedMediaRef],
+	        mediaAnalysis: data.media_analysis || null,
+	      }));
+	    }
+	    addAuditEvent("case_conversation_media_reply", `真实顾客 ${caseId} 已由客服确认发送${mediaReplyComposer.kind === "image" ? "照片" : "文件"}。`);
+	    resetMediaReplyComposer({ sync: false });
+	    clearRememberedReplyDraft(caseId);
+	    $("replyBox").value = "";
+	    state.replyDraftDirty = false;
+	    resizeReplyComposer();
+	    await loadCases();
+	    const returnedCase = data.case || data.item;
+	    if (returnedCase) {
+	      upsertReturnedCase(returnedCase);
+	      openCase(returnedCase.id);
+	    }
+	    showToast("照片 / 文件已发送；不会触发 AI、Flow 或自动回复。");
+	  } catch (error) {
+	    clearPendingLearningAfterSend(caseId);
+	    mediaReplyComposer.sending = false;
+	    renderMediaReplyPreview();
+	    alert(`照片 / 文件发送失败：${error.message || error}`);
+	  } finally {
+	    if (state.active) setPanelBusy(false);
+	    syncWhatsappComposer();
+	  }
+	}
+
+	function learningReplyStructure(item = {}) {
+	  const decision = item.latest_decision || item.decision || {};
+	  const plan = salesExecutionPlanForCase(item);
+	  const messageKinds = (Array.isArray(plan.reply_messages) ? plan.reply_messages : [])
+	    .map((message) => typeof message === "object" ? firstContextText(message.kind, message.type, message.role) : "")
+	    .filter(Boolean);
+	  return {
+	    answer_kind: firstContextText(decision.answer_kind, decision.answer_type, messageKinds.find((kind) => /answer|faq|knowledge/i.test(kind))),
+	    confidence_kind: firstContextText(decision.confidence_kind, decision.proof_kind, messageKinds.find((kind) => /confidence|proof|trust|usp/i.test(kind))),
+	    cta_kind: firstContextText(decision.cta_kind, plan.cta_mode, messageKinds.find((kind) => /cta|action|close/i.test(kind))),
+	    reply_message_kinds: messageKinds,
+	  };
+	}
+
+	function learningSourceType(mode = "", originalDraft = "", finalText = "", mediaRefs = []) {
+	  if (mediaRefs.length) return mediaRefs[0]?.kind === "image" ? "staff_image" : "staff_document";
+	  if (mode === "manual_send") return "staff_written";
+	  if (mode === "approve_execute") {
+	    return originalDraft && compactCompareText(originalDraft) === compactCompareText(finalText)
+	      ? "ai_draft_approved"
+	      : "ai_draft_edited";
+	  }
+	  return originalDraft ? "ai_draft_edited" : "staff_written";
+	}
+
+	function learningDeliveryEvidence(result = {}, fallback = {}) {
+	  const publicResult = result?.result && typeof result.result === "object" ? result.result : {};
+	  const execution = result?.execution && typeof result.execution === "object" ? result.execution : {};
+	  const executionResult = execution.result && typeof execution.result === "object" ? execution.result : {};
+	  const receipt = result?.media_receipt && typeof result.media_receipt === "object"
+	    ? result.media_receipt
+	    : result?.receipt && typeof result.receipt === "object"
+	      ? result.receipt
+	      : publicResult.receipt && typeof publicResult.receipt === "object"
+	        ? publicResult.receipt
+	        : {};
+	  const sendResult = publicResult.media_send || publicResult.reply || result?.send_result || result?.result || {};
+	  const learningCandidate = result?.learning_candidate && typeof result.learning_candidate === "object"
+	    ? result.learning_candidate
+	    : publicResult.owner_learning_candidate && typeof publicResult.owner_learning_candidate === "object"
+	      ? publicResult.owner_learning_candidate
+	      : executionResult.owner_learning_candidate && typeof executionResult.owner_learning_candidate === "object"
+	        ? executionResult.owner_learning_candidate
+	        : {};
+	  return {
+	    deliveryEvidence: {
+	      confirmed: result?.completed === true
+	        || (result?.ok === true && result?.sends_messages === true && result?.partial_success !== true)
+	        || execution.status === "completed",
+	      status: firstContextText(execution.status, sendResult.status, result?.status, "confirmed"),
+	      provider: firstContextText(receipt.provider, sendResult.provider, result?.provider, "chatdaddy"),
+	      provider_message_id: firstContextText(
+	        receipt.provider_message_id,
+	        sendResult.provider_message_id,
+	        sendResult.message_id,
+	        result?.provider_message_id
+	      ),
+	      client_message_id: firstContextText(result?.client_message_id, execution.idempotency_key, fallback.client_message_id),
+	      execution_id: firstContextText(execution.id, result?.action_execution_id),
+	      sent_at: firstContextText(receipt.sent_at, sendResult.sent_at, execution.completed_at, new Date().toISOString()),
+	    },
+	    mediaAnalysis: result?.media_analysis || publicResult.media_analysis || fallback.mediaAnalysis || null,
+	    mediaRefs: Array.isArray(fallback.mediaRefs) ? fallback.mediaRefs : [],
+	    learningCandidate: {
+	      recorded: learningCandidate.recorded === true,
+	      id: firstContextText(learningCandidate.id),
+	      source: firstContextText(learningCandidate.source),
+	    },
+	  };
+	}
+
+	function learningAfterSendSnapshot(item = {}, sentText = "", mode = "", details = {}) {
 	  const originalDraft = String(item.latest_decision?.reply_message || item.original_ai_reply || "").trim();
 	  const finalText = String(sentText || "").trim();
 	  const feedbackId = globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
 	    ? globalThis.crypto.randomUUID()
 	    : `learn-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+	  const mediaRefs = Array.isArray(details.mediaRefs) ? details.mediaRefs.map((media) => ({ ...media })) : [];
+	  const sourceType = learningSourceType(mode, originalDraft, finalText, mediaRefs);
+	  const decision = item.latest_decision || {};
+	  const salesContext = salesContextForCase(item);
+	  const structure = learningReplyStructure(item);
 	  return {
 	    caseId: String(item.id || ""),
 	    feedbackId,
 	    mode,
+	    sourceType,
 	    originalDraft,
 	    sentText: finalText,
+	    stage: firstContextText(details.stage, decision.stage),
+	    intent: firstContextText(details.intent, decision.intent),
+	    customerGoal: firstContextText(
+	      details.customerGoal,
+	      item.customer_goal,
+	      decision.customer_goal,
+	      salesContext.customer_goal,
+	      salesContext.desired_outcome
+	    ),
+	    answerKind: firstContextText(details.answerKind, structure.answer_kind),
+	    confidenceKind: firstContextText(details.confidenceKind, structure.confidence_kind),
+	    ctaKind: firstContextText(details.ctaKind, structure.cta_kind),
+	    replyMessageKinds: structure.reply_message_kinds,
+	    deliveryEvidence: details.deliveryEvidence || null,
+	    providerEvidence: details.providerEvidence || null,
+	    mediaRefs,
+	    mediaAnalysis: details.mediaAnalysis || null,
+	    staffPurposeSummary: String(details.staffPurposeSummary || "").trim(),
+	    imageOnlyPurposeRequired: mediaRefs.some((media) => media?.kind === "image") && !finalText,
 	    meaningful: mode === "manual_send"
+	      || mediaRefs.length > 0
 	      || !originalDraft
 	      || compactCompareText(originalDraft) !== compactCompareText(finalText),
+	    autoSubmitAfterDelivery: sourceType === "ai_draft_approved",
 	    item: {
 	      ...item,
 	      status: "sent",
@@ -12632,18 +13173,63 @@
 	  };
 	}
 
-	function queueLearningAfterSend(item = {}, sentText = "", mode = "") {
-	  const context = learningAfterSendSnapshot(item, sentText, mode);
-	  if (!context.caseId || !context.sentText || !context.meaningful) return null;
+	function queueLearningAfterSend(item = {}, sentText = "", mode = "", details = {}) {
+	  const context = learningAfterSendSnapshot(item, sentText, mode, details);
+	  const hasLearnableContent = Boolean(context.sentText || context.mediaRefs.length);
+	  if (!context.caseId || !hasLearnableContent || (!context.meaningful && !context.autoSubmitAfterDelivery)) return null;
 	  state.pendingLearningAfterSendByCase[context.caseId] = context;
 	  return context;
 	}
 
-	function completeLearningAfterSend(caseId = "") {
+	function mergeLearningDeliveryContext(context = {}, evidence = {}) {
+	  const delivery = evidence.deliveryEvidence && typeof evidence.deliveryEvidence === "object"
+	    ? evidence.deliveryEvidence
+	    : evidence && typeof evidence === "object"
+	      ? evidence
+	      : {};
+	  context.deliveryEvidence = { ...(context.deliveryEvidence || {}), ...delivery };
+	  context.providerEvidence = {
+	    ...(context.providerEvidence || {}),
+	    provider: firstContextText(delivery.provider, context.providerEvidence?.provider),
+	    provider_message_id: firstContextText(delivery.provider_message_id, context.providerEvidence?.provider_message_id),
+	    client_message_id: firstContextText(delivery.client_message_id, context.providerEvidence?.client_message_id),
+	  };
+	  if (Array.isArray(evidence.mediaRefs) && evidence.mediaRefs.length) {
+	    context.mediaRefs = evidence.mediaRefs.map((media) => ({
+	      ...media,
+	      provider_message_id: firstContextText(media.provider_message_id, delivery.provider_message_id),
+	    }));
+	  } else if (context.mediaRefs.length && delivery.provider_message_id) {
+	    context.mediaRefs = context.mediaRefs.map((media) => ({ ...media, provider_message_id: delivery.provider_message_id }));
+	  }
+	  if (evidence.mediaAnalysis) context.mediaAnalysis = evidence.mediaAnalysis;
+	  if (evidence.learningCandidate?.recorded === true) {
+	    context.serverLearningCandidate = {
+	      recorded: true,
+	      id: firstContextText(evidence.learningCandidate.id),
+	      source: firstContextText(evidence.learningCandidate.source),
+	    };
+	  }
+	  return context;
+	}
+
+	function completeLearningAfterSend(caseId = "", evidence = {}) {
 	  const key = String(caseId || "");
 	  const context = state.pendingLearningAfterSendByCase[key];
 	  if (!context) return;
 	  delete state.pendingLearningAfterSendByCase[key];
+	  mergeLearningDeliveryContext(context, evidence);
+	  if (context.serverLearningCandidate?.recorded === true) {
+	    addAuditEvent("case_learning_note", `${customerDisplayLabel(context.item) || "顾客"}：已加入 Owner 学习审核`);
+	    delete state.learningAfterSendPromptByCase[key];
+	    showToast("已发送；这次回复已加入 Owner 学习候选，不会开启自动回复。");
+	    if (!state.demoMode) loadCases().catch(() => {});
+	    return;
+	  }
+	  if (context.autoSubmitAfterDelivery) {
+	    submitApprovedAiLearningCandidate(context);
+	    return;
+	  }
 	  state.learningAfterSendPromptByCase[key] = context;
 	  if (String(state.active?.id || "") !== key || !$("panel")?.classList.contains("open")) return;
 	  showLearningAfterSendPrompt(context);
@@ -12655,15 +13241,24 @@
 	  const prompt = $("learningAfterSendPrompt");
 	  const applyButton = $("learningAfterSendApplyBtn");
 	  const question = prompt?.querySelector(".learning-after-send-copy > b");
+	  const purposeInput = $("learningAfterSendPurposeInput");
 	  if (question) {
-	    question.textContent = context.originalDraft
-	      ? "你修改了 AI 原稿，要教 AI 下次这样处理吗？"
-	      : "这是客服自己写的回复，要教 AI 下次这样处理吗？";
+	    question.textContent = context.autoRetry === true
+	      ? "AI 学习候选暂时未保存，要重试吗？"
+	      : context.mediaRefs?.length
+	        ? "这次照片 / 文件回复值得让 AI 学吗？"
+	        : context.sourceType === "ai_draft_edited"
+	          ? "你修改了 AI 原稿，要教 AI 下次这样处理吗？"
+	          : "这是客服自己写的回复，要教 AI 下次这样处理吗？";
+	  }
+	  if (purposeInput) {
+	    purposeInput.classList.toggle("hidden", context.imageOnlyPurposeRequired !== true);
+	    purposeInput.value = context.staffPurposeSummary || "";
 	  }
 	  if (applyButton) {
 	    const submitting = state.learningAfterSendBusyByCase[String(context.caseId)] === true;
 	    applyButton.disabled = submitting;
-	    applyButton.textContent = submitting ? "正在整理..." : "教 AI 下次这样处理";
+	    applyButton.textContent = submitting ? "正在整理..." : context.autoRetry === true ? "重试提交" : "教 AI 下次这样处理";
 	  }
 	  $("replyCommandBar")?.classList.remove("hidden");
 	  prompt?.classList.remove("hidden");
@@ -12677,6 +13272,11 @@
 	    applyButton.disabled = false;
 	    applyButton.textContent = "教 AI 下次这样处理";
 	  }
+	  const purposeInput = $("learningAfterSendPurposeInput");
+	  if (purposeInput) {
+	    purposeInput.value = "";
+	    purposeInput.classList.add("hidden");
+	  }
 	  if ($("replyCard")?.classList.contains("hidden")) {
 	    $("replyCommandBar")?.classList.add("hidden");
 	  }
@@ -12685,6 +13285,9 @@
 	function parkLearningAfterSendPrompt() {
 	  const context = state.learningAfterSendContext;
 	  if (context?.caseId) {
+	    if (context.imageOnlyPurposeRequired === true) {
+	      context.staffPurposeSummary = String($("learningAfterSendPurposeInput")?.value || context.staffPurposeSummary || "").trim();
+	    }
 	    state.learningAfterSendPromptByCase[String(context.caseId)] = context;
 	  }
 	  state.learningAfterSendContext = null;
@@ -12717,8 +13320,56 @@
 	  }
 	}
 
+	function learningReplyPartsForContext(context = {}) {
+	  const plan = salesExecutionPlanForCase(context.item || {});
+	  const rawMessages = Array.isArray(plan.reply_messages) ? plan.reply_messages : [];
+	  const fallbackKinds = Array.isArray(context.replyMessageKinds) ? context.replyMessageKinds : [];
+	  const parts = rawMessages.map((message, index) => {
+	    if (message && typeof message === "object") {
+	      return {
+	        order: index + 1,
+	        kind: firstContextText(message.kind, message.type, fallbackKinds[index], index === 1 ? "confidence" : index === 2 ? "cta" : "answer"),
+	        text: firstContextText(message.text, message.body, message.reply, message.message),
+	      };
+	    }
+	    return {
+	      order: index + 1,
+	      kind: firstContextText(fallbackKinds[index], index === 1 ? "confidence" : index === 2 ? "cta" : "answer"),
+	      text: String(message || "").trim(),
+	    };
+	  }).filter((part) => part.text);
+	  if (parts.length) return parts;
+	  if (!context.sentText) return [];
+	  return [{
+	    order: 1,
+	    kind: /confidence|proof/i.test(context.answerKind || "") ? "confidence" : /cta|close/i.test(context.answerKind || "") ? "cta" : "answer",
+	    text: context.sentText,
+	  }];
+	}
+
+	function learningSalesStrategyForContext(context = {}, replyParts = []) {
+	  const byKind = Object.fromEntries(replyParts.map((part) => [String(part.kind || "").toLowerCase(), part.text || ""]));
+	  const plan = salesExecutionPlanForCase(context.item || {});
+	  return {
+	    answer: firstContextText(byKind.answer, context.sentText),
+	    confidence: firstContextText(byKind.confidence, byKind.proof),
+	    usp_or_proof: firstContextText(byKind.proof, byKind.confidence),
+	    cta: firstContextText(byKind.cta),
+	    urgency: firstContextText(plan.urgency, context.item?.latest_decision?.urgency),
+	    package_choice: firstContextText(plan.package_choice, plan.package_code),
+	    competitive_reasons: firstContextText(context.item?.latest_decision?.competitive_reasons),
+	    objection_playbook: firstContextText(context.item?.latest_decision?.objection_playbook),
+	  };
+	}
+
 	async function submitPostSendLearningFeedback(context = {}) {
 	  const feedbackId = String(context.feedbackId || "");
+	  const replyParts = learningReplyPartsForContext(context);
+	  const providerMessageIds = [
+	    context.providerEvidence?.provider_message_id,
+	    ...(Array.isArray(context.mediaRefs) ? context.mediaRefs.map((media) => media?.provider_message_id) : []),
+	  ].filter(Boolean);
+	  const messageIds = (Array.isArray(context.mediaRefs) ? context.mediaRefs.map((media) => media?.message_id) : []).filter(Boolean);
 	  const payload = {
 	    feedback_id: feedbackId,
 	    sent_reply: context.sentText,
@@ -12726,22 +13377,75 @@
 	    original_ai_reply: context.originalDraft,
 	    reply_was_edited: Boolean(context.originalDraft)
 	      && compactCompareText(context.originalDraft) !== compactCompareText(context.sentText),
-	    reply_source: context.mode === "manual_send" ? "staff_written" : "ai_draft_edited",
+	    reply_source: context.sourceType,
+	    source_type: context.sourceType,
+	    stage: context.stage || "",
+	    intent: context.intent || "",
+	    customer_goal: context.customerGoal || "",
+	    answer_kind: context.answerKind || "",
+	    confidence_kind: context.confidenceKind || "",
+	    cta_kind: context.ctaKind || "",
+	    reply_message_kinds: context.replyMessageKinds || [],
+	    delivery_evidence: context.deliveryEvidence || {},
+	    provider_evidence: context.providerEvidence || {},
+	    media_refs: context.mediaRefs || [],
+	    media_analysis: context.mediaAnalysis || null,
+	    staff_purpose_summary: context.staffPurposeSummary || "",
+	    media_purpose: context.staffPurposeSummary || "",
+	    media_caption: context.staffPurposeSummary || "",
+	    evidence_bundle: {
+	      project_key: context.item?.project_key || projectKeyEl.value.trim() || "beyoute",
+	      sent_text: context.sentText,
+	      message_ids: messageIds,
+	      provider_message_ids: providerMessageIds,
+	      media_purpose: context.staffPurposeSummary || "",
+	    },
+	    reply_parts: replyParts,
+	    sales_strategy: learningSalesStrategyForContext(context, replyParts),
+	    auto_candidate_from_approved_ai: context.sourceType === "ai_draft_approved",
 	    learnability: "needs_owner",
 	    source: "dashboard_post_send_learning",
-	    note: "客服发送成功后明确选择教 AI；只建立 Owner 待审核候选，不发送消息、不启用自动回复。",
+	    note: context.sourceType === "ai_draft_approved"
+	      ? "客服批准 AI 原稿且 ChatDaddy 已确认发送；自动建立 Owner 待审核候选，不发送额外消息、不触发 Flow、不启用自动回复。"
+	      : "客服发送成功后明确选择教 AI；只建立 Owner 待审核候选，不发送消息、不触发 Flow、不启用自动回复。",
 	  };
-	  if (state.demoMode) {
-	    const record = state.cases.find((item) => String(item.id || "") === String(context.caseId || ""));
-	    if (record) {
-	      const learningItem = {
-	        ...record,
-	        original_ai_reply: context.originalDraft,
-	        manual_reply_text: context.sentText,
-	        final_human_reply: context.sentText,
-	      };
-	      record.manual_learning_candidate = caseOptimizerLearningCandidate(learningItem, payload.note);
-	      record.history = Array.isArray(record.history) ? record.history : [];
+	    if (state.demoMode) {
+	      const record = state.cases.find((item) => String(item.id || "") === String(context.caseId || ""));
+	      if (record) {
+	        const learningItem = {
+	          ...record,
+	          original_ai_reply: context.originalDraft,
+	          manual_reply_text: context.sentText,
+	          final_human_reply: context.sentText,
+	        };
+	        const demoCandidate = caseOptimizerLearningCandidate(learningItem, payload.note);
+	        record.manual_learning_candidate = demoCandidate;
+	        state.learningNotes = state.learningNotes || { ok: true, learning_notes: [] };
+	        const currentNotes = Array.isArray(state.learningNotes.learning_notes)
+	          ? state.learningNotes.learning_notes.filter((note) => String(note?.id || "") !== feedbackId)
+	          : [];
+	        state.learningNotes.learning_notes = [{
+	          id: feedbackId,
+	          project_key: context.item?.project_key || "demo",
+	          case_id: context.caseId,
+	          source: "dashboard_post_send_learning",
+	          status: "open",
+	          title: demoCandidate.title || "回复框架学习候选",
+	          customer_pattern: demoCandidate.customer_pattern || "",
+	          better_reply: demoCandidate.better_reply || context.sentText,
+	          proposed_rule: demoCandidate.proposed_rule || payload.note,
+	          data: {
+	            learning_candidate: demoCandidate,
+	            stage: context.stage || "",
+	            intent: context.intent || "",
+	            customer_goal: context.customerGoal || "",
+	            owner_review_required: true,
+	            sends_messages: false,
+	            triggers_flows: false,
+	            auto_reply_enabled: false,
+	          },
+	        }, ...currentNotes].slice(0, 12);
+	        record.history = Array.isArray(record.history) ? record.history : [];
 	      record.history.push({
 	        type: "case_learning_note",
 	        at: new Date().toISOString(),
@@ -12770,11 +13474,43 @@
 	  return result;
 	}
 
+	async function submitApprovedAiLearningCandidate(context = {}) {
+	  const caseId = String(context.caseId || "");
+	  if (!caseId || state.learningAfterSendBusyByCase[caseId] === true) return;
+	  state.learningAfterSendBusyByCase[caseId] = true;
+	  try {
+	    await submitPostSendLearningFeedback(context);
+	    addAuditEvent("case_learning_note", `${customerDisplayLabel(context.item) || "顾客"}：AI 原稿已提交 Owner 学习审核`);
+	    delete state.learningAfterSendPromptByCase[caseId];
+	    showToast("已发送；AI 原稿已加入 Owner 学习候选，不会开启自动回复。");
+	    if (!state.demoMode) loadCases().catch(() => {});
+	  } catch (error) {
+	    context.autoRetry = true;
+	    state.learningAfterSendPromptByCase[caseId] = context;
+	    delete state.learningAfterSendBusyByCase[caseId];
+	    if (String(state.active?.id || "") === caseId && $("panel")?.classList.contains("open")) {
+	      showLearningAfterSendPrompt(context);
+	    }
+	    showToast(`已发送，但学习候选暂时未保存：${error.message || error}`);
+	  } finally {
+	    delete state.learningAfterSendBusyByCase[caseId];
+	  }
+	}
+
 	async function teachAiFromLastSend() {
 	  const context = state.learningAfterSendContext;
 	  const button = $("learningAfterSendApplyBtn");
 	  const caseId = String(context?.caseId || "");
 	  if (!context || !button || state.actionBusy || state.learningAfterSendBusyByCase[caseId] === true) return;
+	  const purposeInput = $("learningAfterSendPurposeInput");
+	  const purposeSummary = String(purposeInput?.value || context.staffPurposeSummary || "").trim();
+	  if (context.imageOnlyPurposeRequired === true && purposeSummary.length < 4) {
+	    purposeInput?.classList.remove("hidden");
+	    purposeInput?.focus();
+	    showToast("请先用一句话说明这张图片要让 AI 学什么。");
+	    return;
+	  }
+	  context.staffPurposeSummary = purposeSummary;
 	  state.learningAfterSendBusyByCase[caseId] = true;
 	  button.disabled = true;
 	  button.textContent = "正在整理...";
@@ -12839,6 +13575,8 @@
 	  const voiceActive = voiceComposer.phase !== "idle";
 	  const previewVisible = voiceComposer.phase === "preview" || voiceComposer.phase === "sending";
 	  const hasText = Boolean(box.value.trim());
+	  const hasMedia = Boolean(mediaReplyComposer.file);
+	  const hasReply = hasText || hasMedia;
 	  const textAction = currentComposerTextActionButton();
 	  const cardHidden = $("replyCard").classList.contains("hidden");
 	  const composerLocked = !state.active || cardHidden || box.readOnly || state.actionBusy;
@@ -12849,15 +13587,16 @@
 	  $("voiceRecordingRow").classList.toggle("hidden", !["recording", "stopping"].includes(voiceComposer.phase));
 	  $("voicePreviewRow").classList.toggle("hidden", !previewVisible);
 
-	  primary.classList.toggle("is-send", hasText);
-	  primary.classList.toggle("is-mic", !hasText);
-	  primaryIcon.className = hasText ? "bi bi-send-fill" : "bi bi-mic-fill";
-	  primary.setAttribute("aria-label", hasText ? "发送文字回复" : "录制语音");
-	  primary.title = hasText ? "发送文字回复" : "录制语音";
-	  primary.disabled = voiceActive || composerLocked || (hasText && (!textAction || textAction.disabled));
+	  primary.classList.toggle("is-send", hasReply);
+	  primary.classList.toggle("is-mic", !hasReply);
+	  primaryIcon.className = hasReply ? "bi bi-send-fill" : "bi bi-mic-fill";
+	  primary.setAttribute("aria-label", hasMedia ? "发送照片或文件" : hasText ? "发送文字回复" : "录制语音");
+	  primary.title = hasMedia ? "发送照片或文件" : hasText ? "发送文字回复" : "录制语音";
+	  primary.disabled = voiceActive || mediaReplyComposer.sending || composerLocked || (hasReply && (!textAction || textAction.disabled));
 
-	  $("composerMoreBtn").disabled = voiceActive || composerLocked;
-	  $("composerEmojiBtn").disabled = voiceActive || composerLocked;
+	  $("composerMoreBtn").disabled = voiceActive || mediaReplyComposer.sending || composerLocked;
+	  $("composerEmojiBtn").disabled = voiceActive || mediaReplyComposer.sending || composerLocked;
+	  $("composerAttachmentBtn").disabled = voiceActive || mediaReplyComposer.sending || composerLocked;
 	  $("voiceRequestCancelBtn").disabled = voiceComposer.phase !== "requesting";
 	  $("voiceCancelBtn").disabled = !["recording", "stopping"].includes(voiceComposer.phase);
 	  $("voiceStopBtn").disabled = voiceComposer.phase !== "recording";
@@ -12944,6 +13683,10 @@
 	function handleComposerPrimaryAction() {
 	  const box = $("replyBox");
 	  if (!box || state.actionBusy) return;
+	  if (mediaReplyComposer.file) {
+	    sendMediaReplyMessage();
+	    return;
+	  }
 	  if (box.value.trim()) {
 	    const actionButton = currentComposerTextActionButton();
 	    if (!actionButton || actionButton.disabled) {
@@ -14154,13 +14897,16 @@
         : Number.isFinite(Number(value)) ? Number(value) : null;
       state.queueHistoryCounts = {
         auto: snapshotHistoryCount(snapshotHistoryCounts.auto),
+        replied: snapshotHistoryCount(snapshotHistoryCounts.replied),
         records: snapshotHistoryCount(snapshotHistoryCounts.records),
       };
       state.queueHistoryLatestDate = {
         auto: normalizeIsoDate(snapshotHistoryDates.auto),
+        replied: normalizeIsoDate(snapshotHistoryDates.replied),
         records: normalizeIsoDate(snapshotHistoryDates.records),
       };
-      state.queueHistoryLoaded = state.queueHistoryCounts.records !== null;
+      state.queueHistoryLoaded = state.queueHistoryCounts.replied !== null
+        && state.queueHistoryCounts.records !== null;
       state.queueNoInterventionCases = Array.isArray(snapshot.no_intervention_cases)
         ? snapshot.no_intervention_cases.filter((item) => item?.status === "no_intervention")
         : [];
@@ -14681,16 +15427,16 @@
         const historyCacheFresh = state.queueHistoryCacheKey === historyCacheKey
           && Date.now() - Number(state.queueHistoryFetchedAt || 0) < DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS;
         if (state.queueHistoryCacheKey !== historyCacheKey) {
-          state.queueHistoryItems = { auto: [], records: [] };
-          state.queueHistoryCounts = { auto: null, records: null };
-          state.queueHistoryLatestDate = { auto: "", records: "" };
+          state.queueHistoryItems = { auto: [], replied: [], records: [] };
+          state.queueHistoryCounts = { auto: null, replied: null, records: null };
+          state.queueHistoryLatestDate = { auto: "", replied: "", records: "" };
           state.queueHistoryLoaded = false;
         }
         const loadHistory = () => useSnapshotFastPath
           ? Promise.resolve([])
           : historyCacheFresh
           ? Promise.resolve([])
-          : Promise.all(["records"].map(async (status) => ({
+          : Promise.all(["replied", "records"].map(async (status) => ({
               status,
               result: await fetchDashboardQueueResult(dashboardHistoryRequest(api, approvalParams, status), token),
             })));
@@ -14771,6 +15517,7 @@
           : mergeDashboardApprovalItems(
               primaryItems,
               currentStateIndexed ? [] : (state.queueHistoryItems.auto || []),
+              state.queueHistoryItems.replied || [],
               currentStateIndexed ? [] : (state.queueHistoryItems.records || [])
             ).filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)));
         if (currentStateIndexed) state.queueCurrentStateItems = liveItems;
@@ -14788,15 +15535,15 @@
 	        if (!options.silent || queueChanged) render();
 
         const [historyResults, noInterventionResult] = await Promise.all([
-          currentStateIndexed ? Promise.resolve([]) : loadHistory(),
+          loadHistory(),
           noInterventionPromise,
         ]);
         let liveConversationItemsForReconcile = [];
         if (requestSeq !== state.queueRequestSeq) return;
         if (historyResults.length) {
-          const nextHistoryItems = { ...(state.queueHistoryItems || { auto: [], records: [] }) };
-          const nextHistoryCounts = { ...(state.queueHistoryCounts || { auto: null, records: null }) };
-          const nextHistoryDates = { ...(state.queueHistoryLatestDate || { auto: "", records: "" }) };
+          const nextHistoryItems = { ...(state.queueHistoryItems || { auto: [], replied: [], records: [] }) };
+          const nextHistoryCounts = { ...(state.queueHistoryCounts || { auto: null, replied: null, records: null }) };
+          const nextHistoryDates = { ...(state.queueHistoryLatestDate || { auto: "", replied: "", records: "" }) };
           let successfulHistoryResponses = 0;
           for (const { status, result } of historyResults) {
             if (!result?.ok) continue;
@@ -14805,7 +15552,9 @@
               : [];
             const strictItems = status === "auto"
               ? responseItems.filter(isNoInterventionCase)
-              : responseItems.filter(isAiHandledCase);
+              : status === "replied"
+                ? responseItems.filter(isManualRepliedCase)
+                : responseItems.filter(isAiHandledCase);
             nextHistoryItems[status] = strictItems;
             nextHistoryCounts[status] = dashboardHistoryResponseCount(result.data, strictItems);
             nextHistoryDates[status] = dashboardHistoryLatestDate(strictItems);
@@ -14815,10 +15564,16 @@
             state.queueHistoryItems = nextHistoryItems;
             state.queueHistoryCounts = nextHistoryCounts;
             state.queueHistoryLatestDate = nextHistoryDates;
-            state.queueHistoryLoaded = nextHistoryCounts.records !== null;
+            state.queueHistoryLoaded = nextHistoryCounts.replied !== null
+              && nextHistoryCounts.records !== null;
             state.queueHistoryCacheKey = historyCacheKey;
             state.queueHistoryFetchedAt = Date.now();
-            liveItems = mergeDashboardApprovalItems(primaryItems, nextHistoryItems.auto || [], nextHistoryItems.records || [])
+            liveItems = mergeDashboardApprovalItems(
+              currentStateIndexed ? state.queueCurrentStateItems : primaryItems,
+              nextHistoryItems.auto || [],
+              nextHistoryItems.replied || [],
+              nextHistoryItems.records || []
+            )
               .filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)));
             compactLiveItems = compactApprovalsByConversation(liveItems);
 	            state.cases = dashboardCasesWithNoIntervention(
@@ -16034,11 +16789,16 @@
         ? (reply.text || rawFinalReply || "")
         : (item.manual_reply_text || item.final_text) ? (reply.text || "") : "";
       const manualLearningCandidate = item.manual_learning_candidate || item.manualLearningCandidate || item.manual_resolution?.learning_candidate || null;
-      // Only confirmed send states may be projected into the customer
-      // transcript. A manual_resolved Case often still contains the original
-      // AI draft in reply.text; that draft is learning/context data, not proof
-      // that the customer received it.
-      const transcriptReply = ["auto_sent", "sent"].includes(status) ? finalReply : "";
+      // Only confirmed delivery evidence may be projected into the customer
+      // transcript. For manual_resolved rows, use the separately persisted
+      // final_human_reply/manual_reply_text — never the old AI draft in
+      // reply.text.
+      const confirmedManualReply = status === "manual_resolved"
+        ? firstContextText(item.final_human_reply, item.manual_reply_text)
+        : "";
+      const transcriptReply = ["auto_sent", "sent"].includes(status)
+        ? finalReply
+        : confirmedManualReply;
       const contactDigits = approvalContactDigits(item);
       const contactName = customerDisplayNameFromApproval(item, contactNames);
       const contextMessages = approvalRecentContextMessages(item);
@@ -16096,7 +16856,7 @@
           id: `${item.id}-out`,
           direction: "outbound",
           text: transcriptReply,
-          at: item.approved_at || item.updated_at || at,
+          at: item.manual_replied_at || item.manual_resolved_at || item.approved_at || item.updated_at || at,
         });
       }
 
@@ -16162,6 +16922,11 @@
 	        purchase_sync_result: item.purchase_sync_result || null,
 	        manual_reply_text: item.manual_reply_text || null,
 	        final_human_reply: item.final_human_reply || item.manual_resolution?.final_human_reply || item.manual_reply_text || null,
+	        manual_reply_source: item.manual_reply_source || item.manual_resolved_source || item.manual_resolution?.resolution_origin || null,
+	        manual_resolved_source: item.manual_resolved_source || item.manual_resolution?.resolution_origin || null,
+	        manual_replied_at: item.manual_replied_at || item.manual_resolved_at || item.approved_at || item.updated_at || null,
+	        manual_replied_by: item.manual_replied_by || item.manual_resolved_by || item.approved_by || null,
+	        external_reply_seen: item.external_reply_seen === true,
 	        handoff_reason: item.handoff_reason || item.manual_resolution?.handoff_reason || null,
 	        customer_outcome: item.customer_outcome || item.manual_resolution?.customer_outcome || null,
 	        learning_outcome_note: item.learning_outcome_note || item.manual_resolution?.learning_outcome_note || null,
@@ -16594,8 +17359,90 @@
       );
     }
 
+    function isManualRepliedCase(item = {}) {
+      if (!item || isAiHandledCase(item)) return false;
+      const status = String(item.status || item.source_status || "").trim().toLowerCase();
+      const raw = item.raw_approval || {};
+      const data = raw.data || {};
+      const hasReplyEvidence = item.category === "replied"
+        || Boolean(firstContextText(
+          item.final_human_reply,
+          item.manual_reply_text,
+          item.manual_reply_source,
+          item.manual_resolved_source,
+          raw.final_human_reply,
+          raw.manual_reply_text,
+          raw.manual_reply_source,
+          raw.manual_resolved_source,
+          data.final_human_reply,
+          data.manual_reply_text,
+          data.manual_resolved_source,
+          data.learning_candidate_source
+        ))
+        || item.external_reply_seen === true
+        || raw.external_reply_seen === true
+        || data.external_reply_seen === true;
+      return hasReplyEvidence && (
+        status === "manual_resolved"
+        || (status === "sent" && item.auto_reply !== true)
+      );
+    }
+
+    function manualReplySource(item = {}) {
+      const raw = item.raw_approval || {};
+      const data = raw.data || {};
+      const explicit = firstContextText(
+        item.manual_reply_source,
+        item.manual_resolved_source,
+        item.learning_candidate_source,
+        raw.manual_reply_source,
+        raw.manual_resolved_source,
+        raw.learning_candidate_source,
+        data.manual_reply_source,
+        data.manual_resolved_source,
+        data.learning_candidate_source,
+        data.source,
+        raw.metadata?.source
+      ).toLowerCase();
+      if (/chatdaddy|external/.test(explicit)) return "chatdaddy";
+      if (/dashboard/.test(explicit)) return "dashboard";
+      if (
+        item.external_reply_seen === true
+        || raw.external_reply_seen === true
+        || data.external_reply_seen === true
+      ) return "chatdaddy";
+      return "dashboard";
+    }
+
+    function manualReplySourceLabel(item = {}) {
+      return manualReplySource(item) === "chatdaddy"
+        ? "ChatDaddy 人工回复"
+        : "Dashboard 回复";
+    }
+
+    function manualReplyDisplayText(item = {}) {
+      const raw = item.raw_approval || {};
+      const direct = firstContextText(
+        item.final_human_reply,
+        item.manual_reply_text,
+        raw.final_human_reply,
+        raw.manual_reply_text,
+        raw.data?.final_human_reply,
+        raw.data?.manual_reply_text,
+        raw.data?.external_reply_text_preview
+      );
+      if (direct) return direct;
+      const messages = Array.isArray(item.messages) ? item.messages : [];
+      const latestOutbound = [...messages]
+        .filter((message) => contextMessageIsOutbound(message) && !contextMessageWasCancelled(message))
+        .sort((left, right) => messageTimeMs(left) - messageTimeMs(right))
+        .at(-1);
+      return firstContextText(latestOutbound?.text, latestOutbound?.body, latestOutbound?.message);
+    }
+
     function staffBusinessCategory(item = {}) {
       if (isAiHandledCase(item)) return "records";
+      if (isManualRepliedCase(item)) return "replied";
       if (isNoInterventionCase(item)) return "auto";
       if (isHumanFirstCase(item)) return "human_first";
       if (item.status === "approval_required" || needsReturnAiBeforeApproval(item)) return "approval_required";
@@ -17599,6 +18446,8 @@
       const category = existing ? staffBusinessCategory(existing) : "";
       state.filter = category === "human_first"
         ? "human_first"
+        : category === "replied"
+          ? "replied"
         : category === "auto"
           ? "auto"
           : category === "records"
@@ -17610,7 +18459,7 @@
     }
 
     function shouldUseStaffCaseSections() {
-      return state.role === "staff" && ["needs_attention", "all_cases", "approval_required", "human_first", "auto", "records"].includes(state.filter);
+      return state.role === "staff" && ["needs_attention", "all_cases", "approval_required", "human_first", "replied", "auto", "records"].includes(state.filter);
     }
 
     function caseActivityTimestamp(item = {}) {
@@ -17650,6 +18499,7 @@
     function staffCaseCollapseBucket(item = {}) {
       const category = staffBusinessCategory(item);
       if (["approval_required", "human_first"].includes(category)) return "needs_attention";
+      if (category === "replied") return "manual_replied";
       if (category === "auto") return "auto_flow";
       if (category === "records") return "ai_records";
       return `other:${category || String(item.status || "unknown")}`;
@@ -17729,7 +18579,7 @@
       if (filter === "needs_attention") {
         return staffCaseSectionHtml({
           title: "全部待处理",
-          body: "合并显示待批准与人工回复；无需介入和 AI 自动发送记录不会混进来。",
+          body: "合并显示待批准与待人工回复；已回复、无需介入和 AI 自动发送不会混进来。",
           items: visible,
           countLabel: `${visible.length} 位 · ${Number(counts.needs || visible.length)} 条`,
           emptyText: "当前没有未完成的待处理顾客。",
@@ -17757,9 +18607,17 @@
       }
       if (filter === "human_first") {
         return staffCaseSectionHtml({
-          title: "人工回复",
+          title: "待人工回复",
           body: "在 Dashboard 写回复并发送；付款、订单、售后和发送失败也集中在这里。",
           items: visible,
+        });
+      }
+      if (filter === "replied") {
+        return staffCaseSectionHtml({
+          title: "已回复",
+          body: "查看 Dashboard 与 ChatDaddy 已经完成的人工回复；全部只读，不会重复发送。",
+          items: visible,
+          emptyText: "当前范围没有人工已回复记录。",
         });
       }
       if (filter === "auto") {
@@ -18061,7 +18919,8 @@
         needs_attention: ["全部待处理", counts.needs],
         all_cases: ["所有 Case", state.queueAllCasesTotal || counts.total],
         approval_required: ["待批准", counts.approval],
-        human_first: ["人工回复", humanWork],
+        human_first: ["待人工回复", humanWork],
+        replied: ["已回复", historyBadge("replied", counts.replied)],
         auto: ["无需介入", historyBadge("auto", counts.auto)],
         records: ["AI 自动发送", historyBadge("records", counts.records)],
       };
@@ -18085,11 +18944,24 @@
               : "按当前选中日期显示无需介入记录；全部只读。";
           return;
         }
+        if (button.dataset.filter === "replied") {
+          button.title = "查看 Dashboard 与 ChatDaddy 已完成的人工回复；全部只读，不会重复发送。";
+        }
         const rawHistorical = state.queueHistoryCounts?.[button.dataset.filter];
         if (button.dataset.filter === "records" && state.queueHistoryLoaded && rawHistorical !== null && rawHistorical !== undefined) {
           const historical = Number(rawHistorical || 0);
           button.title = `当前日期与全部历史分开计数；全部历史 ${historical} 条。无需介入记录只读。`;
         }
+      });
+      const repliedSourceCounts = {
+        all: counts.replied || 0,
+        dashboard: counts.repliedDashboard || 0,
+        chatdaddy: counts.repliedChatDaddy || 0,
+      };
+      document.querySelectorAll("[data-replied-source]").forEach((button) => {
+        const source = button.dataset.repliedSource || "all";
+        const label = source === "dashboard" ? "Dashboard 回复" : source === "chatdaddy" ? "ChatDaddy 回复" : "全部";
+        button.innerHTML = `${escapeHtml(label)}<span class="pill-count">${escapeHtml(repliedSourceCounts[source] || 0)}</span>`;
       });
     }
 
@@ -18274,6 +19146,12 @@
       if (filter === "all" || filter === "all_cases") return cases;
       if (filter === "auto") return cases.filter((item) => staffBusinessCategory(item) === "auto");
       if (filter === "records") return cases.filter((item) => staffBusinessCategory(item) === "records");
+      if (filter === "replied") {
+        return cases.filter((item) => {
+          if (staffBusinessCategory(item) !== "replied") return false;
+          return state.repliedSource === "all" || manualReplySource(item) === state.repliedSource;
+        });
+      }
       if (filter === "human_first") return cases.filter((item) => staffBusinessCategory(item) === "human_first");
       if (filter === "human_required") return cases.filter(isOpenHumanCase);
       if (filter === "return_ai") return cases.filter(needsReturnAiBeforeApproval);
@@ -21566,20 +22444,143 @@
 	          <div class="audit-list">
 	            ${notes.slice(0, 6).map((note) => {
 	              const candidate = note.data?.learning_candidate || {};
-	              const title = candidate.title || note.feedback || "人工回复学习候选";
-	              const label = candidate.artifact_label || note.status || "复盘";
-	              const preview = candidate.better_reply || note.customer_message || note.generated_rule || "等待 Owner 审核";
-	              return `
-	                <div class="audit-item">
-	                  <b>${escapeHtml(title)}</b>
-	                  <span>${escapeHtml(String(preview).slice(0, 140))}</span>
-	                  <small>${escapeHtml(label)}｜${escapeHtml(note.source || "learning")}</small>
-	                </div>
-	              `;
+		              const title = candidate.title || note.feedback || "人工回复学习候选";
+		              const label = candidate.artifact_label || note.status || "复盘";
+		              const preview = candidate.better_reply || note.customer_message || note.generated_rule || "等待 Owner 审核";
+		              const noteId = String(note.id || note.note_id || "");
+		              const adopted = String(note.status || "").toLowerCase() === "applied"
+		                || note.data?.applied_to_business_brain_draft === true;
+		              const applying = state.learningApplyBusyById[noteId] === true;
+		              return `
+		                <div class="audit-item">
+		                  <b>${escapeHtml(title)}</b>
+		                  <span>${escapeHtml(String(preview).slice(0, 140))}</span>
+		                  <small>${escapeHtml(label)}｜${escapeHtml(note.source || "learning")}</small>
+		                  ${adopted
+		                    ? `<small class="owner-outcome-observation">已采用到业务脑草稿，发布后用于未来建议。</small>`
+		                    : noteId && candidate && typeof candidate === "object" && Object.keys(candidate).length
+		                      ? `<button class="quick-action primary" type="button" data-approve-apply-learning-note="${escapeHtml(noteId)}" ${applying ? "disabled" : ""}>${applying ? "采用中..." : "批准并采用"}</button>`
+		                      : ""}
+		                </div>
+		              `;
 	            }).join("")}
 	          </div>
 	        </section>
 	      `;
+	    }
+
+	    function learningNoteById(noteId = "") {
+	      const key = String(noteId || "");
+	      const notes = Array.isArray(state.learningNotes?.learning_notes) ? state.learningNotes.learning_notes : [];
+	      return notes.find((note) => String(note?.id || note?.note_id || "") === key) || null;
+	    }
+
+	    function learningNoteApplyPayload(note = {}) {
+	      const data = note.data && typeof note.data === "object" ? note.data : {};
+	      const candidate = data.learning_candidate && typeof data.learning_candidate === "object"
+	        ? data.learning_candidate
+	        : note.learning_candidate && typeof note.learning_candidate === "object"
+	          ? note.learning_candidate
+	          : {};
+	      const context = data.context && typeof data.context === "object" ? data.context : {};
+	      return {
+	        case_id: firstContextText(note.case_id, data.case_id, context.case_id),
+	        customer_name: firstContextText(note.customer_name, data.customer_name, "顾客"),
+	        stage: firstContextText(note.stage, data.stage, context.stage),
+	        intent: firstContextText(note.intent, data.intent, context.intent),
+	        feedback: firstContextText(note.feedback, data.feedback, note.note, candidate.title, "Owner 批准学习候选"),
+	        generated_rule: firstContextText(note.generated_rule, data.generated_rule, candidate.proposed_rule),
+	        customer_message: firstContextText(note.customer_message, data.customer_message, candidate.customer_pattern),
+	        suggested_reply: firstContextText(note.suggested_reply, data.suggested_reply, candidate.better_reply),
+	        learning_candidate: candidate,
+	        manual_sample_judgment: data.manual_sample_judgment || null,
+	        self_optimization_checklist: data.self_optimization_checklist || [],
+	        source: "dashboard_owner_learning_note_apply",
+	        status: "applied",
+	        updated_by: state.session.displayName || roleName(state.role),
+	        note: `Owner approved ${candidate.artifact_label || candidate.artifact_type || "learning candidate"} from the learning review.`,
+	        context: {
+	          ...context,
+	          project_key: firstContextText(context.project_key, note.project_key, projectKeyEl.value.trim(), "beyoute"),
+	          dashboard_role: state.role,
+	          source_learning_note_id: firstContextText(note.id, note.note_id),
+	          sends_messages: false,
+	          triggers_flows: false,
+	          enables_auto_reply: false,
+	        },
+	      };
+	    }
+
+	    async function approveAndApplyLearningNote(noteId = "") {
+	      const key = String(noteId || "");
+	      if (!key || state.role === "staff" || state.actionBusy || state.learningApplyBusyById[key] === true) return;
+	      const note = learningNoteById(key);
+	      const payload = learningNoteApplyPayload(note || {});
+	      const candidate = payload.learning_candidate || {};
+	      if (!note || !Object.keys(candidate).length) {
+	        showToast("这条候选缺少可采用的回复框架，请先刷新学习记录。");
+	        return;
+	      }
+	      const confirmed = await showSaasConfirm({
+	        eyebrow: "Owner 学习审核",
+	        title: "批准并采用这个回复框架？",
+	        subtitle: candidate.artifact_label || candidate.artifact_type || "回复策略",
+	        lead: "采用后会写入业务脑草稿，发布后用于未来 AI 建议；不会发送顾客讯息。",
+	        facts: [
+	          { label: "触发情况", value: firstContextText(candidate.customer_pattern, payload.customer_message, "-") },
+	          { label: "正确回复", value: firstContextText(candidate.better_reply, payload.suggested_reply, "-") },
+	          { label: "自动回复", value: "不会开启" },
+	          { label: "ChatDaddy Flow", value: "不会触发" },
+	        ],
+	        note: "这是业务脑草稿变更；仍需按项目发布流程发布，才会用于未来建议。",
+	        cancelLabel: "返回检查",
+	        confirmLabel: "批准并采用",
+	      });
+	      if (!confirmed) return;
+
+	      state.learningApplyBusyById[key] = true;
+	      render();
+	      try {
+	        if (state.demoMode) {
+	          note.status = "applied";
+	          note.data = { ...(note.data || {}), applied_to_business_brain_draft: true };
+	          showToast("已采用到业务脑草稿，发布后用于未来建议。");
+	          return;
+	        }
+	        const api = apiUrlEl.value.trim().replace(/\/$/, "");
+	        const project = firstContextText(payload.context?.project_key, projectKeyEl.value.trim(), "beyoute");
+	        if (!api || (!adminTokenEl.value.trim() && !hasAccountSession())) {
+	          throw new Error("请先用 Owner 管理员账号重新登录。");
+	        }
+	        const response = await fetch(`${api}/api/hermas/projects/${encodeURIComponent(project)}/learning-candidates/apply`, {
+	          method: "POST",
+	          headers: {
+	            "content-type": "application/json",
+	            ...authHeaders(adminTokenEl.value.trim()),
+	          },
+	          body: JSON.stringify(payload),
+	        });
+	        const result = await response.json().catch(() => ({}));
+	        if (!response.ok || result.ok === false) {
+	          throw new Error(result.error || result.message || result.next || `HTTP ${response.status}`);
+	        }
+	        note.status = "applied";
+	        note.data = {
+	          ...(note.data || {}),
+	          applied_to_business_brain_draft: true,
+	          applied_package_version_no: result.package_version_no || null,
+	        };
+	        await Promise.all([
+	          loadOwnerAdminSummaries(adminTokenEl.value.trim()).catch(() => {}),
+	          loadProjectKnowledge({ silent: true }).catch(() => {}),
+	        ]);
+	        showToast("已采用到业务脑草稿，发布后用于未来建议。");
+	      } catch (error) {
+	        showToast(`暂时不能采用：${error.message || error}`);
+	      } finally {
+	        delete state.learningApplyBusyById[key];
+	        render();
+	      }
 	    }
 
 	    function hasLearningBacklog() {
@@ -22454,6 +23455,10 @@
       const human = humanOpen;
       const orders = cases.filter((item) => item.status === "order").length;
       const auto = cases.filter((item) => staffBusinessCategory(item) === "auto").length;
+      const repliedCases = cases.filter((item) => staffBusinessCategory(item) === "replied");
+      const replied = repliedCases.length;
+      const repliedDashboard = repliedCases.filter((item) => manualReplySource(item) === "dashboard").length;
+      const repliedChatDaddy = repliedCases.filter((item) => manualReplySource(item) === "chatdaddy").length;
       const records = cases.filter((item) => staffBusinessCategory(item) === "records").length;
       const failed = cases.filter((item) => item.status === "send_failed").length;
       return {
@@ -22464,6 +23469,9 @@
         human,
         orders,
         auto,
+        replied,
+        repliedDashboard,
+        repliedChatDaddy,
         records,
         failed,
         handoffDone,
@@ -22490,7 +23498,7 @@
         },
         needs_attention: {
           title: `${counts.needs} 位顾客需要处理`,
-          body: "合并显示待批准和人工回复；不包含无需介入与 AI 自动发送。",
+          body: "合并显示待批准和待人工回复；不包含已回复、无需介入与 AI 自动发送。",
         },
         approval_required: {
           title: `${counts.approval} 条回复可审核批准`,
@@ -22507,6 +23515,10 @@
         human_first: {
           title: `${Number(counts.human || 0) + Number(counts.orders || 0) + Number(counts.failed || 0) + Number(counts.pendingManualReplies || 0)} 位顾客优先处理`,
           body: "只看人工、订单、发送失败和待补人工回复；普通可批准回复先放后面。",
+        },
+        replied: {
+          title: `${counts.replied || 0} 条人工已回复`,
+          body: `Dashboard ${counts.repliedDashboard || 0} 条 · ChatDaddy ${counts.repliedChatDaddy || 0} 条；全部只读。`,
         },
         pending_manual_reply: {
           title: `${counts.pendingManualReplies || 0} 位顾客待补人工回复`,
@@ -23871,7 +24883,8 @@
 	    function cardHtml(item) {
 	      const decision = item.latest_decision || {};
 	      const readOnly = isCaseReadOnly(item);
-	      const riskClass = decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
+	      const manualReplied = isManualRepliedCase(item);
+	      const riskClass = manualReplied ? "low" : decision.risk === "high" ? "high" : item.status === "order" ? "order" : decision.risk === "medium" ? "medium" : "low";
 	      const baseDisplayName = customerDisplayLabel(item);
 	      const displayName = customerDisplayLabelWithTail(item, baseDisplayName);
 	      const initials = initialsFor(baseDisplayName);
@@ -23879,13 +24892,28 @@
 	      const sla = slaInfo(item);
 	      const learningFollowup = caseLearningFollowup(item);
 	      const noInterventionProjection = item.status === "no_intervention";
-	      const preview = customerPreviewText(item);
+	      const customerQuestion = customerPreviewText(item);
+	      const preview = manualReplied
+	        ? (manualReplyDisplayText(item) || "已记录人工回复")
+	        : customerQuestion;
 	      const statusText = caseStatusLabel(item, decision.risk);
-	      const tags = caseMiniTags(item, decision)
+	      const tags = (manualReplied
+	        ? [
+	            manualReplySourceLabel(item),
+	            customerQuestion && customerQuestion !== "顾客没有文字讯息"
+	              ? `顾客：${customerQuestion.slice(0, 54)}`
+	              : "",
+	          ]
+	        : caseMiniTags(item, decision))
 	        .filter((tag) => tag !== statusText)
 	        .slice(0, 2);
-	      const footPillText = learningFollowup ? learningFollowup.pill : item.seen_by_operator ? "已看" : sla.text;
-	      const footPillTone = learningFollowup ? learningFollowup.tone : sla.tone;
+	      const footPillText = manualReplied
+	        ? manualReplySourceLabel(item)
+	        : learningFollowup ? learningFollowup.pill : item.seen_by_operator ? "已看" : sla.text;
+	      const footPillTone = manualReplied ? "good" : learningFollowup ? learningFollowup.tone : sla.tone;
+	      const activityAt = manualReplied
+	        ? firstContextText(item.manual_replied_at, item.manual_resolved_at, item.approved_at, item.updated_at)
+	        : item.updated_at;
 
 	      return `
 	        <article class="case-card ${riskClass} ${selected ? "selected" : ""}" data-case-id="${escapeHtml(item.id)}" role="button" tabindex="0" title="${readOnly ? "查看只读记录" : "打开顾客 Case"}" aria-label="${readOnly ? "查看" : "打开"} ${escapeHtml(displayName)} 的 ${escapeHtml(statusText)}${readOnly ? "只读记录" : " Case"}">
@@ -23910,7 +24938,7 @@
             </div>
           </div>`}
 		          <div class="case-foot">
-	            <span>${escapeHtml(formatDate(item.updated_at))}</span>
+	            <span>${escapeHtml(formatDate(activityAt))}</span>
 	            ${noInterventionProjection ? "" : `<span class="sla-pill ${escapeHtml(footPillTone)}">${escapeHtml(footPillText)}</span>`}
 	          </div>
 	        </article>
@@ -23938,9 +24966,10 @@
       const sameCaseAlreadyOpen = previousActiveId === id && panelIsOpen;
       const hasStoredReplyDraft = hasRememberedReplyDraft(id);
       const composingSameCase = sameCaseAlreadyOpen && state.replyCompositionActive;
-	  const purchasePanelWasOpen = previousActiveId === id && $("purchasePanel").open;
-	  if (voiceComposer.phase !== "idle" && previousActiveId !== id) resetVoiceComposer({ sync: false });
-	  if (previousActiveId !== id) state.replyCompositionActive = false;
+		  const purchasePanelWasOpen = previousActiveId === id && $("purchasePanel").open;
+		  if (voiceComposer.phase !== "idle" && previousActiveId !== id) resetVoiceComposer({ sync: false });
+		  if (mediaReplyComposer.file && previousActiveId !== id) resetMediaReplyComposer({ sync: false });
+		  if (previousActiveId !== id) state.replyCompositionActive = false;
 	  closeComposerEmojiPanel();
       const openingNewCase = previousActiveId !== id || !panelIsOpen;
       const preserveReplyDraft = hasStoredReplyDraft
@@ -29372,6 +30401,7 @@
 
 	    function caseStatusLabel(item = {}, risk = "") {
 	      if (item.no_reply_needed === true || item.raw_approval?.data?.no_reply_needed === true || item.raw_approval?.no_reply_needed === true) return "无需回复";
+	      if (isManualRepliedCase(item)) return "已回复";
 	      const learningFollowup = caseLearningFollowup(item);
 	      if (learningFollowup) return learningFollowup.pill;
 	      return statusLabel(item.status, risk);
@@ -29497,7 +30527,7 @@
           || result?.completed === true
           || (result?.ok === true && result?.sends_messages === true && !result?.partial_success && !result?.already_handled)
         )) {
-          completeLearningAfterSend(activeBeforeSend.id);
+          completeLearningAfterSend(activeBeforeSend.id, learningDeliveryEvidence(result));
         }
       } catch (error) {
         clearPendingLearningAfterSend(activeBeforeSend.id);
@@ -29763,7 +30793,7 @@
 	          || result?.completed === true
 	          || (result?.ok === true && result?.sends_messages === true && !result?.partial_success && !result?.already_handled)
 	        )) {
-	          completeLearningAfterSend(activeBeforeSend.id);
+	          completeLearningAfterSend(activeBeforeSend.id, learningDeliveryEvidence(result));
 	        }
 	      } catch (error) {
 	        clearPendingLearningAfterSend(activeBeforeSend.id);
@@ -29884,7 +30914,7 @@
 	          if (status.completed) {
 	            clearSendAttempt(attempt);
 	            setPanelBusy(false);
-	            completeLearningAfterSend(caseId);
+	            completeLearningAfterSend(caseId, learningDeliveryEvidence(status));
 	            showToast(action === "trigger_flow" ? "ChatDaddy 已确认 Flow；不会重复触发。" : "ChatDaddy 已确认发送；不会重复发送。");
 	            loadCases().catch(() => {});
 	            return status;
@@ -32260,7 +33290,7 @@
           </div>
         `;
       }
-      const empty = viewCopy(state.filter, { total: 0, needs: 0, approval: 0, human: 0, orders: 0, auto: 0, records: 0, failed: 0 });
+      const empty = viewCopy(state.filter, { total: 0, needs: 0, approval: 0, human: 0, orders: 0, auto: 0, replied: 0, repliedDashboard: 0, repliedChatDaddy: 0, records: 0, failed: 0 });
       const title = state.query ? `找不到「${state.query}」` : empty.title;
       const body = state.query
         ? "试试看搜索顾客名字、电话号码、关键词，或先清空搜索。"
@@ -32270,6 +33300,8 @@
             ? noInterventionEmptyMessage()
             : state.filter === "records"
               ? aiRecordEmptyMessage()
+            : state.filter === "replied"
+              ? "当前范围没有人工已回复记录。切换为「全部记录」可查看 Dashboard 与 ChatDaddy 的历史人工回复。"
             : state.filter === "all_cases"
               ? "后台目前没有 Case 记录；如果 ChatDaddy 已经有顾客讯息，请检查聊天工具链接与讯息入口。"
             : state.queueDateScope === "open_backlog"
