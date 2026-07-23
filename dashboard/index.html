@@ -10617,7 +10617,10 @@
     }
     const requestedDate = normalizeIsoDate(params.get("date"));
     state.selectedDate = requestedDate || todayISO;
-    state.queueDateScope = state.role === "staff" && !requestedDate ? "open_backlog" : "date";
+    // The operation queue is a work backlog, not a daily report. Default every
+    // role to all unresolved conversations so a case cannot disappear at
+    // midnight merely because it started on an earlier date.
+    state.queueDateScope = !requestedDate ? "open_backlog" : "date";
     syncDateControls();
 
     const requestedApiUrl = IS_LOCAL_PREVIEW ? (params.get("api") || "") : "";
@@ -14087,7 +14090,7 @@
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
-    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 8;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 9;
     const DASHBOARD_INBOX_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
     const DASHBOARD_INBOX_SNAPSHOT_VERSION = 3;
     const DASHBOARD_INBOX_LIVE_TIMEOUT_MS = 5000;
@@ -14606,14 +14609,10 @@
           scan_limit: searchQuery ? "300" : "180",
         });
         if (useSnapshotFastPath) approvalParams.set("prefer_snapshot", "1");
-        if (
-          restoredSnapshot
-          && !searchQuery
-          && options.forceLive !== true
-          && Number(state.queueCurrentStateEventNo || 0) > 0
-        ) {
-          approvalParams.set("since_event_no", String(state.queueCurrentStateEventNo));
-        }
+        // A browser snapshot is only a fast first paint. Always follow it with
+        // one authoritative queue read. An empty snapshot can still carry a
+        // high event cursor; using that cursor here previously returned no
+        // changes and left the dashboard at 0 while the backend had cases.
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
         const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
         const historyCacheKey = `${project}|${searchQuery.toLowerCase()}`;
@@ -18638,6 +18637,10 @@
       const today = summary?.today || summary?.usage?.today || {};
       const monthActual = month.actual_cost_usd ?? month.estimated_cost_usd ?? 0;
       const todayActual = today.actual_cost_usd ?? today.estimated_cost_usd ?? 0;
+      const monthCalls = Number(month.calls || month.records || 0);
+      const todayCalls = Number(today.calls || today.records || 0);
+      const monthTokens = Number(month.tokens_input || 0) + Number(month.tokens_output || 0);
+      const hasUsage = monthCalls > 0 || Number(monthActual || 0) > 0 || monthTokens > 0;
 
       if (state.usageSummaryLoading && !summary) {
         return `<section class="command-panel accent"><div class="command-kicker">BILLING</div><strong class="command-title">正在读取 ${escapeHtml(projectName)} 费用记录…</strong><p class="muted">这里只读取记录，不会调用付费 AI。</p></section>`;
@@ -18648,49 +18651,43 @@
       }
 
       return `
-        <div class="executive-grid">
-          <section class="command-panel accent hero">
-            <div>
-              <div class="command-kicker">${escapeHtml(projectName)} · 本月 ACTUAL</div>
-              <strong class="command-title">${formatUsageUsd(monthActual)}</strong>
-              <div class="priority-lanes">
-                ${laneCard("blue", Number(month.calls || month.records || 0), "本月调用", "")}
-                ${laneCard("good", Number(today.calls || today.records || 0), "今日调用", "")}
-                ${laneCard("warn", Number(month.tokens_input || 0) + Number(month.tokens_output || 0), "Token", "")}
-              </div>
+        <section class="command-panel accent hero">
+          <div>
+            <div class="command-kicker">${escapeHtml(projectName)} · 实际 AI 用量</div>
+            <strong class="command-title">${formatUsageUsd(monthActual)}</strong>
+            <div class="priority-lanes">
+              ${laneCard("good", formatUsageUsd(todayActual), "今天", "")}
+              ${laneCard("blue", monthCalls, "本月 AI 调用", "")}
+              ${laneCard("warn", monthTokens, "本月 Tokens", "")}
             </div>
-            <div class="quick-actions">
-              <button class="quick-action primary" type="button" data-billing-refresh ${state.usageSummaryLoading ? "disabled" : ""}>${state.usageSummaryLoading ? "读取中…" : "刷新 Actual"}</button>
-            </div>
-          </section>
-          <section class="command-panel">
-            <div class="command-kicker">TODAY</div>
-            <strong class="command-title">${formatUsageUsd(todayActual)}</strong>
-            <div class="summary-stack">
-              ${summaryLine("1", "Forecast", "付费动作前确认", "blue")}
-              ${summaryLine("2", "Actual", "完成后自动入账", "good")}
-              ${summaryLine("3", "页面", "只读，不产生费用", "good")}
-            </div>
-          </section>
-        </div>
-        <div class="command-grid">
-          <section class="command-panel">
-            <div class="command-kicker">费用分类</div>
-            <strong class="command-title">花在哪里</strong>
-            <div class="compact-list">${billingGroupedRowsHtml(summary?.categories || [], "category")}</div>
-          </section>
-          <section class="command-panel">
-            <div class="command-kicker">模型分类</div>
-            <strong class="command-title">由什么模型产生</strong>
-            <div class="compact-list">${billingGroupedRowsHtml(summary?.models || [], "model")}</div>
-          </section>
-        </div>
-        <section class="command-panel">
-          <div class="command-kicker">最近记录</div>
-          <strong class="command-title">每一笔 Actual</strong>
-          <div class="compact-list">${billingRecentRowsHtml(summary?.records || [])}</div>
-          <p class="muted">费用按当前项目独立统计。打开或刷新本页不会调用 OpenAI、发送顾客讯息或触发 ChatDaddy Flow。</p>
+            <p class="muted">${hasUsage
+              ? "这里只统计真正调用付费 AI 的记录。ChatDaddy Flow、固定规则与打开页面不会产生模型费用。"
+              : "今天没有付费 AI 调用。ChatDaddy Flow、固定规则与 FAQ 回复不会产生模型费用。"}</p>
+          </div>
+          <div class="quick-actions">
+            <button class="quick-action primary" type="button" data-billing-refresh ${state.usageSummaryLoading ? "disabled" : ""}>${state.usageSummaryLoading ? "读取中…" : "刷新"}</button>
+          </div>
         </section>
+        ${hasUsage ? `
+          <div class="command-grid">
+            <section class="command-panel">
+              <div class="command-kicker">费用分类</div>
+              <strong class="command-title">花在哪里</strong>
+              <div class="compact-list">${billingGroupedRowsHtml(summary?.categories || [], "category")}</div>
+            </section>
+            <section class="command-panel">
+              <div class="command-kicker">模型分类</div>
+              <strong class="command-title">使用的模型</strong>
+              <div class="compact-list">${billingGroupedRowsHtml(summary?.models || [], "model")}</div>
+            </section>
+          </div>
+          <section class="command-panel">
+            <div class="command-kicker">最近记录</div>
+            <strong class="command-title">实际费用明细</strong>
+            <div class="compact-list">${billingRecentRowsHtml(summary?.records || [])}</div>
+            <p class="muted">费用按当前项目独立统计。刷新本页不会调用 AI、发送讯息或触发 Flow。</p>
+          </section>
+        ` : ""}
       `;
     }
 
@@ -31967,9 +31964,9 @@
               ? aiRecordEmptyMessage()
             : state.filter === "all_cases"
               ? "后台目前没有 Case 记录；如果 ChatDaddy 已经有顾客讯息，请检查聊天工具链接与讯息入口。"
-            : state.role === "staff"
-              ? `${queueDateScopeLabel()}没有待处理顾客；有新讯息或需要人工的 Case 会显示在这里。`
-              : "确认顾客讯息入口已经连接，然后用真实 WhatsApp 发一条测试消息。";
+            : state.queueDateScope === "open_backlog"
+              ? "目前没有需要处理的顾客。ChatDaddy Flow 与已完成记录可在「最新讯息」查看。"
+              : "这一天没有新增待处理；切换「全部未完成」可查看跨日期待办。";
       return `
         <div class="box" style="grid-column: 1 / -1;">
           <h3>${escapeHtml(title)}</h3>
