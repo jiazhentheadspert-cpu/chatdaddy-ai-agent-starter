@@ -8979,15 +8979,97 @@
 
     @media (max-width: 1180px) {
       #panel .panel-body {
-        overflow-y: auto;
+        position: relative;
+        overflow: hidden;
+      }
+
+      #panel .case-chat-shell {
+        grid-template-rows: minmax(0, 1fr);
+      }
+
+      #panel .case-chat-shell > .box-title {
+        display: none;
       }
 
       #panel .action-stack {
         position: static;
       }
+
+      #panel #caseActionStack,
+      body.staff-mode #panel #caseActionStack {
+        display: none !important;
+      }
+
+      #panel.assistant-drawer-open #caseActionStack,
+      body.staff-mode #panel.assistant-drawer-open #caseActionStack {
+        display: grid !important;
+        position: absolute;
+        inset: 10px 10px 10px auto;
+        z-index: 84;
+        width: min(360px, calc(100% - 20px));
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+        align-content: start;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(247, 251, 250, .98);
+        padding: 10px;
+        box-shadow: 0 22px 64px rgba(8, 23, 29, .22);
+      }
     }
 
     @media (max-width: 720px) {
+      #panel .panel-top-actions {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+
+      #panel #panelStatusPill {
+        display: none !important;
+      }
+
+      #panel .panel-body {
+        min-height: 0;
+        overflow: hidden;
+        padding: 10px;
+      }
+
+      #panel .panel-body > .left {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr);
+        align-content: stretch;
+      }
+
+      #panel .case-chat-shell {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        padding: 12px;
+      }
+
+      #panel #chatBox {
+        min-height: 0;
+        max-height: none;
+        height: auto;
+        overflow-y: auto;
+      }
+
+      #panel #caseActionStack,
+      body.staff-mode #panel #caseActionStack {
+        display: none !important;
+      }
+
+      #panel #replyBox {
+        max-height: 112px;
+      }
+
       #panel .learning-after-send {
         align-items: stretch;
         flex-direction: column;
@@ -9015,6 +9097,330 @@
         bottom: calc(82px + env(safe-area-inset-bottom));
         left: 12px;
         width: auto;
+      }
+
+      #panel.assistant-drawer-open #caseActionStack,
+      body.staff-mode #panel.assistant-drawer-open #caseActionStack {
+        display: grid !important;
+        position: absolute;
+        inset: 10px;
+        z-index: 84;
+        width: auto;
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+        align-content: start;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(247, 251, 250, .98);
+        padding: 10px;
+        box-shadow: 0 22px 64px rgba(8, 23, 29, .22);
+      }
+    }
+
+    /* WhatsApp-style desktop workbench: queue on the left, conversation on the right. */
+    @media (min-width: 1181px) {
+      body.case-split-open {
+        --case-nav-width: 76px;
+        --case-queue-width: clamp(320px, 25vw, 360px);
+      }
+
+      body.case-split-open .sidebar-toggle {
+        display: none !important;
+      }
+
+      body.case-split-open #caseWorkbench {
+        position: fixed;
+        inset: 0 auto 0 var(--case-nav-width);
+        z-index: 72;
+        width: var(--case-queue-width);
+        height: 100dvh;
+        max-height: none;
+        display: flex !important;
+        flex-direction: column;
+        border-width: 0 1px 0 0;
+        border-radius: 0;
+        background: rgba(255, 255, 255, .98);
+        box-shadow: 18px 0 42px rgba(8, 23, 29, .08);
+        overflow: hidden;
+      }
+
+      body.case-split-open #caseWorkbench .queue-head {
+        flex: 0 0 auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 16px 14px 12px;
+      }
+
+      body.case-split-open #caseWorkbench .queue-title {
+        font-size: 20px;
+      }
+
+      body.case-split-open #caseWorkbench .queue-tools {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+      }
+
+      body.case-split-open #caseWorkbench .queue-date-control,
+      body.case-split-open #caseWorkbench #caseSort,
+      body.case-split-open #caseWorkbench .view-toggle,
+      body.case-split-open #caseWorkbench .selection-tools,
+      body.case-split-open #caseWorkbench .bulk-bar,
+      body.case-split-open #caseWorkbench .qa-guide-strip {
+        display: none !important;
+      }
+
+      body.case-split-open #caseWorkbench #caseSearch {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 12px;
+      }
+
+      body.case-split-open #caseWorkbench .toolbar {
+        flex: 0 0 auto;
+        display: block;
+        padding: 8px 10px;
+        overflow: hidden;
+      }
+
+      body.case-split-open #caseWorkbench .filters {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+      }
+
+      body.case-split-open #caseWorkbench .filters::-webkit-scrollbar {
+        display: none;
+      }
+
+      body.case-split-open #caseWorkbench .filters .pill {
+        flex: 0 0 auto;
+        min-height: 36px;
+        padding: 7px 10px;
+      }
+
+      body.case-split-open #caseWorkbench #error,
+      body.case-split-open #caseWorkbench .channel-outage-alert {
+        flex: 0 0 auto;
+      }
+
+      body.case-split-open #caseWorkbench #cases {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-content: start;
+        gap: 0;
+        padding: 0;
+        overflow-y: auto;
+      }
+
+      body.case-split-open #caseWorkbench .staff-case-section {
+        gap: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      body.case-split-open #caseWorkbench .staff-case-section-header {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(92, 112, 121, .12);
+      }
+
+      body.case-split-open #caseWorkbench .staff-case-section-title b {
+        font-size: 15px;
+      }
+
+      body.case-split-open #caseWorkbench .staff-case-section-title span {
+        display: none;
+      }
+
+      body.case-split-open #caseWorkbench .staff-case-section-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+      }
+
+      body.case-split-open #caseWorkbench .case-card {
+        min-height: 96px;
+        display: block;
+        border-width: 0 0 1px;
+        border-radius: 0;
+        padding: 12px 12px 10px;
+        background: #fff;
+        box-shadow: none;
+        transform: none;
+      }
+
+      body.case-split-open #caseWorkbench .case-card::before {
+        inset: 0 auto 0 0;
+        width: 3px;
+        height: auto;
+      }
+
+      body.case-split-open #caseWorkbench .case-card:hover {
+        transform: none;
+        background: #f6fbfa;
+        box-shadow: none;
+      }
+
+      body.case-split-open #caseWorkbench .case-card.active-case {
+        background: #ecf9f5;
+        box-shadow: inset 4px 0 0 #00a884;
+      }
+
+      body.case-split-open #caseWorkbench .case-head {
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      body.case-split-open #caseWorkbench .case-select,
+      body.case-split-open #caseWorkbench .case-word-mini {
+        display: none !important;
+      }
+
+      body.case-split-open #caseWorkbench .case-id {
+        width: 42px;
+        height: 42px;
+        margin-right: 8px;
+        border-radius: 50%;
+      }
+
+      body.case-split-open #caseWorkbench .case-name b {
+        font-size: 15px;
+      }
+
+      body.case-split-open #caseWorkbench .case-name-meta {
+        font-size: 10px;
+      }
+
+      body.case-split-open #caseWorkbench .badge {
+        max-width: 94px;
+        padding: 5px 7px;
+        font-size: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      body.case-split-open #caseWorkbench .case-word-block,
+      body.case-split-open #caseWorkbench .case-no-intervention-summary {
+        min-height: 0;
+        margin: 0 0 0 50px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+      }
+
+      body.case-split-open #caseWorkbench .case-word-block strong,
+      body.case-split-open #caseWorkbench .case-no-intervention-summary strong {
+        color: var(--muted) !important;
+        font-size: 12px;
+        line-height: 1.4;
+        -webkit-line-clamp: 1;
+      }
+
+      body.case-split-open #caseWorkbench .case-no-intervention-summary > :not(strong) {
+        display: none !important;
+      }
+
+      body.case-split-open #caseWorkbench .case-foot {
+        margin: 5px 0 0 50px;
+        padding: 0;
+        border: 0;
+        font-size: 10px;
+      }
+
+      body.case-split-open #caseWorkbench .case-foot .sla-pill {
+        padding: 3px 6px;
+        font-size: 9px;
+      }
+
+      body.case-split-open #panel {
+        inset: 0 0 0 calc(var(--case-nav-width) + var(--case-queue-width));
+        z-index: 64;
+        padding: 0;
+        place-items: stretch;
+        background: transparent;
+        backdrop-filter: none;
+      }
+
+      body.case-split-open #panel > .panel-card {
+        width: 100%;
+        height: 100dvh;
+        max-height: none;
+        border-width: 0;
+        border-radius: 0;
+        box-shadow: none;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      body.case-split-open #panel .panel-top {
+        min-height: 72px;
+        padding: 10px 16px;
+      }
+
+      body.case-split-open #panel .panel-body,
+      body.staff-mode.case-split-open #panel .panel-body {
+        position: relative;
+        grid-template-columns: minmax(0, 1fr);
+        min-height: 0;
+        overflow: hidden;
+        padding: 12px;
+      }
+
+      body.case-split-open #panel .panel-body > .left {
+        min-height: 0;
+        grid-template-rows: minmax(0, 1fr);
+        align-content: stretch;
+      }
+
+      body.case-split-open #panel .case-chat-shell {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr);
+      }
+
+      body.case-split-open #panel .case-chat-shell > .box-title {
+        display: none;
+      }
+
+      body.case-split-open #panel #chatBox {
+        min-height: 0;
+        max-height: none;
+        height: auto;
+        overflow-y: auto;
+      }
+
+      body.case-split-open #panel #caseActionStack,
+      body.staff-mode.case-split-open #panel #caseActionStack {
+        display: none !important;
+      }
+
+      body.case-split-open #panel.assistant-drawer-open #caseActionStack,
+      body.staff-mode.case-split-open #panel.assistant-drawer-open #caseActionStack {
+        display: grid !important;
+        position: absolute;
+        inset: 12px 12px 12px auto;
+        z-index: 82;
+        width: min(360px, calc(100% - 24px));
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+        align-content: start;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(247, 251, 250, .98);
+        padding: 10px;
+        box-shadow: 0 22px 64px rgba(8, 23, 29, .20);
+      }
+
+      body.case-split-open #panel.open .reply-command-bar {
+        margin: 0 12px 12px;
       }
     }
   </style>
@@ -9265,9 +9671,10 @@
           </div>
         </div>
         <div class="panel-top-actions">
+          <button class="btn ghost" id="toggleCaseAssistantBtn" type="button" aria-controls="caseActionStack" aria-expanded="false">AI 建议</button>
           <span class="badge low" id="panelStatusPill">待处理</span>
-          <button class="btn ghost" id="openChatDaddyBtn" type="button" aria-label="在 ChatDaddy 查看同一顾客的原对话">查看 WhatsApp 原对话</button>
-          <button class="btn ghost panel-close-button" id="closePanel" type="button" aria-label="关闭顾客对话" title="关闭">关闭</button>
+          <button class="btn ghost" id="openChatDaddyBtn" type="button" aria-label="在 ChatDaddy 查看同一顾客的原对话">原对话</button>
+          <button class="btn ghost panel-close-button" id="closePanel" type="button" aria-label="收起顾客对话" title="收起对话">收起</button>
         </div>
       </div>
       <div class="panel-body">
@@ -9335,7 +9742,7 @@
             <div class="case-optimizer-output" id="caseOptimizerOutput">打开已回复的 Case 后，系统会整理顾客触发问题、回答顺序、附件 / Flow 和自动边界。</div>
           </div>
         </div>
-        <aside class="action-stack" id="caseActionStack">
+        <aside class="action-stack" id="caseActionStack" aria-label="AI 建议">
           <details class="action-card action-card-details" id="agentActionDetails">
             <summary>
               <span>AI 建议<b id="actionTitle">按「批准发送」</b></span>
@@ -9575,9 +9982,9 @@
 	        </div>
 	      </div>
 	      <div class="reply-send-actions">
-	        <button class="btn primary composer-send-button composer-native-send" id="approveBtn" type="button">批准并发送</button>
+	        <button class="btn primary composer-send-button composer-native-send" id="approveBtn" type="button" tabindex="-1" aria-hidden="true">批准并发送</button>
 	        <button class="btn composer-learn-button hidden" id="learnAndSendBtn" type="button" title="批准并发送这次回复；同项目、同意图的低风险问题以后自动回复">批准并开启自动回复</button>
-	        <button class="btn primary composer-send-button composer-native-send hidden" id="manualSendBtn" type="button">回复并发送</button>
+	        <button class="btn primary composer-send-button composer-native-send hidden" id="manualSendBtn" type="button" tabindex="-1" aria-hidden="true">回复并发送</button>
 	      </div>
 	    </div>
 	    <details class="payment-quick" id="purchasePanel" aria-label="确认收款 / COD 并回流广告">
@@ -9781,6 +10188,9 @@
       replyCompositionActive: false,
       learningAfterSendContext: null,
       pendingLearningAfterSendByCase: {},
+      learningAfterSendPromptByCase: {},
+      learningAfterSendBusyByCase: {},
+      caseSplitSidebarWasCollapsed: null,
       actionBusy: false,
       bulkBusy: false,
       sidebarCollapsed: false,
@@ -10385,6 +10795,7 @@
     $("gridView").addEventListener("click", () => setView("grid"));
     $("listView").addEventListener("click", () => setView("list"));
     $("openChatDaddyBtn").addEventListener("click", openActiveCaseInChatDaddy);
+    $("toggleCaseAssistantBtn").addEventListener("click", () => toggleCaseAssistantDrawer());
     $("closePanel").addEventListener("click", closePanel);
     $("qualityEvalToggle").addEventListener("click", () => {
       const card = $("qualityEvalCard");
@@ -10395,6 +10806,11 @@
       if (event.key !== "Escape") return;
       if (!$("panel").classList.contains("open")) return;
       event.preventDefault();
+      if ($("panel").classList.contains("assistant-drawer-open")) {
+        toggleCaseAssistantDrawer(false);
+        $("toggleCaseAssistantBtn").focus();
+        return;
+      }
       closePanel();
     });
     $("approveBtn").addEventListener("click", approveActive);
@@ -10497,6 +10913,7 @@
 	window.addEventListener("beforeunload", () => resetVoiceComposer({ sync: false }));
 	window.addEventListener("resize", () => {
 	  if ($("functionMenu").open) positionComposerFunctionMenuPanel();
+	  syncCaseSplitLayout();
 	});
 
     window.addEventListener("focus", refreshRealtimeNow);
@@ -10857,6 +11274,9 @@
     }
 
     function replyPilotInternalQaProject(project = {}) {
+      const projectKey = String(project?.project_key || "").trim().toLowerCase();
+      const projectName = String(project?.project_name || project?.name || "").trim().toLowerCase();
+      if (["demo", "replypilot-demo"].includes(projectKey) || projectName === "demo") return true;
       const settings = project?.settings && typeof project.settings === "object" ? project.settings : {};
       const explicitInternal = settings.internal_project === true
         || settings.system_generated === true
@@ -11575,9 +11995,13 @@
 
     function setWorkspaceView(view) {
       const requestedView = view || "cases";
-      state.workspaceView = state.role === "staff" && !["inbox", "cases"].includes(requestedView)
+      const nextWorkspaceView = state.role === "staff" && !["inbox", "cases"].includes(requestedView)
         ? "cases"
         : requestedView;
+      if (nextWorkspaceView !== "cases" && $("panel")?.classList.contains("open")) {
+        closePanel();
+      }
+      state.workspaceView = nextWorkspaceView;
       if (state.workspaceView === "inbox" && !state.demoMode && !state.inboxConversations.length) {
         restoreDashboardInboxSnapshot(projectKeyEl.value.trim() || "beyoute");
       }
@@ -12113,7 +12537,52 @@
 	  if (actionStack && agentAction && caseIntel && caseIntel.parentElement !== actionStack) {
 	    agentAction.insertAdjacentElement("afterend", caseIntel);
 	  }
+	  toggleCaseAssistantDrawer(false);
+	  syncCaseSplitLayout();
 	  dismissLearningAfterSendPrompt();
+	}
+
+	function syncActiveCaseListSelection(caseId = state.active?.id) {
+	  const activeId = String(caseId || "");
+	  casesEl.querySelectorAll(".case-card[data-case-id]").forEach((card) => {
+	    const active = String(card.dataset.caseId || "") === activeId;
+	    card.classList.toggle("active-case", active);
+	    if (active) card.setAttribute("aria-current", "true");
+	    else card.removeAttribute("aria-current");
+	  });
+	}
+
+	function syncCaseSplitLayout(forcePanelOpen) {
+	  const panel = $("panel");
+	  const panelOpen = typeof forcePanelOpen === "boolean"
+	    ? forcePanelOpen
+	    : panel?.classList.contains("open") === true;
+	  const shouldSplit = panelOpen
+	    && state.workspaceView === "cases"
+	    && window.matchMedia("(min-width: 1181px)").matches;
+	  const splitOpen = document.body.classList.contains("case-split-open");
+	  if (shouldSplit && !splitOpen) {
+	    state.caseSplitSidebarWasCollapsed = document.body.classList.contains("sidebar-collapsed");
+	    document.body.classList.add("case-split-open", "sidebar-collapsed");
+	  } else if (!shouldSplit && splitOpen) {
+	    document.body.classList.remove("case-split-open");
+	    if (state.caseSplitSidebarWasCollapsed !== true) {
+	      document.body.classList.remove("sidebar-collapsed");
+	    }
+	    state.caseSplitSidebarWasCollapsed = null;
+	  }
+	}
+
+	function toggleCaseAssistantDrawer(forceOpen) {
+	  const panel = $("panel");
+	  const button = $("toggleCaseAssistantBtn");
+	  if (!panel || !button) return;
+	  const opening = typeof forceOpen === "boolean"
+	    ? forceOpen
+	    : !panel.classList.contains("assistant-drawer-open");
+	  panel.classList.toggle("assistant-drawer-open", opening);
+	  button.setAttribute("aria-expanded", opening ? "true" : "false");
+	  button.textContent = opening ? "收起建议" : "AI 建议";
 	}
 
 	function openComposerChannelActions() {
@@ -12176,25 +12645,32 @@
 	  const context = state.pendingLearningAfterSendByCase[key];
 	  if (!context) return;
 	  delete state.pendingLearningAfterSendByCase[key];
+	  state.learningAfterSendPromptByCase[key] = context;
+	  if (String(state.active?.id || "") !== key || !$("panel")?.classList.contains("open")) return;
+	  showLearningAfterSendPrompt(context);
+	}
+
+	function showLearningAfterSendPrompt(context = {}) {
+	  if (!context?.caseId) return;
 	  state.learningAfterSendContext = context;
 	  const prompt = $("learningAfterSendPrompt");
+	  const applyButton = $("learningAfterSendApplyBtn");
 	  const question = prompt?.querySelector(".learning-after-send-copy > b");
 	  if (question) {
 	    question.textContent = context.originalDraft
 	      ? "你修改了 AI 原稿，要教 AI 下次这样处理吗？"
 	      : "这是客服自己写的回复，要教 AI 下次这样处理吗？";
 	  }
+	  if (applyButton) {
+	    const submitting = state.learningAfterSendBusyByCase[String(context.caseId)] === true;
+	    applyButton.disabled = submitting;
+	    applyButton.textContent = submitting ? "正在整理..." : "教 AI 下次这样处理";
+	  }
 	  $("replyCommandBar")?.classList.remove("hidden");
 	  prompt?.classList.remove("hidden");
 	}
 
-	function clearPendingLearningAfterSend(caseId = "") {
-	  const key = String(caseId || "");
-	  if (key) delete state.pendingLearningAfterSendByCase[key];
-	}
-
-	function dismissLearningAfterSendPrompt() {
-	  state.learningAfterSendContext = null;
+	function resetLearningAfterSendPromptUi() {
 	  const prompt = $("learningAfterSendPrompt");
 	  if (prompt) prompt.classList.add("hidden");
 	  const applyButton = $("learningAfterSendApplyBtn");
@@ -12204,6 +12680,41 @@
 	  }
 	  if ($("replyCard")?.classList.contains("hidden")) {
 	    $("replyCommandBar")?.classList.add("hidden");
+	  }
+	}
+
+	function parkLearningAfterSendPrompt() {
+	  const context = state.learningAfterSendContext;
+	  if (context?.caseId) {
+	    state.learningAfterSendPromptByCase[String(context.caseId)] = context;
+	  }
+	  state.learningAfterSendContext = null;
+	  resetLearningAfterSendPromptUi();
+	}
+
+	function restoreLearningAfterSendPrompt(caseId = "") {
+	  const key = String(caseId || "");
+	  const context = state.learningAfterSendPromptByCase[key];
+	  if (!context) {
+	    state.learningAfterSendContext = null;
+	    resetLearningAfterSendPromptUi();
+	    return;
+	  }
+	  showLearningAfterSendPrompt(context);
+	}
+
+	function clearPendingLearningAfterSend(caseId = "") {
+	  const key = String(caseId || "");
+	  if (key) delete state.pendingLearningAfterSendByCase[key];
+	}
+
+	function dismissLearningAfterSendPrompt(caseId = state.learningAfterSendContext?.caseId) {
+	  const key = String(caseId || "");
+	  const visibleContext = state.learningAfterSendContext;
+	  if (key) delete state.learningAfterSendPromptByCase[key];
+	  if (!visibleContext || !key || String(visibleContext.caseId || "") === key) {
+	    state.learningAfterSendContext = null;
+	    resetLearningAfterSendPromptUi();
 	  }
 	}
 
@@ -12263,18 +12774,24 @@
 	async function teachAiFromLastSend() {
 	  const context = state.learningAfterSendContext;
 	  const button = $("learningAfterSendApplyBtn");
-	  if (!context || !button || state.actionBusy) return;
+	  const caseId = String(context?.caseId || "");
+	  if (!context || !button || state.actionBusy || state.learningAfterSendBusyByCase[caseId] === true) return;
+	  state.learningAfterSendBusyByCase[caseId] = true;
 	  button.disabled = true;
 	  button.textContent = "正在整理...";
 	  try {
 	    await submitPostSendLearningFeedback(context);
 	    addAuditEvent("case_learning_note", `${customerDisplayLabel(context.item) || "顾客"}：已提交 Owner 审核`);
-	    dismissLearningAfterSendPrompt();
+	    delete state.learningAfterSendBusyByCase[caseId];
+	    dismissLearningAfterSendPrompt(caseId);
 	    showToast("学习候选已提交，等待 Owner 审核；不会直接开启自动回复。");
 	    if (!state.demoMode) loadCases().catch(() => {});
 	  } catch (error) {
-	    button.disabled = false;
-	    button.textContent = "重试提交学习候选";
+	    delete state.learningAfterSendBusyByCase[caseId];
+	    if (String(state.learningAfterSendContext?.caseId || "") === caseId) {
+	      button.disabled = false;
+	      button.textContent = "重试提交学习候选";
+	    }
 	    showToast(`学习候选暂时未保存：${error.message || error}`);
 	  }
 	}
@@ -12787,7 +13304,11 @@
       const box = $("replyBox");
       if (!box) return;
 	  box.style.height = "42px";
-      const maxHeight = window.matchMedia("(max-width: 820px)").matches ? 180 : 240;
+      const maxHeight = window.matchMedia("(max-width: 720px)").matches
+        ? 112
+        : window.matchMedia("(max-width: 820px)").matches
+          ? 180
+          : 240;
 	  box.style.height = `${Math.min(Math.max(box.scrollHeight, 42), maxHeight)}px`;
     }
 
@@ -14032,6 +14553,9 @@
 	        if (!options.silent && !restoredSnapshot) setLoadingQueue(qaMode ? "正在读取训练案例，请等几秒。" : "正在读取顾客讯息，请等几秒。");
 	        const visibility = dashboardApprovalVisibilityParams();
         const searchQuery = String(state.query || "").trim();
+        const useSnapshotFastPath = options.nonBlockingFirstPaint === true
+          && options.forceLive !== true
+          && !searchQuery;
         const requestedQueueStatus = dashboardQueueStatusParam(searchQuery);
         const approvalParams = new URLSearchParams({
           project_key: project,
@@ -14043,6 +14567,7 @@
           limit: searchQuery ? "80" : "120",
           scan_limit: "500",
         });
+        if (useSnapshotFastPath) approvalParams.set("prefer_snapshot", "1");
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
         const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
         const historyCacheKey = `${project}|${searchQuery.toLowerCase()}`;
@@ -14060,7 +14585,9 @@
           state.queueHistoryLatestDate = { auto: "", records: "" };
           state.queueHistoryLoaded = false;
         }
-        const historyPromise = historyCacheFresh
+        const historyPromise = useSnapshotFastPath
+          ? Promise.resolve([])
+          : historyCacheFresh
           ? Promise.resolve([])
           : Promise.all(["records"].map(async (status) => ({
               status,
@@ -14072,7 +14599,9 @@
           state.queueNoInterventionCases = [];
           state.queueNoInterventionFetchedAt = 0;
         }
-        const noInterventionPromise = noInterventionCacheFresh
+        const noInterventionPromise = useSnapshotFastPath
+          ? Promise.resolve(null)
+          : noInterventionCacheFresh
           ? Promise.resolve(null)
           : (() => {
               const urls = dashboardNoInterventionRequestUrls(api, project);
@@ -14189,6 +14718,17 @@
             latestDate: state.queueHistoryLatestDate,
             noInterventionCases: state.queueNoInterventionCases,
           });
+        }
+        if (data.snapshot_fast_path === true && options.forceLive !== true) {
+          window.setTimeout(() => {
+            if (project !== (projectKeyEl.value.trim() || "beyoute")) return;
+            loadCases({
+              silent: true,
+              preserveSelection: true,
+              nonBlockingFirstPaint: false,
+              forceLive: true,
+            }).catch(() => null);
+          }, 0);
         }
 	        if (options.refreshActive && previousActiveId) {
 	          const refreshedActive = state.cases.find((record) => String(record.id || "") === previousActiveId) || null;
@@ -16463,6 +17003,9 @@
         checkbox.addEventListener("change", () => toggleCaseSelection(checkbox.dataset.selectCaseId, checkbox.checked));
       });
 
+      syncActiveCaseListSelection();
+      syncCaseSplitLayout();
+
       if (state.pendingCaseId && !state.deepLinkOpened && !queueClassificationRefreshing) {
         state.deepLinkOpened = true;
         requestAnimationFrame(() => openCase(state.pendingCaseId));
@@ -17095,8 +17638,11 @@
 	  resetVoiceComposer({ sync: false });
 	  closeComposerEmojiPanel();
 	  $("functionMenu").open = false;
-      dismissLearningAfterSendPrompt();
+      parkLearningAfterSendPrompt();
+      toggleCaseAssistantDrawer(false);
       $("panel").classList.remove("open");
+      syncCaseSplitLayout(false);
+      syncActiveCaseListSelection("");
       state.active = null;
       state.replyDraftDirty = false;
 	  syncWhatsappComposer();
@@ -23165,7 +23711,8 @@
         return;
       }
       state.active = item;
-	      if (openingNewCase) dismissLearningAfterSendPrompt();
+	      if (openingNewCase) parkLearningAfterSendPrompt();
+	      if (openingNewCase) toggleCaseAssistantDrawer(false);
 	      if (openingNewCase) setQualityEvaluationExpanded(false);
 	      $("functionMenu").open = false;
 	      $("channelActionPicker").open = false;
@@ -23209,10 +23756,12 @@
 	  );
 	      $("panelName").textContent = displayName;
 	      $("panelAvatar").textContent = initialsFor(baseDisplayName);
-	  $("panelMeta").textContent = `${caseStatusLabel(item, decision.risk)} · ${stageLabel(decision.stage)} · 对话更新 ${formatDate(conversationLatestAt)}`;
+	  $("panelMeta").textContent = `${stageLabel(decision.stage)} · 对话更新 ${formatDate(conversationLatestAt)}`;
       $("caseIntelDetails").classList.toggle("hidden", passiveReadOnly);
       $("qualityEvalCard").classList.toggle("hidden", passiveReadOnly);
       $("caseActionStack").classList.toggle("hidden", passiveReadOnly);
+      $("toggleCaseAssistantBtn").classList.toggle("hidden", passiveReadOnly);
+      $("toggleCaseAssistantBtn").disabled = passiveReadOnly;
       $("replyCommandBar").classList.toggle("hidden", passiveReadOnly);
 	  $("replyCard").classList.toggle("hidden", hideReplyCardForMode);
 	  const latestMessageOutbound = /outbound|agent|assistant|bot/i.test(String(latestMessage.direction || latestMessage.role || latestMessage.sender_type || ""));
@@ -23358,6 +23907,9 @@
       }).join("");
 
       $("panel").classList.add("open");
+	  syncCaseSplitLayout(true);
+	  syncActiveCaseListSelection(id);
+	  restoreLearningAfterSendPrompt(id);
 	  requestAnimationFrame(() => {
 	    const chat = $("chatBox");
 	    chat.scrollTop = chat.scrollHeight;
@@ -31472,10 +32024,30 @@
 	      : restoreDashboardQueueSnapshot(firstPaintProject, canUseQaMode());
 	    if (restoredFirstPaint) render();
 	  }
+	  // Start the current-project read together with session verification.
+	  // Previously the Dashboard waited for /api/auth/session, project listing,
+	  // onboarding and activation before even asking for Cases. That made every
+	  // upstream delay additive. The API remains the authorization boundary, so
+	  // an expired cookie still returns 401 and is handled below.
+	  const provisionalWarmup = hasAccountSession() && !replyPilotInternalQaProject({
+	    project_key: firstPaintProject,
+	    project_name: projectDisplayName(firstPaintProject),
+	  })
+	    ? state.workspaceView === "inbox"
+	      ? loadInboxConversations({ silent: true, preserveLoaded: true, skipCaseSync: true })
+	      : loadCases({
+	          silent: restoredFirstPaint,
+	          preserveSelection: restoredFirstPaint,
+	          nonBlockingFirstPaint: true,
+	        })
+	    : null;
 	  const sessionReady = await bootstrapSaasSession();
 	  if (!sessionReady && apiUrlEl.value.trim()) return;
 	  const verifiedProject = projectKeyEl.value.trim() || "beyoute";
 	  if (verifiedProject !== firstPaintProject) {
+	    // Ignore a provisional response for a stale local/demo project.
+	    state.queueRequestSeq += 1;
+	    state.inboxRequestSeq += 1;
 	    state.cases = [];
 	    state.inboxConversations = [];
 	    restoredFirstPaint = state.workspaceView === "inbox"
@@ -31490,14 +32062,18 @@
 	    render();
 	  }
 	  const inboxWarmup = state.workspaceView === "inbox"
-	    ? loadInboxConversations({ silent: true, preserveLoaded: true, skipCaseSync: true })
+	    ? verifiedProject === firstPaintProject && provisionalWarmup
+	      ? provisionalWarmup
+	      : loadInboxConversations({ silent: true, preserveLoaded: true, skipCaseSync: true })
 	    : null;
 	  const queueWarmup = state.workspaceView === "cases"
-	    ? loadCases({
-	        silent: restoredFirstPaint,
-	        preserveSelection: restoredFirstPaint,
-	        nonBlockingFirstPaint: true,
-	      })
+	    ? verifiedProject === firstPaintProject && provisionalWarmup
+	      ? provisionalWarmup
+	      : loadCases({
+	          silent: restoredFirstPaint,
+	          preserveSelection: restoredFirstPaint,
+	          nonBlockingFirstPaint: true,
+	        })
 	    : null;
 	  const [activationReady] = await Promise.all([
 	    loadSaasActivationStatus(),
