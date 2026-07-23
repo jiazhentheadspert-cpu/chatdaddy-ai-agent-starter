@@ -19606,6 +19606,12 @@
       const todayCalls = Number(today.calls || today.records || 0);
       const monthTokens = Number(month.tokens_input || 0) + Number(month.tokens_output || 0);
       const hasUsage = monthCalls > 0 || Number(monthActual || 0) > 0 || monthTokens > 0;
+      const usageSource = String(summary?.usage_source || "").trim();
+      const recoveredUsage = [
+        "ai_decisions_recovered",
+        "background_jobs_recovered",
+        "persisted_usage_recovered"
+      ].includes(usageSource);
 
       if (state.usageSummaryLoading && !summary) {
         return `<section class="command-panel accent"><div class="command-kicker">BILLING</div><strong class="command-title">正在读取 ${escapeHtml(projectName)} 费用记录…</strong><p class="muted">这里只读取记录，不会调用付费 AI。</p></section>`;
@@ -19626,7 +19632,9 @@
               ${laneCard("warn", monthTokens, "本月 Tokens", "")}
             </div>
             <p class="muted">${hasUsage
-              ? "这里只统计真正调用付费 AI 的记录。ChatDaddy Flow、固定规则与打开页面不会产生模型费用。"
+              ? recoveredUsage
+                ? "已从本项目保存的模型调用与后台学习记录恢复 Tokens 和费用估算。ChatDaddy Flow、固定规则与打开页面不会产生模型费用。"
+                : "这里只统计真正调用付费 AI 的记录。ChatDaddy Flow、固定规则与打开页面不会产生模型费用。"
               : "今天没有付费 AI 调用。ChatDaddy Flow、固定规则与 FAQ 回复不会产生模型费用。"}</p>
           </div>
           <div class="quick-actions">
