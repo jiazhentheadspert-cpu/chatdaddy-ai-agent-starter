@@ -10106,6 +10106,9 @@
       inboxSearchTimer: null,
       inboxRequestSeq: 0,
       queueRequestSeq: 0,
+      inboxCurrentStateEventNo: 0,
+      queueCurrentStateEventNo: 0,
+      queueCurrentStateItems: [],
       queueHistoryCounts: { auto: null, records: null },
       queueHistoryLatestDate: { auto: "", records: "" },
       queueHistoryLoaded: false,
@@ -14084,9 +14087,9 @@
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
-    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 7;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 8;
     const DASHBOARD_INBOX_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-    const DASHBOARD_INBOX_SNAPSHOT_VERSION = 1;
+    const DASHBOARD_INBOX_SNAPSHOT_VERSION = 2;
     const DASHBOARD_INBOX_LIVE_TIMEOUT_MS = 5000;
     const DASHBOARD_INBOX_STORED_TIMEOUT_MS = 7000;
     const DASHBOARD_INBOX_STORED_REFRESH_MS = 5 * 60 * 1000;
@@ -14170,6 +14173,8 @@
       state.loading = false;
       state.refreshing = true;
       state.queueSyncStatus = snapshot.sync_status || null;
+      state.queueCurrentStateEventNo = Number(snapshot.max_event_no || 0) || 0;
+      state.queueCurrentStateItems = compactItems;
       state.cases = dashboardCasesWithNoIntervention(
         compactItems.map((item) => approvalToCase(item, state.contactNames || {}))
       );
@@ -14191,6 +14196,7 @@
           history_counts: history.counts || null,
           history_latest_date: history.latestDate || null,
           no_intervention_cases: Array.isArray(history.noInterventionCases) ? history.noInterventionCases : [],
+          max_event_no: Number(history.maxEventNo || state.queueCurrentStateEventNo || 0) || 0,
           items,
         });
         localStorage.setItem(key, payload);
@@ -14232,6 +14238,7 @@
       state.inboxProviderTotal = Number.isFinite(Number(snapshot.provider_total))
         ? Number(snapshot.provider_total)
         : null;
+      state.inboxCurrentStateEventNo = Number(snapshot.max_event_no || 0) || 0;
       // Continuations are deliberately refreshed from ChatDaddy. A cached
       // cursor can expire and must never make an old page look authoritative.
       state.inboxOffset = 0;
@@ -14254,6 +14261,7 @@
           version: DASHBOARD_INBOX_SNAPSHOT_VERSION,
           saved_at: options.savedAt || new Date().toISOString(),
           provider_total: Number.isFinite(Number(options.providerTotal)) ? Number(options.providerTotal) : null,
+          max_event_no: Number(options.maxEventNo || state.inboxCurrentStateEventNo || 0) || 0,
           items: items.slice(0, 100),
         }));
       } catch (_error) {
@@ -14425,6 +14433,7 @@
         id: `no-intervention:${identity}:${isoDateFromValue(latestAt) || "current"}`,
         source: "conversation_no_intervention",
         project_key: item.project_key || projectKeyEl.value.trim() || "beyoute",
+        conversation_id: item.conversation_id || "",
         status: "no_intervention",
         contact: {
           id: customer.chat_id || customer.external_customer_id || customer.id || identity,
@@ -14518,6 +14527,29 @@
       });
     }
 
+    function currentStateConversationIdentity(item = {}) {
+      return firstContextText(
+        item.conversation_id,
+        item.raw_approval?.conversation_id,
+        item.conversation_projection_id,
+        item.id
+      );
+    }
+
+    function mergeQueueCurrentStateItems(existingItems = [], incomingItems = [], changes = []) {
+      const changedConversations = new Set(
+        (Array.isArray(changes) ? changes : [])
+          .map(currentStateConversationIdentity)
+          .filter(Boolean)
+      );
+      const retained = (Array.isArray(existingItems) ? existingItems : [])
+        .filter((item) => !changedConversations.has(currentStateConversationIdentity(item)));
+      return compactApprovalsByConversation([
+        ...(Array.isArray(incomingItems) ? incomingItems : []),
+        ...retained,
+      ]);
+    }
+
     async function loadCases(options = {}) {
       errorEl.textContent = "";
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
@@ -14573,6 +14605,14 @@
           scan_limit: searchQuery ? "300" : "180",
         });
         if (useSnapshotFastPath) approvalParams.set("prefer_snapshot", "1");
+        if (
+          restoredSnapshot
+          && !searchQuery
+          && options.forceLive !== true
+          && Number(state.queueCurrentStateEventNo || 0) > 0
+        ) {
+          approvalParams.set("since_event_no", String(state.queueCurrentStateEventNo));
+        }
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
         const approvalUrl = `${api}/api/approvals/pending?${approvalParams.toString()}`;
         const historyCacheKey = `${project}|${searchQuery.toLowerCase()}`;
@@ -14590,7 +14630,7 @@
           state.queueHistoryLatestDate = { auto: "", records: "" };
           state.queueHistoryLoaded = false;
         }
-        const historyPromise = useSnapshotFastPath
+        const loadHistory = () => useSnapshotFastPath
           ? Promise.resolve([])
           : historyCacheFresh
           ? Promise.resolve([])
@@ -14604,7 +14644,7 @@
           state.queueNoInterventionCases = [];
           state.queueNoInterventionFetchedAt = 0;
         }
-        const noInterventionPromise = useSnapshotFastPath
+        const loadNoIntervention = () => useSnapshotFastPath
           ? Promise.resolve(null)
           : noInterventionCacheFresh
           ? Promise.resolve(null)
@@ -14640,11 +14680,40 @@
         if (!searchQuery && requestedQueueStatus === "all_cases") {
           state.queueAllCasesLoadedCount = primaryItems.length;
         }
-	        let liveItems = mergeDashboardApprovalItems(
-            primaryItems,
-            state.queueHistoryItems.auto || [],
-            state.queueHistoryItems.records || []
-          ).filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)));
+        const currentStateIndexed = data.current_state_index === true;
+        if (currentStateIndexed) {
+          state.queueCurrentStateEventNo = Math.max(
+            Number(state.queueCurrentStateEventNo || 0),
+            Number(data.max_event_no || 0)
+          );
+          const stateChanges = Array.isArray(data.changes) ? data.changes : [];
+          const changedConversationIds = new Set(
+            stateChanges.map((item) => String(item?.conversation_id || "")).filter(Boolean)
+          );
+          const incomingNoIntervention = dashboardNoInterventionConversationItems(stateChanges, []);
+          state.queueNoInterventionCases = data.changed_only === true
+            ? [
+                ...incomingNoIntervention,
+                ...(state.queueNoInterventionCases || []).filter((item) => (
+                  !changedConversationIds.has(String(item?.conversation_id || ""))
+                )),
+              ]
+            : incomingNoIntervention;
+          state.queueNoInterventionCacheKey = project;
+          state.queueNoInterventionFetchedAt = Date.now();
+        }
+	        let liveItems = currentStateIndexed && data.changed_only === true
+          ? mergeQueueCurrentStateItems(
+              state.queueCurrentStateItems,
+              primaryItems,
+              Array.isArray(data.changes) ? data.changes : []
+            )
+          : mergeDashboardApprovalItems(
+              primaryItems,
+              currentStateIndexed ? [] : (state.queueHistoryItems.auto || []),
+              currentStateIndexed ? [] : (state.queueHistoryItems.records || [])
+            ).filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)));
+        if (currentStateIndexed) state.queueCurrentStateItems = liveItems;
 	        let compactLiveItems = compactApprovalsByConversation(liveItems);
 	        const knownContactNames = options.silent ? (state.contactNames || {}) : {};
 	        if (!options.silent) state.contactNames = {};
@@ -14658,7 +14727,9 @@
 	        const queueChanged = realtimeQueueFingerprint(state.cases) !== previousQueueFingerprint;
 	        if (!options.silent || queueChanged) render();
 
-        const [historyResults, noInterventionResults] = await Promise.all([historyPromise, noInterventionPromise]);
+        const [historyResults, noInterventionResults] = currentStateIndexed
+          ? [[], null]
+          : await Promise.all([loadHistory(), loadNoIntervention()]);
         let liveConversationItemsForReconcile = [];
         if (requestSeq !== state.queueRequestSeq) return;
         if (historyResults.length) {
@@ -14722,6 +14793,7 @@
             counts: state.queueHistoryCounts,
             latestDate: state.queueHistoryLatestDate,
             noInterventionCases: state.queueNoInterventionCases,
+            maxEventNo: state.queueCurrentStateEventNo,
           });
         }
         if (data.snapshot_fast_path === true && options.forceLive !== true) {
@@ -14881,6 +14953,70 @@
       if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = true;
       if (inboxLoadEarlierDateBtnEl) inboxLoadEarlierDateBtnEl.disabled = true;
       try {
+        const currentStateParams = new URLSearchParams({
+          view: "inbox",
+          limit: "60",
+          offset: String(requestedOffset),
+        });
+        if (
+          preserveLoaded
+          && !append
+          && !query
+          && Number(state.inboxCurrentStateEventNo || 0) > 0
+        ) {
+          currentStateParams.set("since_event_no", String(state.inboxCurrentStateEventNo));
+        }
+        if (query) currentStateParams.set("q", query);
+        const currentStateEndpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/current-states?${currentStateParams.toString()}`;
+        const currentStateResponse = await fetchDashboardQueueWithTimeout(
+          currentStateEndpoint,
+          authRequestOptions(token),
+          DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS
+        ).catch(() => null);
+        const currentStateData = currentStateResponse
+          ? await currentStateResponse.json().catch(() => ({}))
+          : {};
+        if (currentStateResponse?.status === 401 && state.role === "staff") {
+          redirectToUnifiedLogin({ clearSession: true });
+          return;
+        }
+        if (currentStateResponse?.ok && currentStateData?.ok && currentStateData.current_state_index === true) {
+          if (requestSeq !== state.inboxRequestSeq) return;
+          const currentItems = Array.isArray(currentStateData.items) ? currentStateData.items : [];
+          state.inboxConversations = currentStateData.changed_only === true
+            ? mergeInboxConversationPages(currentItems, priorConversations)
+            : append || preserveLoaded
+              ? mergeInboxConversationPages(currentItems, priorConversations)
+              : currentItems;
+          if (!append && !preserveLoaded) state.inboxVisibleDateCount = 1;
+          state.inboxSummary = inboxConversationCounts(state.inboxConversations);
+          state.inboxAppliedQuery = query;
+          state.inboxOffset = requestedOffset;
+          state.inboxNextOffset = currentStateData.has_more && Number.isFinite(Number(currentStateData.next_offset))
+            ? Number(currentStateData.next_offset)
+            : null;
+          state.inboxLiveNextPage = null;
+          state.inboxLiveHasMore = false;
+          state.inboxHasMore = state.inboxNextOffset !== null;
+          state.inboxCurrentStateEventNo = Math.max(
+            Number(state.inboxCurrentStateEventNo || 0),
+            Number(currentStateData.max_event_no || 0)
+          );
+          state.inboxStoredFetchedAt = Date.now();
+          state.inboxStoredBackoffUntil = 0;
+          state.inboxUpdatedAt = new Date().toISOString();
+          state.inboxSnapshotRestoredAt = "";
+          state.inboxError = "";
+          if (!query && !append && state.inboxConversations.length) {
+            saveDashboardInboxSnapshot(project, state.inboxConversations, {
+              savedAt: state.inboxUpdatedAt,
+              providerTotal: state.inboxProviderTotal,
+              maxEventNo: state.inboxCurrentStateEventNo,
+            });
+          }
+          return;
+        }
+
         // Keep the staff Inbox broad enough that a broadcast burst cannot hide
         // ordinary live conversations from the default view. Pagination keeps
         // the same lookup usable when the project grows beyond this page.
