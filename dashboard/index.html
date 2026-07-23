@@ -17880,12 +17880,32 @@
 	  syncWhatsappComposer();
     }
 
+    function activeProjectKey(item = {}) {
+      return String(item.project_key || projectKeyEl.value || "").trim().toLowerCase();
+    }
+
+    function isBeyouteProjectContext(item = {}) {
+      return activeProjectKey(item) === "beyoute";
+    }
+
     function chatDaddyConversationUrl(item = {}) {
-      const accountByProject = {
-        beyoute: "acc_e7dd6c9f-71ba-4072-98_7beb",
-      };
-      const project = String(item.project_key || projectKeyEl.value || "beyoute").trim().toLowerCase();
-      const accountId = accountByProject[project] || "";
+      const project = activeProjectKey(item);
+      const readiness = state.projectConnectionReadiness || {};
+      const readinessProject = String(readiness.project_key || "").trim().toLowerCase();
+      const readinessMatchesProject = Boolean(project) && (!readinessProject || readinessProject === project);
+      const connection = readinessMatchesProject && readiness.connection && typeof readiness.connection === "object"
+        ? readiness.connection
+        : {};
+      const itemConnection = item.channel_connection && typeof item.channel_connection === "object"
+        ? item.channel_connection
+        : {};
+      const accountId = [
+        item.provider_account_id,
+        item.chatdaddy_account_id,
+        itemConnection.provider_account_id,
+        connection.provider_account_id,
+        connection.external_channel_id,
+      ].map((value) => String(value || "").trim()).find(Boolean) || "";
       const chatId = caseChatIdForSync(item);
       if (!accountId || !chatId) return "";
       const url = new URL(`https://app.chatdaddy.tech/root-inbox/inbox/${encodeURIComponent(accountId)}/${encodeURIComponent(chatId)}`);
@@ -17897,7 +17917,7 @@
     function openActiveCaseInChatDaddy() {
       const url = chatDaddyConversationUrl(state.active || {});
       if (!url) {
-        showToast("这条 Case 缺少 ChatDaddy Chat ID，暂时无法直接打开。");
+        showToast("当前项目缺少 ChatDaddy Account ID 或这条 Case 缺少 Chat ID，暂时无法直接打开。");
         return;
       }
       const nextWindow = window.open(url, "_blank", "noopener,noreferrer");
@@ -24082,7 +24102,7 @@
       const chatDaddyUrl = chatDaddyConversationUrl(item);
       $("openChatDaddyBtn").classList.toggle("hidden", !chatDaddyUrl);
       $("openChatDaddyBtn").disabled = !chatDaddyUrl;
-      $("openChatDaddyBtn").title = chatDaddyUrl ? "在 ChatDaddy 打开这位顾客的完整对话" : "缺少 ChatDaddy Chat ID";
+      $("openChatDaddyBtn").title = chatDaddyUrl ? "在 ChatDaddy 打开这位顾客的完整对话" : "缺少当前项目 ChatDaddy Account ID 或 Chat ID";
       $("approveBtn").classList.toggle("hidden", canManualSend);
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : item.status === "order" ? "确认已处理" : "批准并发送";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
@@ -26404,7 +26424,8 @@
       $("qualityEvalNextAction").textContent = `下一步：${evaluation.nextAction}`;
     }
 
-    function standardAnswerCatalog() {
+    function standardAnswerCatalog(item = {}) {
+      if (!isBeyouteProjectContext(item)) return [];
       return [
         {
           id: "ql_flow_drinking_before_price",
@@ -26592,7 +26613,7 @@
     }
 
     function standardAnswerForCase(item = {}, replyText = "", forcedId = "") {
-      const catalog = standardAnswerCatalog();
+      const catalog = standardAnswerCatalog(item);
       if (forcedId) return catalog.find((entry) => entry.id === forcedId) || null;
       if (dashboardIsUnverifiedAttachmentApproval(item) && !dashboardHasExplicitPaymentReceiptEvidence(item)) {
         const mediaReview = dashboardMediaReviewCopy(item);
@@ -26699,13 +26720,32 @@
       const combined = [customerText, decision.intent, decision.stage, decision.previous_agent_text].filter(Boolean).join(" ");
       const reply = String(replyText || "").trim();
       const rows = [];
-      const hasDrink = /(一天\s*(?:一|1)\s*次|餐前|15\s*[-–]?\s*30\s*分钟|150\s*[-–]?\s*200\s*ml|常温水|warm\s*water|before\s+meal)/i.test(reply);
-      const hasCurrentPrice = /(?:1\s*(?:盒|box)\s*RM\s*150|2\s*(?:盒|boxes?)\s*RM\s*258|3\s*(?:盒|boxes?)\s*RM\s*378|RM\s*(?:150|258|378)\b)/i.test(reply);
       const hasGiftBoundary = /(当天|當天|库存|庫存|当前活动|目前活动|客服.*确认|team.*confirm|stock|today)/i.test(reply);
       const fullEnglish = /[a-z]{12,}/i.test(reply) && !/[\u4e00-\u9fff]/.test(reply);
       const riskOrOps = /(付款|付钱|付錢|receipt|payment|pay|订单|訂單|delivery|shipping|refund|退款|投诉|投訴|complaint|怀孕|懷孕|吃药|吃藥|糖尿|血糖|不舒服|售后|售後|after.?sales)/i.test(combined);
       const humanBoundary = /(转人工回复|转人工|轉人工|人工|客服.*确认|先.*确认|查单|查订单|审核|review|confirm)/i.test(reply)
         || /ask_human|handoff|manual/i.test(`${decision.action || ""} ${item.status || ""}`);
+
+      if (!isBeyouteProjectContext(item)) {
+        rows.push({
+          label: "当前项目资料",
+          detail: "只按当前项目已发布的 Project Brain / FAQ 回答；不能借用其他项目的价格、喝法、Proof 或 CTA。",
+          status: reply ? "检查来源" : "要补答案",
+          tone: reply ? "warn" : "fail"
+        });
+        if (riskOrOps) {
+          rows.push({
+            label: "风险/订单",
+            detail: "付款、订单、退款、投诉、健康或售后按当前项目规则处理；资料不明确时转人工。",
+            status: humanBoundary ? "人工边界" : "要人工",
+            tone: humanBoundary ? "warn" : "fail"
+          });
+        }
+        return rows;
+      }
+
+      const hasDrink = /(一天\s*(?:一|1)\s*次|餐前|15\s*[-–]?\s*30\s*分钟|150\s*[-–]?\s*200\s*ml|常温水|warm\s*water|before\s+meal)/i.test(reply);
+      const hasCurrentPrice = /(?:1\s*(?:盒|box)\s*RM\s*150|2\s*(?:盒|boxes?)\s*RM\s*258|3\s*(?:盒|boxes?)\s*RM\s*378|RM\s*(?:150|258|378)\b)/i.test(reply);
 
       if (/(一天|几次|幾次|怎么喝|怎麼喝|怎样喝|怎樣喝|喝法|用法|饭前|飯前|饭后|飯後|drink|take|consume|餐前|水)/i.test(combined)) {
         rows.push({
@@ -26815,6 +26855,32 @@
       const hasHumanBoundary = /(转人工回复|转人工|轉人工|人工|客服.*确认|先.*确认|查单|审核|review|confirm)/i.test(reply)
         || /ask_human|handoff|manual/i.test(`${action} ${item.status || ""}`);
       const rows = [];
+
+      if (!isBeyouteProjectContext(item)) {
+        if (riskOrOps) {
+          rows.push({
+            label: "风险/订单",
+            detail: "按当前项目的安全与订单规则处理；资料不足时转人工，不自动接销售 Flow。",
+            status: hasHumanBoundary ? "人工" : "要人工",
+            tone: hasHumanBoundary ? "warn" : "fail"
+          });
+        } else if (postPriceStage) {
+          rows.push({
+            label: "价格后",
+            detail: "按当前项目已批准的 Proof、CTA、Offer 和收单动作处理；不使用其他项目的资料。",
+            status: reply ? "检查项目来源" : "要补答案",
+            tone: reply ? "warn" : "fail"
+          });
+        } else {
+          rows.push({
+            label: "当前项目下一步",
+            detail: "先回答顾客问题；只有阶段和 Flow 都由当前项目确认后，才可继续下一步。",
+            status: reply ? "先答再接" : "要补答案",
+            tone: reply ? "warn" : "fail"
+          });
+        }
+        return rows;
+      }
 
       if (riskOrOps) {
         rows.push({
@@ -26937,7 +27003,114 @@
       };
     }
 
+    function genericProjectQualityEvaluation(item = {}, replyTextValue = "") {
+      const decision = item.latest_decision || {};
+      const replyText = String(replyTextValue || "").trim();
+      const replyProfile = qualityReplyContentProfile(replyText);
+      const action = String(decision.action || item.action || "").toLowerCase();
+      const status = String(item.status || "").toLowerCase();
+      const risk = String(decision.risk || item.risk || "").toLowerCase();
+      const humanRequired = risk === "high"
+        || /ask_human|handoff|manual/.test(`${action} ${status}`)
+        || status === "human_required";
+      const projectKey = activeProjectKey(item);
+      const crossProjectLegacyLeak = projectKey !== "beyoute"
+        && /\bBeyoute\b|RM\s*(?:150|258|378)\b|150\s*[-–]\s*200\s*ml|Phase\s*2®/i.test(replyText);
+      const hasHumanBoundary = /(人工|客服|负责人|確認|确认|核对|核對|review|verify|handoff|human)/i.test(replyText)
+        || /ask_human|handoff|manual/.test(`${action} ${status}`);
+      const hasReadableStructure = replyText.length <= 120
+        || /\n\s*\n/.test(replyText)
+        || /(?:^|\n)\s*(?:[-•]|\d+[.)、])\s+/m.test(replyText);
+      const hasCurrentProjectContext = Boolean(projectKey)
+        && String(item.project_key || projectKey).trim().toLowerCase() === projectKey;
+      const criticalFails = [];
+      if (!replyProfile.hasMeaningfulReply && action !== "record_only") criticalFails.push("没有可发送的完整答案");
+      if (crossProjectLegacyLeak) criticalFails.push("草稿含有其他项目的品牌、价格或使用资料");
+      if (humanRequired && !hasHumanBoundary) criticalFails.push("高风险或人工 Case 缺少人工处理边界");
+
+      const checks = [
+        {
+          label: "回答顾客问题",
+          points: replyProfile.hasMeaningfulReply || action === "record_only" ? 40 : 0,
+          max: 40
+        },
+        {
+          label: "当前项目资料",
+          points: hasCurrentProjectContext && !crossProjectLegacyLeak ? 25 : 0,
+          max: 25
+        },
+        {
+          label: "Flow / 人工边界",
+          points: !humanRequired || hasHumanBoundary ? 20 : 0,
+          max: 20
+        },
+        {
+          label: "语气与格式",
+          points: replyProfile.isSubstantive && hasReadableStructure ? 15 : replyProfile.hasMeaningfulReply ? 8 : 0,
+          max: 15
+        }
+      ];
+      const score = Math.max(0, Math.min(100, checks.reduce((sum, check) => sum + Number(check.points || 0), 0)));
+      const answerAccuracyChecklist = [
+        {
+          label: "答案",
+          status: replyProfile.hasMeaningfulReply || action === "record_only" ? "过" : "要补",
+          tone: replyProfile.hasMeaningfulReply || action === "record_only" ? "pass" : "fail",
+          detail: action === "record_only"
+            ? "这条只记录，不应生成顾客回复。"
+            : replyProfile.hasMeaningfulReply
+              ? "已有可读答案，仍需确认内容来自当前项目。"
+              : "没有真正回答顾客问题。"
+        },
+        {
+          label: "项目隔离",
+          status: crossProjectLegacyLeak ? "挡住" : "过",
+          tone: crossProjectLegacyLeak ? "fail" : "pass",
+          detail: crossProjectLegacyLeak
+            ? "发现 Beyoute 品牌、价格或使用资料出现在其他项目。"
+            : "没有发现已知的跨项目固定资料。"
+        },
+        {
+          label: humanRequired ? "人工边界" : "下一步",
+          status: humanRequired && !hasHumanBoundary ? "要人工" : "检查",
+          tone: humanRequired && !hasHumanBoundary ? "fail" : "warn",
+          detail: humanRequired
+            ? "按当前项目的风险规则转人工，不能自动接销售 Flow。"
+            : "只有当前项目阶段与 Flow 都已确认，才可继续下一步。"
+        }
+      ];
+      let tone = "warn";
+      let resultLabel = "要检查";
+      let summary = "只按当前项目已发布资料送审。";
+      let nextAction = "核对 Project Brain、阶段与下一动作";
+      if (criticalFails.length) {
+        tone = "danger";
+        resultLabel = "不能过";
+        summary = "发现项目隔离或人工边界红线。";
+        nextAction = "修正草稿或转人工，不发送当前内容";
+      } else if (score >= 90) {
+        tone = "pass";
+        resultLabel = humanRequired ? "人工确认" : "可送审";
+        summary = humanRequired ? "内容可读，但仍由人工处理。" : "当前项目检查通过，客服确认后可批准。";
+        nextAction = humanRequired ? "人工处理并记录最终回复" : "客服确认后批准";
+      }
+      return {
+        score,
+        checks,
+        answerAccuracyChecklist,
+        tone,
+        resultLabel,
+        summary,
+        nextAction,
+        criticalFailCount: criticalFails.length,
+        redlineText: criticalFails.length ? criticalFails.join("；") : "红线 0：仍需确认当前项目资料和下一动作。"
+      };
+    }
+
     function qualityEvaluationForCase(item = {}, replyTextValue = "") {
+      if (!isBeyouteProjectContext(item)) {
+        return genericProjectQualityEvaluation(item, replyTextValue);
+      }
       const decision = item.latest_decision || {};
       const replyText = String(replyTextValue || "").trim();
       const customerText = qualityCustomerText(item);
@@ -27448,6 +27621,7 @@
     }
 
     function shortVersionDraftForCase(item = {}, extraShort = false) {
+      if (!isBeyouteProjectContext(item)) return "";
       const language = shortVersionLanguage(item);
       if (language === "en") {
         return extraShort
@@ -27474,6 +27648,7 @@
     }
 
     function currentReplyIsApprovedShortVersion(item = {}, closer = closerVerdict(item)) {
+      if (!isBeyouteProjectContext(item)) return false;
       if (!isLongMessageFatigueCase(item, closer)) return false;
       const box = document.getElementById("replyBox");
       return shortVersionDraftIsSafe(box?.value || "");
@@ -27495,13 +27670,17 @@
     function updateShortVersionActions(item = {}, closer = closerVerdict(item), readOnly = false) {
       const wrap = $("shortVersionActions");
       if (!wrap) return;
-      const show = !readOnly && isLongMessageFatigueCase(item, closer);
+      const show = isBeyouteProjectContext(item) && !readOnly && isLongMessageFatigueCase(item, closer);
       wrap.classList.toggle("hidden", !show);
     }
 
     function applyShortVersionDraft(extraShort = false) {
       if (!state.active) return "";
       const draft = shortVersionDraftForCase(state.active, extraShort);
+      if (!draft) {
+        showToast("当前项目还没有批准的短版成交话术，不能套用其他项目的价格与 CTA。");
+        return "";
+      }
       $("replyBox").value = draft;
 	  rememberReplyDraftForCase(state.active.id, draft);
 	  resizeReplyComposer();
@@ -27575,7 +27754,67 @@
       return String(item.status || "") === "human_required";
     }
 
+    function genericProjectCloserVerdict(item = {}) {
+      const decision = item.latest_decision || {};
+      const status = String(item.status || "").toLowerCase();
+      const action = String(decision.action || item.action || "").toLowerCase();
+      const risk = String(decision.risk || item.risk || "").toLowerCase();
+      const stage = String(decision.stage || item.stage || "");
+      const hasReply = Boolean(firstContextText(decision.reply_message, item.final_text, item.manual_reply_text));
+
+      if (status === "order" || /collect_order|order_payment_review|review_receipt|payment/.test(action)) {
+        return {
+          tone: "order",
+          title: "订单 / 付款按当前项目规则处理",
+          reason: "只可使用当前项目已配置的收单、付款与 After Payment Flow；金额或状态不明确时转人工。"
+        };
+      }
+      if (risk === "high" || status === "human_required" || /ask_human|handoff|manual/.test(action)) {
+        return {
+          tone: "handoff",
+          title: "转人工处理",
+          reason: "这条触发当前项目的风险或人工边界，不能自动回复或接销售 Flow。"
+        };
+      }
+      if (action === "record_only") {
+        return {
+          tone: "pass",
+          title: "只记录，不回复",
+          reason: "Button、Flow、简单确认或已处理事件只更新 Current State，不重复打扰顾客。"
+        };
+      }
+      if (!hasReply && action !== "trigger_flow") {
+        return {
+          tone: "fix",
+          title: "缺少可发送答案",
+          reason: "先按当前项目的 Project Brain / FAQ 回答顾客问题，再决定下一步。"
+        };
+      }
+      if (action === "trigger_flow") {
+        return {
+          tone: "review",
+          title: "先确认阶段，再接 Flow",
+          reason: "Flow 必须属于当前项目，而且顾客问题已经答完；阶段不确定时不能触发。"
+        };
+      }
+      if (isConfiguredPostPriceStage(stage, `${decision.intent || ""} ${decision.reason || ""}`)) {
+        return {
+          tone: "review",
+          title: "价格后按当前项目成交规则送审",
+          reason: "只用当前项目已批准的 Proof、CTA、Offer 与 Urgency，并避免重复 CTA。"
+        };
+      }
+      return {
+        tone: "review",
+        title: "按当前项目资料送审",
+        reason: "当前草稿只能引用本项目 Project Brain / FAQ；客服确认后才可发送。"
+      };
+    }
+
     function closerVerdict(item = {}) {
+      if (!isBeyouteProjectContext(item)) {
+        return genericProjectCloserVerdict(item);
+      }
       const decision = item.latest_decision || {};
       const status = String(item.status || "").toLowerCase();
       const action = String(decision.action || "").toLowerCase();
