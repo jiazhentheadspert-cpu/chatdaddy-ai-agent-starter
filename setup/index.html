@@ -3972,6 +3972,14 @@
           const labels = ["学习审核", "回复规则", "销售路线", "ChatDaddy 连接", "AI 学习进度", "付费 AI 运行锁"];
           state.moduleErrors.push(`${labels[index]}：${result.reason?.message || result.reason || "读取失败"}`);
         });
+        try {
+          // Module reads finish in an arbitrary order. Re-hydrate from the
+          // server-owned onboarding state last so a read-only panel can never
+          // make an already-published revision look like a new draft.
+          await loadCanonicalOnboardingStatus();
+        } catch (error) {
+          state.moduleErrors.push(`上线状态：${error.message || error}`);
+        }
       }
 
       state.onboardingHydrated = true;
@@ -4888,6 +4896,55 @@
       updateOnboardingProgress();
     }
 
+    function canonicalOnboardingRevisionState(data = {}) {
+      const currentRevision = data?.current_revision || {};
+      const activePublished = data?.active_published || {};
+      const currentVersion = Number(currentRevision.version_no || data?.version_no || 0);
+      const publishedVersion = Number(activePublished.version_no || 0);
+      const activation = data?.activation || null;
+      const currentRevisionIsActive = currentRevision.status === "published"
+        && currentVersion > 0
+        && currentVersion === publishedVersion
+        && activation?.ready_for_ai_reply === true;
+      return {
+        activation,
+        currentVersion,
+        publishedVersion,
+        currentRevisionStatus: String(currentRevision.status || ""),
+        currentRevisionIsActive,
+        currentMockIsValid: data?.current_mock_validation?.ok === true
+      };
+    }
+
+    async function loadCanonicalOnboardingStatus() {
+      const projectKey = currentProjectKey();
+      if (!projectKey) return null;
+      const data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/onboarding-status`);
+      const canonical = canonicalOnboardingRevisionState(data);
+      state.activation = canonical.activation || state.activation;
+      state.published = canonical.currentRevisionIsActive;
+      if (canonical.currentRevisionIsActive) {
+        state.publishError = "";
+        state.mockAttestedVersionNo = canonical.currentMockIsValid ? canonical.currentVersion : null;
+        hydrateBrainVersionStatus({
+          version_no: canonical.currentVersion,
+          published_version_no: canonical.publishedVersion,
+          published: true,
+          draft: false,
+          source_mode: "published"
+        });
+      } else if (canonical.currentRevisionStatus === "draft") {
+        hydrateBrainVersionStatus({
+          version_no: canonical.currentVersion,
+          published_version_no: canonical.publishedVersion,
+          published: canonical.publishedVersion > 0,
+          draft: true,
+          source_mode: "draft"
+        }, { draft: true });
+      }
+      return data;
+    }
+
     function hydrateBrainVersionStatus(data = {}, options = {}) {
       const version = Number(data?.version_no || 0);
       const published = Number(data?.published_version_no || 0)
@@ -4939,7 +4996,8 @@
 
     function markOnboardingDraft() {
       state.published = false;
-      state.activation = null;
+      // A new draft does not disable the last published runtime. Keep the
+      // server activation visible while this revision waits for review.
       state.practicePassed = false;
       state.practiceAttestedVersionNo = 0;
       state.practiceResults = [];
@@ -8275,6 +8333,7 @@
         setLearningReviewBusy(true);
         setLearningReviewStatus("加载中", "");
         let data = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review`);
+        let savedReviewDraft = false;
         const trustedItemsToAdopt = Number(
           data?.summary?.auto_adoptable_trusted_items
           || data?.summary?.auto_adoptable_owner_faq_items
@@ -8285,10 +8344,14 @@
           data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/learning-review/accept-owner-faqs`, {
             expected_version_no: data.version_no
           });
+          savedReviewDraft = true;
         }
         state.learningReview = data;
         state.learningReviewDrafts.clear();
-        markOnboardingDraft();
+        if (savedReviewDraft) {
+          hydrateBrainVersionStatus(data, { draft: true });
+          markOnboardingDraft();
+        }
         renderLearningReview();
         updateReviewBatchButton();
         loadReviewButton.hidden = true;
@@ -8959,6 +9022,23 @@
         setReplyContractStatus("运行上线检查", "");
         contentMockStatus.textContent = "正在检查（不产生模型费用）";
         contentMockStatus.className = "status";
+        const current = await apiGet(`/api/hermas/projects/${encodeURIComponent(projectKey)}/package`);
+        if (
+          current?.published === true
+          && current?.draft !== true
+          && current?.activation?.ready_for_ai_reply === true
+        ) {
+          state.salesPackageResponse = current;
+          state.existingPackageResponse = current;
+          state.activation = current.activation;
+          await loadCanonicalOnboardingStatus();
+          setReplyContractStatus(`当前 v${current.version_no || "-"} 已上线`, "ok");
+          contentMockStatus.textContent = "上线检查已通过";
+          contentMockStatus.className = "status ok";
+          replyContractMock.innerHTML = `<div class="contract-mock-row"><strong>当前线上版本</strong><span class="ok">v${escapeHtml(current.version_no || "-")} · 已通过</span></div>`;
+          updateOnboardingProgress();
+          return;
+        }
         const data = await apiPost(`/api/hermas/projects/${encodeURIComponent(projectKey)}/test-cases/run`, {});
         const attestedVersionNo = Number(data?.version_no || data?.package_version_no || 0);
         if (!attestedVersionNo) {
@@ -8976,6 +9056,16 @@
       } catch (error) {
         if (error.data?.tests || error.data?.blockers) {
           renderReplyContractMock(error.data);
+        } else if (error.data?.error === "mock_test_current_draft_required") {
+          const message = "本次设置尚未保存成草稿。请先返回「确认 AI 理解」完成保存，再运行上线检查。";
+          setReplyContractStatus(message, "bad");
+          contentMockStatus.textContent = "请先完成上一步";
+          contentMockStatus.className = "status bad";
+          state.mockResult = {
+            blockers: [{ code: "current_onboarding_draft_missing", message }],
+            owner_content: { tests: [], passed_count: 0, failed_count: 0 }
+          };
+          renderBeginnerGoLiveState();
         } else {
           setReplyContractStatus(error.message || "上线检查失败", "bad");
           contentMockStatus.textContent = error.message || "上线检查失败";
@@ -9277,6 +9367,9 @@
       if (/回复规则|reply contract/i.test(text)) {
         return { message: publicMessage, target: "replyContractPanel", advanced: true, label: "去检查回复规则" };
       }
+      if (/current_onboarding_draft_missing|尚未保存成草稿/i.test(text)) {
+        return { message: publicMessage, target: "learningReviewPanel", phase: "review", label: "返回上一步" };
+      }
       if (/chatdaddy|连接|flow 仍有|api/i.test(text)) {
         return { message: publicMessage, target: "channelFlowPanel", phase: "flow", label: "去处理连接" };
       }
@@ -9325,12 +9418,19 @@
       if (!beginnerGoLiveCard) return;
       const published = state.published === true && state.activation?.ready_for_ai_reply === true;
       const rawBlockers = Array.isArray(state.mockResult?.blockers) ? state.mockResult.blockers : [];
+      const currentDraftMissing = rawBlockers.some((item) => (
+        String(item?.code || "") === "current_onboarding_draft_missing"
+        || /尚未保存成草稿/.test(String(item?.message || ""))
+      ));
       const failedTests = readiness.tests.filter((test) => test?.passed === false);
       const rawIssues = [
         state.publishError ? publishReadinessIssue(state.publishError) : null,
         ...(readiness.issues || []).filter((issue) => !(
           failedTests.length > 0
           && /上线检查还有\s*\d+\s*项未通过/.test(String(issue?.message || ""))
+        ) && !(
+          currentDraftMissing
+          && /尚未运行上线检查/.test(String(issue?.message || ""))
         )),
         ...rawBlockers.map((item) => publishReadinessIssue(item?.message || item?.code)),
         ...failedTests.map((test) => {
