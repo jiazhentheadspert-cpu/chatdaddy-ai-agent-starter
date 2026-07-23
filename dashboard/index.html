@@ -8738,6 +8738,285 @@
         min-width: 145px;
       }
     }
+
+    /* Case cockpit: keep the conversation primary and AI as a quiet copilot. */
+    #panel .quality-eval-card,
+    #panel .case-optimizer-card,
+    #panel .case-advanced-box {
+      display: none !important;
+    }
+
+    #panel .learning-after-send {
+      grid-area: learn;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border: 1px solid rgba(0, 168, 132, .28);
+      border-radius: 14px;
+      background: linear-gradient(135deg, #effcf8, #f7fffc);
+      padding: 10px 12px;
+      box-shadow: 0 10px 26px rgba(8, 23, 29, .08);
+    }
+
+    #panel .learning-after-send.hidden {
+      display: none !important;
+    }
+
+    .learning-after-send-copy {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .learning-after-send-copy > span {
+      color: #087c69;
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .learning-after-send-copy > b {
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .learning-after-send-copy > small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+      line-height: 1.35;
+    }
+
+    .learning-after-send-actions,
+    .composer-secondary-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .learning-after-send-actions {
+      justify-content: flex-end;
+      flex: 0 0 auto;
+    }
+
+    .learning-after-send-actions .btn {
+      min-height: 38px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .composer-secondary-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .composer-secondary-actions .btn {
+      min-height: 42px;
+      margin: 0;
+    }
+
+    #panel .reply-command-bar {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        "learn"
+        "reply";
+      gap: 8px;
+      padding: 7px;
+    }
+
+    #panel .reply-command-bar > .function-menu {
+      grid-area: none;
+    }
+
+    #panel .reply-command-bar > .channel-action-picker,
+    #panel .reply-command-bar > .payment-quick {
+      position: absolute;
+      inset: auto auto 6px 6px;
+      width: 1px;
+      height: 1px;
+      min-width: 0;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    #panel .reply-command-bar > .channel-action-picker > summary,
+    #panel .reply-command-bar > .payment-quick > summary {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      padding: 0;
+      border: 0;
+    }
+
+    #panel .channel-action-picker[open],
+    #panel .payment-quick[open] {
+      pointer-events: auto;
+    }
+
+    #panel .channel-action-picker[open] .channel-action-panel,
+    #panel .payment-quick[open] .payment-menu-panel {
+      position: fixed;
+      right: 20px;
+      bottom: 92px;
+      left: auto;
+      z-index: 92;
+      max-height: min(70vh, 640px);
+      overflow-y: auto;
+    }
+
+    #panel .reply-send-actions .composer-learn-button {
+      display: none !important;
+    }
+
+    #panel .case-intel-details > summary,
+    #panel .compact-history > summary {
+      padding: 11px 13px;
+    }
+
+    #panel .action-stack {
+      min-width: 0;
+    }
+
+    body.staff-mode #panel #caseActionStack {
+      display: grid !important;
+    }
+
+    body.staff-mode #panel #caseIntelDetails {
+      display: block !important;
+    }
+
+    @media (min-width: 1181px) {
+      #panel {
+        padding: 12px;
+      }
+
+      #panel > .panel-card {
+        width: min(1680px, calc(100vw - 24px));
+        height: calc(100dvh - 24px);
+        max-height: none;
+        border-radius: 18px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      #panel .panel-top {
+        min-height: 68px;
+        padding: 10px 16px;
+      }
+
+      #panel .panel-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+      }
+
+      #panel .panel-top h1 {
+        font-size: 22px;
+      }
+
+      #panel .panel-body,
+      body.staff-mode #panel .panel-body {
+        min-height: 0;
+        grid-template-columns: minmax(0, 3fr) minmax(300px, 1fr);
+        gap: 12px;
+        overflow: hidden;
+        padding: 12px;
+      }
+
+      #panel .panel-body > .left {
+        min-height: 0;
+        grid-template-rows: minmax(0, 1fr);
+        align-content: stretch;
+      }
+
+      #panel .case-chat-shell {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        padding: 12px;
+      }
+
+      #panel #chatBox {
+        min-height: 0;
+        max-height: none;
+        height: auto;
+        overflow-y: auto;
+        padding: 12px 10px;
+      }
+
+      #panel #caseActionStack {
+        position: static;
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+        align-content: start;
+        padding-right: 2px;
+      }
+
+      #panel .action-card-details > summary b {
+        font-size: 17px;
+      }
+
+      #panel .panel-intel {
+        grid-template-columns: 1fr;
+      }
+
+      #panel .detail-tile.wide {
+        grid-column: auto;
+      }
+
+      #panel.open .reply-command-bar {
+        margin: 0 12px 12px;
+      }
+    }
+
+    @media (max-width: 1180px) {
+      #panel .panel-body {
+        overflow-y: auto;
+      }
+
+      #panel .action-stack {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      #panel .learning-after-send {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      #panel .learning-after-send-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      #panel .learning-after-send-actions .btn {
+        width: 100%;
+      }
+
+      #panel .reply-command-bar {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+          "learn"
+          "reply";
+      }
+
+      #panel .channel-action-picker[open] .channel-action-panel,
+      #panel .payment-quick[open] .payment-menu-panel {
+        right: 12px;
+        bottom: calc(82px + env(safe-area-inset-bottom));
+        left: 12px;
+        width: auto;
+      }
+    }
   </style>
 </head>
 <body>
@@ -8867,11 +9146,11 @@
       </div>
 
       <div class="stats" id="statsPanel">
-        <div class="stat"><b id="statAll">0</b><span>全部</span></div>
-        <div class="stat"><b id="statApproval">0</b><span>待批准</span></div>
-        <div class="stat"><b id="statHuman">0</b><span>人工回复</span></div>
-        <div class="stat"><b id="statOrder">0</b><span>订单/付款</span></div>
-        <div class="stat"><b id="statAuto">0</b><span>无需介入</span></div>
+        <div class="stat"><b id="statAll">—</b><span>全部</span></div>
+        <div class="stat"><b id="statApproval">—</b><span>待批准</span></div>
+        <div class="stat"><b id="statHuman">—</b><span>人工回复</span></div>
+        <div class="stat"><b id="statOrder">—</b><span>订单/付款</span></div>
+        <div class="stat"><b id="statAuto">—</b><span>无需介入</span></div>
       </div>
 
       <section class="ops-grid hidden" id="opsGrid" aria-label="运营状态"></section>
@@ -8987,18 +9266,18 @@
         </div>
         <div class="panel-top-actions">
           <span class="badge low" id="panelStatusPill">待处理</span>
-          <button class="btn ghost" id="openChatDaddyBtn" type="button" aria-label="在 ChatDaddy 打开同一顾客">打开 ChatDaddy</button>
-          <button class="btn ghost" id="closePanel">关闭</button>
+          <button class="btn ghost" id="openChatDaddyBtn" type="button" aria-label="在 ChatDaddy 查看同一顾客的原对话">查看 WhatsApp 原对话</button>
+          <button class="btn ghost panel-close-button" id="closePanel" type="button" aria-label="关闭顾客对话" title="关闭">关闭</button>
         </div>
       </div>
       <div class="panel-body">
         <div class="left">
-          <div class="box">
-            <div class="box-title">聊天 <span>最新在下</span></div>
+          <div class="box case-chat-shell">
+            <div class="box-title">对话记录 <span>顾客在左 · 客服在右</span></div>
             <div class="chat" id="chatBox"></div>
           </div>
           <details class="case-intel-details" id="caseIntelDetails">
-            <summary><span>系统判断</span><small>阶段、风险与自动边界</small></summary>
+            <summary><span>为什么 AI 这样建议？</span><small>阶段、风险与安全边界</small></summary>
             <div class="panel-intel" id="caseDetails"></div>
           </details>
           <div class="quality-eval-card is-collapsed" id="qualityEvalCard" aria-label="质量评分">
@@ -9060,7 +9339,7 @@
           <details class="action-card action-card-details" id="agentActionDetails">
             <summary>
               <span>AI 建议<b id="actionTitle">按「批准发送」</b></span>
-              <small>查看判断</small>
+              <small>判断依据</small>
             </summary>
             <div class="action-card-body">
             <p id="actionReason">确认回复后发送。</p>
@@ -9083,12 +9362,12 @@
             <div class="approval-first-reminder">AI 不会自己发：客服检查后才批准。草稿不对就让 AI 重写；需要真人判断就在这里人工回复。</div>
             </div>
           </details>
-          <div class="box">
+          <div class="box case-advanced-box">
             <h3>重点词</h3>
             <div class="word-cloud" id="panelWords"></div>
           </div>
           <details class="box compact-history">
-            <summary>记录</summary>
+            <summary>处理记录</summary>
             <div class="history" id="historyBox"></div>
           </details>
         </aside>
@@ -9107,6 +9386,10 @@
 	        <div class="function-menu-title">
 	          <b>更多处理</b>
 	          <small>不会自动发送</small>
+	        </div>
+	        <div class="composer-secondary-actions" aria-label="话术、Flow 与收款工具">
+	          <button class="btn" id="composerChannelActionBtn" type="button">话术 / Flow</button>
+	          <button class="btn" id="composerPaymentActionBtn" type="button">收款 / COD</button>
 	        </div>
 	        <div class="short-version-actions hidden" id="shortVersionActions" aria-label="短版处理">
 	          <button class="btn primary" id="approveShortVersionBtn" type="button">批准短版</button>
@@ -9180,6 +9463,17 @@
 	        </section>
 	      </div>
 	    </details>
+	    <div class="learning-after-send hidden" id="learningAfterSendPrompt" role="status" aria-live="polite">
+	      <div class="learning-after-send-copy">
+	        <span>已发送</span>
+	        <b>你修改了 AI 原稿，要教 AI 下次这样处理吗？</b>
+	        <small>只提交学习候选，Owner 审核后才会应用；不会再次发送，也不会直接开启自动回复。</small>
+	      </div>
+	      <div class="learning-after-send-actions">
+	        <button class="btn primary" id="learningAfterSendApplyBtn" type="button">教 AI 下次这样处理</button>
+	        <button class="btn ghost" id="learningAfterSendDismissBtn" type="button">仅本次</button>
+	      </div>
+	    </div>
 	    <div class="reply-action-group" id="replyActionGroup" aria-label="回复并发送">
 	      <div class="reply-composer-content reply-card" id="replyCard">
 	        <div class="whatsapp-composer-row">
@@ -9485,6 +9779,8 @@
       replyDraftDirty: false,
       replyDrafts: {},
       replyCompositionActive: false,
+      learningAfterSendContext: null,
+      pendingLearningAfterSendByCase: {},
       actionBusy: false,
       bulkBusy: false,
       sidebarCollapsed: false,
@@ -9928,6 +10224,7 @@
     syncSettingsDisclosure();
 
     applySessionShell();
+    initializeCaseCockpitLayout();
 
     $("saveAndLoad").addEventListener("click", () => {
       if (!IS_LOCAL_PREVIEW) apiUrlEl.value = CANONICAL_API_URL;
@@ -10108,6 +10405,10 @@
     $("learnBtn").addEventListener("click", learnActive);
     $("manualResolveBtn").addEventListener("click", manualResolveActive);
     $("manualSendBtn").addEventListener("click", manualSendActive);
+    $("learningAfterSendApplyBtn").addEventListener("click", teachAiFromLastSend);
+    $("learningAfterSendDismissBtn").addEventListener("click", dismissLearningAfterSendPrompt);
+    $("composerChannelActionBtn").addEventListener("click", openComposerChannelActions);
+    $("composerPaymentActionBtn").addEventListener("click", openComposerPaymentActions);
 	$("composerMoreBtn").addEventListener("click", toggleComposerFunctionMenu);
 	$("composerEmojiBtn").addEventListener("click", toggleComposerEmojiPanel);
 	$("composerPrimaryBtn").addEventListener("click", handleComposerPrimaryAction);
@@ -10493,6 +10794,7 @@
 
     function redirectToUnifiedLogin({ clearSession = false } = {}) {
       if (clearSession) {
+        purgeDashboardFirstPaintSnapshots();
         localStorage.removeItem("agent_session");
         localStorage.removeItem("agent_admin_token");
         localStorage.removeItem("agent_staff_token");
@@ -11279,15 +11581,24 @@
       if (state.workspaceView === "inbox" && !state.demoMode && !state.inboxConversations.length) {
         restoreDashboardInboxSnapshot(projectKeyEl.value.trim() || "beyoute");
       }
+      const restoredQueue = state.workspaceView === "cases"
+        && !state.demoMode
+        && !state.cases.length
+        && restoreDashboardQueueSnapshot(projectKeyEl.value.trim() || "beyoute", canUseQaMode());
       render();
       if (state.workspaceView === "inbox" && !state.demoMode && !state.inboxLoading && !state.inboxConversations.length) {
         loadInboxConversations({ silent: true }).catch(() => null);
       } else if (state.workspaceView === "inbox" && !state.demoMode && state.inboxSnapshotRestoredAt) {
         loadInboxConversations({ silent: true, preserveLoaded: true }).catch(() => null);
-      } else if (state.workspaceView === "cases" && !state.demoMode && !state.loading && !state.cases.length) {
-        // Entering the Case workspace is a user-visible load. It must run the
-        // ChatDaddy classification preflight before any pending card appears.
-        loadCases().catch(() => null);
+      } else if (state.workspaceView === "cases" && !state.demoMode && !state.loading) {
+        // Paint the last successful projection immediately, then reconcile it
+        // in the background. Entering the workbench must not look empty while
+        // account, onboarding, Supabase, and ChatDaddy reads are still running.
+        loadCases({
+          silent: restoredQueue,
+          preserveSelection: restoredQueue,
+          nonBlockingFirstPaint: true,
+        }).catch(() => null);
       } else if (state.workspaceView === "billing" && !state.demoMode && !state.usageSummaryLoading) {
         loadUsageSummary(adminTokenEl.value.trim(), { force: true }).catch(() => null);
       }
@@ -11795,8 +12106,181 @@
       }
     }
 
+	function initializeCaseCockpitLayout() {
+	  const actionStack = $("caseActionStack");
+	  const agentAction = $("agentActionDetails");
+	  const caseIntel = $("caseIntelDetails");
+	  if (actionStack && agentAction && caseIntel && caseIntel.parentElement !== actionStack) {
+	    agentAction.insertAdjacentElement("afterend", caseIntel);
+	  }
+	  dismissLearningAfterSendPrompt();
+	}
+
+	function openComposerChannelActions() {
+	  if (!state.active || state.actionBusy) return;
+	  $("functionMenu").open = false;
+	  $("purchasePanel").open = false;
+	  $("channelActionPicker").open = true;
+	}
+
+	function openComposerPaymentActions() {
+	  if (!state.active || state.actionBusy) return;
+	  if ($("purchasePanel").classList.contains("hidden")) {
+	    showToast("这张对话目前不需要收款操作。");
+	    return;
+	  }
+	  $("functionMenu").open = false;
+	  $("channelActionPicker").open = false;
+	  $("purchasePanel").open = true;
+	}
+
+	function learningAfterSendSnapshot(item = {}, sentText = "", mode = "") {
+	  const originalDraft = String(item.latest_decision?.reply_message || item.original_ai_reply || "").trim();
+	  const finalText = String(sentText || "").trim();
+	  const feedbackId = globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
+	    ? globalThis.crypto.randomUUID()
+	    : `learn-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+	  return {
+	    caseId: String(item.id || ""),
+	    feedbackId,
+	    mode,
+	    originalDraft,
+	    sentText: finalText,
+	    meaningful: mode === "manual_send"
+	      || !originalDraft
+	      || compactCompareText(originalDraft) !== compactCompareText(finalText),
+	    item: {
+	      ...item,
+	      status: "sent",
+	      original_ai_reply: originalDraft,
+	      manual_reply_text: finalText,
+	      final_human_reply: finalText,
+	      latest_decision: {
+	        ...(item.latest_decision || {}),
+	        original_ai_reply: originalDraft,
+	        reply_message: finalText,
+	      },
+	    },
+	  };
+	}
+
+	function queueLearningAfterSend(item = {}, sentText = "", mode = "") {
+	  const context = learningAfterSendSnapshot(item, sentText, mode);
+	  if (!context.caseId || !context.sentText || !context.meaningful) return null;
+	  state.pendingLearningAfterSendByCase[context.caseId] = context;
+	  return context;
+	}
+
+	function completeLearningAfterSend(caseId = "") {
+	  const key = String(caseId || "");
+	  const context = state.pendingLearningAfterSendByCase[key];
+	  if (!context) return;
+	  delete state.pendingLearningAfterSendByCase[key];
+	  state.learningAfterSendContext = context;
+	  const prompt = $("learningAfterSendPrompt");
+	  const question = prompt?.querySelector(".learning-after-send-copy > b");
+	  if (question) {
+	    question.textContent = context.originalDraft
+	      ? "你修改了 AI 原稿，要教 AI 下次这样处理吗？"
+	      : "这是客服自己写的回复，要教 AI 下次这样处理吗？";
+	  }
+	  $("replyCommandBar")?.classList.remove("hidden");
+	  prompt?.classList.remove("hidden");
+	}
+
+	function clearPendingLearningAfterSend(caseId = "") {
+	  const key = String(caseId || "");
+	  if (key) delete state.pendingLearningAfterSendByCase[key];
+	}
+
+	function dismissLearningAfterSendPrompt() {
+	  state.learningAfterSendContext = null;
+	  const prompt = $("learningAfterSendPrompt");
+	  if (prompt) prompt.classList.add("hidden");
+	  const applyButton = $("learningAfterSendApplyBtn");
+	  if (applyButton) {
+	    applyButton.disabled = false;
+	    applyButton.textContent = "教 AI 下次这样处理";
+	  }
+	  if ($("replyCard")?.classList.contains("hidden")) {
+	    $("replyCommandBar")?.classList.add("hidden");
+	  }
+	}
+
+	async function submitPostSendLearningFeedback(context = {}) {
+	  const feedbackId = String(context.feedbackId || "");
+	  const payload = {
+	    feedback_id: feedbackId,
+	    sent_reply: context.sentText,
+	    final_human_reply: context.sentText,
+	    original_ai_reply: context.originalDraft,
+	    reply_was_edited: Boolean(context.originalDraft)
+	      && compactCompareText(context.originalDraft) !== compactCompareText(context.sentText),
+	    reply_source: context.mode === "manual_send" ? "staff_written" : "ai_draft_edited",
+	    learnability: "needs_owner",
+	    source: "dashboard_post_send_learning",
+	    note: "客服发送成功后明确选择教 AI；只建立 Owner 待审核候选，不发送消息、不启用自动回复。",
+	  };
+	  if (state.demoMode) {
+	    const record = state.cases.find((item) => String(item.id || "") === String(context.caseId || ""));
+	    if (record) {
+	      const learningItem = {
+	        ...record,
+	        original_ai_reply: context.originalDraft,
+	        manual_reply_text: context.sentText,
+	        final_human_reply: context.sentText,
+	      };
+	      record.manual_learning_candidate = caseOptimizerLearningCandidate(learningItem, payload.note);
+	      record.history = Array.isArray(record.history) ? record.history : [];
+	      record.history.push({
+	        type: "case_learning_note",
+	        at: new Date().toISOString(),
+	        note: "演示：客服已提交学习候选，等待 Owner 审核；没有开启自动回复。",
+	      });
+	    }
+	    return { ok: true, recorded: true, storage: "demo", feedback_id: feedbackId };
+	  }
+	  const api = apiUrlEl.value.trim().replace(/\/$/, "");
+	  const project = context.item?.project_key || projectKeyEl.value.trim() || "beyoute";
+	  if (!api || (!adminTokenEl.value.trim() && !hasAccountSession())) {
+	    throw new Error("当前账号会话已失效，请重新登录后再提交。");
+	  }
+	  const response = await fetch(
+	    `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(context.caseId)}/learning-feedback`,
+	    authRequestOptions(adminTokenEl.value.trim(), {
+	      method: "POST",
+	      headers: { "content-type": "application/json" },
+	      body: JSON.stringify(payload),
+	    })
+	  );
+	  const result = await response.json().catch(() => ({}));
+	  if (!response.ok || result.ok === false || result.recorded !== true) {
+	    throw new Error(result.message || result.error || `HTTP ${response.status}`);
+	  }
+	  return result;
+	}
+
+	async function teachAiFromLastSend() {
+	  const context = state.learningAfterSendContext;
+	  const button = $("learningAfterSendApplyBtn");
+	  if (!context || !button || state.actionBusy) return;
+	  button.disabled = true;
+	  button.textContent = "正在整理...";
+	  try {
+	    await submitPostSendLearningFeedback(context);
+	    addAuditEvent("case_learning_note", `${customerDisplayLabel(context.item) || "顾客"}：已提交 Owner 审核`);
+	    dismissLearningAfterSendPrompt();
+	    showToast("学习候选已提交，等待 Owner 审核；不会直接开启自动回复。");
+	    if (!state.demoMode) loadCases().catch(() => {});
+	  } catch (error) {
+	    button.disabled = false;
+	    button.textContent = "重试提交学习候选";
+	    showToast(`学习候选暂时未保存：${error.message || error}`);
+	  }
+	}
+
 	function currentComposerTextActionButton() {
-	  const candidates = [$("manualSendBtn"), $("approveBtn"), $("learnAndSendBtn")].filter(Boolean);
+	  const candidates = [$("manualSendBtn"), $("approveBtn")].filter(Boolean);
 	  const visible = candidates.filter((button) => !button.classList.contains("hidden"));
 	  return visible.find((button) => !button.disabled) || visible[0] || null;
 	}
@@ -13074,9 +13558,9 @@
       return items.map(realtimeCaseFingerprint).join("\n");
     }
 
-    const DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS = 12000;
+    const DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS = 4000;
     const DASHBOARD_NO_INTERVENTION_REQUEST_TIMEOUT_MS = 30000;
-    const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
+    const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
     const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 7;
@@ -13091,21 +13575,44 @@
       return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
     }
 
+    function purgeDashboardFirstPaintSnapshots() {
+      const prefixes = ["replypilot_queue_snapshot_v", "replypilot_inbox_snapshot_v"];
+      [localStorage, sessionStorage].forEach((storage) => {
+        try {
+          const keys = [];
+          for (let index = 0; index < storage.length; index += 1) {
+            const key = storage.key(index);
+            if (key && prefixes.some((prefix) => key.startsWith(prefix))) keys.push(key);
+          }
+          keys.forEach((key) => storage.removeItem(key));
+        } catch (_error) {
+          // Explicit logout still continues even when browser storage is
+          // unavailable. Live authorization remains enforced by the API.
+        }
+      });
+    }
+
     function readDashboardQueueSnapshot(project = "", qaMode = false) {
+      const key = dashboardQueueSnapshotKey(project);
       try {
-        const raw = sessionStorage.getItem(dashboardQueueSnapshotKey(project));
+        const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
         if (!raw) return null;
         const snapshot = JSON.parse(raw);
         const savedAt = new Date(snapshot?.saved_at || "").getTime();
         if (!Number.isFinite(savedAt) || Date.now() - savedAt > DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS) {
-          sessionStorage.removeItem(dashboardQueueSnapshotKey(project));
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
           return null;
         }
         const items = Array.isArray(snapshot?.items)
           ? snapshot.items.filter((item) => isDashboardVisibleApproval(item) && (qaMode || !isDemoLikeApprovalItem(item)))
           : [];
-        return items.length ? { ...snapshot, items } : null;
+        return Array.isArray(snapshot?.items) ? { ...snapshot, items } : null;
       } catch (_error) {
+        try {
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
+        } catch {}
         return null;
       }
     }
@@ -13147,7 +13654,7 @@
       );
       state.selected.clear();
       state.loadingMessage = "正在后台同步最新顾客讯息。";
-      $("modeTag").textContent = "同步中";
+      $("modeTag").textContent = "上次资料 · 更新中";
       render();
       return true;
     }
@@ -13155,7 +13662,8 @@
     function saveDashboardQueueSnapshot(project = "", items = [], syncStatus = null, history = {}) {
       if (!Array.isArray(items)) return;
       try {
-        sessionStorage.setItem(dashboardQueueSnapshotKey(project), JSON.stringify({
+        const key = dashboardQueueSnapshotKey(project);
+        const payload = JSON.stringify({
           version: DASHBOARD_QUEUE_SNAPSHOT_VERSION,
           saved_at: new Date().toISOString(),
           sync_status: syncStatus || null,
@@ -13163,7 +13671,9 @@
           history_latest_date: history.latestDate || null,
           no_intervention_cases: Array.isArray(history.noInterventionCases) ? history.noInterventionCases : [],
           items,
-        }));
+        });
+        localStorage.setItem(key, payload);
+        sessionStorage.setItem(key, payload);
       } catch (_error) {
         // A full browser storage area must never block the live queue.
       }
@@ -13489,7 +13999,8 @@
       const token = adminTokenEl.value.trim();
       const requestSeq = ++state.queueRequestSeq;
       const hasAuth = Boolean(token || hasAccountSession());
-      const blockQueueUntilFresh = !options.silent
+      const blockQueueUntilFresh = !options.nonBlockingFirstPaint
+        && !options.silent
         && !options.skipCaseSync
         && !state.caseConversationSyncInFlight;
 
@@ -15887,13 +16398,16 @@
       const all = state.role === "staff" && !preserveIndividualCases ? collapseStaffActionableCasesByCustomer(rawAll) : rawAll;
       const counts = countCases(allForCounts);
       const learned = countLearnedRules(allForCounts);
-      $("statAll").textContent = state.filter === "all_cases" && state.queueAllCasesTotal
-        ? state.queueAllCasesTotal
-        : counts.total;
-      $("statApproval").textContent = counts.approval;
-      $("statHuman").textContent = counts.human;
-      $("statOrder").textContent = counts.orders;
-      $("statAuto").textContent = counts.auto;
+      const queueUnknown = state.workspaceView === "cases" && state.loading && !state.cases.length;
+      $("statAll").textContent = queueUnknown
+        ? "—"
+        : state.filter === "all_cases" && state.queueAllCasesTotal
+          ? state.queueAllCasesTotal
+          : counts.total;
+      $("statApproval").textContent = queueUnknown ? "—" : counts.approval;
+      $("statHuman").textContent = queueUnknown ? "—" : counts.human;
+      $("statOrder").textContent = queueUnknown ? "—" : counts.orders;
+      $("statAuto").textContent = queueUnknown ? "—" : counts.auto;
       renderFilterCounts(counts);
       renderNavigationBadges(counts, learned);
 
@@ -16581,6 +17095,7 @@
 	  resetVoiceComposer({ sync: false });
 	  closeComposerEmojiPanel();
 	  $("functionMenu").open = false;
+      dismissLearningAfterSendPrompt();
       $("panel").classList.remove("open");
       state.active = null;
       state.replyDraftDirty = false;
@@ -22650,6 +23165,7 @@
         return;
       }
       state.active = item;
+	      if (openingNewCase) dismissLearningAfterSendPrompt();
 	      if (openingNewCase) setQualityEvaluationExpanded(false);
 	      $("functionMenu").open = false;
 	      $("channelActionPicker").open = false;
@@ -22787,12 +23303,10 @@
       $("approveBtn").classList.toggle("hidden", canManualSend);
 	      $("approveBtn").textContent = approvalGuard.blocked ? approvalGuard.label : currentReplyIsApprovedShortVersion(item, closer) ? "发送短版" : readOnly ? "已记录" : isFlowOnly ? "检查 Flow" : decision.action === "review_receipt" ? "付款已审核" : item.status === "order" ? "确认已处理" : "批准并发送";
       $("approveBtn").disabled = state.actionBusy || isFlowOnly || readOnly || approvalGuard.blocked;
-	  const canLearnAndSend = !canManualSend && !readOnly && !isFlowOnly && canCreateDirectAutoReplyRule(item);
-	  $("learnAndSendBtn").classList.toggle("hidden", !canLearnAndSend);
-	  $("learnAndSendBtn").disabled = state.actionBusy || !canLearnAndSend;
-	  $("learnAndSendBtn").title = canLearnAndSend
-	    ? "批准并发送本次回复；同项目、同意图的低风险问题以后自动回复"
-	    : directAutoReplyRuleBlockReason(item);
+	  const canLearnAndSend = false;
+	  $("learnAndSendBtn").classList.add("hidden");
+	  $("learnAndSendBtn").disabled = true;
+	  $("learnAndSendBtn").title = "自动回复规则必须由 Owner 在学习中心审核后开启。";
       $("manualSendBtn").classList.toggle("hidden", !canManualSend);
       $("manualSendBtn").disabled = state.actionBusy || !canManualSend;
 	      $("manualSendBtn").textContent = "发送给顾客";
@@ -22805,8 +23319,10 @@
       $("returnAiBtn").disabled = state.actionBusy || readOnly;
       $("returnAiBtn").textContent = "让 AI 重写";
       $("handoffBtn").disabled = state.actionBusy || readOnly;
-      $("learnBtn").classList.toggle("hidden", state.role === "staff" || isFlowOnly || readOnly);
+      $("learnBtn").classList.add("hidden");
+      $("learnBtn").disabled = true;
 	      $("purchasePanel").classList.toggle("hidden", !showPurchasePanel);
+	      $("composerPaymentActionBtn").classList.toggle("hidden", !showPurchasePanel);
 	      $("purchaseAmountInput").value = existingPurchaseAmount ? String(existingPurchaseAmount) : "";
 	      $("replyActionGroup").classList.remove("hidden");
 	      renderChannelActions(item);
@@ -22831,7 +23347,7 @@
           ? `<span class="bubble-state">未发送 · 顾客回复后 ChatDaddy 自动取消</span>`
           : "";
         return `<div class="bubble ${klass}">${messageBubbleContentHtml(msg)}${cancelledLabel}</div>`;
-	  }).join("") + (!readOnly && !hasOutbound && !misleadingPaymentDraft && !paymentConfirmationCase && contextTextValue(decision.reply_message) ? `<div class="bubble out">${escapeHtml(contextTextValue(decision.reply_message))}</div>` : "");
+	  }).join("");
 
       $("panelWords").innerHTML = (item.word_cloud || []).map(localizedWord).filter(Boolean).map((word, index) => {
         return `<span class="word ${index === 0 ? "big" : index < 3 ? "mid" : "small"}">${escapeHtml(word)}</span>`;
@@ -27941,10 +28457,25 @@
       if (isCaseReadOnly(state.active)) return;
       if (state.actionBusy) return;
       if (!(await confirmLiveAction("approve", state.active))) return;
-      await postCaseAction(state.active.id, "approve_execute", {
-        reply_message: $("replyBox").value.trim(),
-        execution_plan: salesExecutionPlanForCase(state.active),
-      });
+      const activeBeforeSend = state.active;
+      const replyMessage = $("replyBox").value.trim();
+      const learningContext = queueLearningAfterSend(activeBeforeSend, replyMessage, "approve_execute");
+      try {
+        const result = await postCaseAction(activeBeforeSend.id, "approve_execute", {
+          reply_message: replyMessage,
+          execution_plan: salesExecutionPlanForCase(activeBeforeSend),
+        });
+        if (learningContext && (
+          state.demoMode
+          || result?.completed === true
+          || (result?.ok === true && result?.sends_messages === true && !result?.partial_success && !result?.already_handled)
+        )) {
+          completeLearningAfterSend(activeBeforeSend.id);
+        }
+      } catch (error) {
+        clearPendingLearningAfterSend(activeBeforeSend.id);
+        throw error;
+      }
     }
 
     function salesExecutionPlanForCase(item = {}) {
@@ -28186,19 +28717,30 @@
 	        return;
 	      }
 	      if (!(await confirmLiveAction("manual_send", state.active))) return;
+	      const activeBeforeSend = state.active;
+	      const learningContext = queueLearningAfterSend(activeBeforeSend, manualReplyText, "manual_send");
 	      const learning = manualSendLearningPayload(state.active, closer);
-	      const result = await postCaseAction(state.active.id, "manual_send", {
-	        reply_message: manualReplyText,
-	        manualReplyText,
-	        final_human_reply: manualReplyText,
-	        ...learning,
-	        note: learning.note,
-	        source: "dashboard_manual_reply_send",
-	        learning_candidate_source: "dashboard_manual_reply_send",
-	        create_learning_candidate: true,
-	      });
-	      if (actionLearningNoteRecorded(result)) {
-	        showToast("已回复并发送，学习候选待 Owner 审核。");
+	      try {
+	        const result = await postCaseAction(activeBeforeSend.id, "manual_send", {
+	          reply_message: manualReplyText,
+	          manualReplyText,
+	          final_human_reply: manualReplyText,
+	          ...learning,
+	          note: learning.note,
+	          source: "dashboard_manual_reply_send",
+	          learning_candidate_source: "dashboard_manual_reply_send",
+	          create_learning_candidate: false,
+	        });
+	        if (learningContext && (
+	          state.demoMode
+	          || result?.completed === true
+	          || (result?.ok === true && result?.sends_messages === true && !result?.partial_success && !result?.already_handled)
+	        )) {
+	          completeLearningAfterSend(activeBeforeSend.id);
+	        }
+	      } catch (error) {
+	        clearPendingLearningAfterSend(activeBeforeSend.id);
+	        throw error;
 	      }
 	    }
 
@@ -28315,12 +28857,14 @@
 	          if (status.completed) {
 	            clearSendAttempt(attempt);
 	            setPanelBusy(false);
+	            completeLearningAfterSend(caseId);
 	            showToast(action === "trigger_flow" ? "ChatDaddy 已确认 Flow；不会重复触发。" : "ChatDaddy 已确认发送；不会重复发送。");
 	            loadCases().catch(() => {});
 	            return status;
 	          }
 	          if (status.retryable) {
 	            updateSendAttempt(attempt, { status: "retryable" });
+	            clearPendingLearningAfterSend(caseId);
 	            setPanelBusy(false);
 	            showToast("ChatDaddy 没有确认成功；可以重试，系统会沿用同一个防重编号。");
 	            return status;
@@ -28328,6 +28872,7 @@
 	        } catch {}
 	      }
 	      updateSendAttempt(attempt, { status: "confirmation_timeout" });
+	      clearPendingLearningAfterSend(caseId);
 	      setPanelBusy(false);
 	      showToast("仍在等 ChatDaddy 同步。请先到 ChatDaddy 查看，系统会继续拦截重复发送。");
 	      return { ok: false, confirmation_timeout: true };
@@ -28338,7 +28883,7 @@
 	      const completion = handoffCompletionPayload(item);
 	      const reason = completion.payload.handoff_reason || verdict.reason || "客服在 Dashboard 转人工回复回复。";
 	      const outcome = completion.payload.customer_outcome || "已由客服在 Dashboard 人工回复顾客。";
-	      const note = completion.payload.learning_outcome_note || "把顾客原话、AI 草稿和这次人工最终回复保留为学习候选；Owner 审核后，同类问题才可自动或少审核。";
+	      const note = completion.payload.learning_outcome_note || "系统保留顾客原话、AI 草稿和客服最终回复；只有客服发送后明确选择，才提交 Owner 学习审核。";
 	      const learnability = completion.payload.learnability || "needs_owner";
 	      return {
 	        handoff_reason: reason,
@@ -30145,9 +30690,9 @@
 	          facts: [
 	            { label: "顾客消息", value: "立即发送" },
 	            { label: "ChatDaddy Flow", value: "不会触发" },
-	            { label: "AI 学习", value: "建立 Owner 审核候选" },
+	            { label: "AI 学习", value: "发送后由客服选择" },
 	          ],
-	          note: learning.handoff_reason || "发送成功后仍可继续在同一张 Case 回复。",
+	          note: `${learning.handoff_reason || "发送成功后仍可继续在同一张 Case 回复。"} 这一步不会自动让 AI 学习。`,
 	          cancelLabel: "返回修改",
 	          confirmLabel: "确认发送",
 	        });
@@ -30169,11 +30714,11 @@
 	          { label: "批准素材", value: executionSummary.mediaCount ? `${executionSummary.mediaCount} 个` : "没有" },
 	          { label: "ChatDaddy Flow", value: executionSummary.flowValue },
 	          { label: "成交节奏", value: executionSummary.cadenceValue },
-	          { label: "AI 学习", value: action === "learn" ? "高优先候选" : "建立审核候选" },
+	          { label: "AI 学习", value: action === "learn" ? "高优先候选" : "发送后由客服选择" },
 	        ],
 	        note: action === "learn"
 	          ? `Owner 通过后，同阶段/同意图/低风险问题才会少审核或自动。${toneReminder}`
-	          : `发送成功后会记录学习候选；Owner 审核后，同类问题才会自动或少审核。${toneReminder}`,
+	          : `这一步只发送；若你修改了草稿，发送成功后再选择是否提交学习候选。${toneReminder}`,
 	        cancelLabel: "返回修改",
 	        confirmLabel: "确认发送",
 	      });
@@ -30199,9 +30744,8 @@
 	      const purchaseActionComplete = purchaseActionCompleteForCase(state.active);
 	      $("approveBtn").classList.toggle("hidden", canManualSend);
 	      $("approveBtn").disabled = isBusy || isFlowOnly || readOnly || approvalGuard.blocked;
-	      const canLearnAndSend = !canManualSend && !readOnly && !isFlowOnly && canCreateDirectAutoReplyRule(state.active);
-	      $("learnAndSendBtn").classList.toggle("hidden", !canLearnAndSend);
-	      $("learnAndSendBtn").disabled = isBusy || !canLearnAndSend;
+	      $("learnAndSendBtn").classList.add("hidden");
+	      $("learnAndSendBtn").disabled = true;
       $("manualSendBtn").classList.toggle("hidden", !canManualSend);
       $("manualSendBtn").disabled = isBusy || !canManualSend;
       $("manualResolveBtn").disabled = isBusy || !canManualResolve;
@@ -30209,7 +30753,7 @@
 	      $("noReplyNeededBtn").disabled = isBusy || !canRecordNoReply;
       $("returnAiBtn").disabled = isBusy || readOnly;
       $("handoffBtn").disabled = isBusy || readOnly;
-      $("learnBtn").disabled = isBusy || readOnly;
+      $("learnBtn").disabled = true;
 	      $("caseOptimizerDraftBtn").disabled = isBusy;
 	      $("caseOptimizerRecordBtn").disabled = isBusy;
 	      $("caseOptimizerApplyBtn").disabled = isBusy;
@@ -30418,14 +30962,14 @@
           final_human_reply: body.final_human_reply || body.manualReplyText || body.reply_message || "",
           client_message_id: body.client_message_id || createClientMessageId(),
           confirmLiveSend: true,
-          create_learning_candidate: true,
+          create_learning_candidate: body.create_learning_candidate === true,
           source: body.source || "dashboard_manual_reply_send",
           learning_candidate_source: body.learning_candidate_source || "dashboard_manual_reply_send",
           handoff_reason: body.handoff_reason || "",
           customer_outcome: body.customer_outcome || "",
           learning_outcome_note: body.learning_outcome_note || "",
           learnability: body.learnability || "needs_owner",
-          note: body.note || "客服在 Dashboard 回复并发送；发送后记录学习候选，Owner 审核后才应用。",
+          note: body.note || "客服在 Dashboard 回复并发送；是否提交学习候选由客服在发送后单独确认。",
           user: state.session.displayName || roleName(state.role),
         };
       }
@@ -30457,13 +31001,15 @@
         record.status = "sent";
         record.latest_reply_sent = body.reply_message;
         record.messages.push({ direction: "outbound", text: body.reply_message, at: now });
-        record.manual_learning_candidate = caseOptimizerLearningCandidate(record, "");
+        if (body.create_learning_candidate === true) {
+          record.manual_learning_candidate = caseOptimizerLearningCandidate(record, "");
+        }
         record.history.push({
           type: "approved_sent_demo",
           at: now,
-          note: "演示：已批准发送，并记录学习候选；不会真的发 WhatsApp。",
+          note: "演示：已批准发送；不会真的发 WhatsApp。学习候选要由客服发送后另行确认。",
         });
-        showToast("演示：已批准发送，并记录学习候选。");
+        showToast("演示：已批准发送。");
       }
 
       if (action === "manual_send") {
@@ -30477,13 +31023,15 @@
         record.learning_outcome_note = body.learning_outcome_note || record.learning_outcome_note || "演示：发送后记录学习候选。";
         record.learnability = normalizeLearnabilityDecision(body.learnability) || "needs_owner";
         record.messages.push({ direction: "outbound", text: manualReplyText, at: now });
-        record.manual_learning_candidate = caseOptimizerLearningCandidate(record, "");
+        if (body.create_learning_candidate === true) {
+          record.manual_learning_candidate = caseOptimizerLearningCandidate(record, "");
+        }
         record.history.push({
           type: "approved_sent_demo",
           at: now,
-          note: "演示：已回复并发送，并记录学习候选；不会真的发 WhatsApp。",
+          note: "演示：已回复并发送；不会真的发 WhatsApp。学习候选要由客服发送后另行确认。",
         });
-        showToast("演示：已回复并发送，并记录学习候选。");
+        showToast("演示：已回复并发送。");
       }
 
       if (action === "learn") {
@@ -30916,25 +31464,48 @@
     } catch {}
 
 	(async function bootDashboard() {
+	  const firstPaintProject = projectKeyEl.value.trim() || "beyoute";
+	  let restoredFirstPaint = false;
+	  if (hasAccountSession()) {
+	    restoredFirstPaint = state.workspaceView === "inbox"
+	      ? restoreDashboardInboxSnapshot(firstPaintProject)
+	      : restoreDashboardQueueSnapshot(firstPaintProject, canUseQaMode());
+	    if (restoredFirstPaint) render();
+	  }
 	  const sessionReady = await bootstrapSaasSession();
 	  if (!sessionReady && apiUrlEl.value.trim()) return;
+	  const verifiedProject = projectKeyEl.value.trim() || "beyoute";
+	  if (verifiedProject !== firstPaintProject) {
+	    state.cases = [];
+	    state.inboxConversations = [];
+	    restoredFirstPaint = state.workspaceView === "inbox"
+	      ? restoreDashboardInboxSnapshot(verifiedProject)
+	      : restoreDashboardQueueSnapshot(verifiedProject, canUseQaMode());
+	  }
 	  // Match mature inbox products: first paint the last successful projection,
 	  // then refresh it. Never hold an already-known Case list behind status,
 	  // onboarding, Supabase, and ChatDaddy reads at the same time.
 	  if (state.workspaceView === "inbox") {
-	    restoreDashboardInboxSnapshot(projectKeyEl.value.trim() || "beyoute");
+	    if (!restoredFirstPaint) restoredFirstPaint = restoreDashboardInboxSnapshot(verifiedProject);
 	    render();
 	  }
 	  const inboxWarmup = state.workspaceView === "inbox"
 	    ? loadInboxConversations({ silent: true, preserveLoaded: true, skipCaseSync: true })
 	    : null;
+	  const queueWarmup = state.workspaceView === "cases"
+	    ? loadCases({
+	        silent: restoredFirstPaint,
+	        preserveSelection: restoredFirstPaint,
+	        nonBlockingFirstPaint: true,
+	      })
+	    : null;
 	  const [activationReady] = await Promise.all([
 	    loadSaasActivationStatus(),
-	    loadProjectOnboardingStatus()
+	    loadProjectOnboardingStatus(),
+	    queueWarmup
 	  ]);
 	  if (activationReady) {
 	    if (state.workspaceView === "inbox") await inboxWarmup;
-	    else await loadCases();
 	    startQueueAutoRefresh();
 	  } else {
 	    render();
