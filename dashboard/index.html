@@ -14087,11 +14087,11 @@
     }
 
     const DASHBOARD_QUEUE_REQUEST_TIMEOUT_MS = 4000;
-    const DASHBOARD_NO_INTERVENTION_REQUEST_TIMEOUT_MS = 30000;
+    const DASHBOARD_NO_INTERVENTION_REQUEST_TIMEOUT_MS = 7000;
     const DASHBOARD_QUEUE_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
-    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 9;
+    const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 10;
     const DASHBOARD_INBOX_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
     const DASHBOARD_INBOX_SNAPSHOT_VERSION = 3;
     const DASHBOARD_INBOX_LIVE_TIMEOUT_MS = 5000;
@@ -14329,18 +14329,16 @@
       return `${api}/api/approvals/pending?${params.toString()}`;
     }
 
-    function dashboardNoInterventionRequestUrls(api = "", project = "") {
-      const stored = new URLSearchParams({
-        limit: "120",
-        scan_limit: "180",
-        offset: "0",
-        prefer_snapshot: "1",
+    function dashboardNoInterventionCurrentStateUrl(api = "", project = "") {
+      const params = new URLSearchParams({
+        project_key: project,
+        status: "auto",
+        compact_conversations: "0",
+        summary_only: "1",
+        limit: "300",
+        scan_limit: "300",
       });
-      const live = new URLSearchParams({ project_key: project, count: "100" });
-      return {
-        stored: `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${stored.toString()}`,
-        live: `${api}/api/channels/chatdaddy/inbox?${live.toString()}`,
-      };
+      return `${api}/api/approvals/pending?${params.toString()}`;
     }
 
     function dashboardConversationIsNoIntervention(item = {}) {
@@ -14649,13 +14647,16 @@
           ? Promise.resolve(null)
           : noInterventionCacheFresh
           ? Promise.resolve(null)
-          : (() => {
-              const urls = dashboardNoInterventionRequestUrls(api, project);
-              return Promise.all([
-                fetchDashboardQueueResult(urls.stored, token),
-                fetchDashboardQueueResult(urls.live, token, DASHBOARD_NO_INTERVENTION_REQUEST_TIMEOUT_MS),
-              ]);
-            })();
+          : fetchDashboardQueueResult(
+              dashboardNoInterventionCurrentStateUrl(api, project),
+              token,
+              DASHBOARD_NO_INTERVENTION_REQUEST_TIMEOUT_MS
+            );
+        // Start the independent Current State read immediately. The operation
+        // queue's primary `all_cases` request intentionally includes only
+        // conversations with a Case, while unanswered Flow/Button states
+        // normally have no Case and must be projected alongside it.
+        const noInterventionPromise = loadNoIntervention();
         const primary = await fetchDashboardQueueResult(approvalUrl, token);
         const res = primary.response;
         const data = primary.data || {};
@@ -14688,20 +14689,25 @@
             Number(data.max_event_no || 0)
           );
           const stateChanges = Array.isArray(data.changes) ? data.changes : [];
-          const changedConversationIds = new Set(
-            stateChanges.map((item) => String(item?.conversation_id || "")).filter(Boolean)
-          );
-          const incomingNoIntervention = dashboardNoInterventionConversationItems(stateChanges, []);
-          state.queueNoInterventionCases = data.changed_only === true
-            ? [
-                ...incomingNoIntervention,
-                ...(state.queueNoInterventionCases || []).filter((item) => (
-                  !changedConversationIds.has(String(item?.conversation_id || ""))
-                )),
-              ]
-            : incomingNoIntervention;
-          state.queueNoInterventionCacheKey = project;
-          state.queueNoInterventionFetchedAt = Date.now();
+          // `all_cases` has no raw no-intervention changes. Do not wipe the
+          // independently loaded Flow/Button projection merely because the
+          // primary Case index returned an empty `changes` array.
+          if (stateChanges.length > 0) {
+            const changedConversationIds = new Set(
+              stateChanges.map((item) => String(item?.conversation_id || "")).filter(Boolean)
+            );
+            const incomingNoIntervention = dashboardNoInterventionConversationItems(stateChanges, []);
+            state.queueNoInterventionCases = data.changed_only === true
+              ? [
+                  ...incomingNoIntervention,
+                  ...(state.queueNoInterventionCases || []).filter((item) => (
+                    !changedConversationIds.has(String(item?.conversation_id || ""))
+                  )),
+                ]
+              : incomingNoIntervention;
+            state.queueNoInterventionCacheKey = project;
+            state.queueNoInterventionFetchedAt = Date.now();
+          }
         }
 	        let liveItems = currentStateIndexed && data.changed_only === true
           ? mergeQueueCurrentStateItems(
@@ -14728,9 +14734,10 @@
 	        const queueChanged = realtimeQueueFingerprint(state.cases) !== previousQueueFingerprint;
 	        if (!options.silent || queueChanged) render();
 
-        const [historyResults, noInterventionResults] = currentStateIndexed
-          ? [[], null]
-          : await Promise.all([loadHistory(), loadNoIntervention()]);
+        const [historyResults, noInterventionResult] = await Promise.all([
+          currentStateIndexed ? Promise.resolve([]) : loadHistory(),
+          noInterventionPromise,
+        ]);
         let liveConversationItemsForReconcile = [];
         if (requestSeq !== state.queueRequestSeq) return;
         if (historyResults.length) {
@@ -14771,16 +14778,18 @@
             render();
           }
         }
-        if (Array.isArray(noInterventionResults)) {
-          const [storedResult, liveResult] = noInterventionResults;
-          const storedItems = storedResult?.ok && Array.isArray(storedResult.data?.items) ? storedResult.data.items : [];
-          const liveConversationItems = liveResult?.ok && Array.isArray(liveResult.data?.items) ? liveResult.data.items : [];
-          liveConversationItemsForReconcile = liveConversationItems;
-          if (storedResult?.ok || liveResult?.ok) {
-            state.queueNoInterventionCases = dashboardNoInterventionConversationItems(storedItems, liveConversationItems);
-            state.queueNoInterventionCacheKey = project;
-            state.queueNoInterventionFetchedAt = Date.now();
-          }
+        if (noInterventionResult?.ok) {
+          const projectionChanges = Array.isArray(noInterventionResult.data?.changes)
+            ? noInterventionResult.data.changes
+            : [];
+          const projectionItems = projectionChanges.length
+            ? projectionChanges
+            : Array.isArray(noInterventionResult.data?.items)
+              ? noInterventionResult.data.items
+              : [];
+          state.queueNoInterventionCases = dashboardNoInterventionConversationItems(projectionItems, []);
+          state.queueNoInterventionCacheKey = project;
+          state.queueNoInterventionFetchedAt = Date.now();
         }
         state.cases = dashboardCasesWithNoIntervention(
           reconcileApprovalCasesWithLiveConversations(
@@ -14788,7 +14797,7 @@
             liveConversationItemsForReconcile
           )
         );
-        if (!options.silent || Array.isArray(noInterventionResults)) render();
+        if (!options.silent || noInterventionResult?.ok) render();
         if (!searchQuery) {
           saveDashboardQueueSnapshot(project, liveItems, data.sync_status || null, {
             counts: state.queueHistoryCounts,
