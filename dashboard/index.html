@@ -14317,7 +14317,12 @@
     }
 
     function dashboardNoInterventionRequestUrls(api = "", project = "") {
-      const stored = new URLSearchParams({ limit: "120", scan_limit: "120", offset: "0" });
+      const stored = new URLSearchParams({
+        limit: "120",
+        scan_limit: "180",
+        offset: "0",
+        prefer_snapshot: "1",
+      });
       const live = new URLSearchParams({ project_key: project, count: "100" });
       return {
         stored: `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${stored.toString()}`,
@@ -14565,7 +14570,7 @@
           compact_conversations: "0",
           summary_only: "1",
           limit: searchQuery ? "80" : "120",
-          scan_limit: "500",
+          scan_limit: searchQuery ? "300" : "180",
         });
         if (useSnapshotFastPath) approvalParams.set("prefer_snapshot", "1");
         if (searchQuery) approvalParams.set("q", searchQuery.slice(0, 120));
@@ -14879,7 +14884,12 @@
         // Keep the staff Inbox broad enough that a broadcast burst cannot hide
         // ordinary live conversations from the default view. Pagination keeps
         // the same lookup usable when the project grows beyond this page.
-        const params = new URLSearchParams({ limit: "60", scan_limit: query ? "600" : "180", offset: String(requestedOffset) });
+        const params = new URLSearchParams({
+          limit: "60",
+          scan_limit: query ? "600" : "180",
+          offset: String(requestedOffset),
+          prefer_snapshot: !append && !query ? "1" : "0",
+        });
         if (query) params.set("q", query);
         const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/recent-conversations?${params.toString()}`;
         const liveParams = new URLSearchParams({ project_key: project, count: "50" });
