@@ -12359,7 +12359,7 @@
         },
         billing: {
           title: "费用与用量",
-          subtitle: "查看本项目的 Forecast 与 Actual。",
+          subtitle: "查看本项目实际 AI 用量与费用。",
         },
       };
       return meta[view] || meta.overview;
@@ -12376,10 +12376,11 @@
         ? onboarding.revision_complete === true ? "Onboarding 已完成" : "Onboarding 进行中"
         : "Onboarding 读取中";
       const onboardingTone = onboarding?.revision_complete === true ? "" : "warn";
+      const setupReady = activationReady && onboarding?.revision_complete === true;
       return `
-        <span class="status-chip ${activationTone}">${activationLabel}</span>
-        <span class="status-chip ${onboardingTone}">${onboardingLabel}</span>
-        <span class="status-chip">Approval-first</span>
+        ${setupReady ? "" : `<span class="status-chip ${activationTone}">${activationLabel}</span>`}
+        ${setupReady ? "" : `<span class="status-chip ${onboardingTone}">${onboardingLabel}</span>`}
+        <span class="status-chip">审批模式</span>
         <span class="status-chip">自动发送关</span>
         <span class="status-chip">自动 Flow 关</span>
       `;
@@ -17919,7 +17920,7 @@
 
     function renderNavigationBadges(counts, learned) {
       const opsLabel = state.demoMode ? "演示" : "已连";
-      const casesLabel = counts.needs > 0 ? counts.needs : "稳";
+      const casesLabel = counts.needs > 0 ? counts.needs : 0;
       const setBadge = (id, value) => {
         const element = $(id);
         if (element) element.textContent = value;
