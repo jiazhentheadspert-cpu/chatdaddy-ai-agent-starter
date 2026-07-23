@@ -14089,11 +14089,12 @@
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
     const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 8;
     const DASHBOARD_INBOX_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-    const DASHBOARD_INBOX_SNAPSHOT_VERSION = 2;
+    const DASHBOARD_INBOX_SNAPSHOT_VERSION = 3;
     const DASHBOARD_INBOX_LIVE_TIMEOUT_MS = 5000;
     const DASHBOARD_INBOX_STORED_TIMEOUT_MS = 7000;
     const DASHBOARD_INBOX_STORED_REFRESH_MS = 5 * 60 * 1000;
     const DASHBOARD_INBOX_STORED_BACKOFF_MS = 5 * 60 * 1000;
+    const DASHBOARD_INBOX_FUTURE_TIME_TOLERANCE_MS = 5 * 60 * 1000;
 
     function dashboardQueueSnapshotKey(project = "") {
       return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
@@ -14368,8 +14369,8 @@
         const identity = inboxConversationIdentity(item);
         if (!identity) return;
         const current = storedLatestByIdentity.get(identity);
-        const itemAt = new Date(item.latest_at || 0).getTime();
-        const currentAt = new Date(current?.latest_at || 0).getTime();
+        const itemAt = inboxConversationTimestampMs(item);
+        const currentAt = inboxConversationTimestampMs(current);
         if (!current || itemAt > currentAt) storedLatestByIdentity.set(identity, item);
       });
       const liveSupplemental = live.filter((item) => {
@@ -14377,8 +14378,8 @@
         if (!identity) return false;
         const storedLatest = storedLatestByIdentity.get(identity);
         if (!storedLatest) return true;
-        const liveAt = new Date(item.latest_at || 0).getTime();
-        const storedAt = new Date(storedLatest.latest_at || 0).getTime();
+        const liveAt = inboxConversationTimestampMs(item);
+        const storedAt = inboxConversationTimestampMs(storedLatest);
         const liveNoIntervention = dashboardConversationIsNoIntervention(item);
         const storedNoIntervention = dashboardConversationIsNoIntervention(storedLatest);
         const classificationChanged = liveNoIntervention !== storedNoIntervention
@@ -14394,7 +14395,7 @@
         return Number.isFinite(liveAt)
           && Number.isFinite(storedAt)
           && (
-            (liveAt > storedAt && isoDateFromValue(item.latest_at) !== isoDateFromValue(storedLatest.latest_at))
+            (liveAt > storedAt && inboxConversationDateKey(item) !== inboxConversationDateKey(storedLatest))
             || (liveAt >= storedAt && classificationChanged && liveNoIntervention)
           );
       });
@@ -14406,7 +14407,7 @@
     function dashboardConversationToNoInterventionCase(item = {}) {
       const identity = inboxConversationIdentity(item) || String(item.conversation_id || item.id || "").trim();
       const customer = item.customer || {};
-      const latestAt = item.latest_at || item.latest_message?.at || item.latest_message?.message_at || "";
+      const latestAt = inboxConversationEffectiveAt(item);
       const messageRows = Array.isArray(item.messages) ? item.messages.slice() : [];
       const latestMessage = item.latest_message && typeof item.latest_message === "object" ? item.latest_message : null;
       const latestMessageIdentity = firstContextText(latestMessage?.id, latestMessage?.provider_message_id);
@@ -14502,8 +14503,8 @@
         const identity = inboxConversationIdentity(item);
         if (!identity) return;
         const current = liveByIdentity.get(identity);
-        const itemAt = new Date(item.latest_at || 0).getTime();
-        const currentAt = new Date(current?.latest_at || 0).getTime();
+        const itemAt = inboxConversationTimestampMs(item);
+        const currentAt = inboxConversationTimestampMs(current);
         if (!current || itemAt > currentAt) liveByIdentity.set(identity, item);
       });
       return (Array.isArray(approvalCases) ? approvalCases : []).map((item) => {
@@ -14511,7 +14512,7 @@
         const identity = caseChatIdForSync(item);
         const live = identity ? liveByIdentity.get(identity) : null;
         if (!live || !dashboardConversationIsNoIntervention(live)) return item;
-        const liveAt = new Date(live.latest_at || 0).getTime();
+        const liveAt = inboxConversationTimestampMs(live);
         const triggerAt = new Date(firstContextText(
           item.raw_approval?.inbound?.message_at,
           item.raw_approval?.created_at,
@@ -17252,14 +17253,37 @@
       return parts.year && parts.month && parts.day ? `${parts.year}-${parts.month}-${parts.day}` : "unknown";
     }
 
+    function inboxConversationEffectiveAt(item = {}) {
+      const maxAllowedAt = Date.now() + DASHBOARD_INBOX_FUTURE_TIME_TOLERANCE_MS;
+      const providerCandidates = [
+        item?.latest_at,
+        item?.latest_message?.at,
+        item?.latest_message?.message_at,
+        item?.last_message_at,
+        item?.conversation?.last_message_at,
+      ];
+      const trustedFallbacks = [
+        item?.current_state_updated_at,
+        item?.latest_flow?.event_at,
+        item?.last_flow_at,
+        item?.updated_at,
+        item?.created_at,
+      ];
+      for (const value of [...providerCandidates, ...trustedFallbacks]) {
+        const timestamp = new Date(value || "").getTime();
+        if (!Number.isFinite(timestamp) || timestamp > maxAllowedAt) continue;
+        return new Date(timestamp).toISOString();
+      }
+      return "";
+    }
+
+    function inboxConversationTimestampMs(item = {}) {
+      const timestamp = new Date(inboxConversationEffectiveAt(item) || "").getTime();
+      return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+
     function inboxConversationDateKey(item = {}) {
-      return inboxBusinessDateKey(
-        item.latest_at
-        || item.latest_message?.at
-        || item.latest_message?.message_at
-        || item.updated_at
-        || item.created_at
-      );
+      return inboxBusinessDateKey(inboxConversationEffectiveAt(item));
     }
 
     function inboxConversationDateLabel(dateKey = "") {
@@ -17306,7 +17330,7 @@
     }
 
     function inboxConversationSort(left = {}, right = {}) {
-      const newestFirst = new Date(right.latest_at || 0) - new Date(left.latest_at || 0);
+      const newestFirst = inboxConversationTimestampMs(right) - inboxConversationTimestampMs(left);
       if (state.inboxSort === "latest") return newestFirst;
       const priority = (item) => {
         if (item?.requires_attention) return 0;
@@ -17374,7 +17398,7 @@
         const current = byConversationId.get(key);
         byConversationId.set(key, current ? mergeInboxConversationItem(current, item) : item);
       });
-      return [...byConversationId.values()].sort((a, b) => new Date(b.latest_at || 0) - new Date(a.latest_at || 0));
+      return [...byConversationId.values()].sort((a, b) => inboxConversationTimestampMs(b) - inboxConversationTimestampMs(a));
     }
 
     function inboxConversationIdentity(item = {}) {
@@ -17383,8 +17407,8 @@
     }
 
     function mergeInboxConversationItem(left = {}, right = {}) {
-      const leftAt = new Date(left.latest_at || 0).getTime();
-      const rightAt = new Date(right.latest_at || 0).getTime();
+      const leftAt = inboxConversationTimestampMs(left);
+      const rightAt = inboxConversationTimestampMs(right);
       const newer = rightAt >= leftAt ? right : left;
       const older = newer === right ? left : right;
       const caseSource = newer.case_id ? newer : older.case_id ? older : {};
@@ -17458,7 +17482,7 @@
           </div>
           <div class="inbox-message-meta">
             <span class="inbox-direction ${escapeHtml(actor)}">${escapeHtml(inboxConversationActorLabel(actor))}</span>
-            <time>${escapeHtml(formatDate(item.latest_at))}</time>
+            <time>${escapeHtml(formatDate(inboxConversationEffectiveAt(item)))}</time>
           </div>
           <div class="inbox-latest-text">${escapeHtml(preview)}</div>
           ${recentMessages.length ? `
