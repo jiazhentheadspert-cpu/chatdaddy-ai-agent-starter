@@ -9415,11 +9415,13 @@
       queueNoInterventionCacheKey: "",
       queueNoInterventionFetchedAt: 0,
       inboxLoading: false,
+      inboxBackgroundSyncing: false,
       inboxLoadingMore: false,
       inboxLoadingEarlierDate: false,
       inboxVisibleDateCount: 1,
       inboxError: "",
       inboxUpdatedAt: "",
+      inboxSnapshotRestoredAt: "",
       inboxSort: "customer_first",
       filter: "needs_attention",
       active: null,
@@ -11272,9 +11274,14 @@
       state.workspaceView = state.role === "staff" && !["inbox", "cases"].includes(requestedView)
         ? "cases"
         : requestedView;
+      if (state.workspaceView === "inbox" && !state.demoMode && !state.inboxConversations.length) {
+        restoreDashboardInboxSnapshot(projectKeyEl.value.trim() || "beyoute");
+      }
       render();
       if (state.workspaceView === "inbox" && !state.demoMode && !state.inboxLoading && !state.inboxConversations.length) {
         loadInboxConversations({ silent: true }).catch(() => null);
+      } else if (state.workspaceView === "inbox" && !state.demoMode && state.inboxSnapshotRestoredAt) {
+        loadInboxConversations({ silent: true, preserveLoaded: true }).catch(() => null);
       } else if (state.workspaceView === "cases" && !state.demoMode && !state.loading && !state.cases.length) {
         // Entering the Case workspace is a user-visible load. It must run the
         // ChatDaddy classification preflight before any pending card appears.
@@ -13071,6 +13078,10 @@
     const DASHBOARD_QUEUE_HISTORY_MAX_AGE_MS = 60 * 1000;
     const DASHBOARD_NO_INTERVENTION_MAX_AGE_MS = 10 * 1000;
     const DASHBOARD_QUEUE_SNAPSHOT_VERSION = 7;
+    const DASHBOARD_INBOX_SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+    const DASHBOARD_INBOX_SNAPSHOT_VERSION = 1;
+    const DASHBOARD_INBOX_LIVE_TIMEOUT_MS = 5000;
+    const DASHBOARD_INBOX_STORED_TIMEOUT_MS = 7000;
 
     function dashboardQueueSnapshotKey(project = "") {
       return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
@@ -13151,6 +13162,68 @@
         }));
       } catch (_error) {
         // A full browser storage area must never block the live queue.
+      }
+    }
+
+    function dashboardInboxSnapshotKey(project = "") {
+      return `replypilot_inbox_snapshot_v${DASHBOARD_INBOX_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
+    }
+
+    function readDashboardInboxSnapshot(project = "") {
+      try {
+        const raw = localStorage.getItem(dashboardInboxSnapshotKey(project));
+        if (!raw) return null;
+        const snapshot = JSON.parse(raw);
+        const savedAt = new Date(snapshot?.saved_at || "").getTime();
+        if (!Number.isFinite(savedAt) || Date.now() - savedAt > DASHBOARD_INBOX_SNAPSHOT_MAX_AGE_MS) {
+          localStorage.removeItem(dashboardInboxSnapshotKey(project));
+          return null;
+        }
+        const items = Array.isArray(snapshot?.items) ? snapshot.items.filter(Boolean).slice(0, 100) : [];
+        return items.length ? { ...snapshot, items } : null;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function restoreDashboardInboxSnapshot(project = "") {
+      if (state.inboxConversations.length) return false;
+      const snapshot = readDashboardInboxSnapshot(project);
+      if (!snapshot) return false;
+      state.inboxConversations = snapshot.items;
+      state.inboxSummary = inboxConversationCounts(snapshot.items);
+      state.inboxUpdatedAt = snapshot.saved_at || "";
+      state.inboxSnapshotRestoredAt = snapshot.saved_at || "";
+      state.inboxProviderTotal = Number.isFinite(Number(snapshot.provider_total))
+        ? Number(snapshot.provider_total)
+        : null;
+      // Continuations are deliberately refreshed from ChatDaddy. A cached
+      // cursor can expire and must never make an old page look authoritative.
+      state.inboxOffset = 0;
+      state.inboxNextOffset = null;
+      state.inboxLiveNextPage = null;
+      state.inboxLiveHasMore = false;
+      state.inboxHasMore = false;
+      state.inboxVisibleDateCount = 1;
+      state.inboxLoading = true;
+      state.inboxBackgroundSyncing = true;
+      state.inboxError = "";
+      renderInboxView();
+      return true;
+    }
+
+    function saveDashboardInboxSnapshot(project = "", items = [], options = {}) {
+      if (!Array.isArray(items) || !items.length) return;
+      try {
+        localStorage.setItem(dashboardInboxSnapshotKey(project), JSON.stringify({
+          version: DASHBOARD_INBOX_SNAPSHOT_VERSION,
+          saved_at: options.savedAt || new Date().toISOString(),
+          provider_total: Number.isFinite(Number(options.providerTotal)) ? Number(options.providerTotal) : null,
+          items: items.slice(0, 100),
+        }));
+      } catch (_error) {
+        // Browser storage is only a first-paint accelerator. Live Inbox remains
+        // the source of truth and must still work if storage is unavailable.
       }
     }
 
@@ -13683,12 +13756,18 @@
       const token = adminTokenEl.value.trim();
       const requestSeq = ++state.inboxRequestSeq;
       const query = String(options.query !== undefined ? options.query : state.inboxQuery || "").trim();
+      const restoredSnapshot = !query && options.append !== true
+        ? restoreDashboardInboxSnapshot(project)
+        : false;
       const storedContinuationReady = state.inboxNextOffset !== null
         && state.inboxNextOffset !== ""
         && Number.isFinite(Number(state.inboxNextOffset));
       const liveContinuationReady = Boolean(state.inboxLiveHasMore && state.inboxLiveNextPage !== null);
       const append = options.append === true && !query && (storedContinuationReady || liveContinuationReady);
-      const preserveLoaded = options.preserveLoaded === true && !query && !append && state.inboxConversations.length > 0;
+      const preserveLoaded = (options.preserveLoaded === true || restoredSnapshot)
+        && !query
+        && !append
+        && state.inboxConversations.length > 0;
       const requestedOffset = append && storedContinuationReady ? Math.max(0, Number(state.inboxNextOffset)) : 0;
       const hasAuth = Boolean(token || hasAccountSession());
       if (!api || !hasAuth || state.demoMode) {
@@ -13702,6 +13781,7 @@
         state.inboxProviderTotal = null;
         state.inboxHasMore = false;
         state.inboxLoading = false;
+        state.inboxBackgroundSyncing = false;
         state.inboxLoadingMore = false;
         state.inboxLoadingEarlierDate = false;
         state.inboxVisibleDateCount = 1;
@@ -13722,9 +13802,13 @@
       const shouldLoadStored = !append || storedContinuationReady;
       const shouldLoadLive = !append || liveContinuationReady;
       state.inboxLoading = !append;
+      state.inboxBackgroundSyncing = !append;
       state.inboxLoadingMore = append;
       state.inboxError = "";
-      if (!options.silent) renderInboxView();
+      // Even silent/background refreshes must communicate their state. The old
+      // implementation rendered an empty zero-state before setting this flag,
+      // then waited for both Supabase and ChatDaddy before painting again.
+      renderInboxView();
       if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = true;
       if (inboxLoadEarlierDateBtnEl) inboxLoadEarlierDateBtnEl.disabled = true;
       try {
@@ -13739,20 +13823,70 @@
         Object.entries(liveContinuationRequest).forEach(([key, value]) => liveParams.set(key, value));
         if (query) liveParams.set("q", query);
         const liveEndpoint = `${api}/api/channels/chatdaddy/inbox?${liveParams.toString()}`;
-        const [res, liveRes] = await Promise.all([
-          shouldLoadStored ? fetch(endpoint, authRequestOptions(token)) : Promise.resolve(null),
-          shouldLoadLive ? fetch(liveEndpoint, authRequestOptions(token)).catch(() => null) : Promise.resolve(null),
-        ]);
-        const data = res ? await res.json().catch(() => ({})) : { ok: true, items: [], has_more: false, next_offset: null };
+        const settleInboxRequest = async (requestPromise) => {
+          try {
+            return { response: await requestPromise, error: null };
+          } catch (error) {
+            return { response: null, error };
+          }
+        };
+        // ChatDaddy is the current Inbox source and normally answers much
+        // faster than the historical Supabase projection. Start both reads,
+        // paint ChatDaddy as soon as it returns, and let stored history merge
+        // afterward. A slow/failed historical read must never blank live cases.
+        const storedRequest = settleInboxRequest(
+          shouldLoadStored
+            ? fetchDashboardQueueWithTimeout(endpoint, authRequestOptions(token), DASHBOARD_INBOX_STORED_TIMEOUT_MS)
+            : Promise.resolve(null)
+        );
+        const liveRequest = settleInboxRequest(
+          shouldLoadLive
+            ? fetchDashboardQueueWithTimeout(liveEndpoint, authRequestOptions(token), DASHBOARD_INBOX_LIVE_TIMEOUT_MS)
+            : Promise.resolve(null)
+        );
+        const liveOutcome = await liveRequest;
+        const liveRes = liveOutcome.response;
         const liveData = liveRes ? await liveRes.json().catch(() => ({})) : {};
+        const liveOk = Boolean(liveRes?.ok && liveData?.ok);
+        const fastLiveItems = liveOk && Array.isArray(liveData.items) ? liveData.items : [];
+        if (requestSeq !== state.inboxRequestSeq) return;
+        if (!append && !query && fastLiveItems.length) {
+          state.inboxConversations = preserveLoaded
+            ? mergeInboxConversationPages(fastLiveItems, priorConversations)
+            : fastLiveItems;
+          state.inboxSummary = inboxConversationCounts(state.inboxConversations);
+          state.inboxAppliedQuery = "";
+          state.inboxLoading = false;
+          state.inboxUpdatedAt = new Date().toISOString();
+          state.inboxSnapshotRestoredAt = "";
+          const liveProviderTotal = Number(liveData.total_count);
+          if (Number.isFinite(liveProviderTotal) && liveProviderTotal >= 0) state.inboxProviderTotal = liveProviderTotal;
+          saveDashboardInboxSnapshot(project, state.inboxConversations, {
+            savedAt: state.inboxUpdatedAt,
+            providerTotal: state.inboxProviderTotal,
+          });
+          renderInboxView();
+        }
+
+        const storedOutcome = await storedRequest;
+        const res = storedOutcome.response;
+        const data = res ? await res.json().catch(() => ({})) : { ok: false, items: [], has_more: false, next_offset: null };
         if ((res?.status === 401 || liveRes?.status === 401) && state.role === "staff") {
           redirectToUnifiedLogin({ clearSession: true });
           return;
         }
-        if (res && (!res.ok || !data.ok)) throw new Error(data.error || `HTTP ${res.status}`);
+        const storedOk = Boolean(!shouldLoadStored || (res?.ok && data?.ok));
+        if (!storedOk && !liveOk) {
+          throw new Error(
+            storedOutcome.error?.message
+            || liveOutcome.error?.message
+            || data.error
+            || `HTTP ${res?.status || liveRes?.status || 0}`
+          );
+        }
         if (requestSeq !== state.inboxRequestSeq) return;
-        const storedItems = Array.isArray(data.items) ? data.items : [];
-        const liveItems = liveRes?.ok && liveData?.ok && Array.isArray(liveData.items) ? liveData.items : [];
+        const storedItems = storedOk && Array.isArray(data.items) ? data.items : [];
+        const liveItems = fastLiveItems;
         const incoming = mergeInboxConversationPages(liveItems, storedItems);
         state.inboxConversations = append || preserveLoaded
           ? mergeInboxConversationPages(incoming, priorConversations)
@@ -13789,9 +13923,18 @@
           state.inboxHasMore = Boolean(state.inboxNextOffset !== null || state.inboxLiveHasMore);
         }
         state.inboxUpdatedAt = new Date().toISOString();
-        state.inboxError = liveContinuationState.retry
+        state.inboxSnapshotRestoredAt = "";
+        state.inboxError = !storedOk && liveOk
+          ? "历史对话索引暂时较慢；已显示 ChatDaddy 最新讯息。"
+          : liveContinuationState.retry
           ? "ChatDaddy 较早对话读取暂时失败；已保留原进度，可以重试。"
           : "";
+        if (!query && !append && state.inboxConversations.length) {
+          saveDashboardInboxSnapshot(project, state.inboxConversations, {
+            savedAt: state.inboxUpdatedAt,
+            providerTotal: state.inboxProviderTotal,
+          });
+        }
         if (!options.skipCaseSync && !options.silent) scheduleAllCaseConversationSync({ immediate: true, force: append });
       } catch (error) {
         if (requestSeq !== state.inboxRequestSeq) return;
@@ -13799,6 +13942,7 @@
       } finally {
         if (requestSeq !== state.inboxRequestSeq) return;
         state.inboxLoading = false;
+        state.inboxBackgroundSyncing = false;
         state.inboxLoadingMore = false;
         if (inboxRefreshBtnEl) inboxRefreshBtnEl.disabled = false;
         if (inboxLoadEarlierDateBtnEl) inboxLoadEarlierDateBtnEl.disabled = state.inboxLoadingEarlierDate;
@@ -15832,8 +15976,13 @@
           : `每次最多读取一页，并且只增加一个日期；不会一次加载 ${providerTotalKnown ? providerTotal : "全部"} 条。`;
       }
 
+      const firstPaintStatus = (state.inboxLoading || state.inboxBackgroundSyncing) && all.length
+        ? "先显示上次资料 · 后台更新中 · "
+        : state.inboxError && all.length
+          ? "已显示最新可用资料 · "
+          : "";
       updated.textContent = state.inboxUpdatedAt
-        ? `当前显示 ${visible.length} 条 · ${visibleDateGroups.length} 个日期 · 已缓存 ${all.length}${state.inboxHasMore ? "+" : ""} 条${providerTotalKnown ? ` · ChatDaddy 非归档 ${providerTotal} 条` : ""}${dateAction.canLoad && !query ? "，可按日期继续" : ""} · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
+        ? `${firstPaintStatus}当前显示 ${visible.length} 条 · ${visibleDateGroups.length} 个日期 · 已缓存 ${all.length}${state.inboxHasMore ? "+" : ""} 条${providerTotalKnown ? ` · ChatDaddy 非归档 ${providerTotal} 条` : ""}${dateAction.canLoad && !query ? "，可按日期继续" : ""} · ${inboxSortLabel()} · 更新于 ${formatDate(state.inboxUpdatedAt)}`
         : state.inboxLoading ? "正在同步" : "等待同步";
       summary.innerHTML = [
         [visible.length, `当前显示（${visibleDateGroups.length} 个日期）`],
@@ -30749,12 +30898,22 @@
 	(async function bootDashboard() {
 	  const sessionReady = await bootstrapSaasSession();
 	  if (!sessionReady && apiUrlEl.value.trim()) return;
+	  // Match mature inbox products: first paint the last successful projection,
+	  // then refresh it. Never hold an already-known Case list behind status,
+	  // onboarding, Supabase, and ChatDaddy reads at the same time.
+	  if (state.workspaceView === "inbox") {
+	    restoreDashboardInboxSnapshot(projectKeyEl.value.trim() || "beyoute");
+	    render();
+	  }
+	  const inboxWarmup = state.workspaceView === "inbox"
+	    ? loadInboxConversations({ silent: true, preserveLoaded: true, skipCaseSync: true })
+	    : null;
 	  const [activationReady] = await Promise.all([
 	    loadSaasActivationStatus(),
 	    loadProjectOnboardingStatus()
 	  ]);
 	  if (activationReady) {
-	    if (state.workspaceView === "inbox") await loadInboxConversations();
+	    if (state.workspaceView === "inbox") await inboxWarmup;
 	    else await loadCases();
 	    startQueueAutoRefresh();
 	  } else {
