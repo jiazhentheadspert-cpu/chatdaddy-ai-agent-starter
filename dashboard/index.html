@@ -9400,6 +9400,8 @@
       inboxLiveHasMore: false,
       inboxProviderTotal: null,
       inboxHasMore: false,
+      inboxStoredFetchedAt: 0,
+      inboxStoredBackoffUntil: 0,
       inboxSearchTimer: null,
       inboxRequestSeq: 0,
       queueRequestSeq: 0,
@@ -13082,6 +13084,8 @@
     const DASHBOARD_INBOX_SNAPSHOT_VERSION = 1;
     const DASHBOARD_INBOX_LIVE_TIMEOUT_MS = 5000;
     const DASHBOARD_INBOX_STORED_TIMEOUT_MS = 7000;
+    const DASHBOARD_INBOX_STORED_REFRESH_MS = 5 * 60 * 1000;
+    const DASHBOARD_INBOX_STORED_BACKOFF_MS = 5 * 60 * 1000;
 
     function dashboardQueueSnapshotKey(project = "") {
       return `replypilot_queue_snapshot_v${DASHBOARD_QUEUE_SNAPSHOT_VERSION}:${String(project || "beyoute").trim().toLowerCase()}`;
@@ -13799,7 +13803,16 @@
       const priorHasMore = state.inboxHasMore;
       const priorLiveNextPage = state.inboxLiveNextPage;
       const priorLiveHasMore = state.inboxLiveHasMore;
-      const shouldLoadStored = !append || storedContinuationReady;
+      const storedRefreshDue = Date.now() >= Number(state.inboxStoredBackoffUntil || 0)
+        && (
+          options.forceStored === true
+          || Date.now() - Number(state.inboxStoredFetchedAt || 0) >= DASHBOARD_INBOX_STORED_REFRESH_MS
+        );
+      const shouldLoadStored = Boolean(
+        query
+        || (append && storedContinuationReady)
+        || (!append && !query && storedRefreshDue)
+      );
       const shouldLoadLive = !append || liveContinuationReady;
       state.inboxLoading = !append;
       state.inboxBackgroundSyncing = !append;
@@ -13876,6 +13889,12 @@
           return;
         }
         const storedOk = Boolean(!shouldLoadStored || (res?.ok && data?.ok));
+        if (shouldLoadStored && storedOk) {
+          state.inboxStoredFetchedAt = Date.now();
+          state.inboxStoredBackoffUntil = 0;
+        } else if (shouldLoadStored) {
+          state.inboxStoredBackoffUntil = Date.now() + DASHBOARD_INBOX_STORED_BACKOFF_MS;
+        }
         if (!storedOk && !liveOk) {
           throw new Error(
             storedOutcome.error?.message
