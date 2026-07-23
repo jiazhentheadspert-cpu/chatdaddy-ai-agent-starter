@@ -16371,7 +16371,7 @@
 	        decision.intent,
 	        decision.reason,
 	        decision.action,
-	        decision.reply_message,
+	        contextTextValue(decision.reply_message),
 	      ].filter(Boolean).join(" ").toLowerCase();
 	      if (/attachment|image|photo|file|audio|voice/i.test(String(inboundType || "")) && !String(inboundText || "").trim()) return "latest_inbound_attachment";
 	      if (/receipt|收据|收據|付款|汇款|匯款|bank|paid|cod|payment|rm\s*\d+|转账|轉賬|截图|截圖/i.test(combined)) return "payment_or_order";
@@ -18305,7 +18305,7 @@
           decision.intent,
           decision.stage,
           decision.reason,
-          decision.reply_message,
+          contextTextValue(decision.reply_message),
           ...(item.word_cloud || []),
           ...(decision.keywords || []),
         ].join(" ").toLowerCase();
@@ -23175,7 +23175,7 @@
         decision.next_flow_name,
         decision.target_flow_key,
         decision.target_flow_name,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
 	        closer.title,
 	        closer.reason
 	      ], " ");
@@ -23413,7 +23413,7 @@
 	        decision.flow_name,
 	        decision.next_flow_name,
 	        decision.target_flow_name,
-	        decision.reply_message
+	        contextTextValue(decision.reply_message)
 	      ].filter(Boolean).join(" ");
 	      const onlinePaymentContext = /线上付款可审|给我户口|給我戶口/i.test(titleReason) || /(线上付款|線上付款|online\s*(?:banking|payment)|bank\s*transfer|bank\s*in|汇款|匯款|转账|轉賬|给我户口|給我戶口|bank\s*account|account\s*(?:no|number))/i.test(onlinePaymentSourceText);
 	      if (onlinePaymentContext) {
@@ -23694,7 +23694,7 @@
         decision.customer_text,
         decision.previous_agent_text,
         decision.operator_instruction,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.action,
         decision.stage,
         decision.intent,
@@ -24020,7 +24020,9 @@
 	  $("replyCard").classList.toggle("hidden", hideReplyCardForMode);
 	  const latestMessageOutbound = /outbound|agent|assistant|bot/i.test(String(latestMessage.direction || latestMessage.role || latestMessage.sender_type || ""));
 	  const manualConversationMode = canManualSend && (readOnly || paymentConfirmationCase || latestMessageOutbound);
-	  const originalProposedReply = externalFlowReadOnly ? externalFlowReadOnlyMessage(item) : decision.reply_message || "";
+	  const originalProposedReply = externalFlowReadOnly
+	    ? externalFlowReadOnlyMessage(item)
+	    : contextTextValue(decision.reply_message);
 	  const proposedReply = hideReplyCardForMode || isManualFollowUp || manualConversationMode ? "" : originalProposedReply;
 	  const misleadingPaymentDraft = paymentConfirmationCase && /(先帮你核对|先幫你核對|确认好后再回复|確認好後再回覆|稍后再回复|稍後再回覆|不会重复向你收款|不會重複向你收款)/i.test(originalProposedReply);
 	  const confirmedManualReply = Boolean(firstContextText(
@@ -24077,7 +24079,7 @@
       $("actionTitle").textContent = actionTitle(item);
       $("actionReason").textContent = actionHint(item);
       if (canManualSend && !$("replyBox").placeholder) {
-        $("replyBox").placeholder = "在这里写客服要发给顾客的回复；发送成功后会留下学习候选；Owner 审核后，同类问题才会自动或少审核。";
+        $("replyBox").placeholder = "在这里写客服要发给顾客的回复；发送成功后会记录学习候选；Owner 审核后，同类问题才会自动或少审核。";
       }
       if (canManualSend) {
         $("replyModeLabel").textContent = unrecognizedVoice ? "语音无法识别 · 人工回复" : manualConversationMode || readOnly ? "人工连续对话" : "人工回复并发送";
@@ -24141,7 +24143,7 @@
 	      $("chatBox").innerHTML = (item.messages || []).filter((msg) => messageHasRenderableContent(msg) && !contextMessageWasCancelled(msg)).filter((msg) => {
 	        if (!paymentConfirmationCase || confirmedManualReply) return true;
 	        const outbound = msg.direction === "outbound" || msg.direction === "out" || msg.role === "agent";
-	        return !(outbound && compactCompareText(messageDisplayText(msg)) === compactCompareText(decision.reply_message || ""));
+	        return !(outbound && compactCompareText(messageDisplayText(msg)) === compactCompareText(contextTextValue(decision.reply_message)));
 	      }).map((msg) => {
         const cancelled = contextMessageWasCancelled(msg);
         const normalizedMessage = normalizeDashboardMessageDirection(msg);
@@ -24391,7 +24393,7 @@
 	        decision.intent,
 	        decision.stage,
 	        decision.reason,
-	        decision.reply_message,
+	        contextTextValue(decision.reply_message),
 	        raw.inbound?.text,
 	        raw.reply?.text,
 	        raw.decision?.ui?.summary,
@@ -24537,7 +24539,7 @@
 	        decision.stage,
 	        decision.action,
 	        decision.reason,
-	        decision.reply_message,
+	        contextTextValue(decision.reply_message),
 	        raw.category,
 	        raw.action?.type,
 	        raw.decision?.signals?.intent,
@@ -25250,7 +25252,7 @@
 	    messageText,
 	    decision.reason,
 	    decision.previous_agent_text,
-	    decision.reply_message,
+	    contextTextValue(decision.reply_message),
 	    contextTextValue(item.raw_approval?.data)
 	  ].filter(Boolean).join("\n");
 	}
@@ -25588,7 +25590,7 @@
 	        decision.stage,
 	        decision.action,
 	        decision.reason,
-	        decision.reply_message,
+	        contextTextValue(decision.reply_message),
 	        item.raw_approval?.reply?.text,
 	        item.raw_approval?.action?.type,
 	        item.raw_approval?.category,
@@ -27598,7 +27600,7 @@
         item.customer_text,
         item.raw_context,
         decision.intent,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.reason,
       ].filter(Boolean).join(" ");
       return /问价嫌长|顾客嫌太长|没耐心|沒有耐心|嫌.{0,8}长|嫌.{0,8}長|no\s+patience|patience\s+to\s+read|too\s+(?:long|much)|don['’]?t\s+have\s+the\s+patience/i.test(combined);
@@ -27614,7 +27616,7 @@
         item.customer_text,
         item.raw_context,
         decision.customer_text,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
       ].filter(Boolean).join(" ");
       if (/\b(?:english|in english|write english|i don['’]?t|dont|do not|price|how much|patience|sorry|short version)\b/i.test(text)) return "en";
       return "zh";
@@ -27825,7 +27827,7 @@
       const previousAgentText = firstContextText(decision.previous_agent_text);
       const hasPreviousAgent = Boolean(previousAgentText);
       const draftText = contextTextJoin([
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         item.final_text,
         item.manual_reply_text
       ], " ");
@@ -28057,7 +28059,7 @@
       const orderGiftSafeDraft = orderGiftQuestion && /(?:查|查看|确认|確認|核对|核對|check|review|补寄|補寄|补发|補發).{0,40}(?:订单|訂單|order|记录|紀錄|record|配套|赠品|贈品|gift|活动|活動|毛巾|小粉瓶|玻璃杯|小包)|(?:订单|訂單|order|记录|紀錄|record|配套|赠品|贈品|gift|活动|活動|毛巾|小粉瓶|玻璃杯|小包).{0,40}(?:查|查看|确认|確認|核对|核對|check|review|补寄|補寄|补发|補發)|(?:不要|不敢|不能|先不).{0,18}(?:乱确认|亂確認|乱讲|亂講|承诺|承諾)/i.test(draftText);
       const orderGiftCurrentPromoDraft = orderGiftQuestion && !orderGiftSafeDraft && (flowAction || salesPushDraft || promoGiftAnswered || /(?:今天下单|今天下單|现在下单|現在下單|当前|目前|现在|現在|LAST\s*CALL|优惠|優惠|活动|活動|抢购|搶購|RM\s*150|RM\s*258|RM\s*378|加送|Beyoute\s*3\s*小包|丝柔亲肤毛巾|絲柔親膚毛巾|小粉瓶|哪个配套|哪個配套)/i.test(draftText));
       const specialPromoText = [
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.previous_agent_text,
         decision.operator_instruction,
         decision.headline,
@@ -28120,7 +28122,7 @@
 	      const paymentReceivedText = [
         intent,
         action,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.previous_agent_text,
         decision.operator_instruction,
         decision.headline,
@@ -28152,7 +28154,7 @@
       const shippingEtaAnswered = /(西马|西馬|west\s*malaysia|wm).{0,50}(2\s*[-到至]\s*3|2\s*to\s*3).{0,30}(工作天|工作日|天|days?|business\s*days?)|(?:东马|東馬|east\s*malaysia|em).{0,50}(5\s*[-到至]\s*7|5\s*to\s*7).{0,30}(工作天|工作日|天|days?|business\s*days?)|(?:2\s*[-到至]\s*3|2\s*to\s*3).{0,30}(?:工作天|工作日|days?|business\s*days?).{0,80}(?:5\s*[-到至]\s*7|5\s*to\s*7)/i.test(draftText);
       const gratitudeText = [
         intent,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         item.inbound_text,
         item.customer_text,
         item.final_text,
@@ -28162,7 +28164,7 @@
       const paymentMethodText = [
         intent,
         action,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.previous_agent_text,
         decision.operator_instruction,
         decision.headline,
@@ -28178,7 +28180,7 @@
       const walletPaymentOrderContextText = [
         action,
         stage,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.previous_agent_text,
         decision.operator_instruction,
         decision.headline,
@@ -28210,7 +28212,7 @@
       const deliveryPaymentText = [
         intent,
         action,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.operator_instruction,
         decision.headline,
         item.inbound_text,
@@ -28222,7 +28224,7 @@
       const orderUpdateText = [
         intent,
         action,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.operator_instruction,
         decision.headline,
         item.inbound_text,
@@ -28234,7 +28236,7 @@
       const crossChannelContactText = [
         intent,
         action,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.operator_instruction,
         decision.headline,
         item.inbound_text,
@@ -28261,7 +28263,7 @@
       const marketplaceOfficialText = [
         intent,
         action,
-        decision.reply_message,
+        contextTextValue(decision.reply_message),
         decision.operator_instruction,
         decision.headline,
         item.inbound_text,
@@ -28943,7 +28945,7 @@
 	        item.previous_agent_text,
 	        item.last_agent_message
 	      );
-	      const originalAiReply = caseOptimizerOriginalAiReply(item) || decision.reply_message || "";
+	      const originalAiReply = caseOptimizerOriginalAiReply(item) || contextTextValue(decision.reply_message);
 	      const evidenceMissing = [];
 	      if (!customerText) evidenceMissing.push("顾客原话");
 	      if (!flowContextText) evidenceMissing.push("上一段 Flow");
@@ -29042,7 +29044,7 @@
 	    function caseHandoffEvidenceRows(item = {}) {
 	      const decision = item.latest_decision || {};
 	      const customerText = firstContextText(item.last_message, item.customer_text, decision.customer_text, item.incoming, item.message, customerPreviewText(item));
-	      const originalAiReply = caseOptimizerOriginalAiReply(item) || decision.reply_message || "";
+	      const originalAiReply = caseOptimizerOriginalAiReply(item) || contextTextValue(decision.reply_message);
 		      const manualReply = caseOptimizerManualReplyText(item);
 		      const advisor = handoffRiskAdvisorForCase(item);
 		      const reason = caseHandoffReason(item) || advisor.handoff_reason || "";
@@ -30331,7 +30333,7 @@
 	        ...(flowName ? [`上一段 Flow / Broadcast：${flowName}`] : []),
 	        ...(previousAgentText ? [`上一句 Agent：${previousAgentText}`] : []),
 	        `顾客最后一句：${item.last_message || customerPreviewText(item) || "[看不到原文]"}`,
-	        `AI 建议：${originalAiReply || decision.reply_message || "[没有建议]"}`,
+	        `AI 建议：${originalAiReply || contextTextValue(decision.reply_message) || "[没有建议]"}`,
 	        ...(nextFlowName ? [`下一步 Flow：${nextFlowName}`] : []),
 	        ...(manualReplyText ? [`客服最终回复：${manualReplyText}`] : [])
 	      ].join("\n");
@@ -30394,7 +30396,7 @@
       const manualReplyText = caseOptimizerManualReplyText(item);
       const action = String(decision.action || item.action || "").toLowerCase();
       const status = String(item.status || "").toLowerCase();
-      const aiDraftText = String(decision.reply_message || item.final_text || item.reply_text || "").trim();
+      const aiDraftText = firstContextText(decision.reply_message, item.final_text, item.reply_text);
       const approvalReadyDraft = aiDraftText && !/(ask_human|handoff|create_handoff)/i.test(action) && (
         status.includes("approval") ||
         action.includes("send") ||
@@ -30896,7 +30898,7 @@
         feedback: feedback || "Case 内优化：AI 回复不符合上下文。",
         generated_rule: generatedRule || "",
         customer_message: item.last_message || customerPreviewText(item) || "",
-        suggested_reply: caseOptimizerOriginalAiReply(item) || decision.reply_message || "",
+        suggested_reply: caseOptimizerOriginalAiReply(item) || contextTextValue(decision.reply_message),
         learning_candidate: candidate,
         manual_sample_judgment: manualSampleLearningJudgment(item),
         self_optimization_checklist: caseSelfOptimizationChecklist(item, candidate),
@@ -32123,7 +32125,7 @@
 	        };
         record.manual_resolve_reason = body.note || "演示：客服已记录人工回复。";
         if (manualReplyText) {
-          record.original_ai_reply = record.latest_decision?.reply_message || "";
+          record.original_ai_reply = contextTextValue(record.latest_decision?.reply_message);
           record.messages.push({ direction: "outbound", text: manualReplyText, at: now });
           record.latest_decision.reply_message = manualReplyText;
           record.latest_decision.original_ai_reply = record.original_ai_reply;
