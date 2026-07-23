@@ -906,6 +906,67 @@
       gap: 12px;
     }
 
+    .owner-closer-grid,
+    .owner-teaching-groups {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .owner-teaching-groups {
+      padding: 20px;
+    }
+
+    .owner-closer-grid {
+      margin-bottom: 12px;
+    }
+
+    .owner-closer-card,
+    .owner-teaching-group {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .owner-closer-card span,
+    .owner-teaching-group > small {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.4;
+    }
+
+    .owner-closer-card p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .owner-teaching-group .fields {
+      grid-template-columns: 1fr;
+      padding: 14px 0 0;
+    }
+
+    .owner-reply-contract-summary {
+      padding: 14px;
+      border: 1px solid rgba(15, 159, 146, 0.3);
+      border-radius: 8px;
+      background: #f0fcf9;
+    }
+
+    .owner-reply-contract-summary p {
+      margin: 7px 0 0;
+      color: #315f5b;
+      font-weight: 850;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
     .beginner-review-card {
       padding: 14px;
       border: 1px solid var(--line);
@@ -2594,7 +2655,9 @@
       }
 
       .brain-version-strip,
-      .beginner-review-grid {
+      .beginner-review-grid,
+      .owner-closer-grid,
+      .owner-teaching-groups {
         grid-template-columns: 1fr;
       }
 
@@ -2719,7 +2782,7 @@
           </a>
           <a class="onboarding-rail-step" href="#learningReviewPanel" data-progress-phase="review">
             <span class="rail-marker">3</span>
-            <span><b>确认 AI 理解</b><small data-phase-label>等待</small></span>
+            <span><b>确认成交大脑</b><small data-phase-label>等待</small></span>
           </a>
           <a class="onboarding-rail-step" href="#learningLoopPanel" data-progress-phase="use">
             <span class="rail-marker">4</span>
@@ -2734,7 +2797,7 @@
 
       <div class="side-card expert-only" hidden>
         <h2 id="setupSideTitle">4 步上线</h2>
-        <p id="setupSideDescription">连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 上线检查；AI 实战可选</p>
+        <p id="setupSideDescription">连接 ChatDaddy → AI 自动学习 → 确认成交大脑 → 上线检查；AI 实战可选</p>
       </div>
 
       <div class="side-card">
@@ -2747,7 +2810,7 @@
           </div>
           <a class="side-link" href="#channelFlowPanel"><span>1. 连接 ChatDaddy</span><strong>→</strong></a>
           <a class="side-link" href="#businessPanel"><span>2. AI 自动学习</span><strong>→</strong></a>
-          <a class="side-link" href="#learningReviewPanel"><span>3. 确认 AI 理解</span><strong>→</strong></a>
+          <a class="side-link" href="#learningReviewPanel"><span>3. 确认成交大脑</span><strong>→</strong></a>
           <a class="side-link" href="#learningLoopPanel"><span>4. 上线检查</span><strong>→</strong></a>
           <a class="side-link" href="#practicePanel"><span>5. AI 实战</span><strong>→</strong></a>
         </div>
@@ -2782,7 +2845,7 @@
         <nav class="progress-steps progress-steps-hidden" id="progressSteps" aria-hidden="true">
           <a class="progress-step current" href="#channelFlowPanel" data-progress-phase="flow"><b>1 连接 ChatDaddy</b><span class="expert-only">读取真实 Flow 内容</span></a>
           <a class="progress-step" href="#businessPanel" data-progress-phase="teach"><b>2 AI 自动学习</b><span class="expert-only">理解卖什么与怎么卖</span></a>
-          <a class="progress-step" href="#learningReviewPanel" data-progress-phase="review"><b>3 确认 AI 理解</b><span class="expert-only">只看异常与不确定内容</span></a>
+          <a class="progress-step" href="#learningReviewPanel" data-progress-phase="review"><b>3 确认成交大脑</b><span class="expert-only">只看异常与不确定内容</span></a>
           <a class="progress-step" href="#learningLoopPanel" data-progress-phase="use"><b>4 上线检查</b><span class="expert-only">修复所有阻塞</span></a>
           <a class="progress-step" href="#practicePanel" data-progress-phase="practice"><b>5 AI 实战（可选）</b><span class="expert-only">100 位顾客安全预演</span></a>
         </nav>
@@ -2960,7 +3023,7 @@
           <div class="document-relearn-status" id="documentRelearnStatus">尚未选择文件。</div>
         </div>
         <details class="section beginner-optional" id="beginnerSupplement">
-          <summary>补充资料（可选）</summary>
+          <summary>补充或修改成交资料</summary>
           <div style="padding: 0 20px 20px;">
             <form class="form" id="setupForm"></form>
             <label class="dropzone" id="beginnerUpload" hidden>
@@ -3032,8 +3095,8 @@
       <section class="panel onboarding-step-panel is-collapsed" id="learningReviewPanel" data-onboarding-panel data-onboarding-phase="review">
         <div class="toolbar">
           <div>
-            <h2>3. 确认 AI 理解</h2>
-            <p>只处理异常；原话自动锁定。</p>
+            <h2>3. 确认成交大脑</h2>
+            <p>确认顾客要什么、为什么选我们，以及 AI 怎样持续推进到订单。</p>
           </div>
           <div class="onboarding-panel-controls">
             <div class="status" id="learningReviewStatus">尚未加载</div>
@@ -3041,6 +3104,31 @@
           </div>
         </div>
         <div class="flow-understanding-grid" id="flowReviewUnderstandingGrid"></div>
+        <section class="beginner-review-contract" aria-label="成交大脑三项确认">
+          <div class="owner-closer-grid">
+            <article class="owner-closer-card">
+              <span>顾客要什么</span>
+              <b>痛点、目标与购买触发</b>
+              <p id="ownerCustomerOutcomeSummary">等待 AI 从项目资料与真实 Flow 整理。</p>
+            </article>
+            <article class="owner-closer-card">
+              <span>为什么选我们</span>
+              <b>USP、对比与可信证明</b>
+              <p id="ownerCompetitiveReasonSummary">等待 AI 整理可使用的差异和证据。</p>
+            </article>
+            <article class="owner-closer-card">
+              <span>怎样成交</span>
+              <b>异议、下一动作与停止条件</b>
+              <p id="ownerClosingPlanSummary">等待 AI 整理价格后成交路线。</p>
+            </article>
+          </div>
+          <article class="owner-reply-contract-summary">
+            <b>AI Agent Reply 成交标准</b>
+            <p id="ownerReplyContractSummary">价格前：回答 → 信心 → 下一 Step
+价格后：回答 → 信心 → CTA → 真实 Urgency → 配套选择
+持续推进：直到下单、顾客明确不要或必须转人工。</p>
+          </article>
+        </section>
         <div class="beginner-review-contract" id="beginnerReviewContract" aria-live="polite">
           <div class="beginner-review-grid">
             <article class="beginner-review-card">
@@ -3536,6 +3624,7 @@
               key: "business_primary_offer",
               label: "你卖什么",
               required: false,
+              owner_group: "customer_outcome",
               question: "你是什么生意？AI 先卖什么产品 / 服务 / 配套？",
               reason: "用自己的话回答即可，不需要设计销售 Step。",
               example: "我们是【行业/业务】，卖给【主要客户】，现在先主推【产品/服务/配套】。"
@@ -3544,6 +3633,7 @@
               key: "why_it_works",
               label: "为什么有效",
               required: false,
+              owner_group: "why_us",
               question: "产品 / 服务为什么有效？机制、流程、成分、SOP 是什么？",
               reason: "只写项目方已经知道、可以公开使用的内容。",
               example: "它通过【机制/流程/SOP】，解决【什么问题】，所以顾客可以得到【什么变化】。"
@@ -3552,6 +3642,7 @@
               key: "why_customer_buys",
               label: "顾客为什么会买",
               required: false,
+              owner_group: "customer_outcome",
               question: "顾客痛点、想要的结果、购买触发是什么？",
               reason: "AI 会自行整理成顾客阶段，不需要你设计漏斗。",
               example: "顾客现在痛的是【问题】，想要【结果】，购买触发是【场景/时机/担心】。"
@@ -3560,22 +3651,43 @@
               key: "why_trust_us",
               label: "顾客为什么能相信你",
               required: false,
+              owner_group: "why_us",
               question: "USP、Proof、Review、认证、市场对比是什么？",
               reason: "没有正式来源的证明可以留空，AI 不会自行扩写。",
               example: "我们赢在【差异】，证明是【Proof】；顾客拿我们和【替代品】比较时讲【价值差别】。"
             },
             {
+              key: "competitive_reasons",
+              label: "顾客会拿我们跟什么比较（可选）",
+              required: false,
+              owner_group: "why_us",
+              question: "一行写一个真实比较，不需要写长文。",
+              reason: "格式：替代品｜顾客为什么考虑它｜我们凭什么更适合｜证明来源。",
+              example: "普通代餐｜价钱较低｜我们更适合想要【结果】的人｜来源：产品资料第 3 页"
+            },
+            {
               key: "offer_to_order",
               label: "价格、付款与下单方法",
               required: false,
+              owner_group: "how_to_close",
               question: "价格、配套、付款、COD、CTA、收单字段是什么？",
               reason: "写你现有的做法，AI 会自行整理回复与接棒逻辑。",
               example: "主推【价格/配套】，付款条件是【规则】，确认后收【名字/电话/地址/预约资料】。"
             },
             {
+              key: "objection_playbooks",
+              label: "客服怎样把异议带回成交（可选）",
+              required: false,
+              owner_group: "how_to_close",
+              question: "一行写一种常见异议和下一句成交动作。",
+              reason: "格式：顾客异议｜真正担心｜回答重点｜信心依据｜下一句问什么。",
+              example: "有点贵｜怕买了没用｜先讲价值差别｜来源：真实 Review｜你想先拿哪一个配套？"
+            },
+            {
               key: "safety_boundary",
               label: "什么不能讲、什么时候找真人",
               required: false,
+              owner_group: "how_to_close",
               question: "不能承诺什么？什么情况必须转人工？",
               reason: "健康、退款、投诉、法律、隐私或没把握时可以直接写要转人工。",
               example: "遇到【敏感/投诉/退款/健康法律/低信心】时，AI 不承诺，先【转人工/确认规则】。"
@@ -3754,6 +3866,10 @@
     const followUpGate = document.getElementById("followUpGate");
     const beginnerNextGateTitle = document.getElementById("beginnerNextGateTitle");
     const beginnerNextGateText = document.getElementById("beginnerNextGateText");
+    const ownerCustomerOutcomeSummary = document.getElementById("ownerCustomerOutcomeSummary");
+    const ownerCompetitiveReasonSummary = document.getElementById("ownerCompetitiveReasonSummary");
+    const ownerClosingPlanSummary = document.getElementById("ownerClosingPlanSummary");
+    const ownerReplyContractSummary = document.getElementById("ownerReplyContractSummary");
     const beginnerPersonaSummary = document.getElementById("beginnerPersonaSummary");
     const beginnerSampleReplies = document.getElementById("beginnerSampleReplies");
     const protectedSourceCopySummary = document.getElementById("protectedSourceCopySummary");
@@ -4094,7 +4210,7 @@
       document.getElementById("setupHeroTitle").textContent = `重新设置 ${projectLabel}`;
       document.getElementById("setupHeroDescription").textContent = "给资料，AI 整理；你只确认异常。";
       document.getElementById("setupSideTitle").textContent = "4 步上线";
-      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 上线检查；AI 实战可选";
+      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认成交大脑 → 上线检查；AI 实战可选";
     }
 
     function applyExpectedTopologyDefaults() {
@@ -4171,6 +4287,22 @@
       ][index] || `确认 Step ${index + 1} 的真实用途`;
     }
 
+    function reonboardingStageSuccess(index, priceStageKey = "") {
+      const stageNo = index + 1;
+      const priceStageNo = Number(String(priceStageKey || "").replace("step_", ""));
+      if (priceStageNo && stageNo === priceStageNo) {
+        return "顾客已理解真实价格与配套，并开始选择方案或提出需要解决的成交异议。";
+      }
+      if (priceStageNo && stageNo > priceStageNo) {
+        return "本轮异议已回答，顾客选择配套、提供下单资料、明确不要或需要转人工。";
+      }
+      return "顾客当前问题已回答，并愿意继续了解下一项成交内容。";
+    }
+
+    function reonboardingStageAdvance() {
+      return "顾客问题已回答，且没有明确拒绝或转人工条件时，才继续已配置的下一真实 Flow。";
+    }
+
     function stageProviderReference(stage = {}) {
       return firstNonEmpty(
         stage?.provider_flow_id,
@@ -4199,6 +4331,8 @@
         if (existing) {
           return {
             ...existing,
+            success_when: existing.success_when || reonboardingStageSuccess(index, expected.expected_price_stage_key),
+            advance_when: existing.advance_when || reonboardingStageAdvance(),
             next_stage_key: nextStageKey
           };
         }
@@ -4206,6 +4340,8 @@
           stage_key: stageKey,
           order: index + 1,
           purpose: reonboardingStepPurpose(index, expected.expected_price_stage_key),
+          success_when: reonboardingStageSuccess(index, expected.expected_price_stage_key),
+          advance_when: reonboardingStageAdvance(),
           entry_signal: index === 0
             ? "ChatDaddy Trigger starts Step 1."
             : "AI answers the current question before continuing the exact configured next Flow.",
@@ -4223,6 +4359,10 @@
         step_count: expected.expected_step_count,
         entry_stage_key: currentProcess.entry_stage_key || "step_1",
         price_stage_key: expected.expected_price_stage_key,
+        persistence_policy: {
+          ...(currentProcess.persistence_policy || {}),
+          keep_closing_until: ["order", "explicit_no", "handoff"]
+        },
         stages
       };
     }
@@ -4493,16 +4633,44 @@
       setupForm.innerHTML = sections.map((section) => {
         const fields = Array.isArray(section.fields) ? section.fields : [];
         if (section.key === "business_training") {
+          const ownerGroups = [
+            {
+              key: "customer_outcome",
+              title: "顾客要什么",
+              help: "确认顾客的痛点、想要结果和购买触发。"
+            },
+            {
+              key: "why_us",
+              title: "为什么选我们",
+              help: "只用有来源的 USP、比较和可信证明。"
+            },
+            {
+              key: "how_to_close",
+              title: "怎样成交",
+              help: "确认异议怎么接、下一步问什么，以及什么时候停止或交人工。"
+            }
+          ];
           return `
-            <details class="section beginner-optional">
-              <summary>
-                <span>补充业务内容（可选）</span>
-                <small class="expert-only">${escapeHtml(section.title || section.key)}</small>
-              </summary>
-              <div class="fields">
-                ${fields.map((field) => fieldHtml(section, field)).join("")}
+            <section class="section">
+              <div class="section-head">
+                <h3 class="section-title">成交大脑资料</h3>
+                <span class="expert-only">${escapeHtml(section.title || section.key)}</span>
               </div>
-            </details>
+              <div class="owner-teaching-groups">
+                ${ownerGroups.map((group) => `
+                  <section class="owner-teaching-group">
+                    <b>${escapeHtml(group.title)}</b>
+                    <small>${escapeHtml(group.help)}</small>
+                    <div class="fields">
+                      ${fields
+                        .filter((field) => field.owner_group === group.key)
+                        .map((field) => fieldHtml(section, field))
+                        .join("")}
+                    </div>
+                  </section>
+                `).join("")}
+              </div>
+            </section>
           `;
         }
         return `
@@ -4860,7 +5028,7 @@
             : !semanticReady
               ? "AI 正在读取 Flow"
               : !state.flowLearning?.owner_approved
-                ? "等待确认 AI 理解"
+                ? "等待确认成交大脑"
                 : state.published ? "资料已保存" : "设置中";
       document.getElementById("progressStatus").className = `status ${phaseDone.use ? "ok" : ""}`;
       updateProjectLinks();
@@ -4886,7 +5054,7 @@
       document.getElementById("setupHeroTitle").textContent = `重新设置 ${existingProject.name || projectKey}`;
       document.getElementById("setupHeroDescription").textContent = "AI 自动学习；你只确认异常。";
       document.getElementById("setupSideTitle").textContent = "4 步上线";
-      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认 AI 理解 → 上线检查；AI 实战可选";
+      document.getElementById("setupSideDescription").textContent = "连接 ChatDaddy → AI 自动学习 → 确认成交大脑 → 上线检查；AI 实战可选";
       document.querySelector("#setupForm .section-title").textContent = "项目资料";
       document.getElementById("channelSetupLink").textContent = "连接 ChatDaddy";
       createButton.textContent = "Owner 验收并保存重新 Onboard 草稿";
@@ -5045,9 +5213,15 @@
           "请 Owner 在这里补充并核对可公开使用的认证、证书、见证、公司与门店来源；没有正式来源的内容不得由 AI 自行扩写。"
         ].filter(Boolean).join("；")
       ));
+      setFormValue("business_training.competitive_reasons", firstNonEmpty(
+        onboardingAnswers.competitive_reasons
+      ));
       setFormValue("business_training.offer_to_order", firstNonEmpty(
         onboardingAnswers.offer_to_order,
         [faqText("faq_price", "faq_installment"), sopText("sop_payment", "closer_payment")].filter(Boolean).join("；")
+      ));
+      setFormValue("business_training.objection_playbooks", firstNonEmpty(
+        onboardingAnswers.objection_playbooks
       ));
       setFormValue("business_training.safety_boundary", firstNonEmpty(
         onboardingAnswers.safety_boundary,
@@ -5607,6 +5781,58 @@
 
     function renderBeginnerReviewContract() {
       const packageData = state.salesPackageResponse?.project_package || state.existingPackageResponse?.project_package || {};
+      const onboardingAnswers = packageData?.business_onboarding?.answers || {};
+      const combineOwnerText = (...values) => [...new Set(values
+        .map((value) => Array.isArray(value) ? value.join("；") : String(value || "").trim())
+        .filter(Boolean))]
+        .join("\n");
+      ownerCustomerOutcomeSummary.textContent = combineOwnerText(
+        onboardingAnswers.why_customer_buys,
+        state.flowLearning?.understanding?.why,
+        packageData?.brand_brain?.audience
+      ) || "还没有明确顾客痛点、想要结果与购买触发。";
+      ownerCompetitiveReasonSummary.textContent = combineOwnerText(
+        onboardingAnswers.why_it_works,
+        onboardingAnswers.why_trust_us,
+        onboardingAnswers.competitive_reasons
+      ) || "还没有明确 USP、市场比较与可追溯 Proof。";
+      ownerClosingPlanSummary.textContent = combineOwnerText(
+        onboardingAnswers.offer_to_order,
+        onboardingAnswers.objection_playbooks,
+        state.flowLearning?.understanding?.close,
+        onboardingAnswers.safety_boundary
+      ) || "还没有明确异议打法、下一成交动作与停止条件。";
+
+      const salesProcess = packageData?.sales_process || {};
+      const prePricePolicy = salesProcess?.pre_price_policy || {};
+      const postPricePolicy = salesProcess?.post_price_policy && typeof salesProcess.post_price_policy === "object"
+        ? salesProcess.post_price_policy
+        : {};
+      const prePriceConfidence = firstNonEmpty(
+        Array.isArray(prePricePolicy.confidence) ? prePricePolicy.confidence[0] : "",
+        onboardingAnswers.why_trust_us,
+        "已批准信心内容"
+      );
+      const postPriceConfidence = firstNonEmpty(
+        Array.isArray(postPricePolicy.proof) ? postPricePolicy.proof[0] : "",
+        prePriceConfidence
+      );
+      const postPriceCta = firstNonEmpty(postPricePolicy.cta, "已批准 CTA");
+      const postPriceUrgency = firstNonEmpty(
+        Array.isArray(postPricePolicy.urgency) ? postPricePolicy.urgency[0] : "",
+        "有真实活动和截止时间才使用 Urgency"
+      );
+      const postPricePackageChoice = firstNonEmpty(
+        postPricePolicy.package_choice,
+        postPricePolicy.package_choice_question,
+        "问顾客要哪一个真实配套"
+      );
+      ownerReplyContractSummary.textContent = [
+        `价格前：回答 → 信心：${prePriceConfidence} → 下一 Step`,
+        `价格后：回答 → 信心：${postPriceConfidence} → CTA：${postPriceCta} → ${postPriceUrgency} → ${postPricePackageChoice}`,
+        "持续推进：直到下单、顾客明确不要或必须转人工。"
+      ].join("\n");
+
       const voice = firstNonEmpty(
         state.flowLearning?.raw?.persona,
         state.flowLearning?.raw?.reply_persona,
@@ -6879,7 +7105,9 @@
         setupIntake.why_it_works ? `为什么有效：${setupIntake.why_it_works}` : "",
         setupIntake.why_customer_buys ? `顾客为什么买：${setupIntake.why_customer_buys}` : "",
         setupIntake.why_trust_us ? `信任依据：${setupIntake.why_trust_us}` : "",
+        setupIntake.competitive_reasons ? `市场比较：${setupIntake.competitive_reasons}` : "",
         setupIntake.offer_to_order ? `价格付款与下单：${setupIntake.offer_to_order}` : "",
+        setupIntake.objection_playbooks ? `异议成交打法：${setupIntake.objection_playbooks}` : "",
         setupIntake.safety_boundary ? `不能讲与转人工边界：${setupIntake.safety_boundary}` : ""
       ].map((item) => String(item || "").trim()).filter(Boolean).join("\n\n");
     }
@@ -7156,6 +7384,8 @@
             stage_key: "step_1",
             order: 1,
             purpose: "业务训练草稿；尚未连接 Flow",
+            success_when: "顾客当前问题已回答，并出现继续了解、询价或选择配套的信号。",
+            advance_when: "问题已回答后才可继续已配置的下一 Step；顾客下单、明确不要或需要转人工时停止推进。",
             flow_key: "step_1",
             next_stage_key: null,
             language: "zh-MY",
@@ -7163,6 +7393,9 @@
             active: true
           }],
           early_price_policy: "answer_now_and_enter_closer",
+          persistence_policy: {
+            keep_closing_until: ["order", "explicit_no", "handoff"]
+          },
           follow_up_policy: { owner: "channel", stop_on_customer_reply: true },
           automation_level: 1
         },
@@ -7904,7 +8137,7 @@
       const coverageText = mediaFound
         ? `图片 ${mediaRead}/${mediaFound}${mediaTruncated ? "，长文件已做视觉抽样" : ""}${failures.length ? `，${failures.length} 项失败` : ""}。`
         : "没有检测到图片。";
-      documentResult.textContent = `${fileName} 已进入当前项目学习草稿；文字 ${Number(localCoverage.text_characters || 0)} 字，${coverageText}${missing.length ? `仍缺：${missing.join("；")}` : "下一步确认 AI 理解。"}`;
+      documentResult.textContent = `${fileName} 已进入当前项目学习草稿；文字 ${Number(localCoverage.text_characters || 0)} 字，${coverageText}${missing.length ? `仍缺：${missing.join("；")}` : "下一步确认成交大脑。"}`;
       setDocumentStatus(
         failures.length || mediaTruncated
           ? "部分图片需确认"
@@ -8771,6 +9004,8 @@
           purpose: fields.purpose,
           entry_signal: fields.entry_signal,
           handoff_when: fields.handoff_when,
+          success_when: existing.success_when || reonboardingStageSuccess(index, salesPriceStage.value),
+          advance_when: existing.advance_when || reonboardingStageAdvance(),
           flow_key: existing.flow_key || stageKey,
           next_stage_key: index + 1 < cards.length ? `step_${index + 2}` : null,
           language: existing.language || "zh-MY",
@@ -8786,6 +9021,10 @@
         price_stage_key: salesPriceStage.value,
         stages,
         early_price_policy: currentProcess.early_price_policy || "answer_now_and_enter_closer",
+        persistence_policy: {
+          ...(currentProcess.persistence_policy || {}),
+          keep_closing_until: ["order", "explicit_no", "handoff"]
+        },
         post_price_policy: currentProcess.post_price_policy || "answer_new_question_without_repeating_proof_cta",
         follow_up_policy: { ...(currentProcess.follow_up_policy || {}), owner: "channel", stop_on_customer_reply: true },
         automation_level: Number(currentProcess.automation_level || 1)
@@ -9057,7 +9296,7 @@
         if (error.data?.tests || error.data?.blockers) {
           renderReplyContractMock(error.data);
         } else if (error.data?.error === "mock_test_current_draft_required") {
-          const message = "本次设置尚未保存成草稿。请先返回「确认 AI 理解」完成保存，再运行上线检查。";
+          const message = "本次设置尚未保存成草稿。请先返回「确认成交大脑」完成保存，再运行上线检查。";
           setReplyContractStatus(message, "bad");
           contentMockStatus.textContent = "请先完成上一步";
           contentMockStatus.className = "status bad";
@@ -10685,7 +10924,9 @@
         `Why it works: ${setupIntake.why_it_works || "-"}`,
         `Customer buying logic: ${setupIntake.why_customer_buys || "-"}`,
         `Trust / proof: ${setupIntake.why_trust_us || "-"}`,
+        `Competitive reasons: ${setupIntake.competitive_reasons || "-"}`,
         `Offer to order: ${setupIntake.offer_to_order || "-"}`,
+        `Objection playbooks: ${setupIntake.objection_playbooks || "-"}`,
         `Safety boundary: ${setupIntake.safety_boundary || "-"}`,
         `FAQ Google Docs: ${setupIntake.faq_google_doc_url || "-"}`,
         `Mode: approval-first`,
@@ -10817,7 +11058,7 @@
     }
 
     function isLongField(field) {
-      return field.type === "list" || /summary|audience|statement|answer|reply|approve|handoff|claim|auto_reply|business_|why_|offer_|safety_|source_notes|agent_goal|success_kpi/i.test(field.key || "");
+      return field.type === "list" || /summary|audience|statement|answer|reply|approve|handoff|claim|auto_reply|business_|why_|offer_|safety_|competitive_|objection_|source_notes|agent_goal|success_kpi/i.test(field.key || "");
     }
 
     function escapeHtml(value) {
