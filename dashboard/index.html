@@ -4213,6 +4213,74 @@
       font-weight: 950;
     }
 
+    .queue-loading-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(0,183,216,.18);
+      background: rgba(232,252,255,.86);
+      color: #31525a;
+    }
+
+    .queue-loading-status-copy {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .queue-loading-status strong {
+      color: #075e5f;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .queue-loading-status small {
+      color: #587078;
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .replypilot-loading-spinner {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      border: 3px solid rgba(0,183,216,.20);
+      border-top-color: #00a9c6;
+      border-radius: 999px;
+      animation: replypilot-loading-spin .8s linear infinite;
+    }
+
+    @keyframes replypilot-loading-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .replypilot-loading-spinner { animation: none; }
+    }
+
+    .case-loading-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: min(100%, 460px);
+      padding: 10px 12px;
+      border: 1px solid rgba(0,183,216,.24);
+      border-radius: 12px;
+      background: rgba(232,252,255,.92);
+      color: #31525a;
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .case-loading-indicator strong {
+      display: block;
+      color: #075e5f;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
     .staff-priority-strip {
       display: grid;
       grid-template-columns: auto repeat(4, minmax(0, 1fr));
@@ -9935,6 +10003,13 @@
         <div class="queue-sync-note hidden" id="queueSyncNote">
           <b>人工优先</b>
           <span>可搜索顾客名字或电话打开 Case；已收款/COD 确认后填金额点「确认收款 / COD」。</span>
+        </div>
+        <div class="queue-loading-status hidden" id="queueLoadingStatus" role="status" aria-live="polite" aria-atomic="true">
+          <span class="replypilot-loading-spinner" aria-hidden="true"></span>
+          <span class="queue-loading-status-copy">
+            <strong id="queueLoadingTitle">正在同步 Case…</strong>
+            <small id="queueLoadingMessage">完成后会自动更新</small>
+          </span>
         </div>
         <div class="staff-priority-strip hidden" id="staffPriorityStrip" aria-label="今日处理顺序"></div>
         <details class="queue-ops-disclosure hidden">
@@ -16644,6 +16719,29 @@
       render();
     }
 
+    function renderQueueLoadingStatus() {
+      const status = $("queueLoadingStatus");
+      if (!status) return;
+      const queueIsLoading = state.workspaceView === "cases" && (
+        state.loading
+        || state.refreshing
+        || state.queueClassificationRefreshing
+      );
+      status.classList.toggle("hidden", !queueIsLoading);
+      status.setAttribute("aria-hidden", queueIsLoading ? "false" : "true");
+      if (!queueIsLoading) return;
+      const initialLoad = state.loading && !state.cases.length;
+      const classificationLoad = state.queueClassificationRefreshing === true;
+      $("queueLoadingTitle").textContent = classificationLoad
+        ? "正在核对最新聊天…"
+        : initialLoad
+          ? "正在载入 Case…"
+          : "正在更新 Case…";
+      $("queueLoadingMessage").textContent = initialLoad
+        ? "读取最新状态，请稍候"
+        : "目前画面会保留，完成后自动更新";
+    }
+
 	    function canUseDemoMode() {
 	      const project = String(projectKeyEl.value || "").trim().toLowerCase();
 	      const explicitDemo = ["1", "true", "yes"].includes(String(params.get("demo") || "").toLowerCase());
@@ -18280,13 +18378,15 @@
       renderOwnerQaGuide(counts);
       renderQueueFreshnessAlert();
       renderChannelOutageAlert(all, counts);
+      renderQueueLoadingStatus();
       const useStaffSections = shouldUseStaffCaseSections();
       casesEl.classList.toggle("staff-sectioned", useStaffSections);
       const queueClassificationRefreshing = state.role === "staff"
         && state.workspaceView === "cases"
         && state.queueClassificationRefreshing === true;
       if (queueClassificationRefreshing) state.visibleCases = [];
-      casesEl.setAttribute("aria-busy", queueClassificationRefreshing ? "true" : "false");
+      const queueBusy = queueClassificationRefreshing || state.loading || state.refreshing;
+      casesEl.setAttribute("aria-busy", queueBusy ? "true" : "false");
       casesEl.innerHTML = queueClassificationRefreshing
         ? `<div class="box"><h3>正在核对 ChatDaddy 最新聊天</h3><p class="subtitle">核对完成前不会显示旧的待处理判断，也不需要逐张点开 Case。</p></div>`
         : useStaffSections
@@ -25628,6 +25728,10 @@
           : "";
         return `<div class="bubble ${klass}">${messageBubbleContentHtml(msg)}${cancelledLabel}${messageTime}</div>`;
 	  }).join("");
+      $("chatBox").setAttribute("aria-busy", state.loadingCaseDetailId === id ? "true" : "false");
+      if (state.loadingCaseDetailId === id) {
+        $("chatBox").insertAdjacentHTML("afterbegin", caseLoadingIndicatorHtml(true));
+      }
 
       $("panelWords").innerHTML = (item.word_cloud || []).map(localizedWord).filter(Boolean).map((word, index) => {
         return `<span class="word ${index === 0 ? "big" : index < 3 ? "mid" : "small"}">${escapeHtml(word)}</span>`;
@@ -25697,6 +25801,36 @@
       }
     }
 
+    function caseLoadingIndicatorHtml(background = false) {
+      return `
+        <div class="case-loading-indicator" id="caseLoadingIndicator" role="status" aria-live="polite">
+          <span class="replypilot-loading-spinner" aria-hidden="true"></span>
+          <span>
+            <strong>${background ? "正在同步最新对话…" : "正在读取对话…"}</strong>
+            ${background ? "先显示上次记录，完成后自动更新" : "请稍候"}
+          </span>
+        </div>
+      `;
+    }
+
+    function renderCaseDetailLoading(caseId = "", background = false) {
+      const id = String(caseId || "").trim();
+      const chat = $("chatBox");
+      const panelOpen = $("panel")?.classList.contains("open");
+      if (!chat || !panelOpen || String(state.active?.id || "") !== id) return;
+      chat.setAttribute("aria-busy", "true");
+      const existing = $("caseLoadingIndicator");
+      if (existing) existing.outerHTML = caseLoadingIndicatorHtml(background);
+      else chat.insertAdjacentHTML("afterbegin", caseLoadingIndicatorHtml(background));
+    }
+
+    function clearCaseDetailLoading(caseId = "") {
+      const id = String(caseId || "").trim();
+      if (id && String(state.active?.id || "") !== id) return;
+      $("caseLoadingIndicator")?.remove();
+      $("chatBox")?.setAttribute("aria-busy", "false");
+    }
+
     async function loadCaseDetailAndOpen(caseId, options = {}) {
       const id = String(caseId || "").trim();
       if (!id || (state.loadingCaseDetailId === id && state.caseDetailTargetId === id)) return;
@@ -25721,6 +25855,7 @@
         || state.cases.find((record) => String(record.id || "") === id)
         || null;
 	  const background = options.background === true;
+	  renderCaseDetailLoading(id, background);
 	  if (!background) showToast("正在打开 Case...");
       try {
         const detailUrl = `${api}/api/hermas/projects/${encodeURIComponent(project)}/cases/${encodeURIComponent(id)}`;
@@ -25777,7 +25912,10 @@
 	      showToast("找不到这张 Case；已用编号帮你搜索。");
 	    }
       } finally {
-        if (requestSeq === state.caseDetailRequestSeq) state.loadingCaseDetailId = "";
+        if (requestSeq === state.caseDetailRequestSeq) {
+          state.loadingCaseDetailId = "";
+          clearCaseDetailLoading(id);
+        }
       }
     }
 
