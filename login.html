@@ -370,6 +370,7 @@
   <script>
     const DEFAULT_API_URL = "https://ctg-chatdaddy-hermas-agents-runtime.jiazhen-theadspert.workers.dev";
     const LOGIN_TIMEOUT_MS = 12000;
+    const SESSION_STORAGE_KEY = "replypilot_session_token";
     const MASTER_ADMIN_LOGIN = "masteradmin";
     const MASTER_ADMIN_EMAIL = "masteradmin@ctg.local";
     const params = new URLSearchParams(window.location.search);
@@ -388,6 +389,7 @@
 
     localStorage.removeItem("agent_admin_token");
     localStorage.removeItem("agent_staff_token");
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
     localStorage.setItem("agent_api_url", apiUrl);
 
     function normalizeApiUrl(value) {
@@ -492,6 +494,8 @@
         };
 
         localStorage.setItem("agent_session", JSON.stringify(session));
+        const fallbackSessionToken = String(data.session?.fallback_token || "").trim();
+        if (fallbackSessionToken) sessionStorage.setItem(SESSION_STORAGE_KEY, fallbackSessionToken);
         localStorage.setItem("agent_project_key", session.projectKey);
         localStorage.setItem("agent_api_url", apiUrl);
         localStorage.removeItem("agent_admin_token");
