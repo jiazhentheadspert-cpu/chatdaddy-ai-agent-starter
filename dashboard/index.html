@@ -17254,6 +17254,7 @@
 	          original_ai_reply: originalAiReply,
 	          source: reply.model || "live_agent",
 	          ai_brain: item.ai_brain || item.decision?.ai_brain || null,
+	          draft_generation: item.draft_generation || item.decision?.draft_generation || null,
 	          source_refs: item.source_refs || item.decision?.source_refs || [],
 	          execution_plan: executionPlan,
 	          sales_context: salesContext,
@@ -25341,6 +25342,11 @@
 	function aiBrainPresentation(item = {}) {
 	  const decision = item.latest_decision || {};
 	  const brain = decision.ai_brain || item.ai_brain || item.raw_approval?.ai_brain || item.raw_approval?.decision?.ai_brain || {};
+	  const draftGeneration = decision.draft_generation
+	    || item.draft_generation
+	    || item.raw_approval?.draft_generation
+	    || item.raw_approval?.decision?.draft_generation
+	    || {};
 	  const refs = [
 	    ...(Array.isArray(decision.source_refs) ? decision.source_refs : []),
 	    ...(Array.isArray(item.raw_approval?.source_refs) ? item.raw_approval.source_refs : []),
@@ -25354,6 +25360,24 @@
 	  const model = String(brain.model || (used ? "OpenAI" : "") || "").trim();
 	  const error = String(brain.error || "").trim();
 	  const tierPresentation = aiBrainTierPresentation(tier);
+	  const draftMissing = ["failed", "missing", "missing_current_turn_decision"].includes(
+	    String(draftGeneration.status || "").toLowerCase()
+	  );
+
+	  if (draftMissing) {
+	    const failure = String(draftGeneration.error || error || "current_turn_ai_draft_missing").trim();
+	    return {
+	      tone: "failed",
+	      label: "AI 未生成",
+	      status: "这次顾客讯息没有可用的 AI 草稿",
+	      brainUsed: attempted ? "ChatGPT 有尝试，但没有产出可采用草稿" : "ChatGPT 尚未成功处理这次顾客讯息",
+	      level: tier ? `${tierPresentation.label}｜${tierPresentation.hint}` : "当前回合必须重新生成",
+	      model: model || "没有可用模型结果",
+	      mode: "不会复用旧 Case；不会自动发送",
+	      note: `请点「让 AI 重写」或由客服直接回复。原因：${failure}`,
+	      title: `这次顾客讯息没有生成可用草稿：${failure}。系统不会显示旧 Case 的答案，也不会自动发送或接 Flow。`,
+	    };
+	  }
 
 	  if (used) {
 	    const upgraded = tier === "terra" || tier === "sol" || /(?:^|[-_.])(?:gpt-5\.4|gpt-5\.6)(?!-mini)/i.test(model);
