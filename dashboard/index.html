@@ -3734,6 +3734,110 @@
       margin-bottom: 4px;
     }
 
+    .learning-effect-summary {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid rgba(0, 183, 160, .22);
+      border-radius: 16px;
+      background: rgba(239, 251, 249, .72);
+    }
+
+    .learning-effect-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .learning-effect-head b,
+    .learning-effect-head span {
+      display: block;
+    }
+
+    .learning-effect-head b {
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1.25;
+    }
+
+    .learning-effect-head span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.45;
+    }
+
+    .learning-effect-status {
+      flex: 0 0 auto;
+      border: 1px solid rgba(92, 112, 121, .24);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .9);
+      padding: 6px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .learning-effect-status[data-tone="good"] {
+      border-color: rgba(16, 185, 129, .28);
+      background: var(--soft-green);
+      color: var(--green-deep);
+    }
+
+    .learning-effect-status[data-tone="warn"] {
+      border-color: rgba(183, 121, 31, .28);
+      background: var(--soft-amber);
+      color: #8b5a15;
+    }
+
+    .learning-effect-status[data-tone="risk"] {
+      border-color: rgba(201, 74, 85, .26);
+      background: var(--soft-red);
+      color: var(--red);
+    }
+
+    .learning-effect-metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0;
+    }
+
+    .learning-effect-metric {
+      min-width: 0;
+      border: 1px solid rgba(214, 224, 223, .88);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .88);
+      padding: 10px;
+    }
+
+    .learning-effect-metric dt {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+
+    .learning-effect-metric dd {
+      margin: 4px 0 0;
+      color: var(--ink);
+      font-size: 19px;
+      font-weight: 950;
+      line-height: 1.15;
+    }
+
+    .learning-effect-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.5;
+    }
+
     .ops-card {
       position: relative;
       min-height: 148px;
@@ -8020,6 +8124,9 @@
       }
       .ops-command-main { min-height: 0; padding: 18px; }
       .ops-command-grid { grid-template-columns: 1fr; }
+      .learning-effect-head { display: grid; }
+      .learning-effect-status { justify-self: start; }
+      .learning-effect-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
       .qa-guide-head { display: grid; }
       .qa-guide-head small { text-align: left; }
@@ -10178,6 +10285,8 @@
     })();
   </script>
   <script>
+    const REPLYPILOT_SESSION_STORAGE_KEY = "replypilot_session_token";
+    const REPLYPILOT_SESSION_HEADER = "x-replypilot-session";
     const browserFetch = window.fetch.bind(window);
     window.fetch = (input, init = {}) => {
       const requestUrl = typeof input === "string" ? input : input?.url || "";
@@ -10298,6 +10407,9 @@
 	      qualityLiftRepairQueue: null,
 	      ownerDecisionDrafts: {},
 	      learningNotes: null,
+	      learningEffectiveness: null,
+	      learningEffectivenessLoading: false,
+	      learningEffectivenessError: "",
       pendingCaseId: null,
       deepLinkOpened: false,
       loadingCaseDetailId: "",
@@ -10853,7 +10965,7 @@
     $("logoutBtn").addEventListener("click", async () => {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       if (api && hasAccountSession()) {
-        await fetch(`${api}/api/auth/logout`, { method: "POST", headers: {}, credentials: "include" }).catch(() => null);
+        await fetch(`${api}/api/auth/logout`, authRequestOptions("", { method: "POST", headers: {} })).catch(() => null);
       }
       redirectToUnifiedLogin({ clearSession: true });
     });
@@ -11376,6 +11488,7 @@
         localStorage.removeItem("agent_session");
         localStorage.removeItem("agent_admin_token");
         localStorage.removeItem("agent_staff_token");
+        sessionStorage.removeItem(REPLYPILOT_SESSION_STORAGE_KEY);
         state.session = {};
       }
       window.location.replace(unifiedLoginUrl());
@@ -11670,7 +11783,7 @@
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       if (!api) return false;
       try {
-        const res = await fetch(`${api}/api/auth/session`, { headers: {}, credentials: "include" });
+        const res = await fetch(`${api}/api/auth/session`, authRequestOptions("", { headers: {} }));
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok || !data.authenticated || !data.user) {
           const authReason = String(data.error || data.reason || "");
@@ -12187,6 +12300,8 @@
         }).catch(() => null);
       } else if (state.workspaceView === "billing" && !state.demoMode && !state.usageSummaryLoading) {
         loadUsageSummary(adminTokenEl.value.trim(), { force: true }).catch(() => null);
+      } else if (state.workspaceView === "learning" && !state.demoMode && !state.learningEffectivenessLoading) {
+        loadLearningEffectiveness(adminTokenEl.value.trim(), { force: true }).catch(() => null);
       }
     }
 
@@ -15672,6 +15787,9 @@
           state.operatingActionQueue = null;
           state.qualityLiftRepairQueue = null;
           state.learningNotes = null;
+          state.learningEffectiveness = null;
+          state.learningEffectivenessLoading = false;
+          state.learningEffectivenessError = "";
           state.adsConnection = null;
           state.runtimeDelivery = null;
           state.metaCapiStatus = null;
@@ -16221,6 +16339,35 @@
       return dashboardQueueStatusForFilter(state.filter, state.role);
     }
 
+    async function loadLearningEffectiveness(token, options = {}) {
+      const api = apiUrlEl.value.trim().replace(/\/$/, "");
+      const project = projectKeyEl.value.trim() || "demo";
+      if (!api || state.role === "staff" || (!token && !hasAccountSession())) {
+        state.learningEffectiveness = null;
+        state.learningEffectivenessLoading = false;
+        state.learningEffectivenessError = "";
+        return null;
+      }
+      if (state.learningEffectivenessLoading && options.force !== true) return state.learningEffectiveness;
+      state.learningEffectivenessLoading = true;
+      state.learningEffectivenessError = "";
+      if (state.workspaceView === "learning") render();
+      try {
+        const endpoint = `${api}/api/hermas/projects/${encodeURIComponent(project)}/learning-effectiveness`;
+        const data = await fetchJsonSafe(endpoint, authRequestOptions(token));
+        if (!data?.ok) throw new Error("learning_effectiveness_unavailable");
+        state.learningEffectiveness = data;
+        return data;
+      } catch (error) {
+        state.learningEffectiveness = null;
+        state.learningEffectivenessError = String(error?.message || error || "learning_effectiveness_unavailable");
+        return null;
+      } finally {
+        state.learningEffectivenessLoading = false;
+        if (state.workspaceView === "learning") render();
+      }
+    }
+
     async function loadUsageSummary(token, options = {}) {
       const api = apiUrlEl.value.trim().replace(/\/$/, "");
       const project = projectKeyEl.value.trim() || "demo";
@@ -16302,16 +16449,20 @@
 	        state.operatingActionQueue = null;
 	        state.qualityLiftRepairQueue = null;
 	        state.learningNotes = null;
+	        state.learningEffectiveness = null;
+	        state.learningEffectivenessLoading = false;
+	        state.learningEffectivenessError = "";
 	        return;
 	      }
 	      const projectPath = `/api/hermas/projects/${encodeURIComponent(project)}`;
 	      const requestOptions = authRequestOptions(token);
-	      const [versions, quality, handoffLearning, ownerReviewWorkbench, learningNotes, signoffPacket, signoffAudit, dailyBrief, actionQueue, repairQueue] = await Promise.all([
+	      const [versions, quality, handoffLearning, ownerReviewWorkbench, learningNotes, learningEffectiveness, signoffPacket, signoffAudit, dailyBrief, actionQueue, repairQueue] = await Promise.all([
 	        fetchJsonSafe(`${api}${projectPath}/package/versions?limit=5`, requestOptions),
 	        fetchJsonSafe(`${api}${projectPath}/quality-review?limit=5&scan_limit=500&real_only=1`, requestOptions),
 	        fetchJsonSafe(`${api}${projectPath}/handoff-learning-review?limit=8&scan_limit=500&real_only=1`, requestOptions),
 	        fetchJsonSafe(`${api}${projectPath}/owner-review-workbench?limit=30&scan_limit=500&real_only=1`, requestOptions),
 	        fetchJsonSafe(`${api}${projectPath}/learning-notes?limit=6`, requestOptions),
+	        fetchJsonSafe(`${api}${projectPath}/learning-effectiveness`, requestOptions),
 	        fetchJsonSafe(`${api}${projectPath}/owner-decision-signoff-packet`, requestOptions),
 	        fetchJsonSafe(`${api}${projectPath}/owner-decision-signoff-audit`, requestOptions),
 	        fetchJsonSafe(`${api}${projectPath}/daily-operating-brief`, requestOptions),
@@ -16323,6 +16474,7 @@
 	      state.handoffLearningReview = handoffLearning?.ok ? handoffLearning : null;
 	      state.ownerReviewWorkbench = ownerReviewWorkbench?.ok ? ownerReviewWorkbench : null;
 	      state.learningNotes = learningNotes?.ok ? learningNotes : null;
+	      state.learningEffectiveness = learningEffectiveness?.ok ? learningEffectiveness : null;
 	      state.ownerDecisionSignoffPacket = signoffPacket?.ok ? signoffPacket : null;
 	      state.ownerDecisionSignoffAudit = signoffAudit?.ok ? signoffAudit : null;
 	      state.dailyOperatingBrief = dailyBrief?.ok ? dailyBrief : null;
@@ -16676,7 +16828,8 @@
     }
 
     function authHeaders(_token) {
-      return {};
+      const sessionToken = String(sessionStorage.getItem(REPLYPILOT_SESSION_STORAGE_KEY) || "").trim();
+      return sessionToken ? { [REPLYPILOT_SESSION_HEADER]: sessionToken } : {};
     }
 
     function authRequestOptions(token, options = {}) {
@@ -22427,28 +22580,145 @@
 	      return map[value] || value;
 	    }
 
+	    function learningEffectCount(value) {
+	      const count = Number(value);
+	      return Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+	    }
+
+	    function learningEffectSummary(effectiveness = {}) {
+	      const source = effectiveness && typeof effectiveness === "object" ? effectiveness : {};
+	      const summary = source.summary && typeof source.summary === "object" ? source.summary : {};
+	      const frameworks = Array.isArray(source.frameworks) ? source.frameworks : [];
+	      const referenced = learningEffectCount(summary.referenced_count);
+	      const sent = learningEffectCount(summary.confirmed_sent_count);
+	      const orders = frameworks.reduce((sum, item) => sum + learningEffectCount(item?.positive_outcomes?.order), 0);
+	      const paid = frameworks.reduce((sum, item) => sum + learningEffectCount(item?.positive_outcomes?.payment), 0);
+	      const explicitNo = frameworks.reduce((sum, item) => sum + learningEffectCount(item?.negative_outcomes?.explicit_no), 0);
+	      const complaint = frameworks.reduce((sum, item) => sum + learningEffectCount(item?.negative_outcomes?.complaint), 0);
+	      const positive = learningEffectCount(summary.associated_positive_outcomes);
+	      const negative = learningEffectCount(summary.associated_negative_outcomes);
+	      const awaiting = learningEffectCount(summary.awaiting_outcome);
+	      const usedFrameworks = frameworks.filter((item) => learningEffectCount(item?.confirmed_sent_count) > 0);
+	      const insufficientEvidence = usedFrameworks.length
+	        ? usedFrameworks.some((item) => String(item?.evidence_status || "").toLowerCase() === "insufficient"
+	          || learningEffectCount(item?.conversion_sample_size) < 3)
+	        : sent > 0 && sent < 3;
+	      const partial = String(source.status || "").toLowerCase() === "partial"
+	        || (Array.isArray(source.access_issues) && source.access_issues.length > 0);
+	      let status = "0 次已发送";
+	      let tone = "neutral";
+	      let outcomeState = "zero";
+	      let detail = referenced > 0
+	        ? "AI 曾参考这些话术，但客服还没有确认发出，因此不能算真实使用。"
+	        : "已学习话术还没有被客服确认发出。";
+	      if (partial) {
+	        status = "证据不完整";
+	        tone = "warn";
+	        outcomeState = "unknown";
+	        detail = "部分发送或结果记录暂时读不到；未知不能当成 0。";
+	      } else if (sent > 0 && positive > 0 && negative > 0) {
+	        status = "正负结果并存";
+	        tone = "warn";
+	        outcomeState = "mixed";
+	        detail = "同时有关联正向和负向结果，先按顾客情境复盘，再决定是否强化。";
+	      } else if (sent > 0 && negative > 0) {
+	        status = "有关联负向结果";
+	        tone = "risk";
+	        outcomeState = "negative";
+	        detail = "出现关联明确不买或投诉；先修话术，不要继续强化。";
+	      } else if (sent > 0 && positive > 0) {
+	        status = "有关联正向结果";
+	        tone = "good";
+	        outcomeState = "positive";
+	        detail = "出现关联下单或付款；这只是同一顾客旅程内的关联，不证明话术造成成交。";
+	      } else if (sent > 0) {
+	        status = "已发送，等待结果";
+	        tone = "warn";
+	        outcomeState = "awaiting";
+	        detail = "客服已确认发出，但顾客后续结果还没有回来。";
+	      }
+	      const evidenceLabel = partial
+	        ? "证据不完整"
+	        : sent === 0
+	          ? "尚无真实使用"
+	          : insufficientEvidence
+	            ? "资料不足"
+	            : "继续观察";
+	      return {
+	        available: source.ok === true,
+	        frameworkCount: learningEffectCount(summary.applied_framework_count),
+	        referenced,
+	        sent,
+	        orders,
+	        paid,
+	        explicitNo,
+	        complaint,
+	        awaiting,
+	        status,
+	        tone,
+	        outcomeState,
+	        evidenceLabel,
+	        detail,
+	      };
+	    }
+
+	    function learningEffectSummaryHtml(effectiveness = {}) {
+	      const effect = learningEffectSummary(effectiveness);
+	      const countText = effect.available ? String(effect.frameworkCount) : "—";
+	      const referencedText = effect.available ? String(effect.referenced) : "—";
+	      const sentText = effect.available ? String(effect.sent) : "—";
+	      const positiveText = effect.available ? `${effect.orders} / ${effect.paid}` : "— / —";
+	      const negativeText = effect.available ? `${effect.explicitNo} / ${effect.complaint}` : "— / —";
+	      const awaitingText = effect.available ? String(effect.awaiting) : "—";
+	      const availabilityLabel = state.learningEffectivenessLoading
+	        ? "读取中"
+	        : state.learningEffectivenessError
+	          ? "暂时读不到"
+	          : "尚未读取";
+	      return `
+	        <div class="learning-effect-summary" aria-label="已学习话术的真实使用" data-learning-effect-state="${escapeHtml(effect.outcomeState)}">
+	          <div class="learning-effect-head">
+	            <div>
+	              <b>已学习话术的真实使用</b>
+	              <span>${countText} 条已采用话术。AI 选中过只算被参考；只有客服确认发出才算已发送关联。</span>
+	            </div>
+	            <small class="learning-effect-status" data-tone="${escapeHtml(effect.tone)}">${escapeHtml(effect.available ? `${effect.status} · ${effect.evidenceLabel}` : availabilityLabel)}</small>
+	          </div>
+	          <dl class="learning-effect-metrics">
+	            <div class="learning-effect-metric"><dt>被参考</dt><dd>${referencedText}</dd></div>
+	            <div class="learning-effect-metric"><dt>已发送关联</dt><dd>${sentText}</dd></div>
+	            <div class="learning-effect-metric"><dt>关联下单 / 付款</dt><dd>${positiveText}</dd></div>
+	            <div class="learning-effect-metric"><dt>关联不买 / 投诉</dt><dd>${negativeText}</dd></div>
+	            <div class="learning-effect-metric"><dt>等待结果</dt><dd>${awaitingText}</dd></div>
+	          </dl>
+	          <p class="learning-effect-note">${escapeHtml(effect.available ? effect.detail : "真实使用资料尚未读取；不会把未知显示成 0。")} 不显示转化率，也不把被参考或仅生成建议算成已发送。</p>
+	        </div>
+	      `;
+	    }
+
 	    function learningNotesHtml() {
 	      if (state.role === "staff") return "";
 	      const notes = Array.isArray(state.learningNotes?.learning_notes) ? state.learningNotes.learning_notes : [];
 	      if (!notes.length) {
-	        if (!hasLearningBacklog()) return "";
 	        return `
 	          <section class="command-panel" data-owner-nav>
-	            <div class="command-kicker">学习记录</div>
-	            <strong class="command-title">还没有学习记录</strong>
-	            <p class="command-copy">现在只是复盘建议，还不代表 AI 已经学会。人工样本也要判：可学 / 要修 / 不学；Owner 只把可学或修正后的版本批准进业务脑。</p>
+	            <div class="command-kicker">Owner 学习审核</div>
+	            <strong class="command-title">还没有可评估的话术</strong>
+	            <p class="command-copy">客服回复成功并选择教 AI 后，Owner 批准采用；顾客后续下单、付款、明确不买或投诉才会成为效果证据。</p>
+	            ${learningEffectSummaryHtml(state.learningEffectiveness)}
 	            <div class="compact-list">
-	              ${compactRow("客服动作", "转人工回复处理完后，补人工最终回复", "待补")}
-	              ${compactRow("Owner 动作", "把有用样本记录优化或批准进业务脑", "审核")}
-	              ${compactRow("安全", "不会发送 WhatsApp，也不会开启自动", "Safe")}
+	              ${compactRow("客服", "发送成功后选择是否教 AI", "提交")}
+	              ${compactRow("Owner", "审核并采用正确回复框架", "批准")}
+	              ${compactRow("结果", "等顾客真实后续再强化或复盘", "证据")}
 	            </div>
 	          </section>
 	        `;
 	      }
 	      return `
 	        <section class="command-panel" data-owner-nav>
-	          <div class="command-kicker">待审核学习记录</div>
-	          <strong class="command-title">${notes.length} 条人工复盘候选</strong>
+	          <div class="command-kicker">Owner 学习审核</div>
+	          <strong class="command-title">${notes.length} 条最近学习记录</strong>
+	          ${learningEffectSummaryHtml(state.learningEffectiveness)}
 	          <div class="audit-list">
 	            ${notes.slice(0, 6).map((note) => {
 	              const candidate = note.data?.learning_candidate || {};
