@@ -3838,6 +3838,91 @@
       line-height: 1.5;
     }
 
+    .learning-effect-details {
+      border-top: 1px solid rgba(0, 183, 160, .16);
+      padding-top: 10px;
+    }
+
+    .learning-effect-details summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      list-style-position: inside;
+    }
+
+    .learning-effect-details summary small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 780;
+    }
+
+    .learning-effect-frameworks {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .learning-effect-framework {
+      display: grid;
+      gap: 8px;
+      border: 1px solid rgba(214, 224, 223, .88);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .88);
+      padding: 10px;
+    }
+
+    .learning-effect-framework-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .learning-effect-framework-head b {
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .learning-effect-framework-head small {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .learning-effect-framework-metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      margin: 0;
+    }
+
+    .learning-effect-framework-metrics div {
+      min-width: 0;
+    }
+
+    .learning-effect-framework-metrics dt {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 780;
+      line-height: 1.3;
+    }
+
+    .learning-effect-framework-metrics dd {
+      margin: 2px 0 0;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 920;
+      line-height: 1.2;
+    }
+
     .ops-card {
       position: relative;
       min-height: 148px;
@@ -5943,6 +6028,20 @@
       color: #a64242;
       font-size: 12px;
       font-weight: 850;
+    }
+
+    .bubble-time {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+      line-height: 1.35;
+      text-align: right;
+    }
+
+    .bubble.in .bubble-time {
+      text-align: left;
     }
 
     .bubble-text {
@@ -8127,6 +8226,9 @@
       .learning-effect-head { display: grid; }
       .learning-effect-status { justify-self: start; }
       .learning-effect-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .learning-effect-framework-head { display: grid; }
+      .learning-effect-framework-head small { justify-self: start; }
+      .learning-effect-framework-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .toolbar, .bulk-bar { align-items: stretch; flex-direction: column; }
       .qa-guide-head { display: grid; }
       .qa-guide-head small { text-align: left; }
@@ -22662,6 +22764,67 @@
 	      };
 	    }
 
+	    function learningEffectEvidenceStatusLabel(value = "") {
+	      const normalized = String(value || "").trim().toLowerCase();
+	      const labels = {
+	        sufficient: "继续观察",
+	        insufficient: "资料不足",
+	        partial: "证据不完整",
+	        none: "尚无证据",
+	      };
+	      return labels[normalized] || "状态未知";
+	    }
+
+	    function learningEffectFrameworkDetails(effectiveness = {}) {
+	      const source = effectiveness && typeof effectiveness === "object" ? effectiveness : {};
+	      const frameworks = Array.isArray(source.frameworks) ? source.frameworks : [];
+	      return frameworks.slice(0, 3).map((item, index) => {
+	        const title = String(
+	          item?.title
+	          || item?.framework_title
+	          || item?.name
+	          || `话术框架 ${index + 1}`
+	        ).trim();
+	        return {
+	          title: title || `话术框架 ${index + 1}`,
+	          referenced: learningEffectCount(item?.referenced_count),
+	          sent: learningEffectCount(item?.confirmed_sent_count),
+	          positive: learningEffectCount(item?.positive_outcomes?.total),
+	          negative: learningEffectCount(item?.negative_outcomes?.total),
+	          awaiting: learningEffectCount(item?.awaiting_outcome),
+	          evidenceStatus: String(item?.evidence_status || "").trim().toLowerCase(),
+	        };
+	      });
+	    }
+
+	    function learningEffectFrameworkDetailsHtml(effectiveness = {}) {
+	      if (state.role === "staff" || effectiveness?.ok !== true) return "";
+	      const frameworks = learningEffectFrameworkDetails(effectiveness);
+	      if (!frameworks.length) return "";
+	      return `
+	        <details class="learning-effect-details">
+	          <summary><span>查看话术明细</span><small>最多 3 条</small></summary>
+	          <div class="learning-effect-frameworks">
+	            ${frameworks.map((item) => `
+	              <article class="learning-effect-framework">
+	                <div class="learning-effect-framework-head">
+	                  <b>${escapeHtml(item.title)}</b>
+	                  <small>${escapeHtml(learningEffectEvidenceStatusLabel(item.evidenceStatus))}</small>
+	                </div>
+	                <dl class="learning-effect-framework-metrics">
+	                  <div><dt>被参考</dt><dd>${item.referenced}</dd></div>
+	                  <div><dt>已发送关联</dt><dd>${item.sent}</dd></div>
+	                  <div><dt>关联正向</dt><dd>${item.positive}</dd></div>
+	                  <div><dt>关联负向</dt><dd>${item.negative}</dd></div>
+	                  <div><dt>等待结果</dt><dd>${item.awaiting}</dd></div>
+	                </dl>
+	              </article>
+	            `).join("")}
+	          </div>
+	        </details>
+	      `;
+	    }
+
 	    function learningEffectSummaryHtml(effectiveness = {}) {
 	      const effect = learningEffectSummary(effectiveness);
 	      const countText = effect.available ? String(effect.frameworkCount) : "—";
@@ -22692,6 +22855,7 @@
 	            <div class="learning-effect-metric"><dt>等待结果</dt><dd>${awaitingText}</dd></div>
 	          </dl>
 	          <p class="learning-effect-note">${escapeHtml(effect.available ? effect.detail : "真实使用资料尚未读取；不会把未知显示成 0。")} 不显示转化率，也不把被参考或仅生成建议算成已发送。</p>
+	          ${learningEffectFrameworkDetailsHtml(effectiveness)}
 	        </div>
 	      `;
 	    }
@@ -25455,10 +25619,14 @@
         const cancelled = contextMessageWasCancelled(msg);
         const normalizedMessage = normalizeDashboardMessageDirection(msg);
         const klass = cancelled ? "cancelled" : normalizedMessage.direction === "outbound" ? "out" : "in";
+        const messageAt = firstContextText(msg.at, msg.message_at, msg.created_at, msg.timestamp);
+        const messageTime = messageAt
+          ? `<time class="bubble-time" datetime="${escapeHtml(messageAt)}">${escapeHtml(formatDate(messageAt))}</time>`
+          : "";
         const cancelledLabel = cancelled
           ? `<span class="bubble-state">未发送 · 顾客回复后 ChatDaddy 自动取消</span>`
           : "";
-        return `<div class="bubble ${klass}">${messageBubbleContentHtml(msg)}${cancelledLabel}</div>`;
+        return `<div class="bubble ${klass}">${messageBubbleContentHtml(msg)}${cancelledLabel}${messageTime}</div>`;
 	  }).join("");
 
       $("panelWords").innerHTML = (item.word_cloud || []).map(localizedWord).filter(Boolean).map((word, index) => {
